@@ -1,0 +1,18 @@
+name = "PiLL"
+version = "0.1.0"
+keywords = ["math"]
+defaultTargets = ["PiLL"]
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+autoImplicit = false
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
+[[lean_lib]]
+name = "PiLL"
