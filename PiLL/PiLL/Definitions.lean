@@ -14,18 +14,18 @@ deriving Repr, BEq, DecidableEq
 
 inductive Proc : Type where
   | send     : NonEmptyName → NonEmptyName → Proc → Proc -- x[y].P (output y on x and continue as P)
-  | sendₑ    : NonEmptyName → Proc → Proc                -- x[].P
   | receive  : NonEmptyName → NonEmptyName → Proc → Proc -- x(y).P (input y on x and continue as P)
-  | receiveₑ : NonEmptyName → Proc → Proc                -- x(y).P (input y on x and continue as P)
+  | one      : NonEmptyName → Proc → Proc                -- x[].P
+  | bot      : NonEmptyName → Proc → Proc                -- x(y).P
   | cut      : NonEmptyName → NonEmptyName → Proc → Proc -- 𝓋xy P (name restriction, or "cut")
   | par      : Proc → Proc → Proc                        -- parallel composition of two processes
   | nil      : Proc                                      -- terminated process
 deriving Repr
 
 notation:60 x "[" y "]" "." P => Proc.send x y P
-notation:60 x "[" "]" "." P => Proc.sendₑ x P
 notation:60 x "(" y ")" "." P => Proc.receive x y P
-notation:60 x "(" ")" "." P => Proc.receive x P
+notation:60 x "[" "]" "." P => Proc.one x P
+notation:60 x "(" ")" "." P => Proc.bot x P
 notation:60 "𝓋" "(" x ", " y ") " P => Proc.cut x y P
 infixr:55 " |ₚ " => Proc.par
 notation "𝟘" => Proc.nil
@@ -59,18 +59,17 @@ inductive Types : Type where
   | bot : Types                         -- ⊥ (empty send, unit for ⅋)
 deriving Repr, BEq, DecidableEq
 
+def neg : Types → Types
+| Types.send A B => Types.receive (neg A) (neg B)
+| Types.receive A B => Types.send (neg A) (neg B)
+| Types.one => Types.bot
+| Types.bot => Types.one
+| Types.term T => Types.term T.neg
+
 notation:60 A " ⊗ " B => Types.send A B
 notation:60 A " ⅋ " B => Types.receive A B
 notation "𝟙" => Types.one
 notation "⊥" => Types.bot
-
-def neg : Types → Types
-| A ⅋ B => (neg A) ⊗ (neg B)
-| A ⊗ B => (neg A) ⅋ (neg B)
-| 𝟙 => ⊥
-| ⊥ => 𝟙
-| Types.term T => Types.term T.neg
-
 notation:max "¬" A => neg A
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
@@ -87,14 +86,12 @@ abbrev Env := Finset (NonEmptyName × Types)
 
 abbrev EmptyEnv : Env := {}
 
-def extendEnv (Δ : Env) (x : NonEmptyName) (A : Types) : Env :=
-  Δ ∪ { (x, A) }
+-- def extendEnv (Δ : Env) (x : NonEmptyName) (A : Types) : Env :=
+--   Δ ∪ { (x, A) }
 
--- notation Δ " |ₓ " x " : " A => extendEnv Δ x A
-
-def Env.mk : List (NonEmptyName × Types) → Env --  Env.mk [(x,A), (y,B)]
-  | [] => EmptyEnv
-  | (x, A) :: xs => extendEnv (Env.mk xs) x A
+-- def Env.mk : List (NonEmptyName × Types) → Env --  Env.mk [(x, A), ...]
+--   | [] => EmptyEnv
+--   | (x, A) :: xs => extendEnv (Env.mk xs) x A
 
 def envLinearity (Δ : Env) : Prop :=
   (Δ.image Prod.fst).card = Δ.card
@@ -144,24 +141,20 @@ theorem mergeEnv.comm (Δ Γ : Env) : disjointEnv Δ Γ → mergeEnv Δ Γ = mer
 theorem mergeEnv.assoc (Δ Γ Ε : Env) : mergeEnv (mergeEnv Δ Γ) Ε = mergeEnv Δ (mergeEnv Γ Ε) := by
   simp [mergeEnv]
 
+def envFromPair (x : NonEmptyName) (A : Types) : Env :=
+  { (x, A) }
+
+infixr:70 " : " => envFromPair
+notation:50 Δ " |ₑ " Γ  => mergeEnv Δ Γ
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := Finset (Env)
 
 abbrev EmptyHyperEnv : HyperEnv := {}
 
--- def extendHyperEnv (𝒢 : HyperEnv) (Γ : Env) : HyperEnv :=
---   𝒢 ∪ { Γ }
-
--- notation 𝒢 " |ₓ " Δ => extendHyperEnv 𝒢 Δ
-
--- def parEnv (Δ Γ : Env) : HyperEnv :=
---   {Δ, Γ}
-
--- notation Δ " |ₑ " Γ => parEnv Δ Γ
-
--- adding coercion makes extending with env and merging the same
--- thus env | env => hyperenv is achieved implicitly
+-- Coercion makes extending a hyperenv with env and merging the same
+-- and env1 |ₕ env2 => hyperenv due to envs being lifted to hyperenv
 instance : Coe Env HyperEnv := ⟨fun Γ => {Γ}⟩
 
 def pairwise {α : Type} (r : α → α → Prop) (s : Finset α) : Prop :=
@@ -178,8 +171,6 @@ def getNamesInHyperEnv (𝒢 : HyperEnv) : Finset NonEmptyName :=
 noncomputable def hyperLookupTypeOf (𝒢 : HyperEnv) (x : NonEmptyName) : Option Types :=
   (𝒢.toList.find? (fun Δ => envLookupTypeOf Δ x ≠ none)) >>= fun Δ  => envLookupTypeOf Δ x
 
-notation 𝒢 "(" x ")" => hyperLookupTypeOf 𝒢 x
-
 def disjointHyperEnv (𝒢 ℋ : HyperEnv) : Prop :=
   -- 1. ensure both hyperenvs are lienar
   -- 2. ensure disjoint env names
@@ -193,8 +184,10 @@ def disjointHyperEnv (𝒢 ℋ : HyperEnv) : Prop :=
 
 -- Order independent equality for hyper-environments
 def hyperEnvEq (𝒢 ℋ : HyperEnv) : Prop :=
-  getNamesInHyperEnv 𝒢 = getNamesInHyperEnv ℋ ∧ -- all names defined must match across the hyperenvs
-  ∀ x ∈ getNamesInHyperEnv 𝒢, 𝒢(x) = ℋ(x)       -- ∀ the defined names their types must be the same
+  -- 𝒢 and ℋ must define the same names
+  getNamesInHyperEnv 𝒢 = getNamesInHyperEnv ℋ ∧
+  -- The typing of all defined names must match i.e. ∀ x, 𝒢(x) = ℋ(x)
+  ∀ x ∈ getNamesInHyperEnv 𝒢, hyperLookupTypeOf 𝒢 x = hyperLookupTypeOf ℋ x
 
 -- reflexivity
 theorem hyperEnvEq.refl (𝒢 : HyperEnv) : hyperEnvEq 𝒢 𝒢 := by
@@ -218,8 +211,8 @@ theorem hyperEnvEq.trans (𝒢 ℋ 𝒦 : HyperEnv) (h₁ : hyperEnvEq 𝒢 ℋ)
   · intro x hx
     have hxH : x ∈ getNamesInHyperEnv ℋ := by rw [← h₁_names]; exact hx
     calc
-      𝒢(x) = ℋ(x) := h₁_vals x hx
-      _    = 𝒦(x) := h₂_vals x hxH
+      hyperLookupTypeOf 𝒢 x = hyperLookupTypeOf ℋ x := h₁_vals x hx
+      _    = hyperLookupTypeOf 𝒦 x := h₂_vals x hxH
 
 instance : Equivalence hyperEnvEq :=
 ⟨hyperEnvEq.refl, @hyperEnvEq.symm, @hyperEnvEq.trans⟩
@@ -242,12 +235,9 @@ theorem mergeHyperEnv.assoc (𝒢 ℋ 𝒦 : HyperEnv) :
   mergeHyperEnv (mergeHyperEnv 𝒢 ℋ) 𝒦 = mergeHyperEnv 𝒢 (mergeHyperEnv ℋ 𝒦) := by
   simp [mergeHyperEnv]
 
-notation 𝒢 " |ₕ " ℋ => mergeHyperEnv 𝒢 ℋ
+notation 𝒢 "(" x ")" => hyperLookupTypeOf 𝒢 x
+notation 𝒢:60 " |ₕ " ℋ => mergeHyperEnv 𝒢 ℋ
 
-noncomputable def HyperFromPair (x : NonEmptyName) (A : Types) : HyperEnv :=
-  EmptyHyperEnv |ₕ Env.mk [(x, A)]
-
-notation x " : " A => HyperFromPair x A
 --------------------------------------- TYPING RULES ---------------------------------------
 
 -- Notation:
@@ -267,25 +257,22 @@ notation x " : " A => HyperFromPair x A
   -- ¬                  => logical negation as well as atom negation (duality)
   -- 𝒢(x)               => returns the typing of x in 𝒢
   -- ℋ |ₕ 𝒢 = 𝒢 |ₕ ℋ    => parallel composition of hyperenvs
+  -- Δ |ₕ Γ             => parallel composition of envs => hyperenv (coercions of env ↑ HyperEnv)
+  -- Δ |ₑ Γ             => merging Δ and Γ into a single env
+  -- x : A              => creates the singleton environment {(x, A)} where x is typed with a
 
 
 variable (𝒢 ℋ 𝒦 : HyperEnv) (Δ Γ Ε : Env) (P Q : Proc)
   (x y : NonEmptyName) (A B : Types)
 
--- inductive Typing : HyperEnv → Proc → Prop where
---   | mix₀    : Typing ∅ 𝟘
---   | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
---   | cut     : Typing (𝒢 |ₕ (Γ |ₕ x : A) |ₕ (Δ |ₕ y : ¬A)) P → Typing (𝒢 |ₕ (Γ |ₕ Δ)) (𝓋(x, y) P)
---   | send    : Typing ((Γ |ₕ y : A) |ₕ (Δ |ₕ x : B)) P → Typing (Γ |ₕ Δ |ₕ x : (A ⊗ B)) (x[y].P)
---   | sendₑ   : Typing ∅ P → Typing (x : 𝟙) (x[].P)
---   | receive : Typing (Γ |ₕ (y : A) |ₕ (y : A)) P → Typing ∅ P
-  -- | receive : Typing
-  -- | one     : Typing
-  -- | bot     : Typing
-
-
-
-
+inductive Typing : HyperEnv → Proc → Prop where
+  | mix₀    : Typing ∅ 𝟘
+  | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
+  | cut     : Typing (𝒢 |ₕ (Γ |ₑ x : A) |ₕ (Δ |ₑ y : ¬A)) P → Typing (𝒢 |ₕ Γ |ₕ Δ) (𝓋(x, y) P)
+  | send    : Typing ((Γ |ₑ y : A) |ₕ (Δ |ₑ x : B)) P → Typing (Γ |ₑ Δ |ₑ x : (A ⊗ B)) (x[y].P)
+  | one     : Typing ∅ P → Typing (x : 𝟙) (x[].P)
+  | receive : Typing (Γ |ₑ (y : A) |ₑ (x : B)) P → Typing (Γ |ₑ x : (A ⅋ B)) P
+  | bot     : Typing Γ P → Typing (Γ |ₑ x : ⊥) (x().P)
 
 
 inductive πLL : Type where
@@ -306,11 +293,16 @@ inductive πLL : Type where
     -- other things ??
 
 
--- TODO: Define dual operator s.t:
-  -- (𝐴 ⊗ 𝐵)^⊥ = 𝐴^⊥ ⅋ 𝐵^⊥
-  -- (𝐴 ⅋ 𝐵)^⊥ = 𝐴^⊥ ⊗ 𝐵^⊥
-  -- 1^⊥ = ⊥
-  -- ⊥^⊥ = 1
+
+-- TODO: Fix |ₕ binding tighter than |ₑ and :
+
+-- TODO: Fix "¬" usage as dual operator and define "⫠" postfix or some other operator
+
+-- TODO: rename receive to parr and send to tensor
+
+-- TODO: get comma operator to work as in the paper instead of |ₑ
+
+-- TODO: replace finset with AList and make canonical form to create commutivity, associativity, ...
 
 -- TODO: Add sidecondition to mix typing rule
 
@@ -338,6 +330,10 @@ inductive πLL : Type where
   -- par constructor to keep track of structure
   -- processes have a parallel composition keeping them distinct so shouldn't this also
   -- be the case for hyperenvironments
+
+-- In the cut rule for πMLL is the typing correct i.e. 𝒢 | Γ, x : A | Δ, y : ¬A becomes 𝒢 | Γ, Δ
+  -- i.e. is it correct that after the cut Γ and Δ merges into one environment?
+  -- Or should they stay parallel when merging into 𝒢 again?
 
 
 
