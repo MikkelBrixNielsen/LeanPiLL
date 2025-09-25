@@ -13,22 +13,14 @@ structure NonEmptyName where
 deriving Repr, BEq, DecidableEq
 
 inductive Proc : Type where
-  | send     : NonEmptyName → NonEmptyName → Proc → Proc -- x[y].P (output y on x and continue as P)
-  | receive  : NonEmptyName → NonEmptyName → Proc → Proc -- x(y).P (input y on x and continue as P)
+  | tensor   : NonEmptyName → NonEmptyName → Proc → Proc -- x[y].P (output y on x and continue as P)
+  | parr     : NonEmptyName → NonEmptyName → Proc → Proc -- x(y).P (input y on x and continue as P)
   | one      : NonEmptyName → Proc → Proc                -- x[].P
   | bot      : NonEmptyName → Proc → Proc                -- x(y).P
   | cut      : NonEmptyName → NonEmptyName → Proc → Proc -- 𝓋xy P (name restriction, or "cut")
   | par      : Proc → Proc → Proc                        -- parallel composition of two processes
   | nil      : Proc                                      -- terminated process
 deriving Repr
-
-notation:60 x "[" y "]" "." P => Proc.send x y P
-notation:60 x "(" y ")" "." P => Proc.receive x y P
-notation:60 x "[" "]" "." P => Proc.one x P
-notation:60 x "(" ")" "." P => Proc.bot x P
-notation:60 "𝓋" "(" x ", " y ") " P => Proc.cut x y P
-infixr:55 " |ₚ " => Proc.par
-notation "𝟘" => Proc.nil
 
 ------------------------------------------ TYPES  ------------------------------------------
 
@@ -53,24 +45,18 @@ def Atom.neg (a : Atom) : Atom :=
 
 inductive Types : Type where
   | term : Atom → Types                 -- named type, like A, B, ...
-  | send : Types → Types → Types        -- t₁ ⊗ t₂ (send)
-  | receive : Types → Types → Types     -- t₁ ⅋ t₂ (receive)
+  | tensor : Types → Types → Types        -- t₁ ⊗ t₂ (send)
+  | parr : Types → Types → Types     -- t₁ ⅋ t₂ (receive)
   | one : Types                         -- 𝟙 (empty output, unit for ⊗)
   | bot : Types                         -- ⊥ (empty send, unit for ⅋)
 deriving Repr, BEq, DecidableEq
 
 def neg : Types → Types
-| Types.send A B => Types.receive (neg A) (neg B)
-| Types.receive A B => Types.send (neg A) (neg B)
+| Types.tensor A B => Types.parr (neg A) (neg B)
+| Types.parr A B => Types.tensor (neg A) (neg B)
 | Types.one => Types.bot
 | Types.bot => Types.one
 | Types.term T => Types.term T.neg
-
-notation:60 A " ⊗ " B => Types.send A B
-notation:60 A " ⅋ " B => Types.receive A B
-notation "𝟙" => Types.one
-notation "⊥" => Types.bot
-notation:max "¬" A => neg A
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 
@@ -85,13 +71,6 @@ deriving Repr, BEq, DecidableEq
 abbrev Env := Finset (NonEmptyName × Types)
 
 abbrev EmptyEnv : Env := {}
-
--- def extendEnv (Δ : Env) (x : NonEmptyName) (A : Types) : Env :=
---   Δ ∪ { (x, A) }
-
--- def Env.mk : List (NonEmptyName × Types) → Env --  Env.mk [(x, A), ...]
---   | [] => EmptyEnv
---   | (x, A) :: xs => extendEnv (Env.mk xs) x A
 
 def envLinearity (Δ : Env) : Prop :=
   (Δ.image Prod.fst).card = Δ.card
@@ -143,9 +122,6 @@ theorem mergeEnv.assoc (Δ Γ Ε : Env) : mergeEnv (mergeEnv Δ Γ) Ε = mergeEn
 
 def envFromPair (x : NonEmptyName) (A : Types) : Env :=
   { (x, A) }
-
-infixr:70 " : " => envFromPair
-notation:50 Δ " |ₑ " Γ  => mergeEnv Δ Γ
 
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
@@ -235,8 +211,56 @@ theorem mergeHyperEnv.assoc (𝒢 ℋ 𝒦 : HyperEnv) :
   mergeHyperEnv (mergeHyperEnv 𝒢 ℋ) 𝒦 = mergeHyperEnv 𝒢 (mergeHyperEnv ℋ 𝒦) := by
   simp [mergeHyperEnv]
 
+----------------------------------------- NOTATION -----------------------------------------
+/- PROC -/
+notation:60 x "[" y "]" "." P => Proc.tensor x y P
+notation:60 x "(" y ")" "." P => Proc.parr x y P
+notation:60 x "[" "]" "." P => Proc.one x P
+notation:60 x "(" ")" "." P => Proc.bot x P
+notation:60 "𝓋" "(" x ", " y ") " P => Proc.cut x y P
+infixr:55 " |ₚ " => Proc.par
+notation "𝟘" => Proc.nil
+
+/- TYPING -/
+notation:60 A " ⊗ " B => Types.tensor A B
+notation:60 A " ⅋ " B => Types.parr A B
+notation "𝟙" => Types.one
+notation "⊥" => Types.bot
+notation:max "¬" A => neg A
+
+/- ENV -/
+syntax envItem := term          -- existing env or binding
+syntax envBind := term " : " term
+syntax envList := sepBy1((envItem <|> envBind), ", ")
+syntax envExpr := envList
+
+-- -----------------------------
+-- Macro to fold comma chains
+-- -----------------------------
+open Lean Macro in
+macro_rules
+  | `($x:term : $A:term) => `(envFromPair $x $A)
+  | `($xs:envList) => do
+    let mut result ←
+      match xs.elems[0] with
+      | `( $x:term : $A:term ) => `(envFromPair $x $A)
+      | stx                     => pure stx
+    for i in [1:xs.elems.size] do
+      let stx := xs.elems[i]
+      let env ← match stx with
+        | `( $x:term : $A:term ) => `(envFromPair $x $A)
+        | other                  => pure other
+      result ← `(mergeEnv $result $env)
+    return result
+
+variable (Δ : Env) (x y : NonEmptyName) (A B : Types)
+
+
+
+/- HYPERENV -/
 notation 𝒢 "(" x ")" => hyperLookupTypeOf 𝒢 x
 notation 𝒢:60 " |ₕ " ℋ => mergeHyperEnv 𝒢 ℋ
+
 
 --------------------------------------- TYPING RULES ---------------------------------------
 
@@ -265,14 +289,14 @@ notation 𝒢:60 " |ₕ " ℋ => mergeHyperEnv 𝒢 ℋ
 variable (𝒢 ℋ 𝒦 : HyperEnv) (Δ Γ Ε : Env) (P Q : Proc)
   (x y : NonEmptyName) (A B : Types)
 
-inductive Typing : HyperEnv → Proc → Prop where
-  | mix₀    : Typing ∅ 𝟘
-  | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
-  | cut     : Typing (𝒢 |ₕ (Γ |ₑ x : A) |ₕ (Δ |ₑ y : ¬A)) P → Typing (𝒢 |ₕ Γ |ₕ Δ) (𝓋(x, y) P)
-  | send    : Typing ((Γ |ₑ y : A) |ₕ (Δ |ₑ x : B)) P → Typing (Γ |ₑ Δ |ₑ x : (A ⊗ B)) (x[y].P)
-  | one     : Typing ∅ P → Typing (x : 𝟙) (x[].P)
-  | receive : Typing (Γ |ₑ (y : A) |ₑ (x : B)) P → Typing (Γ |ₑ x : (A ⅋ B)) P
-  | bot     : Typing Γ P → Typing (Γ |ₑ x : ⊥) (x().P)
+-- inductive Typing : HyperEnv → Proc → Prop where
+--   | mix₀    : Typing ∅ 𝟘
+--   | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
+--   | cut     : Typing (𝒢 |ₕ (Γ |ₑ x : A) |ₕ (Δ |ₑ y : ¬A)) P → Typing (𝒢 |ₕ Γ |ₕ Δ) (𝓋(x, y) P)
+--   | tensor    : Typing ((Γ |ₑ y : A) |ₕ (Δ |ₑ x : B)) P → Typing (Γ |ₑ Δ |ₑ x : (A ⊗ B)) (x[y].P)
+--   | one     : Typing ∅ P → Typing (x : 𝟙) (x[].P)
+--   | parr : Typing (Γ |ₑ (y : A) |ₑ (x : B)) P → Typing (Γ |ₑ x : (A ⅋ B)) P
+--   | bot     : Typing Γ P → Typing (Γ |ₑ x : ⊥) (x().P)
 
 
 inductive πLL : Type where
@@ -288,17 +312,12 @@ inductive πLL : Type where
 
 
 ------------------------------------------ TODOs  ------------------------------------------
--- Test that what has been defined works as inteded
-    -- hyper- / env composition
-    -- other things ??
 
 
 
 -- TODO: Fix |ₕ binding tighter than |ₑ and :
 
 -- TODO: Fix "¬" usage as dual operator and define "⫠" postfix or some other operator
-
--- TODO: rename receive to parr and send to tensor
 
 -- TODO: get comma operator to work as in the paper instead of |ₑ
 
