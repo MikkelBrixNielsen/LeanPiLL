@@ -305,7 +305,7 @@ inductive πLL : Type where
 
 
 
-    -- "⊢" Proc.nil "∷" ∅
+    -- "⊢" Proc.nil " : " ∅
 
 
 
@@ -314,14 +314,16 @@ inductive πLL : Type where
 ------------------------------------------ TODOs  ------------------------------------------
 
 
+-- TODO: get comma operator to work as in the paper instead of |ₑ
 
 -- TODO: Fix |ₕ binding tighter than |ₑ and :
 
 -- TODO: Fix "¬" usage as dual operator and define "⫠" postfix or some other operator
 
--- TODO: get comma operator to work as in the paper instead of |ₑ
 
 -- TODO: replace finset with AList and make canonical form to create commutivity, associativity, ...
+
+-- TODO: make a smart constructor for hyper-environments for less boiler plate?
 
 -- TODO: Add sidecondition to mix typing rule
 
@@ -330,13 +332,9 @@ inductive πLL : Type where
   -- Hyper-environments can only contain one occurence of an environment name
   -- i.e. typing rules should enforce linearity
 
--- TODO: make pretty notation for typing rules
-
 -- TODO: define πLL transition rules (LTS) using pretty notation
 
 -- TODO: define wellformedness for hyper-environments
-
--- TODO: make a smart constructor for hyper-environments for less boiler plate?
 
 
 ------------ Questions ------------
