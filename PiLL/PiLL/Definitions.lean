@@ -72,6 +72,9 @@ abbrev Env := Finset (NonEmptyName × Types)
 
 abbrev EmptyEnv : Env := {}
 
+def Env.mk (x : NonEmptyName) (A : Types) : Env :=
+  {(x, A)}
+
 def envLinearity (Δ : Env) : Prop :=
   (Δ.image Prod.fst).card = Δ.card
 
@@ -217,7 +220,8 @@ notation:60 x "[" y "]" "." P => Proc.tensor x y P
 notation:60 x "(" y ")" "." P => Proc.parr x y P
 notation:60 x "[" "]" "." P => Proc.one x P
 notation:60 x "(" ")" "." P => Proc.bot x P
-notation:60 "𝓋" "(" x ", " y ") " P => Proc.cut x y P
+notation:60 "𝓋(" x ", " y ")." P => Proc.cut x y P
+variable (x y : NonEmptyName) (P : Proc)
 infixr:55 " |ₚ " => Proc.par
 notation "𝟘" => Proc.nil
 
@@ -229,33 +233,8 @@ notation "⊥" => Types.bot
 notation:max "¬" A => neg A
 
 /- ENV -/
-syntax envItem := term          -- existing env or binding
-syntax envBind := term " : " term
-syntax envList := sepBy1((envItem <|> envBind), ", ")
-syntax envExpr := envList
-
--- -----------------------------
--- Macro to fold comma chains
--- -----------------------------
-open Lean Macro in
-macro_rules
-  | `($x:term : $A:term) => `(envFromPair $x $A)
-  | `($xs:envList) => do
-    let mut result ←
-      match xs.elems[0] with
-      | `( $x:term : $A:term ) => `(envFromPair $x $A)
-      | stx                     => pure stx
-    for i in [1:xs.elems.size] do
-      let stx := xs.elems[i]
-      let env ← match stx with
-        | `( $x:term : $A:term ) => `(envFromPair $x $A)
-        | other                  => pure other
-      result ← `(mergeEnv $result $env)
-    return result
-
-variable (Δ : Env) (x y : NonEmptyName) (A B : Types)
-
-
+notation x " : " A => Env.mk x A
+notation Γ " , " Δ => mergeEnv Γ Δ
 
 /- HYPERENV -/
 notation 𝒢 "(" x ")" => hyperLookupTypeOf 𝒢 x
@@ -285,19 +264,28 @@ notation 𝒢:60 " |ₕ " ℋ => mergeHyperEnv 𝒢 ℋ
   -- Δ |ₑ Γ             => merging Δ and Γ into a single env
   -- x : A              => creates the singleton environment {(x, A)} where x is typed with a
 
-
 variable (𝒢 ℋ 𝒦 : HyperEnv) (Δ Γ Ε : Env) (P Q : Proc)
   (x y : NonEmptyName) (A B : Types)
 
--- inductive Typing : HyperEnv → Proc → Prop where
---   | mix₀    : Typing ∅ 𝟘
---   | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
---   | cut     : Typing (𝒢 |ₕ (Γ |ₑ x : A) |ₕ (Δ |ₑ y : ¬A)) P → Typing (𝒢 |ₕ Γ |ₕ Δ) (𝓋(x, y) P)
---   | tensor    : Typing ((Γ |ₑ y : A) |ₕ (Δ |ₑ x : B)) P → Typing (Γ |ₑ Δ |ₑ x : (A ⊗ B)) (x[y].P)
---   | one     : Typing ∅ P → Typing (x : 𝟙) (x[].P)
---   | parr : Typing (Γ |ₑ (y : A) |ₑ (x : B)) P → Typing (Γ |ₑ x : (A ⅋ B)) P
---   | bot     : Typing Γ P → Typing (Γ |ₑ x : ⊥) (x().P)
+inductive Typing : HyperEnv → Proc → Prop where
+  -- | mix₀    : Typing ∅ 𝟘
+  -- | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
+  -- | cut     : Typing (𝒢 |ₕ (Γ, x : A) |ₕ (Δ,  y : ¬A)) P → Typing (𝒢 |ₕ Γ |ₕ Δ) (Proc.cut x y P) -- FIXME
+  -- | tensor  : Typing ((Γ, y : A) |ₕ (Δ, x : B)) P → Typing (Γ, Δ, x : (A ⊗ B)) (x[y].P)
+  -- | one     : Typing ∅ P → Typing (x : 𝟙) (x[].P)
+  -- | parr    : Typing (Γ, (y : A), (x : B)) P → Typing (Γ, x : (A ⅋ B)) (Proc.parr x y P) -- FIXME
+  -- | bot     : Typing Γ P → Typing (Γ, x : ⊥) (Proc.bot x P) -- FIXME
 
+  | mix₀    : Typing ∅ 𝟘
+  | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (mergeHyperEnv 𝒢 ℋ) (Proc.par P Q)
+  | cut     : Typing (𝒢 |ₕ (Γ, x : A) |ₕ (Δ,  y : ¬A)) P
+    → Typing (mergeHyperEnv 𝒢 (mergeHyperEnv Γ Δ)) (Proc.cut x y P)
+  | tensor  : Typing (mergeHyperEnv (mergeEnv Γ (Env.mk y A)) (mergeEnv Δ (Env.mk x B))) P
+    → Typing (mergeEnv Γ (mergeEnv Δ (Env.mk x (A ⊗ B)))) (Proc.tensor x y P)
+  | one     : Typing ∅ P → Typing (x : 𝟙) (Proc.one x P)
+  | parr    : Typing (mergeEnv Γ (mergeEnv (Env.mk y A) (Env.mk x B))) P
+    → Typing (mergeEnv Γ (Env.mk x (A ⅋ B))) (Proc.parr x y P)
+  | bot     : Typing Γ P → Typing (mergeEnv Γ (Env.mk x ⊥)) (Proc.bot x P)
 
 inductive πLL : Type where
   | sorry
@@ -305,7 +293,6 @@ inductive πLL : Type where
 
 
 
-    -- "⊢" Proc.nil " : " ∅
 
 
 
@@ -313,8 +300,9 @@ inductive πLL : Type where
 
 ------------------------------------------ TODOs  ------------------------------------------
 
+-- TODO: Proc.cut syntax not working
 
--- TODO: get comma operator to work as in the paper instead of |ₑ
+-- TODO: Fix comma operator needing ()-encapsulation
 
 -- TODO: Fix |ₕ binding tighter than |ₑ and :
 
