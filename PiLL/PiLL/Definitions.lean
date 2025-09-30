@@ -45,8 +45,8 @@ def Atom.neg (a : Atom) : Atom :=
 
 inductive Types : Type where
   | term : Atom → Types                 -- named type, like A, B, ...
-  | tensor : Types → Types → Types        -- t₁ ⊗ t₂ (send)
-  | parr : Types → Types → Types     -- t₁ ⅋ t₂ (receive)
+  | tensor : Types → Types → Types      -- t₁ ⊗ t₂ (send)
+  | parr : Types → Types → Types        -- t₁ ⅋ t₂ (receive)
   | one : Types                         -- 𝟙 (empty output, unit for ⊗)
   | bot : Types                         -- ⊥ (empty send, unit for ⅋)
 deriving Repr, BEq, DecidableEq
@@ -215,105 +215,109 @@ theorem mergeHyperEnv.assoc (𝒢 ℋ 𝒦 : HyperEnv) :
   simp [mergeHyperEnv]
 
 ----------------------------------------- NOTATION -----------------------------------------
+
 /- PROC -/
-notation:60 x "[" y "]" "." P => Proc.tensor x y P
-notation:60 x "(" y ")" "." P => Proc.parr x y P
-notation:60 x "[" "]" "." P => Proc.one x P
-notation:60 x "(" ")" "." P => Proc.bot x P
-notation:60 "𝓋(" x ", " y ")." P => Proc.cut x y P
-variable (x y : NonEmptyName) (P : Proc)
+notation:60 x "⟦" y "⟧" "." P => Proc.tensor x y P
+notation:60 x "⟦" "⟧" "." P => Proc.one x P
+notation:60 x "⸨" y "⸩" "." P => Proc.parr x y P
+notation:60 x "⸨" "⸩" "." P => Proc.bot x P
+notation:60 "𝑣" "⸨" x ", " y "⸩" "." P => Proc.cut x y P
 infixr:55 " |ₚ " => Proc.par
 notation "𝟘" => Proc.nil
 
 /- TYPING -/
-notation:60 A " ⊗ " B => Types.tensor A B
-notation:60 A " ⅋ " B => Types.parr A B
-notation "𝟙" => Types.one
-notation "⊥" => Types.bot
-notation:max "¬" A => neg A
+infixr:95 " ⊗ " => Types.tensor
+infixr:95 " ⅋ " => Types.parr
+notation:100 "𝟙" => Types.one
+notation:100 "⊥" => Types.bot
+notation:max A "ᗮ" => neg A
 
 /- ENV -/
-notation x " : " A => Env.mk x A
-notation Γ " , " Δ => mergeEnv Γ Δ
+infixr:90 " ∶ " => Env.mk
+infixr:85 "‚ " => mergeEnv
 
 /- HYPERENV -/
-notation 𝒢 "(" x ")" => hyperLookupTypeOf 𝒢 x
-notation 𝒢:60 " |ₕ " ℋ => mergeHyperEnv 𝒢 ℋ
-
+notation:60 𝒢 "⸨" x "⸩" => hyperLookupTypeOf 𝒢 x
+infixr:55 " |ₕ " => mergeHyperEnv
 
 --------------------------------------- TYPING RULES ---------------------------------------
-
--- Notation:
-  -- x[y].P             => send y on x and continue as P
-  -- x[].P              => send empty message on x and continue as P
-  -- x(y).P             => receive y on x and continue as P
-  -- x().P              => receive empty message on x and continue as P
-  -- 𝓋(x, y) P          => name restriction or cut open comm channel x-y
-  -- P |ₚ Q              => Parallel composition of process P and Q
-  -- 𝟘                  => The terminated process
-  -- ∅                  => Empty env / hyperenv depending on context
-  -- A ⊗ B             => send A and continue as B
-  -- A ⅋ B             => receive A and continue as B
-  -- x : A              => the name x typed with A
-  -- 𝟙                  => empty output unit for send (⊗)
-  -- ⊥                  => empty output unit for receive (⅋)
-  -- ¬                  => logical negation as well as atom negation (duality)
-  -- 𝒢(x)               => returns the typing of x in 𝒢
-  -- ℋ |ₕ 𝒢 = 𝒢 |ₕ ℋ    => parallel composition of hyperenvs
-  -- Δ |ₕ Γ             => parallel composition of envs => hyperenv (coercions of env ↑ HyperEnv)
-  -- Δ |ₑ Γ             => merging Δ and Γ into a single env
-  -- x : A              => creates the singleton environment {(x, A)} where x is typed with a
 
 variable (𝒢 ℋ 𝒦 : HyperEnv) (Δ Γ Ε : Env) (P Q : Proc)
   (x y : NonEmptyName) (A B : Types)
 
 inductive Typing : HyperEnv → Proc → Prop where
   -- | mix₀    : Typing ∅ 𝟘
-  -- | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
-  -- | cut     : Typing (𝒢 |ₕ (Γ, x : A) |ₕ (Δ,  y : ¬A)) P → Typing (𝒢 |ₕ Γ |ₕ Δ) (Proc.cut x y P) -- FIXME
-  -- | tensor  : Typing ((Γ, y : A) |ₕ (Δ, x : B)) P → Typing (Γ, Δ, x : (A ⊗ B)) (x[y].P)
-  -- | one     : Typing ∅ P → Typing (x : 𝟙) (x[].P)
-  -- | parr    : Typing (Γ, (y : A), (x : B)) P → Typing (Γ, x : (A ⅋ B)) (Proc.parr x y P) -- FIXME
-  -- | bot     : Typing Γ P → Typing (Γ, x : ⊥) (Proc.bot x P) -- FIXME
+  -- | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (mergeHyperEnv 𝒢 ℋ) (Proc.par P Q)
+  -- | cut     : Typing (mergeHyperEnv 𝒢
+  --                     (mergeHyperEnv
+  --                       (mergeEnv Γ (Env.mk x A))
+  --                       (mergeEnv Δ (Env.mk y (neg A))))
+  --                   ) P
+  --                   → Typing (mergeHyperEnv 𝒢 (mergeEnv Γ Δ)) (Proc.cut x y P)
+  -- | tensor  : Typing (mergeHyperEnv
+  --                     (mergeEnv Γ (Env.mk y A))
+  --                     (mergeEnv Δ (Env.mk x B))) P
+  --                     → Typing (mergeEnv
+  --                       Γ
+  --                       (mergeEnv Δ (Env.mk x (Types.tensor A B)))
+  --                     ) (Proc.tensor x y P)
+  -- | one     : Typing ∅ P → Typing (Env.mk x Types.one) (Proc.one x P)
+  -- | parr    : Typing (mergeEnv Γ (mergeEnv (Env.mk y A) (Env.mk x B))) P
+  --                   → Typing (mergeEnv Γ (Env.mk x (Types.parr A B))) (Proc.parr x y P)
+  -- | bot     : Typing Γ P → Typing (mergeEnv Γ (Env.mk x Types.bot)) (Proc.bot x P)
 
-  | mix₀    : Typing ∅ 𝟘
-  | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (mergeHyperEnv 𝒢 ℋ) (Proc.par P Q)
-  | cut     : Typing (𝒢 |ₕ (Γ, x : A) |ₕ (Δ,  y : ¬A)) P
-    → Typing (mergeHyperEnv 𝒢 (mergeHyperEnv Γ Δ)) (Proc.cut x y P)
-  | tensor  : Typing (mergeHyperEnv (mergeEnv Γ (Env.mk y A)) (mergeEnv Δ (Env.mk x B))) P
-    → Typing (mergeEnv Γ (mergeEnv Δ (Env.mk x (A ⊗ B)))) (Proc.tensor x y P)
-  | one     : Typing ∅ P → Typing (x : 𝟙) (Proc.one x P)
-  | parr    : Typing (mergeEnv Γ (mergeEnv (Env.mk y A) (Env.mk x B))) P
-    → Typing (mergeEnv Γ (Env.mk x (A ⅋ B))) (Proc.parr x y P)
-  | bot     : Typing Γ P → Typing (mergeEnv Γ (Env.mk x ⊥)) (Proc.bot x P)
+  | mix₀ :
+    Typing ∅ 𝟘
+
+  | mix :
+    Typing 𝒢 P → Typing ℋ Q →
+    --------------------------
+     Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
+
+  | cut :
+    Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P →
+    ---------------------------------------
+         Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩.P)
+
+  | tensor :
+    Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
+    ---------------------------------
+    Typing (Γ‚ Δ‚ x ∶ A ⊗ B) (x⟦y⟧.P)
+
+  | one :
+        Typing ∅ P →
+    --------------------
+    Typing (x ∶ 𝟙) (x⟦⟧.P)
+
+  | parr :
+     Typing (Γ‚ y ∶ A‚ x ∶ B) P →
+    -----------------------------
+    Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩.P)
+
+  | bot :
+          Typing Γ P →
+    ------------------------
+    Typing (Γ‚ x ∶ ⊥) (x⸨⸩.P)
+
 
 inductive πLL : Type where
   | sorry
 
 
 
-
-
-
-
-
-
 ------------------------------------------ TODOs  ------------------------------------------
-
--- TODO: Proc.cut syntax not working
 
 -- TODO: Fix comma operator needing ()-encapsulation
 
--- TODO: Fix |ₕ binding tighter than |ₑ and :
+-- TODO: Fix |ₕ binding tighter than , and :
 
--- TODO: Fix "¬" usage as dual operator and define "⫠" postfix or some other operator
-
+-- TODO: Fix "¬" usage as dual operator and define "⫠" or "⟂" postfix or some other operator
+  -- The latter might be too close to "⊥"
+  -- Adapt the way dual currently works to be more like the one on github for CLL
 
 -- TODO: replace finset with AList and make canonical form to create commutivity, associativity, ...
 
 -- TODO: make a smart constructor for hyper-environments for less boiler plate?
-
--- TODO: Add sidecondition to mix typing rule
 
 -- TODO: define typing rules with side condition enforcing
   -- Environments can only contain one occurence of a process name
