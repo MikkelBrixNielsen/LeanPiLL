@@ -26,7 +26,7 @@ deriving Repr
 
 structure NonEmptyTypes where
   val : String
-  restriction : Bool := val ≠ " " && val.all Char.isUpper || val = "∅" -- FIXME: Make prop??
+  restriction : Bool := val ≠ " " && val.all Char.isUpper || val = "∅"
 deriving Repr, BEq, DecidableEq
 
 def NonEmptyTypes.mkAuto (s : String) : NonEmptyTypes :=
@@ -123,9 +123,6 @@ theorem mergeEnv.comm (Δ Γ : Env) : disjointEnv Δ Γ → mergeEnv Δ Γ = mer
 theorem mergeEnv.assoc (Δ Γ Ε : Env) : mergeEnv (mergeEnv Δ Γ) Ε = mergeEnv Δ (mergeEnv Γ Ε) := by
   simp [mergeEnv]
 
-def envFromPair (x : NonEmptyName) (A : Types) : Env :=
-  { (x, A) }
-
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := Finset (Env)
@@ -217,13 +214,13 @@ theorem mergeHyperEnv.assoc (𝒢 ℋ 𝒦 : HyperEnv) :
 ----------------------------------------- NOTATION -----------------------------------------
 
 /- PROC -/
-notation:60 x "⟦" y "⟧" "." P => Proc.tensor x y P
-notation:60 x "⟦" "⟧" "." P => Proc.one x P
-notation:60 x "⸨" y "⸩" "." P => Proc.parr x y P
-notation:60 x "⸨" "⸩" "." P => Proc.bot x P
-notation:60 "𝑣" "⸨" x ", " y "⸩" "." P => Proc.cut x y P
-infixr:55 " |ₚ " => Proc.par
+notation:80 x "⟦" y "⟧" "." P => Proc.tensor x y P
+notation:80 x "⟦" "⟧" "." P => Proc.one x P
+notation:80 x "⸨" y "⸩" "." P => Proc.parr x y P
+notation:80 x "⸨" "⸩" "." P => Proc.bot x P
+notation:15 "𝑣" "⸨" x ", " y "⸩" P => Proc.cut x y P
 notation "𝟘" => Proc.nil
+infixr:20 " |ₚ " => Proc.par
 
 /- TYPING -/
 infixr:95 " ⊗ " => Types.tensor
@@ -242,89 +239,106 @@ infixr:55 " |ₕ " => mergeHyperEnv
 
 --------------------------------------- TYPING RULES ---------------------------------------
 
-variable (𝒢 ℋ 𝒦 : HyperEnv) (Δ Γ Ε : Env) (P Q : Proc)
-  (x y : NonEmptyName) (A B : Types)
-
 inductive Typing : HyperEnv → Proc → Prop where
-  -- | mix₀    : Typing ∅ 𝟘
-  -- | mix     : Typing 𝒢 P → Typing ℋ Q → Typing (mergeHyperEnv 𝒢 ℋ) (Proc.par P Q)
-  -- | cut     : Typing (mergeHyperEnv 𝒢
-  --                     (mergeHyperEnv
-  --                       (mergeEnv Γ (Env.mk x A))
-  --                       (mergeEnv Δ (Env.mk y (neg A))))
-  --                   ) P
-  --                   → Typing (mergeHyperEnv 𝒢 (mergeEnv Γ Δ)) (Proc.cut x y P)
-  -- | tensor  : Typing (mergeHyperEnv
-  --                     (mergeEnv Γ (Env.mk y A))
-  --                     (mergeEnv Δ (Env.mk x B))) P
-  --                     → Typing (mergeEnv
-  --                       Γ
-  --                       (mergeEnv Δ (Env.mk x (Types.tensor A B)))
-  --                     ) (Proc.tensor x y P)
-  -- | one     : Typing ∅ P → Typing (Env.mk x Types.one) (Proc.one x P)
-  -- | parr    : Typing (mergeEnv Γ (mergeEnv (Env.mk y A) (Env.mk x B))) P
-  --                   → Typing (mergeEnv Γ (Env.mk x (Types.parr A B))) (Proc.parr x y P)
-  -- | bot     : Typing Γ P → Typing (mergeEnv Γ (Env.mk x Types.bot)) (Proc.bot x P)
-
   | mix₀ :
+    ----------
     Typing ∅ 𝟘
 
-  | mix :
+  | mix (𝒢 ℋ : HyperEnv) (P Q : Proc) :
     Typing 𝒢 P → Typing ℋ Q →
     --------------------------
      Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
 
-  | cut :
+  | cut (𝒢 ℋ : HyperEnv) (Γ Δ : Env) (P Q : Proc) (x y : NonEmptyName) (A : Types) :
     Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P →
     ---------------------------------------
-         Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩.P)
+        Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩ P)
 
-  | tensor :
+  | tensor (Γ Δ : Env) (P : Proc) (x y : NonEmptyName) (A B : Types) :
     Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
     ---------------------------------
     Typing (Γ‚ Δ‚ x ∶ A ⊗ B) (x⟦y⟧.P)
 
-  | one :
+  | one (P : Proc) (x : NonEmptyName) :
         Typing ∅ P →
     --------------------
     Typing (x ∶ 𝟙) (x⟦⟧.P)
 
-  | parr :
+  | parr (Γ Δ : Env) (P : Proc) (x y : NonEmptyName) (A B : Types) :
      Typing (Γ‚ y ∶ A‚ x ∶ B) P →
     -----------------------------
     Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩.P)
 
-  | bot :
+  | bot (Γ : Env) (P : Proc) (x : NonEmptyName) :
           Typing Γ P →
     ------------------------
     Typing (Γ‚ x ∶ ⊥) (x⸨⸩.P)
 
+notation:60 "⊢ " P " ∷ " T => Typing T P
 
-inductive πLL : Type where
-  | sorry
+example : ⊢ 𝟘 ∷ ∅ := by
+  apply Typing.mix₀
+
+example (x : NonEmptyName) : ⊢ x⟦⟧.𝟘 ∷ x ∶ 𝟙 := by
+  apply Typing.one
+  apply Typing.mix₀
+
+example (x y : NonEmptyName) : ⊢ y⸨⸩.x⟦⟧.𝟘 ∷ x ∶ 𝟙‚ y ∶ ⊥ := by
+  apply Typing.bot
+  apply Typing.one
+  apply Typing.mix₀
+
+example : ⊢ 𝟘 |ₚ 𝟘 ∷ ∅ |ₕ ∅ := by
+  apply Typing.mix
+  repeat apply Typing.mix₀
+
+example (x y : NonEmptyName) : ⊢ (x⟦⟧.𝟘) |ₚ (y⟦⟧.𝟘) ∷ x ∶ 𝟙 |ₕ y ∶ 𝟙 := by
+  apply Typing.mix
+  all_goals simp [Typing.one, Typing.mix₀]
+
+example (x x₁ y y₁ : NonEmptyName) : ⊢ (x⸨⸩.x₁⟦⟧.𝟘) |ₚ (y⸨⸩.y₁⟦⟧.𝟘) ∷
+  x₁ ∶ 𝟙‚ x ∶ ⊥ |ₕ y₁ ∶ 𝟙‚ y ∶ ⊥ := by
+  apply Typing.mix
+  all_goals simp [Typing.bot, Typing.one, Typing.mix₀]
+
+example (x y z : NonEmptyName) : ⊢ Proc.par (Proc.one x Proc.nil) (Proc.bot y (Proc.one z Proc.nil)) ∷
+  x ∶ 𝟙 |ₕ z ∶ 𝟙‚ y ∶ ⊥ := by
+    apply Typing.mix
+    · apply Typing.one
+      apply Typing.mix₀
+    · apply Typing.bot
+      apply Typing.one
+      exact Typing.mix₀
+
+-- TODO: Figure out how to use cut
+
+
+-- TODO: Get Latch_xyz example to work
+-- example (x x₁ x₂ y y₁ y₂ z : NonEmptyName) :
+--   ⊢ 𝑣⸨x₁, x₂⸩ (𝑣⸨y₁, y₂⸩ ((x⸨⸩.x₁⟦⟧.𝟘) |ₚ (y⸨⸩.y₁⟦⟧.𝟘) |ₚ (x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘))) ∷
+--     z ∶ 𝟙 := by
+
+
+
+-- inductive πLL : Type where
+--   | sorry
 
 
 
 ------------------------------------------ TODOs  ------------------------------------------
 
--- TODO: Fix comma operator needing ()-encapsulation
-
--- TODO: Fix |ₕ binding tighter than , and :
-
--- TODO: Fix "¬" usage as dual operator and define "⫠" or "⟂" postfix or some other operator
-  -- The latter might be too close to "⊥"
-  -- Adapt the way dual currently works to be more like the one on github for CLL
-
--- TODO: replace finset with AList and make canonical form to create commutivity, associativity, ...
-
--- TODO: make a smart constructor for hyper-environments for less boiler plate?
+-- TODO: Check that typing rules work and that syntax binds in the way it should
 
 -- TODO: define typing rules with side condition enforcing
   -- Environments can only contain one occurence of a process name
   -- Hyper-environments can only contain one occurence of an environment name
   -- i.e. typing rules should enforce linearity
 
+-- TODO: replace finset with AList and make canonical form to create commutivity, associativity, ...
+
 -- TODO: define πLL transition rules (LTS) using pretty notation
+
+-- TODO: make a smart constructor for hyper-environments for less boiler plate?
 
 -- TODO: define wellformedness for hyper-environments
 
