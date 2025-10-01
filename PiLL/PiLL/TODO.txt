@@ -1,0 +1,54 @@
+------------------------------------------ TODOs  ------------------------------------------
+
+-- TODO: define typing rules 
+
+-- TODO: Check that typing rules work and that syntax binds in the way it should
+
+-- TODO: Check how typings bind and try and get it to match what the rules expect
+
+-- TODO: Make names and typing appear in reverse order to match typing rules
+    => x().z[].0 :: z : one, x : bot
+    -- Should reduce the amount of rw used
+
+
+-- TODO: Add side conditiosn to typing rules enforcing
+    -- Environments can only contain one occurence of a process name
+    -- Hyper-environments can only contain one occurence of an environment name
+    -- i.e. typing rules should enforce linearity
+
+-- TODO: replace finset with AList and make canonical form to create commutivity, associativity, ...
+
+-- TODO: define πLL transition rules (LTS) using pretty notation
+
+-- TODO: make a smart constructor for hyper-environments for less boiler plate?
+
+-- TODO: define wellformedness for hyper-environments
+
+
+------------ Questions ------------
+-- Is it the typing rules which ensure that a single name cannot be used by multiple environments
+-- Otherwise how is 𝒢(x) supposed to be defined
+-- Is it correctly understood that typing rules ensure name linearity in environments
+
+-- How should hyperenvs be defined
+    -- just a bag of envs no structure
+    -- par constructor to keep track of structure
+    -- processes have a parallel composition keeping them distinct so shouldn't this also
+    -- be the case for hyperenvironments
+
+-- In the cut rule for πMLL is the typing correct i.e. 𝒢 | Γ, x : A | Δ, y : ¬A becomes 𝒢 | Γ, Δ
+    -- i.e. is it correct that after the cut Γ and Δ merges into one environment?
+    -- Or should they stay parallel when merging into 𝒢 again?
+
+
+
+
+------------ Might be irrelevant ------------
+-- TODO: use env_linearity to ensure insertions / appends to an env's data are unique entries
+-- TODO: use hyper_linearity to ensure insertions / appends to an hyperenv's data are unique entries
+
+
+----------------------------------------- NOTES -----------------------------------------
+-- Linearity on hypersets should be enforced through typing rules and should make it impossible
+-- to define multiple instances of the same name across different environments s.t. 𝒢(x) is un-
+-- ambigous.

@@ -92,14 +92,17 @@ def envEq (Δ Γ : Env) : Prop :=
   ∀ x : (NonEmptyName), envLookupTypeOf Δ x = envLookupTypeOf Γ x
 
 -- Eq reflexivity
+@[simp]
 theorem envEq.refl (Δ : Env) : envEq Δ Δ :=
   fun _ => rfl
 
 -- Eq symmetry
+@[simp]
 theorem envEq.symm (Δ Γ : Env) (h : envEq Δ Γ) : envEq Γ Δ :=
   fun x => (h x).symm
 
 -- Eq transitivity
+@[simp]
 theorem envEq.trans (Δ Γ Ε : Env) (h₁ : envEq Δ Γ) (h₂ : envEq Γ Ε) : envEq Δ Ε :=
   fun x => Eq.trans (h₁ x) (h₂ x)
 
@@ -109,17 +112,23 @@ instance : Equivalence envEq :=
 def mergeEnv (Δ Γ : Env) : Env := Δ ∪ Γ
 
 -- identity
+@[simp]
 theorem mergeEnv.unitR (Δ : Env) : mergeEnv Δ EmptyEnv = Δ := by
   simp [mergeEnv]
 
+@[simp]
 theorem mergeEnv.unitL (Δ : Env) : mergeEnv EmptyEnv Δ = Δ := by
   simp [mergeEnv]
 
 -- commutivity
-theorem mergeEnv.comm (Δ Γ : Env) : disjointEnv Δ Γ → mergeEnv Δ Γ = mergeEnv Δ Γ:= by
-  simp
+-- theorem mergeEnv.comm (Δ Γ : Env) : disjointEnv Δ Γ → mergeEnv Δ Γ = mergeEnv Γ Δ := by
+@[simp]
+theorem mergeEnv.comm (Δ Γ : Env) : mergeEnv Δ Γ = mergeEnv Γ Δ := by
+  simp [mergeEnv]
+  simp [Finset.union_comm]
 
 -- associativity
+@[simp]
 theorem mergeEnv.assoc (Δ Γ Ε : Env) : mergeEnv (mergeEnv Δ Γ) Ε = mergeEnv Δ (mergeEnv Γ Ε) := by
   simp [mergeEnv]
 
@@ -166,10 +175,12 @@ def hyperEnvEq (𝒢 ℋ : HyperEnv) : Prop :=
   ∀ x ∈ getNamesInHyperEnv 𝒢, hyperLookupTypeOf 𝒢 x = hyperLookupTypeOf ℋ x
 
 -- reflexivity
+@[simp]
 theorem hyperEnvEq.refl (𝒢 : HyperEnv) : hyperEnvEq 𝒢 𝒢 := by
   simp [hyperEnvEq]
 
 -- symmetry
+@[simp]
 theorem hyperEnvEq.symm (𝒢 ℋ : HyperEnv) (h : hyperEnvEq 𝒢 ℋ) : hyperEnvEq ℋ 𝒢 := by
   rcases h with ⟨h_names, h_vals⟩
   refine ⟨h_names.symm, ?vals⟩
@@ -178,6 +189,7 @@ theorem hyperEnvEq.symm (𝒢 ℋ : HyperEnv) (h : hyperEnvEq 𝒢 ℋ) : hyperE
   apply (h_vals x hx).symm
 
 -- transitivity
+@[simp]
 theorem hyperEnvEq.trans (𝒢 ℋ 𝒦 : HyperEnv) (h₁ : hyperEnvEq 𝒢 ℋ) (h₂ : hyperEnvEq ℋ 𝒦) :
   hyperEnvEq 𝒢 𝒦 := by
   rcases h₁ with ⟨h₁_names, h₁_vals⟩
@@ -196,17 +208,21 @@ instance : Equivalence hyperEnvEq :=
 noncomputable def mergeHyperEnv (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ∪ ℋ
 
 -- identity
+@[simp]
 theorem mergeHyperEnv.unitL (𝒢 : HyperEnv) : mergeHyperEnv EmptyHyperEnv 𝒢 = 𝒢 := by
   simp [mergeHyperEnv]
 
+@[simp]
 theorem mergeHyperEnv.unitR (𝒢 : HyperEnv) : mergeHyperEnv 𝒢 EmptyHyperEnv = 𝒢 := by
   simp [mergeHyperEnv]
 
 -- commutative
+@[simp]
 theorem mergeHyperEnv.comm (𝒢 ℋ : HyperEnv) : mergeHyperEnv 𝒢 ℋ = mergeHyperEnv ℋ 𝒢 := by
   simp [mergeHyperEnv, Finset.union_comm]
 
 -- associativity
+@[simp]
 theorem mergeHyperEnv.assoc (𝒢 ℋ 𝒦 : HyperEnv) :
   mergeHyperEnv (mergeHyperEnv 𝒢 ℋ) 𝒦 = mergeHyperEnv 𝒢 (mergeHyperEnv ℋ 𝒦) := by
   simp [mergeHyperEnv]
@@ -214,13 +230,13 @@ theorem mergeHyperEnv.assoc (𝒢 ℋ 𝒦 : HyperEnv) :
 ----------------------------------------- NOTATION -----------------------------------------
 
 /- PROC -/
-notation:80 x "⟦" y "⟧" "." P => Proc.tensor x y P
-notation:80 x "⟦" "⟧" "." P => Proc.one x P
-notation:80 x "⸨" y "⸩" "." P => Proc.parr x y P
-notation:80 x "⸨" "⸩" "." P => Proc.bot x P
-notation:15 "𝑣" "⸨" x ", " y "⸩" P => Proc.cut x y P
+notation:80 x "⟦" y "⟧" "." P:80 => Proc.tensor x y P
+notation:80 x "⟦" "⟧" "." P:80 => Proc.one x P
+notation:80 x "⸨" y "⸩" "." P:80 => Proc.parr x y P
+notation:80 x "⸨" "⸩" "." P:80 => Proc.bot x P
+notation:60 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
 notation "𝟘" => Proc.nil
-infixr:20 " |ₚ " => Proc.par
+infixr:65 " |ₚ " => Proc.par
 
 /- TYPING -/
 infixr:95 " ⊗ " => Types.tensor
@@ -249,7 +265,7 @@ inductive Typing : HyperEnv → Proc → Prop where
     --------------------------
      Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
 
-  | cut (𝒢 ℋ : HyperEnv) (Γ Δ : Env) (P Q : Proc) (x y : NonEmptyName) (A : Types) :
+  | cut (𝒢 : HyperEnv) (Γ Δ : Env) (P : Proc) (x y : NonEmptyName) (A : Types) :
     Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P →
     ---------------------------------------
         Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩ P)
@@ -264,7 +280,7 @@ inductive Typing : HyperEnv → Proc → Prop where
     --------------------
     Typing (x ∶ 𝟙) (x⟦⟧.P)
 
-  | parr (Γ Δ : Env) (P : Proc) (x y : NonEmptyName) (A B : Types) :
+  | parr (Γ : Env) (P : Proc) (x y : NonEmptyName) (A B : Types) :
      Typing (Γ‚ y ∶ A‚ x ∶ B) P →
     -----------------------------
     Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩.P)
@@ -274,99 +290,48 @@ inductive Typing : HyperEnv → Proc → Prop where
     ------------------------
     Typing (Γ‚ x ∶ ⊥) (x⸨⸩.P)
 
-notation:60 "⊢ " P " ∷ " T => Typing T P
+notation:50 "⊢ " P " ∷ " T => Typing T P
 
-example : ⊢ 𝟘 ∷ ∅ := by
-  apply Typing.mix₀
+variable (x y z : NonEmptyName)
+set_option pp.notation false in -- disable pretty print
+#check Proc.cut x y (Proc.par (Proc.one x 𝟘) (Proc.bot y (Proc.one z 𝟘)))
+set_option pp.notation false in -- disable pretty print
+#check 𝑣⸨x , y⸩ x⟦⟧.𝟘 |ₚ y⸨⸩.z⟦⟧.𝟘
 
-example (x : NonEmptyName) : ⊢ x⟦⟧.𝟘 ∷ x ∶ 𝟙 := by
-  apply Typing.one
-  apply Typing.mix₀
-
-example (x y : NonEmptyName) : ⊢ y⸨⸩.x⟦⟧.𝟘 ∷ x ∶ 𝟙‚ y ∶ ⊥ := by
-  apply Typing.bot
-  apply Typing.one
-  apply Typing.mix₀
-
-example : ⊢ 𝟘 |ₚ 𝟘 ∷ ∅ |ₕ ∅ := by
+example (x y z : NonEmptyName) : ⊢ 𝑣⸨x , y⸩ x⟦⟧.𝟘 |ₚ y⸨⸩.z⟦⟧.𝟘 ∷ ∅ |ₕ ∅ |ₕ z ∶ 𝟙 := by
+  apply Typing.cut ∅ ∅ (z ∶ 𝟙) _ _ _ (𝟙)
+  rw [mergeHyperEnv.unitL]
   apply Typing.mix
-  repeat apply Typing.mix₀
+  · apply Typing.one
+    exact Typing.mix₀
+  · apply Typing.bot
+    apply Typing.one
+    exact Typing.mix₀
 
-example (x y : NonEmptyName) : ⊢ (x⟦⟧.𝟘) |ₚ (y⟦⟧.𝟘) ∷ x ∶ 𝟙 |ₕ y ∶ 𝟙 := by
+-- Latch_xyz example from main.pdf
+-- TODO: Try and use simp more, try and omit giving explicit types to cut,
+--       in general try minimizing things given to cut
+example (x x₁ x₂ y y₁ y₂ z : NonEmptyName) :
+  ⊢ 𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘 ∷
+    x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 𝟙 := by
+  apply Typing.cut ∅ (x ∶ ⊥) (y ∶ ⊥‚ z ∶ 𝟙) _ _ _ (𝟙)
+  rw [mergeHyperEnv.unitL, mergeEnv.comm]
+  conv => lhs ; rhs ; rhs ; rw [mergeEnv.assoc]
+  apply Typing.cut (x₁ ∶ 𝟙‚ x ∶ ⊥) (y ∶ ⊥) _ _ _ _ (𝟙)
   apply Typing.mix
-  all_goals simp [Typing.one, Typing.mix₀]
-
-example (x x₁ y y₁ : NonEmptyName) : ⊢ (x⸨⸩.x₁⟦⟧.𝟘) |ₚ (y⸨⸩.y₁⟦⟧.𝟘) ∷
-  x₁ ∶ 𝟙‚ x ∶ ⊥ |ₕ y₁ ∶ 𝟙‚ y ∶ ⊥ := by
-  apply Typing.mix
-  all_goals simp [Typing.bot, Typing.one, Typing.mix₀]
-
-example (x y z : NonEmptyName) : ⊢ Proc.par (Proc.one x Proc.nil) (Proc.bot y (Proc.one z Proc.nil)) ∷
-  x ∶ 𝟙 |ₕ z ∶ 𝟙‚ y ∶ ⊥ := by
-    apply Typing.mix
-    · apply Typing.one
-      apply Typing.mix₀
-    · apply Typing.bot
+  · apply Typing.bot
+    apply Typing.one
+    exact Typing.mix₀
+  · apply Typing.mix
+    · rw [mergeEnv.comm]
+      apply Typing.bot
+      apply Typing.one
+      exact Typing.mix₀
+    · conv => lhs ; rhs ; rw [mergeEnv.comm, ←mergeEnv.assoc] ; lhs ; rw [mergeEnv.comm]
+      apply Typing.bot
+      apply Typing.bot
       apply Typing.one
       exact Typing.mix₀
 
--- TODO: Figure out how to use cut
-
-
--- TODO: Get Latch_xyz example to work
--- example (x x₁ x₂ y y₁ y₂ z : NonEmptyName) :
---   ⊢ 𝑣⸨x₁, x₂⸩ (𝑣⸨y₁, y₂⸩ ((x⸨⸩.x₁⟦⟧.𝟘) |ₚ (y⸨⸩.y₁⟦⟧.𝟘) |ₚ (x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘))) ∷
---     z ∶ 𝟙 := by
-
-
-
 -- inductive πLL : Type where
 --   | sorry
-
-
-
------------------------------------------- TODOs  ------------------------------------------
-
--- TODO: Check that typing rules work and that syntax binds in the way it should
-
--- TODO: define typing rules with side condition enforcing
-  -- Environments can only contain one occurence of a process name
-  -- Hyper-environments can only contain one occurence of an environment name
-  -- i.e. typing rules should enforce linearity
-
--- TODO: replace finset with AList and make canonical form to create commutivity, associativity, ...
-
--- TODO: define πLL transition rules (LTS) using pretty notation
-
--- TODO: make a smart constructor for hyper-environments for less boiler plate?
-
--- TODO: define wellformedness for hyper-environments
-
-
------------- Questions ------------
--- Is it the typing rules which ensure that a single name cannot be used by multiple environments
--- Otherwise how is 𝒢(x) supposed to be defined
--- Is it correctly understood that typing rules ensure name linearity in environments
-
--- How should hyperenvs be defined
-  -- just a bag of envs no structure
-  -- par constructor to keep track of structure
-  -- processes have a parallel composition keeping them distinct so shouldn't this also
-  -- be the case for hyperenvironments
-
--- In the cut rule for πMLL is the typing correct i.e. 𝒢 | Γ, x : A | Δ, y : ¬A becomes 𝒢 | Γ, Δ
-  -- i.e. is it correct that after the cut Γ and Δ merges into one environment?
-  -- Or should they stay parallel when merging into 𝒢 again?
-
-
-
-
------------- Might be irrelevant ------------
--- TODO: use env_linearity to ensure insertions / appends to an env's data are unique entries
--- TODO: use hyper_linearity to ensure insertions / appends to an hyperenv's data are unique entries
-
-
------------------------------------------ NOTES -----------------------------------------
--- Linearity on hypersets should be enforced through typing rules and should make it impossible
--- to define multiple instances of the same name across different environments s.t. 𝒢(x) is un-
--- ambigous.
