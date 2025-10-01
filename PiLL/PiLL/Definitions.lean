@@ -314,10 +314,10 @@ example (x y z : NonEmptyName) : ⊢ 𝑣⸨x , y⸩ x⟦⟧.𝟘 |ₚ y⸨⸩.z
 example (x x₁ x₂ y y₁ y₂ z : NonEmptyName) :
   ⊢ 𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘 ∷
     x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 𝟙 := by
-  apply Typing.cut ∅ (x ∶ ⊥) (y ∶ ⊥‚ z ∶ 𝟙) _ _ _ (𝟙)
+  apply Typing.cut ∅ _ _ _ _ _ (𝟙)
   rw [mergeHyperEnv.unitL, mergeEnv.comm]
   conv => lhs ; rhs ; rhs ; rw [mergeEnv.assoc]
-  apply Typing.cut (x₁ ∶ 𝟙‚ x ∶ ⊥) (y ∶ ⊥) _ _ _ _ (𝟙)
+  apply Typing.cut _ _ _ _ _ _ (𝟙)
   apply Typing.mix
   · apply Typing.bot
     apply Typing.one
