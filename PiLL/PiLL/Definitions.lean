@@ -16,137 +16,102 @@ inductive Proc : Type where
   | nil                                -- 𝟘
 deriving Repr, DecidableEq
 
+abbrev Renaming := PName → PName
+
+def rename (ρ : Renaming) : Proc → Proc
+  | .tensor x y P => .tensor (ρ x) (ρ y) (rename ρ P)
+  | .parr x y P   => .parr (ρ x) (ρ y) (rename ρ P)
+  | .one x P      => .one (ρ x) (rename ρ P)
+  | .bot x P      => .bot (ρ x) (rename ρ P)
+  | .cut x y P    => .cut (ρ x) (ρ y) (rename ρ P)
+  | .par P Q      => .par (rename ρ P) (rename ρ Q)
+  | .nil          => .nil
+
 -- @[simp]
--- def Proc.names : Proc → Finset PName
--- | .nil => {}
--- | .one x P | .bot x P  => {x} ∪ P.names
--- | .cut x y P | tensor x y P | parr x y P => {x, y} ∪ P.names
--- | .par P Q => P.names ∪ Q.names
+-- def Proc.fn : Proc → Finset PName
+--   | .tensor x y P         => {x, y} ∪ P.fn
+--   | .parr x y P           => {x} ∪ (P.fn \ {y})
+--   | .one x P              => {x} ∪ P.fn
+--   | .bot x P              => {x} ∪ P.fn
+--   | .cut x y P            => P.fn \ {x, y}
+--   | .par P Q              => P.fn ∪ Q.fn
+--   | .nil                  => {}
 
 @[simp]
-def Proc.fn : Proc → Finset PName
-| .nil                  => {}
-| .one x P | .bot x P   => {x} ∪ P.fn
-| .tensor x y P         => {x, y} ∪ P.fn        -- y is an argument in output, so it's free
-| .parr x y P           => {x} ∪ (P.fn \ {y})   -- y is bound in P
-| .cut x y P            => P.fn \ {x, y}        -- x, y bound in P
-| .par P Q              => P.fn ∪ Q.fn
+def Proc.names : Proc → Finset PName
+  | .tensor x y P => {x, y} ∪ P.names
+  | .parr x y P   => {x, y} ∪ P.names
+  | .one x P      => {x} ∪ P.names
+  | .bot x P      => {x} ∪ P.names
+  | .cut x y P    => {x, y} ∪ P.names
+  | .par P Q      => P.names ∪ Q.names
+  | .nil          => {}
 
-partial def Proc.rename_free (M : Proc) (old new : PName) : Proc :=
-  match M with
-  | .nil => .nil
-  | .one x P =>
-    let x' := if x == old then new else x
-    let P' := P.rename_free old new
-    .one x' P'
-  | .bot x P =>
-    let x' := if x == old then new else x
-    let P' := P.rename_free old new
-    .bot x' P'
-  | .tensor x y P =>
-    let x' := if x == old then new else x
-    let y' := if y == old then new else y
-    let P' := P.rename_free old new
-    .tensor x' y' P'
-  | .parr x y P =>
-    let x' := if x == old then new else x
-    let P' := if y == old then P else P.rename_free old new
-    .parr x' y P'
-  | .cut x y P =>
-    -- avoid capture, i.e. stop rename recursion if either bound name matches
-    if x == old || y == old then
-      .cut x y P
-    else -- rename as usual
-      .cut x y (Proc.rename_free P old new)
-  | .par P Q =>
-    .par (P.rename_free old new) (Q.rename_free old new)
+def freshName (s : Finset Nat) : PName :=
+  (Finset.fold Nat.max 0 id s) + 1
 
-partial def Proc.rename_binder (M : Proc) (old new : PName) : Proc :=
-  match M with
-  | .nil => .nil
-  | .one x P =>
-      let x' := if x == old then new else x
-      .one x' (P.rename_binder old new)
-  | .bot x P =>
-      let x' := if x == old then new else x
-      .bot x' (P.rename_binder old new)
-  | .tensor x y P =>
-      let x' := if x == old then new else x
-      let y' := if y == old then new else y
-      .tensor x' y' (P.rename_binder old new)
-  | .parr x y P =>
-      let x' := if x == old then new else x
-      let y' := if y == old then new else y
-      let P' := P.rename_binder old new
-      .parr x' y' P'
-  | .cut x y P =>
-      let x' := if x == old then new else x
-      let y' := if y == old then new else y
-      let P' := if x == old || y == old then P.rename_free old new else P.rename_binder old new
-      .cut x' y' P'
-  | .par P Q =>
-      .par (P.rename_binder old new) (Q.rename_binder old new)
+def renameBound old new P := rename (fun curr => if curr == old then new else curr) P
 
--- rename2 for cut: rename both bound names (x1 -> x2 and y1 -> y2).
-@[simp]
-def Proc.rename2 (M : Proc) (x1 x2 y1 y2 : PName) : Proc :=
-  let M' := Proc.rename_binder M x1 x2
-  Proc.rename_binder M' y1 y2
+def renameBound2 old1 old2 new1 new2 P := renameBound old2 new2 (renameBound old1 new1 P)
 
+-- Only bound names should be renamed and free names should match exactly
 inductive AlphaEq : Proc → Proc → Prop where
-  | refl {P} : AlphaEq P P -- Handles .nil case and refl in equivalence instance
-  | tensor {x y : PName} {P Q : Proc} :
-      AlphaEq P Q →
-      AlphaEq (Proc.tensor x y P) (Proc.tensor x y Q)
-  | parr {x y y' : PName} {P Q : Proc} :
-      (y' ∉ P.fn) →
-      Q = P.rename_binder y y' →
-      AlphaEq (Proc.parr x y P) (Proc.parr x y' Q)
-  | one {x : PName} {P Q : Proc} :
-      AlphaEq P Q →
-      AlphaEq (Proc.one x P) (Proc.one x Q)
-  | bot {x : PName} {P Q : Proc} :
-      AlphaEq P Q →
-      AlphaEq (Proc.bot x P) (Proc.bot x Q)
-  | cut {x x' y y' : PName} {P Q : Proc} :
-      (x' ∉ P.fn) →
-      (y' ∉ P.fn) →
-      Q = P.rename2 x x' y y' →
-      AlphaEq (Proc.cut x y P) (Proc.cut x' y' Q)
-  | par {P1 P2 Q1 Q2 : Proc} :
-      AlphaEq P1 Q1 →
-      AlphaEq P2 Q2 →
-      AlphaEq (Proc.par P1 P2) (Proc.par Q1 Q2)
+  | nil : AlphaEq .nil .nil
 
--- TODO :
+  | par {P1 Q1 P2 Q2 : Proc} :
+      AlphaEq P1 Q1 → AlphaEq P2 Q2 → AlphaEq (.par P1 P2) (.par Q1 Q2)
+
+  | tensor {P Q : Proc} {x y x' y' : PName} : -- All PNames are free
+      AlphaEq P Q → AlphaEq (.tensor x y P) (.tensor x' y' Q)
+      → x = x' → y = y' → AlphaEq (.tensor x y P) (.tensor x' y' Q)
+
+  | one {P Q : Proc} {x x' : PName} : -- Both PNames are free
+      AlphaEq P Q → x = x' → AlphaEq (.one x P) (.one x' Q)
+
+  | bot {P Q : Proc} {x x' : PName} : -- Both PNames are free
+      AlphaEq P Q → x = x' → AlphaEq (.bot x P) (.bot x' Q)
+
+  | parr {P Q : Proc} {x y x' y' : PName} -- x x' are Free, y y' are bound
+      (w : PName) (hFresh : w ∉ P.names ∪ Q.names) :
+        AlphaEq (renameBound y w P) (renameBound y' w Q) → x = x' →
+        AlphaEq (.parr x y P) (.parr x' y' Q)
+
+  | cut {P Q : Proc} {x y x' y' : PName} -- x y x' y' are all bound
+      (w1 w2 : PName) (hFresh : w1 ∉ P.names ∪ Q.names ∧ w2 ∉ P.names ∪ Q.names) :
+        AlphaEq (renameBound2 x y w1 w2 P) (renameBound2 x' y' w1 w2 Q) →
+        AlphaEq (.cut x y P) (.cut x' y' Q)
+
+-- TODO:
+-- Reflexivity
+
 -- Symmetry
-@[simp]
-theorem AlphaEq.symm {P Q : Proc} (h : AlphaEq P Q) : AlphaEq Q P := by
-  induction h
-  case refl => sorry
-  case tensor => sorry
-  case parr => sorry
-  case one => sorry
-  case bot => sorry
-  case cut => sorry
-  case par => sorry
+-- @[simp]
+-- theorem AlphaEq.symm {P Q : Proc} (h : AlphaEq P Q) : AlphaEq Q P := by
+--   induction h
+--   case refl => sorry
+--   case tensor => sorry
+--   case parr => sorry
+--   case one => sorry
+--   case bot => sorry
+--   case cut => sorry
+--   case par => sorry
 
--- Transitivity
-@[simp]
-theorem AlphaEq.trans {P Q R : Proc} (h₁ : AlphaEq P R) (h₂ : AlphaEq R Q) : AlphaEq P Q := by
-  induction h₁
-  case refl => exact h₂
-  case tensor => sorry
-  case parr => sorry
-  case one => sorry
-  case bot => sorry
-  case cut => sorry
-  case par => sorry
+-- -- Transitivity
+-- @[simp]
+-- theorem AlphaEq.trans {P Q R : Proc} (h₁ : AlphaEq P R) (h₂ : AlphaEq R Q) : AlphaEq P Q := by
+--   induction h₁
+--   case refl => exact h₂
+--   case tensor => sorry
+--   case parr => sorry
+--   case one => sorry
+--   case bot => sorry
+--   case cut => sorry
+--   case par => sorry
 
-instance : Equivalence AlphaEq :=
-{ refl := @AlphaEq.refl,
-  symm := AlphaEq.symm,
-  trans := AlphaEq.trans}
+-- instance : Equivalence AlphaEq :=
+-- { refl := @AlphaEq.refl,
+--   symm := AlphaEq.symm,
+--   trans := AlphaEq.trans}
 
 ------------------------------------------ TYPES  ------------------------------------------
 
@@ -189,12 +154,12 @@ instance Types.negDecidable (A : Types) : Decidable A.neg := by
 
 @[simp]
 def Types.dual : Types → Types
-| .tensor A B => .parr (dual A) (dual B)
-| .parr A B   => .tensor (dual A) (dual B)
-| .one        => .bot
-| .bot        => .one
-| .atom a     => .atomDual a
-| .atomDual a => .atom a
+  | .tensor A B => .parr (dual A) (dual B)
+  | .parr A B   => .tensor (dual A) (dual B)
+  | .one        => .bot
+  | .bot        => .one
+  | .atom a     => .atomDual a
+  | .atomDual a => .atom a
 
 @[simp]
 theorem Types.dual.neq (A : Types) : A ≠ dual A := by
@@ -440,32 +405,32 @@ notation:50 "⊢ " P " ∷ " T => Typing T P -- FIXME: This seems to not work th
 ----------------------------- TRANSITION RULES FOR DERIVATIONS -----------------------------
 
 inductive Act : Type
-| one     (x : PName)     -- x[]
-| bot     (x : PName)     -- x()
-| tensor  (x y : PName)   -- x[y]
-| parr    (x y : PName)   -- x(y)
+  | one     (x : PName)     -- x[]
+  | bot     (x : PName)     -- x()
+  | tensor  (x y : PName)   -- x[y]
+  | parr    (x y : PName)   -- x(y)
 deriving Repr, DecidableEq
 
 inductive Lbl : Type
-| tau                       -- τ
-| act   (a : Act)           -- l, for l ∈ Act
-| par   (l l' : Act)        -- l | l' for l, l' ∈ Act
+  | tau                       -- τ
+  | act   (a : Act)           -- l, for l ∈ Act
+  | par   (l l' : Act)        -- l | l' for l, l' ∈ Act
 deriving Repr, DecidableEq
 
 def getNamesOfLbl (func : Act → Finset PName) : Lbl → Finset PName
-| .tau        => ∅                  -- names for τ
-| .act a      => func a             -- names for l with l ∈ Act
-| .par l l'   => func l ∪ func l'   -- names for l | l' with l, l' ∈ Act
+  | .tau        => ∅                  -- names for τ
+  | .act a      => func a             -- names for l with l ∈ Act
+  | .par l l'   => func l ∪ func l'   -- names for l | l' with l, l' ∈ Act
 
 def fNamesAct : Act -> Finset PName -- free names for a given action
-| .one x | .bot x | .tensor x _ | .parr x _ => {x}
+  | .one x | .bot x | .tensor x _ | .parr x _ => {x}
 
 def Lbl.fNames : Lbl → Finset PName :=
   getNamesOfLbl fNamesAct
 
 def iNamesAct : Act → Finset PName -- introduced names for a given action
-| .one _ | .bot _          => {}
-| .tensor _ y | .parr _ y => {y}
+  | .one _ | .bot _          => {}
+  | .tensor _ y | .parr _ y => {y}
 
 def Lbl.iNames : Lbl → Finset PName :=
   getNamesOfLbl iNamesAct
@@ -485,7 +450,6 @@ def Lbl.iNames : Lbl → Finset PName :=
 --       |>.filter (fun (p : Act × Act) => (iNamesAct p.1) ∩ (iNamesAct p.2) = ∅)
 --       |>.image (fun (p : Act × Act) => Lbl.par p.1 p.2)
 --   τ ∪ single ∪ parallel
-
 
 -- TODO: FIX type usage and make it match the actual type of the rule
 inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
@@ -509,14 +473,14 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
   | par₁
       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {𝒟' : Typing 𝒢' P'} {ℰ : Typing ℋ Q}
-      (h : TypingStep 𝒟 l 𝒟') (disj : (l.iNames) ∩ (Q.fn) = ∅) :
+      (h : TypingStep 𝒟 l 𝒟') (disj : (l.iNames) ∩ (Q.names) = ∅) : -- were free names changed to names to avoid shadowing ASK about this
       --------------------------------------------------------------------
       TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) l (Typing.mix 𝒢' ℋ P' Q 𝒟' ℰ)
 
   | par₂
       {𝒢 ℋ ℋ': HyperEnv} {P Q Q' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
-      (h : TypingStep ℰ l ℰ') (disj : (l.iNames) ∩ (P.fn) = ∅) :
+      (h : TypingStep ℰ l ℰ') (disj : (l.iNames) ∩ (P.names) = ∅) : -- were free names changed to names to avoid shadowing ASK about this
       --------------------------------------------------------------------
       TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) l (Typing.mix 𝒢 ℋ' P Q' 𝒟 ℰ')
 
@@ -526,7 +490,7 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
       (h₁ : TypingStep 𝒟 (Lbl.act a) 𝒟')
       (h₂ : TypingStep ℰ (Lbl.act a') ℰ')
-      (disj : ((Lbl.par a a').iNames ∩ (Proc.par P Q).fn) = ∅) :
+      (disj : ((Lbl.par a a').iNames ∩ (Proc.par P Q).names) = ∅) : -- were free names changed to names to avoid shadowing ASK about this
       -----------------------------------------------------------------------------------
       TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) (Lbl.par a a') (Typing.mix 𝒢' ℋ' P' Q' 𝒟' ℰ')
 
@@ -566,30 +530,3 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       (disj : x ∉ l.fNames ∪ l.iNames ∧ y ∉ l.fNames ∪ l.iNames) :
       ------------------------------------------------------------------------------------
       TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) (l) (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
-
-
-/-
-
-⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ
-------------------------------- cut
-⊢ 𝑣⸨x, y⸩ P ∷ 𝒢 |ₕ Γ‚ Δ
-
-If you have:
-D := ⊢ P ∷ 𝒢 |ₕ Γ, Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ, label l := x[x']|y(y'),
-D':= ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ B |ₕ Δ‚ x' ∶ A |ₕ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ, and D --[l]-> D'
-
-Then:
-⊢ P ∷ 𝒢 |ₕ Γ, Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ
---------------------------------------------- cut
-⊢ 𝑣⸨x, y⸩ P ∷ 𝒢 |ₕ Γ‚ Δ‚ Ξ
-
-can make a transition τ (internal transition) to
-
-⊢ P ∷ 𝒢 |ₕ Γ, Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ
---------------------------------------------- cut
-⊢ 𝑣⸨x', y'⸩ P' ∷ 𝒢 |ₕ Γ‚ x ∶ B |ₕ Δ‚ Ξ‚ y ∶ Bᗮ
---------------------------------------------- cut
-⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ P' ∷ 𝒢 |ₕ Γ‚ Δ‚ Ξ
-
-
--/

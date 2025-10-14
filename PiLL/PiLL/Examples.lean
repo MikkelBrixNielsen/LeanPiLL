@@ -27,7 +27,18 @@ example (x x₁ x₂ y y₁ y₂ z : PName) :
       apply Typing.one
       exact Typing.mix₀
 
+-- Small alpha equivalence example
+def P : Proc := .parr 1 2 (.tensor 2 4 .nil)
+def Q : Proc := .parr 1 3 (.tensor 3 4 .nil)
 
+def w := freshName (P.names ∪ Q.names)
+def P' :=  renameBound 2 w P
+def Q':= renameBound 3 w Q
+#eval P' = Q'
+
+---------------------------------------- OTHER THINGS ----------------------------------------
+
+-- Lean being able to use comm and assoc when not in an inductive constructor
 example (𝒢 : HyperEnv) (Δ Γ Ξ : Env) (x y x' y' : PName) (P' : Proc) (B : Types) :
   Typing ((𝒢 |ₕ {Γ‚ x ∶ B}) |ₕ {Δ‚ Ξ‚ y ∶ Bᗮ}) (𝑣⸨x', y'⸩ P') =
     Typing (𝒢 |ₕ {Γ‚ x ∶ B} |ₕ {(Δ‚ Ξ)‚ y ∶ Bᗮ}) (𝑣⸨x', y'⸩ P') := by simp
