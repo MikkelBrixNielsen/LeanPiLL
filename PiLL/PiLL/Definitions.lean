@@ -568,9 +568,6 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) (l) (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
 
 
--- TODO: Names in processes
--- TODO: Alpha renaming x ∶ 1
-
 /-
 
 ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ
