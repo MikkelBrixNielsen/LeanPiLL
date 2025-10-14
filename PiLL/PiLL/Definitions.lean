@@ -470,9 +470,9 @@ def iNamesAct : Act → Finset PName -- introduced names for a given action
 def Lbl.iNames : Lbl → Finset PName :=
   getNamesOfLbl iNamesAct
 
-def Lbl.wf : Lbl → Prop
-  | Lbl.par l l' => (iNamesAct l) ∩ (iNamesAct l') = ∅
-  | _ => True
+-- def Lbl.wf : Lbl → Prop
+--   | Lbl.par l l' => (iNamesAct l) ∩ (iNamesAct l') = ∅
+--   | _ => True
 
 -- def Finset.prod (s₁ s₂ : Finset Act) : Finset (Act × Act) :=
 --   (Finset.fold (· ∪ ·) ∅ (fun (a : Act) => s₂.image (fun (a' : Act) => (a, a'))) s₁)
