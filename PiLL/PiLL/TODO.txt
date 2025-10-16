@@ -2,11 +2,11 @@
 
 (MAYBE IGNORE SIDE CONDITIONS FOR NOW AND FOCUS ON JUST GETTING THE RULES ETC. TO WOKR)
 
--- TODO: Names in processes
-
 -- TODO: Alpha renaming
 
 -- TODO: define πMLL derivation transition rules
+    -- fix how the types don't match but are generic 
+    -- fix how the one_bot rule does not match signature
 
 
 
@@ -21,6 +21,7 @@
     -- Hyper-environments can only contain one occurence of an environment name
     -- i.e. typing rules should enforce linearity
 
+-- TODO: Look at sideconditions for transition rules for derivations
 
 
 
@@ -55,3 +56,10 @@
 -- Linearity on hypersets should be enforced through typing rules and should make it impossible
 -- to define multiple instances of the same name across different environments s.t. 𝒢(x) is un-
 -- ambigous.
+
+--------------------------------------- QUESTIONS ---------------------------------------
+-- Why are we only concerned about free name in transition rule for derivations and not names in general
+   Does it not create issues when a name introduced by a label shadows an existing name in the PAR1 rule
+
+-- Ask about whether lables can be defined rewcursively in regards to par i.e. par can be created using two
+   labels or if these should just be actions (as I understand it from the paper the latter should be correct)

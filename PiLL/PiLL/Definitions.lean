@@ -27,15 +27,15 @@ def rename (ρ : Renaming) : Proc → Proc
   | .par P Q      => .par (rename ρ P) (rename ρ Q)
   | .nil          => .nil
 
--- @[simp]
--- def Proc.fn : Proc → Finset PName
---   | .tensor x y P         => {x, y} ∪ P.fn
---   | .parr x y P           => {x} ∪ (P.fn \ {y})
---   | .one x P              => {x} ∪ P.fn
---   | .bot x P              => {x} ∪ P.fn
---   | .cut x y P            => P.fn \ {x, y}
---   | .par P Q              => P.fn ∪ Q.fn
---   | .nil                  => {}
+@[simp]
+def Proc.fNames : Proc → Finset PName
+  | .tensor x y P         => {x, y} ∪ P.fNames
+  | .parr x y P           => {x} ∪ (P.fNames \ {y})
+  | .one x P              => {x} ∪ P.fNames
+  | .bot x P              => {x} ∪ P.fNames
+  | .cut x y P            => P.fNames \ {x, y}
+  | .par P Q              => P.fNames ∪ Q.fNames
+  | .nil                  => {}
 
 @[simp]
 def Proc.names : Proc → Finset PName
@@ -459,28 +459,28 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       TypingStep (Typing.one P x D) (Lbl.act (Act.one x)) D
 
   | tensor
-      {Γ Δ : Env} {P : Proc} {x y : PName} {A B : Types} {D : Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P} :
-      TypingStep (Typing.tensor Γ Δ P x y A B D) (Lbl.act (Act.tensor x y)) D
+      {Γ Δ : Env} {P : Proc} {x x': PName} {A B : Types} {𝒟 : Typing (Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B) P} :
+      TypingStep (Typing.tensor Γ Δ P x x' A B 𝒟) (Lbl.act (Act.tensor x x')) 𝒟
 
   | bot
-      {Γ : Env} {P : Proc} {x : PName} {D : Typing Γ P} :
-      TypingStep (Typing.bot Γ P x D) (Lbl.act (Act.bot x)) D
+      {Γ : Env} {P : Proc} {x : PName} {𝒟 : Typing Γ P} :
+      TypingStep (Typing.bot Γ P x 𝒟) (Lbl.act (Act.bot x)) 𝒟
 
   | parr
-      {Γ : Env} {P : Proc} {x y : PName} {A B : Types} {D : Typing (Γ‚ y ∶ A‚ x ∶ B) P} :
-      TypingStep (Typing.parr Γ P x y A B D) (Lbl.act (Act.parr x y)) D
+      {Γ : Env} {P : Proc} {x x' : PName} {A B : Types} {D : Typing (Γ‚ x' ∶ A‚ x ∶ B) P} :
+      TypingStep (Typing.parr Γ P x x' A B D) (Lbl.act (Act.parr x x')) D
 
   | par₁
       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {𝒟' : Typing 𝒢' P'} {ℰ : Typing ℋ Q}
-      (h : TypingStep 𝒟 l 𝒟') (disj : (l.iNames) ∩ (Q.names) = ∅) : -- were free names changed to names to avoid shadowing ASK about this
+      (h : TypingStep 𝒟 l 𝒟') (disj : (l.iNames) ∩ (Q.fNames) = ∅) :
       --------------------------------------------------------------------
       TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) l (Typing.mix 𝒢' ℋ P' Q 𝒟' ℰ)
 
   | par₂
       {𝒢 ℋ ℋ': HyperEnv} {P Q Q' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
-      (h : TypingStep ℰ l ℰ') (disj : (l.iNames) ∩ (P.names) = ∅) : -- were free names changed to names to avoid shadowing ASK about this
+      (h : TypingStep ℰ l ℰ') (disj : (l.iNames) ∩ (P.fNames) = ∅) :
       --------------------------------------------------------------------
       TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) l (Typing.mix 𝒢 ℋ' P Q' 𝒟 ℰ')
 
@@ -490,7 +490,7 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
       (h₁ : TypingStep 𝒟 (Lbl.act a) 𝒟')
       (h₂ : TypingStep ℰ (Lbl.act a') ℰ')
-      (disj : ((Lbl.par a a').iNames ∩ (Proc.par P Q).names) = ∅) : -- were free names changed to names to avoid shadowing ASK about this
+      (disj : ((Lbl.par a a').iNames ∩ (Proc.par P Q).fNames) = ∅) :
       -----------------------------------------------------------------------------------
       TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) (Lbl.par a a') (Typing.mix 𝒢' ℋ' P' Q' 𝒟' ℰ')
 
@@ -500,27 +500,30 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       (h₁ : AlphaEq P Q)
       (h₂ : TypingStep ℰ l ℰ') :
       -------------------------------------------------------
-      TypingStep (𝒟) l (ℰ')
+      TypingStep 𝒟 l ℰ'
 
-  | one_bot -- FIXME: Make this match rule in paper (remove extra delta)
-      {𝒢: HyperEnv} {Γ Δ: Env} {P P' : Proc} {x y : PName} {A : Types}
-      {𝒟 : Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P} {𝒟' : Typing (𝒢 |ₕ Γ‚ Δ) P'}
+  | one_bot
+      {𝒢: HyperEnv} {Γ : Env} {P P' : Proc} {x y : PName}
+      {𝒟 : Typing (𝒢 |ₕ x ∶ 𝟙 |ₕ Γ‚ y ∶ ⊥) P} {𝒟' : Typing (𝒢 |ₕ Γ) P'}
       (h : TypingStep 𝒟 (Lbl.par (Act.one x) (Act.bot y)) 𝒟') :
       ----------------------------------------------------------------------
-      TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) (Lbl.tau) 𝒟'
+      TypingStep
+        (Typing.cut 𝒢 ∅ Γ P x y (𝟙) 𝒟) (Lbl.tau) 𝒟'
 
---   | tensor_parr
---       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
---       {𝒟 : Typing (𝒢 |ₕ (Γ‚ Δ)‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ) P}
---       {𝒟' : Typing ((𝒢 |ₕ {Γ‚ x ∶ B}) |ₕ {Δ‚ x' ∶ A} |ₕ {(Ξ‚ y ∶ Bᗮ)‚ y' ∶ Aᗮ}) P'}
---       (h : TypingStep 𝒟 (Lbl.par (Act.tensor x x') (Act.parr y y')) 𝒟') :
---       -----------------------------------------------------------------------------
---       TypingStep
---         (Typing.cut 𝒢 (Γ‚ Δ) Ξ P x y (A ⊗ B) 𝒟)
---         Lbl.tau
---         (Typing.cut 𝒢 Γ (Δ‚ Ξ) (𝑣⸨x', y'⸩ P') x y B
---             (Typing.cut (𝒢 |ₕ Γ‚ x ∶ B) Δ (Ξ‚ y ∶ Bᗮ) P' x' y' A 𝒟')
---         )
+  | tensor_parr
+      {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
+      {𝒟 : Typing (𝒢 |ₕ (Γ‚ Δ)‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ) P}
+      {𝒟' : Typing ((𝒢 |ₕ {Γ‚ x ∶ B}) |ₕ {Δ‚ x' ∶ A} |ₕ {(Ξ‚ y ∶ Bᗮ)‚ y' ∶ Aᗮ}) P'}
+      (h : TypingStep 𝒟 (Lbl.par (Act.tensor x x') (Act.parr y y')) 𝒟') :
+      -----------------------------------------------------------------------------
+      TypingStep
+        (Typing.cut 𝒢 (Γ‚ Δ) Ξ P x y (A ⊗ B) 𝒟)
+        Lbl.tau
+        (by
+          let inner := Typing.cut (𝒢 |ₕ Γ‚ x ∶ B) Δ (Ξ‚ y ∶ Bᗮ) P' x' y' A 𝒟'
+          rw [← Env.merge_assoc, HyperEnv.merge_assoc] at inner
+          exact Typing.cut 𝒢 Γ (Δ‚ Ξ) (𝑣⸨x', y'⸩ P') x y B inner
+        )
 
   | res
       {𝒢 𝒢': HyperEnv} {Γ Γ' Δ Δ' : Env} {P P' : Proc} {x y : PName} {A : Types} {l : Lbl}
@@ -529,4 +532,4 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       (h : TypingStep 𝒟 l 𝒟')
       (disj : x ∉ l.fNames ∪ l.iNames ∧ y ∉ l.fNames ∪ l.iNames) :
       ------------------------------------------------------------------------------------
-      TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) (l) (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
+      TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) l (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
