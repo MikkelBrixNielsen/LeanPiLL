@@ -240,6 +240,11 @@ theorem Env.merge_comm (Δ Γ : Env) : Δ.merge Γ = Γ.merge Δ := by
 theorem Env.merge_assoc (Δ Γ Ε : Env) : (Δ.merge Γ).merge Ε = Δ.merge (Γ.merge Ε) := by
   simp [Env.merge]
 
+lemma Env.merge_swap_last (Γ Δ Ξ : Env) :
+  (Γ.merge Δ).merge Ξ = (Γ.merge Ξ).merge Δ := by
+  rw [Env.merge_comm, ←Env.merge_assoc]
+  conv => lhs ; lhs ; rw [Env.merge_comm]
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := Finset (Env)
@@ -340,9 +345,9 @@ theorem HyperEnv.merge_assoc (𝒢 ℋ 𝒦 : HyperEnv) :
 
 /- PROC -/
 notation:80 x "⟦" y "⟧" "." P:80 => Proc.tensor x y P
-notation:80 x "⟦" "⟧" "." P:80 => Proc.one x P
+notation:80 x "⟦⟧" "." P:80 => Proc.one x P
 notation:80 x "⸨" y "⸩" "." P:80 => Proc.parr x y P
-notation:80 x "⸨" "⸩" "." P:80 => Proc.bot x P
+notation:80 x "⸨⸩" "." P:80 => Proc.bot x P
 notation:60 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
 notation "𝟘" => Proc.nil
 infixr:65 " |ₚ " => Proc.par
@@ -379,7 +384,7 @@ inductive Typing : HyperEnv → Proc → Prop where
     ---------------------------------------
         Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩ P)
 
-  | tensor (Γ Δ : Env) (P : Proc) (x y : PName) (A B : Types) :
+  | tensor (Γ Δ : Env) (P : Proc) (x y : PName) (B A : Types) :
     Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
     ---------------------------------
     Typing (Γ‚ Δ‚ x ∶ A ⊗ B) (x⟦y⟧.P)
@@ -460,7 +465,7 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
 
   | tensor
       {Γ Δ : Env} {P : Proc} {x x': PName} {A B : Types} {𝒟 : Typing (Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B) P} :
-      TypingStep (Typing.tensor Γ Δ P x x' A B 𝒟) (Lbl.act (Act.tensor x x')) 𝒟
+      TypingStep (Typing.tensor Γ Δ P x x' B A 𝒟) (Lbl.act (Act.tensor x x')) 𝒟
 
   | bot
       {Γ : Env} {P : Proc} {x : PName} {𝒟 : Typing Γ P} :
@@ -533,3 +538,11 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       (disj : x ∉ l.fNames ∪ l.iNames ∧ y ∉ l.fNames ∪ l.iNames) :
       ------------------------------------------------------------------------------------
       TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) l (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
+
+notation:50 𝒟 " --[ " l " ]-> " 𝒟' => TypingStep 𝒟 l 𝒟'
+notation:80 x "⟦" y "⟧" => Act.tensor x y
+notation:80 x "⟦⟧" => Act.one x
+notation:80 x "⸨" y "⸩" => Act.parr x y
+notation:80 x "⸨⸩" => Act.bot x
+notation:70 "τ" => Lbl.tau
+notation:70 l "|ₗ" l' => Lbl.par l l'
