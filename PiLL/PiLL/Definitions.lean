@@ -456,7 +456,6 @@ def Lbl.iNames : Lbl → Finset PName :=
 --       |>.image (fun (p : Act × Act) => Lbl.par p.1 p.2)
 --   τ ∪ single ∪ parallel
 
--- TODO: FIX type usage and make it match the actual type of the rule
 inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
   Lbl → {Γ' : HyperEnv} → {P' : Proc} → Typing Γ' P' → Prop where
   | one

@@ -61,6 +61,22 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
       -- rw [Env.merge_swap_last, Env.merge_assoc]
       exact ℱ'
 
+
+
+-- TODO: Figure out how to define a TypingStep and apply rules to it then do the execution of D
+-- def P := 𝟘
+-- def x := 1
+
+-- def D' : Typing ∅ P := Typing.mix₀
+
+-- def D : Typing (x ∶ Types.one) (Proc.one x P) :=
+--   Typing.one P x D'
+
+-- #check D
+
+
+
+
 example (Γ Γ' Δ : Env) (x y z x' y' : PName) (Q R : Proc)
   (𝒟 : ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ Δ‚ z ∶ ⊥)
   (𝒟' : ⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ Q |ₚ R ∷ Γ‚ Γ'‚ Δ) :

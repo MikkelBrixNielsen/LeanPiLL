@@ -105,7 +105,7 @@ could have differing outcomes:
     ----------------------------------------------------- cut
            ⊢ 𝑣xy Q | R ∷ Γ‚ x' ∶ A |ₕ Γ' |ₕ Δ‚ y' ∶ Aᗮ
            ------------------------------------------ cut
-                 ⊢ 𝑣'x'y 𝑣xy Q | R ∷ Γ |ₕ Γ' |ₕ Δ
+                 ⊢ 𝑣x'y' 𝑣xy Q | R ∷ Γ |ₕ Γ' |ₕ Δ
 
     we could use commutativity of HyperEnvs and Envs and then applying cut on that to instead obtain
 
@@ -126,8 +126,3 @@ sort of encapsulates the names of the other labels, and in the second transition
 par2 and res so they propagate it up to being the actual label of the overall transiition?
 
 
-Order of what things to talk about:
-- 1 page 1:8 (why do we only care about free names)
-- 2 page 1:7 (label definition)
-- 5 page 1:9 (how does the application of rules work)
-- 3-4 page 1:9 (mention rule signature mismatch in regard to result, ask whether this is Fabrizio / Marco issue)
