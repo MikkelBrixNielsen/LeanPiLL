@@ -63,53 +63,61 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
 
 
 
--- TODO: Figure out how to define a TypingStep and apply rules to it then do the execution of D
--- def P := 𝟘
--- def x := 1
-
--- def D' : Typing ∅ P := Typing.mix₀
-
--- def D : Typing (x ∶ Types.one) (Proc.one x P) :=
---   Typing.one P x D'
-
--- #check D
 
 
 
+example (x : PName) :
+  Typing.one 𝟘 x Typing.mix₀ -[x⟦⟧]-> Typing.mix₀ := by
+  apply TypingStep.one
 
-example (Γ Γ' Δ : Env) (x y z x' y' : PName) (Q R : Proc)
-  (𝒟 : ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ Δ‚ z ∶ ⊥)
-  (𝒟' : ⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ Q |ₚ R ∷ Γ‚ Γ'‚ Δ) :
-  TypingStep 𝒟 Lbl.tau 𝒟' := by sorry
 
+-- Doing multiple steps of an execution
+-- example (x y : PName) :
+--   Typing.bot
+--     (x ∶ 𝟙) (x⟦⟧.𝟘) y (Typing.one 𝟘 x Typing.mix₀)
+--     -[Lbl.seq (Lbl.act (Act.bot y)) (Lbl.act (Act.one x))]->
+--     Typing.mix₀ := by
+--   apply TypingSteps.step
+--   · apply TypingStep.bot
+--   · apply TypingSteps.step
+--     · apply TypingStep.one
+--     · apply TypingSteps.refl
 
 
 
 /-
-1. In the derivation of D E -> E' by rule tensor and and F -> F' by parr and bot.
-Rule ⊗⅋ is used to propogate the changes through the cut rule application, yielding:
-                                                         ℱ'
-                                               ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
-              ℰ'                        ------------------------------------ bot
-    ⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B          ⊢ z().R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
-    ------------------------------------------------------------------------ mix
-          ⊢ Q | z().R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B | Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
-          ------------------------------------------------------------- cut
-              ⊢ 𝑣xy Q | z().R ∷ Γ‚ x' ∶ A |ₕ Γ' | Δ‚ y' ∶ Aᗮ‚ z ∶ ⊥
-              --------------------------------------------------- cut
-                    ⊢ 𝑣x'y' 𝑣xy Q | z().R ∷ Γ |ₕ Γ' | Δ‚ z ∶ ⊥
+            ℰ                                       ℱ
+⊢ x⟦x'⟧.Q ∷ Γ‚ Γ'‚ x ∶ A ⊗ B       ⊢ y⸨y'⸩.z⸨⸩.R ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥
+------------------------------------------------------------------------ MIX
+  ⊢ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ x ∶ A ⊗ B |ₕ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ⊥
+  ----------------------------------------------------------------- CUT
+          ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ Δ‚ z ∶ ⊥
 
-  Then we use par₂, which wants ℱ' to make some labelled transition, bot says it can on z(). Then
-  res
-              ℰ'                                  ℱ'
-    ⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B         ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
-    -------------------------------------------------------------- mix
-        ⊢ Q | R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B | Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
-        ---------------------------------------------------- cut
-            ⊢ 𝑣xy Q | z().R ∷ Γ‚ x' ∶ A |ₕ Γ' | Δ‚ y' ∶ Aᗮ
-            --------------------------------------------- cut
-                   ⊢ 𝑣x'y' 𝑣xy Q | R ∷ Γ |ₕ Γ' | Δ
+--[ τ ]->
+
+                                                ℱ'
+                                      ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
+          ℰ'                      ---------------------------------- Typing.bot
+⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B       ⊢ z⸨⸩.R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
+-------------------------------------------------------------------- Typing.mix
+  ⊢ Q |ₚ z⸨⸩.R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B |ₕ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
+  ---------------------------------------------------------------- Typing.cut
+      ⊢ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ‚ x' ∶ A |ₕ Γ' |ₕ Δ‚ y' ∶ Aᗮ‚ z ∶ ⊥
+      -------------------------------------------------------- Typing.cut
+          ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
+
+--[z⸨⸩]->
+
+          ℰ'                                     ℱ'
+⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B             ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
+---------------------------------------------------------------- Typing.mix
+  ⊢ Q |ₚ R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B |ₕ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
+  ------------------------------------------------------------ Typing.cut
+      ⊢ 𝑣⸨x, y⸩ Q |ₚ R ∷ Γ‚ x' ∶ A |ₕ Γ' |ₕ Δ‚ y' ∶ Aᗮ‚ z ∶ ⊥
+      ----------------------------------------------------- Typing.cut
+        ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
 -/
+
 
 
 

@@ -1,6 +1,14 @@
 ------------------------------------------ TODOs  ------------------------------------------
 
-(MAYBE IGNORE SIDE CONDITIONS FOR NOW AND FOCUS ON JUST GETTING THE RULES ETC. TO WOKR)
+(MAYBE IGNORE SIDE CONDITIONS FOR NOW AND FOCUS ON JUST GETTING THE RULES ETC. TO WORK)
+
+-- TODO: In regard to exampel 2.5 and figure 3
+    - See if it is possible to do the execution of in many single steps ?
+    - Look in itc-course how executions are defined 
+    - Define multistep executions
+    - Do the execution of D
+
+
 
 -- TODO: Alpha renaming
 
@@ -126,3 +134,15 @@ sort of encapsulates the names of the other labels, and in the second transition
 par2 and res so they propagate it up to being the actual label of the overall transiition?
 
 
+1:
+Bound names cannot be seen outside / are private to process
+These would be covered by a tau transition
+
+2:
+Only combination of things from act
+
+5:
+Builds upon D with SYN \tensor \parr
+
+3-4:
+There is a typo has created thread and asked Fabrizio and Marco

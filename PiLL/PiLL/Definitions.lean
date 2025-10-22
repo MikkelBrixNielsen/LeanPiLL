@@ -538,10 +538,21 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       ------------------------------------------------------------------------------------
       TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) l (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
 
-notation:50 𝒟 " --[ " l " ]-> " 𝒟' => TypingStep 𝒟 l 𝒟'
-notation:80 x "⟦" y "⟧" => Act.tensor x y
-notation:80 x "⟦⟧" => Act.one x
-notation:80 x "⸨" y "⸩" => Act.parr x y
-notation:80 x "⸨⸩" => Act.bot x
+notation:50 𝒟 " -[ " l " ]-> " 𝒟' => TypingStep 𝒟 l 𝒟'
+notation:80 x "⟦" y "⟧" => Lbl.act (Act.tensor x y)
+notation:80 x "⟦⟧" => Lbl.act (Act.one x)
+notation:80 x "⸨" y "⸩" => Lbl.act (Act.parr x y)
+notation:80 x "⸨⸩" => Lbl.act (Act.bot x)
 notation:70 "τ" => Lbl.tau
 notation:70 l "|ₗ" l' => Lbl.par l l'
+
+----------------------------- MULTISTEP-TRANSITIONS ------------------------
+-- inductive TypingSteps :
+--   {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
+--   Lbl → {Γ' : HyperEnv} → {P' : Proc} → Typing Γ' P' → Prop where
+-- | refl {Γ P} (D : Typing Γ P) :
+--     TypingSteps D Lbl.tau D
+-- | step {Γ P Γ' P' Γ'' P''} {l₁ l₂ : Lbl}
+--     (h₁ : TypingStep D l₁ D')
+--     (h₂ : TypingSteps D' l₂ D'') :
+--     TypingSteps D (Lbl.seq l₁ l₂) D''
