@@ -8,15 +8,13 @@
     - Define multistep executions
     - Do the execution of D
 
-
-
 -- TODO: Alpha renaming
 
 -- TODO: define πMLL derivation transition rules
     -- fix how the types don't match but are generic 
     -- fix how the one_bot rule does not match signature
 
-
+-- TODO: Make Lean infer more of the arguments given to cut from the judgements instead of supplying them
 
 -- TODO: Check how typings bind and try and get it to match what the rules expect
 
@@ -66,6 +64,10 @@
 -- ambigous.
 
 
+FINSET LINKS:
+https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Finset/Filter.html    -- Filter
+https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Finset/Fold.html      -- Fold
+https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Finset/Max.html       -- Maximum / minimum 
 
 
 

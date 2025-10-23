@@ -54,34 +54,71 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
     · conv => lhs ; simp
       apply Typing.tensor
       exact ℰ'
-    · apply Typing.bot _ _ z at ℱ'
+    · apply Typing.bot at ℱ'
       rw [Env.merge_swap_last] at ℱ'
       apply Typing.parr at ℱ'
-      -- rw [Env.merge_swap_last, Env.merge_assoc] at ℱ'
-      -- rw [Env.merge_swap_last, Env.merge_assoc]
+      -- rw [Env.merge_swap_last, Env.merge_assoc] at ℱ'  -- These would make the goals
+      -- rw [Env.merge_swap_last, Env.merge_assoc]        -- look more like in the paper
       exact ℱ'
 
+-- example (x : PName) :
+--   Typing.one 𝟘 x Typing.mix₀ -[x⟦⟧]-> Typing.mix₀ := by
+--   apply TypingStep.one
 
+-- example (x : PName) :
+--   Typing.one 𝟘 x Typing.mix₀ -[[x⟦⟧]]->> Typing.mix₀ := by
+--   rw [eq_concat_nil]
+--   apply MTST.stepR
+--   · apply MTST.refl
+--   · apply TypingStep.one
 
-
-
-
-example (x : PName) :
-  Typing.one 𝟘 x Typing.mix₀ -[x⟦⟧]-> Typing.mix₀ := by
-  apply TypingStep.one
-
-
--- Doing multiple steps of an execution
 -- example (x y : PName) :
---   Typing.bot
---     (x ∶ 𝟙) (x⟦⟧.𝟘) y (Typing.one 𝟘 x Typing.mix₀)
---     -[Lbl.seq (Lbl.act (Act.bot y)) (Lbl.act (Act.one x))]->
---     Typing.mix₀ := by
---   apply TypingSteps.step
---   · apply TypingStep.bot
---   · apply TypingSteps.step
---     · apply TypingStep.one
---     · apply TypingSteps.refl
+--   Typing.bot (x ∶ 𝟙) (x⟦⟧.𝟘) y (Typing.one 𝟘 x Typing.mix₀) -[[y⸨⸩] ∷ₘ x⟦⟧]->> Typing.mix₀ := by
+--   apply MTST.stepR
+--   · rw [eq_concat_nil]
+--     apply MTST.stepR
+--     · apply MTST.refl
+--     · apply TypingStep.bot
+--   apply TypingStep.one
+
+-- example (x y : PName) : Typing.mix (Typing.one 𝟘 x Typing.mix₀) (Typing.one 𝟘 y Typing.mix₀)
+--   -[(x⟦⟧ |ₗ y⟦⟧)]-> Typing.mix (Typing.mix₀) (Typing.mix₀) := by
+--   apply TypingStep.syn
+--   · apply TypingStep.one  -- 𝒟 -[l]-> 𝒟'
+--   · apply TypingStep.one  -- ℰ -[l']-> ℰ'
+--   · simp                  -- i(l | l') ∩ f(P | Q) = ∅
+--   · apply Typing.mix₀     -- 𝒟':= ⊢ 𝟘 ∷ ∅
+--   · apply Typing.mix₀     -- ℰ':= ⊢ 𝟘 ∷ ∅
+
+
+
+
+
+example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
+  (ℰ' : ⊢ 𝟘 ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) (ℱ' : ⊢ 𝟘 ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ)
+  (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥) :
+  Typing.mix ℰ ℱ  -[x⟦x'⟧ |ₗ y⸨y'⸩]-> Typing.mix ℰ' ℱ' := by sorry
+  -- apply TypingStep.syn
+  -- · apply TypingStep.tensor
+  -- · sorry
+  -- sorry
+
+
+
+-- example (Δ : Env) (y y' z : PName) (A B : Types) (h : ⊢ 𝟘 ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
+--   ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ {Δ‚ z ∶ ⊥‚ y ∶ Aᗮ ⅋ Bᗮ} := by
+--   rw [Env.merge_comm, Env.merge_swap_last]
+--   apply Typing.parr
+--   rw [Env.merge_assoc, Env.merge_comm]
+--   apply Typing.bot
+--   exact h
+
+-- example (Δ : Env) (y y' z : PName) (A B : Types) (h : ⊢ 𝟘 ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ})
+--   (D : ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ (Δ‚ z ∶ ⊥)‚ y ∶ Aᗮ ⅋ Bᗮ)  (E : ⊢ z⸨⸩.𝟘 ∷ Δ‚ z ∶ ⊥‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) :
+--   D -[y⸨y'⸩]-> E := by
+--   apply TypingStep.parr
+
+
 
 
 

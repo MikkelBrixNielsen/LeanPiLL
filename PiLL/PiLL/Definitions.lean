@@ -374,7 +374,7 @@ inductive Typing : HyperEnv → Proc → Prop where
     ----------
     Typing ∅ 𝟘
 
-  | mix (𝒢 ℋ : HyperEnv) (P Q : Proc) :
+  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} :
     Typing 𝒢 P → Typing ℋ Q →
     --------------------------
      Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
@@ -384,22 +384,22 @@ inductive Typing : HyperEnv → Proc → Prop where
     ---------------------------------------
         Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩ P)
 
-  | tensor (Γ Δ : Env) (P : Proc) (x y : PName) (B A : Types) :
+  | tensor {Γ Δ : Env} {P : Proc} {x y : PName} {B A : Types} :
     Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
     ---------------------------------
     Typing (Γ‚ Δ‚ x ∶ A ⊗ B) (x⟦y⟧.P)
 
-  | one (P : Proc) (x : PName) :
+  | one {P : Proc} {x : PName} :
         Typing ∅ P →
     --------------------
     Typing (x ∶ 𝟙) (x⟦⟧.P)
 
-  | parr (Γ : Env) (P : Proc) (x y : PName) (A B : Types) :
+  | parr {Γ : Env} {P : Proc} {x y : PName} {A B : Types} :
      Typing (Γ‚ y ∶ A‚ x ∶ B) P →
     -----------------------------
     Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩.P)
 
-  | bot (Γ : Env) (P : Proc) (x : PName) :
+  | bot {Γ : Env} {P : Proc} {x : PName} :
           Typing Γ P →
     ------------------------
     Typing (Γ‚ x ∶ ⊥) (x⸨⸩.P)
@@ -422,21 +422,30 @@ inductive Lbl : Type
   | par   (l l' : Act)        -- l | l' for l, l' ∈ Act
 deriving Repr, DecidableEq
 
+abbrev Lbls := List Lbl
+
+instance : Coe Act Lbl := ⟨fun a => Lbl.act a⟩
+
+@[simp]
 def getNamesOfLbl (func : Act → Finset PName) : Lbl → Finset PName
   | .tau        => ∅                  -- names for τ
   | .act a      => func a             -- names for l with l ∈ Act
   | .par l l'   => func l ∪ func l'   -- names for l | l' with l, l' ∈ Act
 
+@[simp]
 def fNamesAct : Act -> Finset PName -- free names for a given action
   | .one x | .bot x | .tensor x _ | .parr x _ => {x}
 
+@[simp]
 def Lbl.fNames : Lbl → Finset PName :=
   getNamesOfLbl fNamesAct
 
+@[simp]
 def iNamesAct : Act → Finset PName -- introduced names for a given action
   | .one _ | .bot _          => {}
   | .tensor _ y | .parr _ y => {y}
 
+@[simp]
 def Lbl.iNames : Lbl → Finset PName :=
   getNamesOfLbl iNamesAct
 
@@ -459,34 +468,34 @@ def Lbl.iNames : Lbl → Finset PName :=
 inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
   Lbl → {Γ' : HyperEnv} → {P' : Proc} → Typing Γ' P' → Prop where
   | one
-      {P : Proc} {x : PName} {D : Typing ∅ P} :
-      TypingStep (Typing.one P x D) (Lbl.act (Act.one x)) D
+      {P : Proc} {x : PName} {𝒟 : Typing ∅ P} :
+      TypingStep (Typing.one 𝒟) (Lbl.act (Act.one x)) 𝒟
 
   | tensor
       {Γ Δ : Env} {P : Proc} {x x': PName} {A B : Types} {𝒟 : Typing (Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B) P} :
-      TypingStep (Typing.tensor Γ Δ P x x' B A 𝒟) (Lbl.act (Act.tensor x x')) 𝒟
+      TypingStep (Typing.tensor 𝒟) (Lbl.act (Act.tensor x x')) 𝒟
 
   | bot
       {Γ : Env} {P : Proc} {x : PName} {𝒟 : Typing Γ P} :
-      TypingStep (Typing.bot Γ P x 𝒟) (Lbl.act (Act.bot x)) 𝒟
+      TypingStep (Typing.bot 𝒟) (Lbl.act (Act.bot x)) 𝒟
 
   | parr
-      {Γ : Env} {P : Proc} {x x' : PName} {A B : Types} {D : Typing (Γ‚ x' ∶ A‚ x ∶ B) P} :
-      TypingStep (Typing.parr Γ P x x' A B D) (Lbl.act (Act.parr x x')) D
+      {Γ : Env} {P : Proc} {x x' : PName} {A B : Types} {𝒟 : Typing (Γ‚ x' ∶ A‚ x ∶ B) P} :
+      TypingStep (Typing.parr 𝒟) (Lbl.act (Act.parr x x')) 𝒟
 
   | par₁
       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {𝒟' : Typing 𝒢' P'} {ℰ : Typing ℋ Q}
       (h : TypingStep 𝒟 l 𝒟') (disj : (l.iNames) ∩ (Q.fNames) = ∅) :
       --------------------------------------------------------------------
-      TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) l (Typing.mix 𝒢' ℋ P' Q 𝒟' ℰ)
+      TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
 
   | par₂
       {𝒢 ℋ ℋ': HyperEnv} {P Q Q' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
       (h : TypingStep ℰ l ℰ') (disj : (l.iNames) ∩ (P.fNames) = ∅) :
       --------------------------------------------------------------------
-      TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) l (Typing.mix 𝒢 ℋ' P Q' 𝒟 ℰ')
+      TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟 ℰ')
 
   | syn
       {𝒢 𝒢' ℋ ℋ' : HyperEnv} {P P' Q Q' : Proc} {a a' : Act}
@@ -496,7 +505,7 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       (h₂ : TypingStep ℰ (Lbl.act a') ℰ')
       (disj : ((Lbl.par a a').iNames ∩ (Proc.par P Q).fNames) = ∅) :
       -----------------------------------------------------------------------------------
-      TypingStep (Typing.mix 𝒢 ℋ P Q 𝒟 ℰ) (Lbl.par a a') (Typing.mix 𝒢' ℋ' P' Q' 𝒟' ℰ')
+      TypingStep (Typing.mix 𝒟 ℰ) (Lbl.par a a') (Typing.mix 𝒟' ℰ')
 
   | alpha_equiv
       {𝒢 𝒢' : HyperEnv} {P Q Q' : Proc} {l : Lbl}
@@ -538,21 +547,41 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       ------------------------------------------------------------------------------------
       TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) l (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
 
-notation:50 𝒟 " -[ " l " ]-> " 𝒟' => TypingStep 𝒟 l 𝒟'
-notation:80 x "⟦" y "⟧" => Lbl.act (Act.tensor x y)
-notation:80 x "⟦⟧" => Lbl.act (Act.one x)
-notation:80 x "⸨" y "⸩" => Lbl.act (Act.parr x y)
-notation:80 x "⸨⸩" => Lbl.act (Act.bot x)
+notation:50 𝒟 " -[" l "]-> " 𝒟' => TypingStep 𝒟 l 𝒟'
+notation:80 x "⟦" y "⟧" => Act.tensor x y
+notation:80 x "⟦⟧" => Act.one x
+notation:80 x "⸨" y "⸩" => Act.parr x y
+notation:80 x "⸨⸩" => Act.bot x
 notation:70 "τ" => Lbl.tau
 notation:70 l "|ₗ" l' => Lbl.par l l'
 
------------------------------ MULTISTEP-TRANSITIONS ------------------------
--- inductive TypingSteps :
---   {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
---   Lbl → {Γ' : HyperEnv} → {P' : Proc} → Typing Γ' P' → Prop where
--- | refl {Γ P} (D : Typing Γ P) :
---     TypingSteps D Lbl.tau D
--- | step {Γ P Γ' P' Γ'' P''} {l₁ l₂ : Lbl}
---     (h₁ : TypingStep D l₁ D')
---     (h₂ : TypingSteps D' l₂ D'') :
---     TypingSteps D (Lbl.seq l₁ l₂) D''
+----------------------------------- MULTISTEP-TRANSITIONS ----------------------------------
+notation:80 "ε" => (List.nil : Lbls)
+notation:60 xs " ∷ₘ " x => List.concat (xs : Lbls) (x : Lbl)
+
+lemma eq_concat_nil {l} :
+  [l] = (ε ∷ₘ l) := by rfl
+
+lemma cons_concat_eq {x xs y} :
+  x :: (xs ∷ₘ y) = x :: (xs ∷ₘ y) := by simp
+
+lemma append_concat_eq {xs ys y} :
+  xs ++ (ys ∷ₘ y) = (xs ++ ys) ∷ₘ y := by simp
+
+lemma cons_append_assoc {x : Lbl} {xs ys : Lbls} :
+  x :: (xs ++ ys) = (x :: xs) ++ ys := by rfl
+
+inductive MTST : {𝒢 𝒢' : HyperEnv} → {P P' : Proc} →
+  Typing 𝒢 P → Lbls → Typing 𝒢' P' → Prop where
+  | refl
+    {𝒢 : HyperEnv} {P: Proc} (𝒟 : Typing 𝒢 P) :
+    ------------
+    MTST 𝒟 (ε) 𝒟
+
+  | stepR {l : Lbl} {ls : Lbls} {𝒢 𝒢' 𝒢'' : HyperEnv} {P P' P'' : Proc}
+    (𝒟  : Typing 𝒢  P) (𝒟' : Typing 𝒢' P') (𝒟'' : Typing 𝒢'' P'') :
+    (MTST 𝒟 ls 𝒟') → (𝒟' -[l]-> 𝒟'') →
+    ----------------------------------
+          MTST 𝒟 (ls ∷ₘ l) 𝒟''
+
+notation:50 𝒟 " -[" ls "]->> " 𝒟' => MTST 𝒟 ls 𝒟'
