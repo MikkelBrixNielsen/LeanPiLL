@@ -3,6 +3,7 @@
 (MAYBE IGNORE SIDE CONDITIONS FOR NOW AND FOCUS ON JUST GETTING THE RULES ETC. TO WORK)
 
 -- TODO: In regard to exampel 2.5 and figure 3
+    -- Fix the examples broken by Typing refactoring
     - See if it is possible to do the execution of in many single steps ?
     - Look in itc-course how executions are defined 
     - Define multistep executions
