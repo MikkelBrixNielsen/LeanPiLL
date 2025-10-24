@@ -2,6 +2,7 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Finset.Fold
+-- import Mathlib.Data.Finset.Pairwise
 import Lean.PrettyPrinter.Delaborator
 ------------------------------------------ Proc  ------------------------------------------
 

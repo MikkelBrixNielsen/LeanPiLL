@@ -27,7 +27,7 @@ example (x x₁ x₂ y y₁ y₂ z : PName) :
       apply Typing.one
       exact Typing.mix₀
 
--- Example 2.5/ fig 3 from the main.pdf
+-- Example 2.5/ fig 3 from the main.pdf and some other stuff
 theorem ℱ (Δ : Env) (R : Proc) (y y' z : PName) (A B : Types)
   (ℱ' : ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) :
   ⊢ y⸨y'⸩.z⸨⸩.R ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥ := by
@@ -92,9 +92,6 @@ example (x y : PName) :
   · apply Typing.mix₀     -- ℰ':= ⊢ 𝟘 ∷ ∅
 
 
-
-
-
 example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
   (ℰ' : ⊢ 𝟘 ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) (ℱ' : ⊢ 𝟘 ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ)
   (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.𝟘 ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ) :
@@ -102,12 +99,14 @@ example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
   apply TypingStep.syn
   · apply TypingStep.tensor
   · apply TypingStep.parr
-  · simp
+  · simp ; sorry -- TODO: Need disjointness proof x x' y y' being different s.t. ∩ is empty
+  · exact ℰ'     -- how did we do it in Concurrency Theory?
+  · exact ℱ'
 
 
-  sorry
--- FIGURE OUT HOW IN THE WORLD I CAN GET LEAN TO LET ME DO REWRITES ON A GOAL DEFINED FROM HYPOTHESES
+-- FIGURE OUT HOW IN THE WORLD I CAN GET LEAN TO LET ME DO RWs ON A GOAL DEFINED FROM HYPOTHESES
 
+-- GET EXECUTION OF 𝒟 TO WORK
 
 /-
             ℰ                                       ℱ
