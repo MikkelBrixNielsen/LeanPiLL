@@ -3,7 +3,7 @@
 (MAYBE IGNORE SIDE CONDITIONS FOR NOW AND FOCUS ON JUST GETTING THE RULES ETC. TO WORK)
 
 -- TODO: In regard to exampel 2.5 and figure 3
-    -- Fix the examples broken by Typing refactoring
+    - Fix the examples broken by Typing refactoring
     - See if it is possible to do the execution of in many single steps ?
     - Look in itc-course how executions are defined 
     - Define multistep executions
@@ -61,8 +61,8 @@
 
 ----------------------------------------- NOTES -----------------------------------------
 -- Linearity on hypersets should be enforced through typing rules and should make it impossible
--- to define multiple instances of the same name across different environments s.t. 𝒢(x) is un-
--- ambigous.
+   to define multiple instances of the same name across different environments s.t. 𝒢(x) is
+   unambigous.
 
 
 FINSET LINKS:
@@ -71,81 +71,28 @@ https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Finset/Fold.ht
 https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Finset/Max.html       -- Maximum / minimum 
 
 
+-- We are only concerned about free nanmes in rules like PAR1 
+   and not converned about shadowing because:
+   - Bound names cannot be seen outside / are private to process
+   - Thus would be covered by a tau transition
+
+-- Label parallel can only be composed of things from the action set not recursively from the label set as well
+
+-- There is / was a typo in how \McE and \McF are defined in example 2.5, since applying tensor / parr 
+   to the premise does not yield the shown goal - the type of x / x' and y / y' should be swapped.
+    - Fabrizio's response: Rules are correct application is wrong. x' should have type A, and x type B.
+      Likewise for y and y'.
+    
+    - IMPORTANT FACT: It's very easy to make mistakes like the above, because it's intuitive to follow 
+      the same order in which names and types are presented. But the rules don't do this, becuase intuitively
+      'B' is the type of the 'continuation', so the rules are right but a bit unintuitive to apply.
+    
+    - (SIDE NOTE from Fabrizio: Thsi is a great example of why using a proof assistant helps avoid mistakes)
 
 --------------------------------------- QUESTIONS ---------------------------------------
-1. Why are we only concerned about free name in transition rule for derivations and not names in general
-   Does it not create issues when a name introduced by a label shadows an existing name in the PAR1 rule
 
 
-2. Ask about whether lables can be defined rewcursively in regards to par i.e. par can be created using two
-   labels or if these should just be actions (as I understand it from the paper the latter should be correct)
 
 
-3. I think there might be some issue in how \McE is defined in example 2.5, since if the cut rule was used 
-   we would not end up with the expected goal put instead the position of x and x' would be swapped.
-
-   The same issues seems to exist in the definition of \McF since the typing of the result sends the typing of y
-   and not y' 
-   """
-      A paper related observation: To me it seems like there might be a typo in example 2.5 with how E and F are defined. For the definition of E we are given E' := ⊢ Q :: Γ, x : A | Γ', x' : B, for which applying the tensor rule yields:
-      
-      ⊢ Q :: Γ, x : A | Γ', x' : B
-      -------------------------------
-      ⊢ x'[x].Q :: Γ, Γ', x' : A ⊗ B 
-
-      Which does not match ⊢ x[x'].Q :: Γ, Γ', x : A ⊗ B being the expected result. But swapping the names x and x' resolves this. So, redefining E' := ⊢ Q :: Γ, x' : A | Γ', x : B and applying the tensor rule now yields: 
-       
-       ⊢ Q :: Γ, x' : A | Γ', x : B
-       -------------------------------
-       ⊢ x[x'].Q :: Γ, Γ', x : A ⊗ B
-
-       Similarly for F it seems to me that y and y' should swap names s.t. F' := ⊢ R :: Δ, y' : Aᗮ, y : Bᗮ instead.
-
-       DOES THIS HAVE AN EFFECT ON FIG 3???
-       -- Yes, this swaps the order in which the cut variables appear.
-    """
 
 
-4. In addition to (3) and whether or not this has an effect on fig 3, I am a little confused as to how to deal with 
-the order of envs and hyperenvs since if their internal structure the result produced by applying a specific rule 
-could have differing outcomes:
-    
-    Given D := ⊢ Q | R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B |ₕ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ and applying the cut rule
-
-    ⊢ Q | R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B |ₕ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
-    ----------------------------------------------------- cut
-           ⊢ 𝑣xy Q | R ∷ Γ‚ x' ∶ A |ₕ Γ' |ₕ Δ‚ y' ∶ Aᗮ
-           ------------------------------------------ cut
-                 ⊢ 𝑣x'y' 𝑣xy Q | R ∷ Γ |ₕ Γ' |ₕ Δ
-
-    we could use commutativity of HyperEnvs and Envs and then applying cut on that to instead obtain
-
-    ⊢ Q | R ∷  Γ'‚ x ∶ B |ₕ Γ‚ x' ∶ A |ₕ Δ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ
-    ----------------------------------------------------- cut
-          ⊢ 𝑣x'y' Q | R ∷ Γ'‚ x ∶ B |ₕ Γ |ₕ Δ‚ y ∶ Bᗮ
-          ------------------------------------------ cut
-                 ⊢ 𝑣xy 𝑣'x'y Q | R ∷ Γ |ₕ Γ' |ₕ Δ
-
-    If restriction order does not matter then these have the same process and typing, so they'd be equivalent.
-    But is this okay. I currently feel like this is a bit illegal.
-
-5. I Don't really understand how the transition rules for derivations work in regard to targeting a specific part 
-of a derivation. e.g. in fig 3, how does each individual rule in the tau transition change D to what is shown.
-Additionally, why is this a tau transition since all the remaning rules all have a named label, when the second 
-transition has a named label which isn't tau. Is this because in the first derivation of D the tau transition 
-sort of encapsulates the names of the other labels, and in the second transition the named label z() is used for 
-par2 and res so they propagate it up to being the actual label of the overall transiition?
-
-
-1:
-Bound names cannot be seen outside / are private to process
-These would be covered by a tau transition
-
-2:
-Only combination of things from act
-
-5:
-Builds upon D with SYN \tensor \parr
-
-3-4:
-There is a typo has created thread and asked Fabrizio and Marco

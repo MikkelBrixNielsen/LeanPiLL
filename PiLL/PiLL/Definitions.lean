@@ -2,6 +2,7 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Finset.Fold
+import Lean.PrettyPrinter.Delaborator
 ------------------------------------------ Proc  ------------------------------------------
 
 abbrev PName := Nat -- Process names are just numbers (ensures not empty)
@@ -29,7 +30,7 @@ def rename (ρ : Renaming) : Proc → Proc
 
 @[simp]
 def Proc.fNames : Proc → Finset PName
-  | .tensor x y P         => {x, y} ∪ P.fNames
+  | .tensor x y P         => {x} ∪ (P.fNames \ {y})
   | .parr x y P           => {x} ∪ (P.fNames \ {y})
   | .one x P              => {x} ∪ P.fNames
   | .bot x P              => {x} ∪ P.fNames
@@ -424,7 +425,7 @@ deriving Repr, DecidableEq
 
 abbrev Lbls := List Lbl
 
-instance : Coe Act Lbl := ⟨fun a => Lbl.act a⟩
+instance : Coe Act Lbl := ⟨Lbl.act⟩
 
 @[simp]
 def getNamesOfLbl (func : Act → Finset PName) : Lbl → Finset PName
@@ -553,7 +554,13 @@ notation:80 x "⟦⟧" => Act.one x
 notation:80 x "⸨" y "⸩" => Act.parr x y
 notation:80 x "⸨⸩" => Act.bot x
 notation:70 "τ" => Lbl.tau
-notation:70 l "|ₗ" l' => Lbl.par l l'
+notation:70 l " |ₗ " l' => Lbl.par l l'
+
+open Lean PrettyPrinter in
+@[app_unexpander Lbl.act]
+def unexpandLblAct : Unexpander
+  | `($_ $a) => pure a
+  | _ => pure Syntax.missing
 
 ----------------------------------- MULTISTEP-TRANSITIONS ----------------------------------
 notation:80 "ε" => (List.nil : Lbls)
