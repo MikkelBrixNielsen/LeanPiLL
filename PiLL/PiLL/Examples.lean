@@ -81,7 +81,7 @@ example : D -[x⟦x'⟧ |ₗ y⸨y'⸩]-> D' := by
   apply TypingStep.syn
   · rw [HyperEnv.merge_unitL] -- Issue here Lean seems to know what the goal is but does
                               -- Not allow me to do rewrites
-
+  sorry
 
 
 #check Typing.cut ∅ (Γ‚ Γ') (Δ‚ z ∶ ⊥) (x⟦x'⟧.𝟘 |ₚ y⸨y'⸩.z⸨⸩.𝟘) x y (A ⊗ B) D
