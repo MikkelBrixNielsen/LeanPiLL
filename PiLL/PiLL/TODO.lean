@@ -1,0 +1,168 @@
+import PiLL.Definitions
+------------------------------------------ TODOs  ------------------------------------------
+
+-- (MAYBE IGNORE SIDE CONDITIONS FOR NOW AND FOCUS ON JUST GETTING THE RULES ETC. TO WORK)
+
+/- TODO: In regard to exampel 2.5 and figure 3
+    · Fix the examples broken by Typing refactoring
+    · See if it is possible to do the execution of in many single steps ?
+    · Look in itc-course how executions are defined
+    · Define multistep executions
+    · Do the execution of D
+-/
+
+-- TODO: Alpha renaming
+
+/- TODO: define πMLL derivation transition rules - I THINK THIS IS FIXED
+    · fix how the types don't match but are generic
+    · fix how the one_bot rule does not match signature
+-/
+
+/- TODO: Make Lean infer more of the arguments given to cut from the judgements instead
+of supplying them -/
+
+-- TODO: Check how typings bind and try and get it to match what the rules expect
+
+/- TODO: Make names and typing appear in reverse order to match typing rules
+    · i.e. x().z[].0 :: z : one, x : bot
+    · Should reduce the amount of rw used
+-/
+
+/- TODO: Add side conditions to typing rules enforcing
+    · Environments can only contain one occurence of a process name
+    · Hyper-environments can only contain one occurence of an environment name
+    · i.e. typing rules should enforce linearity
+-/
+
+-- TODO: Look at sideconditions for transition rules for derivations
+
+
+
+-- TODO: make a smart constructor for hyper-environments for less boiler plate?
+-- TODO: define wellformedness for hyper-environments
+-- TODO: Check that typing rules work and that syntax binds in the way it should
+
+------------ Questions ------------
+-- Is it the typing rules which ensure that a single name cannot be used by multiple environments
+-- Otherwise how is 𝒢(x) supposed to be defined
+-- Is it correctly understood that typing rules ensure name linearity in environments
+
+/- How should hyperenvs be defined
+    · just a bag of envs no structure
+    · par constructor to keep track of structure
+    · processes have a parallel composition keeping them distinct so shouldn't this also
+    · be the case for hyperenvironments
+-/
+
+/- In the cut rule for πMLL is the typing correct i.e. 𝒢 | Γ, x : A | Δ, y : ¬A becomes 𝒢 | Γ, Δ
+    · i.e. is it correct that after the cut Γ and Δ merges into one environment?
+    · Or should they stay parallel when merging into 𝒢 again?
+-/
+
+
+
+------------ Might be irrelevant ------------
+-- TODO: use env_linearity to ensure insertions / appends to an env's data are unique entries
+-- TODO: use hyper_linearity to ensure insertions / appends to an hyperenv's data are unique entries
+
+
+----------------------------------------- NOTES -----------------------------------------
+/- Linearity on hypersets should be enforced through typing rules and should make it impossible
+    to define multiple instances of the same name across different environments s.t. 𝒢(x) is
+   unambigous.
+-/
+
+/-
+FINSET LINKS:
+https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Finset/Filter.html    -- Filter
+https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Finset/Fold.html      -- Fold
+https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Finset/Max.html       -- Maximum / minimum
+-/
+
+/- We are only concerned about free nanmes in rules like PAR1
+   and not converned about shadowing because:
+   · Bound names cannot be seen outside / are private to process
+   · Thus would be covered by a tau transition
+-/
+
+/- Label parallel can only be composed of things from the action set not recursively
+from the label set as well -/
+
+/- There is / was a typo in how \McE and \McF are defined in example 2.5, since applying
+    tensor / parr to the premise does not yield the shown goal - the type of x / x' and
+    y / y' should be swapped.
+    · Fabrizio's response: Rules are correct application is wrong. x' should have type A,
+      and x type B. Likewise for y and y'.
+
+    · IMPORTANT FACT: It's very easy to make mistakes like the above, because it's intuitive
+      to follow the same order in which names and types are presented. But the rules don't do
+      this, becuase intuitively 'B' is the type of the 'continuation', so the rules are right
+      but a bit unintuitive to apply.
+
+    · (SIDE NOTE from Fabrizio: this is a great example of why using a proof assistant helps
+      avoid mistakes)
+-/
+--------------------------------------- QUESTIONS ---------------------------------------
+/-
+(1) Isn't the order y and y' in the last HyperEnv of the tensor_parr rule flipped based
+    on what the parr rule requires in its signature i.e.:
+    applying parr to y⸨y'⸩.P ∷ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ --> P ∷ Ξ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ, but in the example
+    applying parr resutls in the reverse order of y and y': P ∷ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ
+    (The typing are however correct)
+-/
+
+/-
+(2) Currently have an issue environments not matching what is required by rules
+    D' would not be the result of direct rule application but needs rw to exist
+    direct rule application would create:
+    · Typing.mix₀           => 𝟘 ∷ ∅
+    · Typing.one (x := y)   => y⟦⟧.𝟘 ∷ y ∶ 𝟙
+    · Typing.bot (x := y')  => y⸨⸩.y⟦⟧.𝟘 ∷ y ∶ 𝟙‚ y' ∶ ⊥
+    · Typing.bot (x := z)   => z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ y ∶ 𝟙‚ y' ∶ ⊥‚ z ∶ ⊥
+    Cannot apply Typing.parr unless z ∶ ⊥ is moved to the front
+    And even then two different outcomes can occur, since no order in Envs / HyperEnvs:
+    (*) z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y ∶ 𝟙‚ y' ∶ ⊥
+        Typing.parr   => y'⸨y⸩.z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y' ∶ 𝟙 ⅋ ⊥
+    (#) z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y' ∶ ⊥‚ y ∶ 𝟙
+        y⸨y'⸩.z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y ∶ ⊥ ⅋ 𝟙
+
+    Since Envs and HyperEnvs are unordered should it result in (1) or (2), and how do we
+    decide how the Env should be ordered when the rule is applied? Is that just something
+    we fix / decide before applying the rule?
+-/
+-- (*)
+example (y y' z : PName) : ⊢ y'⸨y⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y' ∶ 𝟙 ⅋ ⊥ := by
+  apply Typing.parr
+  rw [Env.merge_comm]
+  apply Typing.bot
+  apply Typing.bot
+  apply Typing.one
+  apply Typing.mix₀
+
+-- (#)
+example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y ∶ ⊥ ⅋ 𝟙 := by
+  apply Typing.parr
+  rw [Env.merge_comm] ; conv => lhs ; rhs ; lhs ; rw [Env.merge_comm]
+  apply Typing.bot
+  apply Typing.bot
+  apply Typing.one
+  apply Typing.mix₀
+
+
+/- This also means there are restriction as to how typings can be written on a process if
+a ceratin derivation is desired with regard to doing transitions between derivations.
+Below D has to bind Δ and z ∶ ⊥ together, otherwise the typing woun't match the parr
+transition rule. -/
+example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
+  (D : ⊢ y⸨y'⸩.z⸨⸩.P ∷ (Δ‚ z ∶ ⊥)‚ y ∶ Aᗮ ⅋ Bᗮ)
+  (D' : ⊢ z⸨⸩.P ∷ (Δ‚ z ∶ ⊥)‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) :
+  D -[y⸨y'⸩]-> D' := by
+  apply TypingStep.parr
+
+/- And so I cannot get something like the below to work, which would be what is produced
+by the typing rules. If I could apply rewrite that would be a different story. -/
+example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
+  (D : ⊢ y⸨y'⸩.z⸨⸩.P ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥)
+  (D' : ⊢ z⸨⸩.P ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥) :
+  D -[y⸨y'⸩]-> D' := by sorry
+  -- apply TypingStep.parr
