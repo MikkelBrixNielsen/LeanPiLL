@@ -61,41 +61,16 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
         -- rw [Env.merge_swap_last, Env.merge_assoc]        -- look more like in the paper
         exact ℱ'
 
-
-
-
-example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
-  (ℰ' : ⊢ 𝟘 ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) (ℱ' : ⊢ z⸨⸩.𝟘 ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ)
-  (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥) :
-  Typing.mix ℰ ℱ  -[x⟦x'⟧ |ₗ y⸨y'⸩]-> Typing.mix ℰ' (Typing.bot (x := z) ℱ') := by sorry
-  -- apply TypingStep.syn
-  -- · apply TypingStep.tensor
-  -- · apply TypingStep.parr
-  -- · simp ; sorry -- TODO: Need disjointness proof x x' y y' being different s.t. ∩ is empty
-  -- · exact ℰ'     -- how did we do it in Concurrency Theory?
-  -- · exact ℱ'
-  (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ (Δ‚ z ∶ ⊥)‚ y ∶ Aᗮ ⅋ Bᗮ) :
-  ⊢ x⟦x'⟧.𝟘 |ₚ y⸨y'⸩.z⸨⸩.𝟘 ∷ ∅ |ₕ {(Γ‚ Γ')‚ x ∶ A ⊗ B} |ₕ {(Δ‚ z ∶ ⊥)‚ y ∶ (A ⊗ B)ᗮ} := by
-  rw [HyperEnv.merge_unitL]
-  apply Typing.mix
-  · rw [Env.merge_assoc]
-    exact ℰ
-  · exact ℱ
-
-variable (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
-  (D : ⊢ x⟦x'⟧.𝟘 |ₚ y⸨y'⸩.z⸨⸩.𝟘 ∷ (∅ |ₕ {(Γ‚ Γ')‚ x ∶ A ⊗ B}) |ₕ {(Δ‚ z ∶ ⊥)‚ y ∶ (A ⊗ B)ᗮ})
-  (D' : ⊢ 𝟘 |ₚ z⸨⸩.𝟘 ∷ (∅ |ₕ (Γ‚ x ∶ B |ₕ Γ'‚ x' ∶ A) |ₕ (Δ‚ z ∶ ⊥)‚ y' ∶ Aᗮ‚ y ∶ Bᗮ))
-
-example : D -[x⟦x'⟧ |ₗ y⸨y'⸩]-> D' := by
-  apply TypingStep.syn
-  · rw [HyperEnv.merge_unitL] -- Issue here Lean seems to know what the goal is but does
-                              -- Not allow me to do rewrites
-  sorry
-
-
-#check Typing.cut ∅ (Γ‚ Γ') (Δ‚ z ∶ ⊥) (x⟦x'⟧.𝟘 |ₚ y⸨y'⸩.z⸨⸩.𝟘) x y (A ⊗ B) D
-
-
+-- example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
+--   (ℰ' : ⊢ 𝟘 ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) (ℱ' : ⊢ z⸨⸩.𝟘 ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ)
+--   (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥) :
+--   Typing.mix ℰ ℱ  -[x⟦x'⟧ |ₗ y⸨y'⸩]-> Typing.mix ℰ' (Typing.bot (x := z) ℱ') := by
+--   apply TypingStep.syn
+--   · apply TypingStep.tensor
+--   · apply TypingStep.parr
+--   · simp ; sorry -- TODO: Need disjointness proof x x' y y' being different s.t. ∩ is empty
+--   · exact ℰ'     -- how did we do it in Concurrency Theory?
+--   · exact ℱ'
 
 -- FIGURE OUT HOW IN THE WORLD I CAN GET LEAN TO LET ME DO RWs ON A GOAL DEFINED FROM HYPOTHESES
 
