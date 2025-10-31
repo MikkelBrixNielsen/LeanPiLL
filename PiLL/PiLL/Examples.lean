@@ -61,35 +61,7 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
         -- rw [Env.merge_swap_last, Env.merge_assoc]        -- look more like in the paper
         exact ℱ'
 
-example (x : PName) :
-  Typing.one (x := x) Typing.mix₀ -[x⟦⟧]-> Typing.mix₀ := by
-  apply TypingStep.one
 
-example (x : PName) :
-  Typing.one (x := x) Typing.mix₀ -[[x⟦⟧]]->> Typing.mix₀ := by
-  rw [eq_concat_nil]
-  apply MTST.stepR
-  · apply MTST.refl
-  · apply TypingStep.one
-
-example (x y : PName) :
-  Typing.bot (x := y) (Typing.one (x := x) Typing.mix₀) -[[y⸨⸩] ∷ₘ x⟦⟧]->> Typing.mix₀ := by
-  apply MTST.stepR
-  · rw [eq_concat_nil]
-    apply MTST.stepR
-    · apply MTST.refl
-    · apply TypingStep.bot
-  apply TypingStep.one
-
-example (x y : PName) :
-  Typing.mix (Typing.one (x := x) Typing.mix₀) (Typing.one (x := y) Typing.mix₀)
-  -[(x⟦⟧ |ₗ y⟦⟧)]-> Typing.mix (Typing.mix₀) (Typing.mix₀) := by
-  apply TypingStep.syn
-  · apply TypingStep.one  -- 𝒟 -[l]-> 𝒟'
-  · apply TypingStep.one  -- ℰ -[l']-> ℰ'
-  · simp                  -- i(l | l') ∩ f(P | Q) = ∅
-  · apply Typing.mix₀     -- 𝒟':= ⊢ 𝟘 ∷ ∅
-  · apply Typing.mix₀     -- ℰ':= ⊢ 𝟘 ∷ ∅
 
 
 example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
@@ -102,6 +74,27 @@ example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
   -- · simp ; sorry -- TODO: Need disjointness proof x x' y y' being different s.t. ∩ is empty
   -- · exact ℰ'     -- how did we do it in Concurrency Theory?
   -- · exact ℱ'
+  (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ (Δ‚ z ∶ ⊥)‚ y ∶ Aᗮ ⅋ Bᗮ) :
+  ⊢ x⟦x'⟧.𝟘 |ₚ y⸨y'⸩.z⸨⸩.𝟘 ∷ ∅ |ₕ {(Γ‚ Γ')‚ x ∶ A ⊗ B} |ₕ {(Δ‚ z ∶ ⊥)‚ y ∶ (A ⊗ B)ᗮ} := by
+  rw [HyperEnv.merge_unitL]
+  apply Typing.mix
+  · rw [Env.merge_assoc]
+    exact ℰ
+  · exact ℱ
+
+variable (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
+  (D : ⊢ x⟦x'⟧.𝟘 |ₚ y⸨y'⸩.z⸨⸩.𝟘 ∷ (∅ |ₕ {(Γ‚ Γ')‚ x ∶ A ⊗ B}) |ₕ {(Δ‚ z ∶ ⊥)‚ y ∶ (A ⊗ B)ᗮ})
+  (D' : ⊢ 𝟘 |ₚ z⸨⸩.𝟘 ∷ (∅ |ₕ (Γ‚ x ∶ B |ₕ Γ'‚ x' ∶ A) |ₕ (Δ‚ z ∶ ⊥)‚ y' ∶ Aᗮ‚ y ∶ Bᗮ))
+
+example : D -[x⟦x'⟧ |ₗ y⸨y'⸩]-> D' := by
+  apply TypingStep.syn
+  · rw [HyperEnv.merge_unitL] -- Issue here Lean seems to know what the goal is but does
+                              -- Not allow me to do rewrites
+  sorry
+
+
+#check Typing.cut ∅ (Γ‚ Γ') (Δ‚ z ∶ ⊥) (x⟦x'⟧.𝟘 |ₚ y⸨y'⸩.z⸨⸩.𝟘) x y (A ⊗ B) D
+
 
 
 -- FIGURE OUT HOW IN THE WORLD I CAN GET LEAN TO LET ME DO RWs ON A GOAL DEFINED FROM HYPOTHESES
@@ -140,6 +133,38 @@ example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
       ----------------------------------------------------- Typing.cut
         ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
 -/
+
+
+example (x : PName) :
+  Typing.one (x := x) Typing.mix₀ -[x⟦⟧]-> Typing.mix₀ := by
+  apply TypingStep.one
+
+example (x : PName) :
+  Typing.one (x := x) Typing.mix₀ -[[x⟦⟧]]->> Typing.mix₀ := by
+  rw [eq_concat_nil]
+  apply MTST.stepR
+  · apply MTST.refl
+  · apply TypingStep.one
+
+example (x y : PName) :
+  Typing.bot (x := y) (Typing.one (x := x) Typing.mix₀) -[[y⸨⸩] ∷ₘ x⟦⟧]->> Typing.mix₀ := by
+  apply MTST.stepR
+  · rw [eq_concat_nil]
+    apply MTST.stepR
+    · apply MTST.refl
+    · apply TypingStep.bot
+  apply TypingStep.one
+
+example (x y : PName) :
+  Typing.mix (Typing.one (x := x) Typing.mix₀) (Typing.one (x := y) Typing.mix₀)
+  -[(x⟦⟧ |ₗ y⟦⟧)]-> Typing.mix (Typing.mix₀) (Typing.mix₀) := by
+  apply TypingStep.syn
+  · apply TypingStep.one  -- 𝒟 -[l]-> 𝒟'
+  · apply TypingStep.one  -- ℰ -[l']-> ℰ'
+  · simp                  -- i(l | l') ∩ f(P | Q) = ∅
+  · apply Typing.mix₀     -- 𝒟':= ⊢ 𝟘 ∷ ∅
+  · apply Typing.mix₀     -- ℰ':= ⊢ 𝟘 ∷ ∅
+
 
 -- Small alpha equivalence example
 def P : Proc := .parr 1 2 (.tensor 2 4 .nil)

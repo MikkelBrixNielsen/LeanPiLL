@@ -242,6 +242,7 @@ theorem Env.merge_comm (Δ Γ : Env) : Δ.merge Γ = Γ.merge Δ := by
 theorem Env.merge_assoc (Δ Γ Ε : Env) : (Δ.merge Γ).merge Ε = Δ.merge (Γ.merge Ε) := by
   simp [Env.merge]
 
+@[simp]
 lemma Env.merge_swap_last (Γ Δ Ξ : Env) :
   (Γ.merge Δ).merge Ξ = (Γ.merge Ξ).merge Δ := by
   rw [Env.merge_comm, ←Env.merge_assoc]
