@@ -93,15 +93,15 @@ example (x y : PName) :
 
 
 example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
-  (ℰ' : ⊢ 𝟘 ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) (ℱ' : ⊢ 𝟘 ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ)
-  (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.𝟘 ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ) :
-  Typing.mix ℰ ℱ  -[x⟦x'⟧ |ₗ y⸨y'⸩]-> Typing.mix ℰ' ℱ' := by
-  apply TypingStep.syn
-  · apply TypingStep.tensor
-  · apply TypingStep.parr
-  · simp ; sorry -- TODO: Need disjointness proof x x' y y' being different s.t. ∩ is empty
-  · exact ℰ'     -- how did we do it in Concurrency Theory?
-  · exact ℱ'
+  (ℰ' : ⊢ 𝟘 ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) (ℱ' : ⊢ z⸨⸩.𝟘 ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ)
+  (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥) :
+  Typing.mix ℰ ℱ  -[x⟦x'⟧ |ₗ y⸨y'⸩]-> Typing.mix ℰ' (Typing.bot (x := z) ℱ') := by sorry
+  -- apply TypingStep.syn
+  -- · apply TypingStep.tensor
+  -- · apply TypingStep.parr
+  -- · simp ; sorry -- TODO: Need disjointness proof x x' y y' being different s.t. ∩ is empty
+  -- · exact ℰ'     -- how did we do it in Concurrency Theory?
+  -- · exact ℱ'
 
 
 -- FIGURE OUT HOW IN THE WORLD I CAN GET LEAN TO LET ME DO RWs ON A GOAL DEFINED FROM HYPOTHESES
@@ -141,11 +141,6 @@ example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
         ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
 -/
 
-
-
-
-
-
 -- Small alpha equivalence example
 def P : Proc := .parr 1 2 (.tensor 2 4 .nil)
 def Q : Proc := .parr 1 3 (.tensor 3 4 .nil)
@@ -154,3 +149,11 @@ def w := freshName (P.names ∪ Q.names)
 def P' :=  renameBound 2 w P
 def Q':= renameBound 3 w Q
 #eval P' = Q'
+
+
+/- The issue mentioned on discord -/
+example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
+  (ℱ : ⊢ y⸨y'⸩.z⸨⸩.P ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥) (ℱ' : ⊢ z⸨⸩.P ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) :
+  ℱ -[y⸨y'⸩]-> (Typing.bot (x := z) ℱ') := by
+  rw [← Env.merge_assoc, Env.merge_swap_last] at ℱ  -- creates a copy of ℱ
+  -- rw [← Env.merge_assoc, Env.merge_swap_last]    -- motive is not type correct
