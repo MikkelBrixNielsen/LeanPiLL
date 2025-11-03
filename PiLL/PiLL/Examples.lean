@@ -7,7 +7,7 @@ import PiLL.Definitions
 --       in general try minimizing things given to cut
 example (x x₁ x₂ y y₁ y₂ z : PName) :
   ⊢ 𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘 ∷
-    x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 𝟙 := by
+    {x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 𝟙} := by
   apply Typing.cut ∅ _ _ _ _ _ (𝟙)
   rw [HyperEnv.merge_unitL, Env.merge_comm]
   conv => lhs ; rhs ; rhs ; rw [Env.merge_assoc]
@@ -29,8 +29,8 @@ example (x x₁ x₂ y y₁ y₂ z : PName) :
 
 -- Example 2.5/ fig 3 from the main.pdf and some other stuff
 theorem ℱ (Δ : Env) (R : Proc) (y y' z : PName) (A B : Types)
-  (ℱ' : ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) :
-  ⊢ y⸨y'⸩.z⸨⸩.R ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥ := by
+  (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
+  ⊢ y⸨y'⸩.z⸨⸩.R ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥} := by
   apply Typing.bot at ℱ'
   · rw [Env.merge_swap_last] at ℱ'
     apply Typing.parr at ℱ'
@@ -38,14 +38,14 @@ theorem ℱ (Δ : Env) (R : Proc) (y y' z : PName) (A B : Types)
     exact ℱ'
 
 theorem ℰ (Γ Γ' : Env) (Q : Proc) (x x' : PName) (A B : Types)
-  (ℰ' : ⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) :
-  ⊢ x⟦x'⟧.Q ∷ Γ‚ Γ'‚ x ∶ A ⊗ B := by
+  (ℰ' : ⊢ Q ∷ {Γ‚ x' ∶ A} |ₕ {Γ'‚ x ∶ B}) :
+  ⊢ x⟦x'⟧.Q ∷ {Γ‚ Γ'‚ x ∶ A ⊗ B} := by
   apply Typing.tensor
   exact ℰ'
 
 theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
-  (ℰ' : ⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) (ℱ' : ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) :
-  ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ Δ‚ z ∶ ⊥ := by
+  (ℰ' : ⊢ Q ∷ {Γ‚ x' ∶ A} |ₕ {Γ'‚ x ∶ B}) (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
+  ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ {Γ‚ Γ'‚ Δ‚ z ∶ ⊥} := by
     let t := Typing.cut ∅ (Γ‚ Γ') (Δ‚ z ∶ ⊥) (x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R) x y (A ⊗ B)
     repeat rw [HyperEnv.merge_unitL] at t
     conv => lhs ; rhs ; rw [←Env.merge_assoc]
@@ -152,8 +152,21 @@ def Q':= renameBound 3 w Q
 
 
 /- The issue mentioned on discord -/
-example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
-  (ℱ : ⊢ y⸨y'⸩.z⸨⸩.P ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥) (ℱ' : ⊢ z⸨⸩.P ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) :
-  ℱ -[y⸨y'⸩]-> (Typing.bot (x := z) ℱ') := by
-  rw [← Env.merge_assoc, Env.merge_swap_last] at ℱ  -- creates a copy of ℱ
-  -- rw [← Env.merge_assoc, Env.merge_swap_last]    -- motive is not type correct
+-- example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
+--   (ℱ : ⊢ y⸨y'⸩.z⸨⸩.P ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥}) (ℱ' : ⊢ z⸨⸩.P ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
+--   ℱ -[y⸨y'⸩]-> (Typing.bot (x := z) ℱ') := by
+--   have h1 := Env.merge_assoc Δ (y ∶ Aᗮ ⅋ Bᗮ) (z ∶ ⊥)
+--   have h2 := Env.merge_comm (y ∶ Aᗮ ⅋ Bᗮ) (z ∶ ⊥)
+--   rw [h2]
+  sorry
+  --rw [← Env.merge_assoc, Env.merge_swap_last] at ℱ  -- creates a copy of ℱ
+  --rw [← Env.merge_assoc, Env.merge_swap_last]    -- motive is not type correct
+
+
+-- Done: removed Env -> HyperEnv coercion
+
+
+variable (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
+  (t : {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) (ℱ' : ⊢ z⸨⸩.P ∷ t)
+
+#check Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ

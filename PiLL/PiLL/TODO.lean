@@ -11,7 +11,7 @@ import PiLL.Definitions
     · Do the execution of D
 -/
 
--- TODO: Alpha renaming
+-- TODO: Look through old revisions of main.pdf and transfer / check marked uncertanties
 
 /- TODO: define πMLL derivation transition rules - I THINK THIS IS FIXED
     · fix how the types don't match but are generic
@@ -23,9 +23,14 @@ of supplying them -/
 
 -- TODO: Check how typings bind and try and get it to match what the rules expect
 
+-- TODO: Alpha renaming
+
 /- TODO: Make names and typing appear in reverse order to match typing rules
     · i.e. x().z[].0 :: z : one, x : bot
     · Should reduce the amount of rw used
+    · This would go against how the rules are defined, so maybe don't do this.
+      Also Envs / HyperEnvs are unordered, commutative, associative, etc., so
+      they can be rearranged using those lemmas, and that should be fine.
 -/
 
 /- TODO: Add side conditions to typing rules enforcing
@@ -109,6 +114,7 @@ from the label set as well -/
     applying parr to y⸨y'⸩.P ∷ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ --> P ∷ Ξ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ, but in the example
     applying parr resutls in the reverse order of y and y': P ∷ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ
     (The typing are however correct)
+    -- Yes, it has been fixed now.
 -/
 
 /-
@@ -124,14 +130,15 @@ from the label set as well -/
     (*) z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y ∶ 𝟙‚ y' ∶ ⊥
         Typing.parr   => y'⸨y⸩.z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y' ∶ 𝟙 ⅋ ⊥
     (#) z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y' ∶ ⊥‚ y ∶ 𝟙
-        y⸨y'⸩.z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y ∶ ⊥ ⅋ 𝟙
+        Typing.parr   => y⸨y'⸩.z⸨⸩.y⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y ∶ ⊥ ⅋ 𝟙
 
-    Since Envs and HyperEnvs are unordered should it result in (1) or (2), and how do we
+    Since Envs and HyperEnvs are unordered should it result in (*) or (#), and how do we
     decide how the Env should be ordered when the rule is applied? Is that just something
-    we fix / decide before applying the rule?
+    we fix / decide before applying the rule? I.e. depending on what we want to show / prove
+    we fix the Envs / HyperEnvs to refelct this?
 -/
 -- (*)
-example (y y' z : PName) : ⊢ y'⸨y⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y' ∶ 𝟙 ⅋ ⊥ := by
+example (y y' z : PName) : ⊢ y'⸨y⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z ∶ ⊥‚ y' ∶ 𝟙 ⅋ ⊥} := by
   apply Typing.parr
   rw [Env.merge_comm]
   apply Typing.bot
@@ -140,7 +147,7 @@ example (y y' z : PName) : ⊢ y'⸨y⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ z ∶
   apply Typing.mix₀
 
 -- (#)
-example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ z ∶ ⊥‚ y ∶ ⊥ ⅋ 𝟙 := by
+example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z ∶ ⊥‚ y ∶ ⊥ ⅋ 𝟙} := by
   apply Typing.parr
   rw [Env.merge_comm] ; conv => lhs ; rhs ; lhs ; rw [Env.merge_comm]
   apply Typing.bot
@@ -154,15 +161,15 @@ a ceratin derivation is desired with regard to doing transitions between derivat
 Below D has to bind Δ and z ∶ ⊥ together, otherwise the typing woun't match the parr
 transition rule. -/
 example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
-  (D : ⊢ y⸨y'⸩.z⸨⸩.P ∷ (Δ‚ z ∶ ⊥)‚ y ∶ Aᗮ ⅋ Bᗮ)
-  (D' : ⊢ z⸨⸩.P ∷ (Δ‚ z ∶ ⊥)‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) :
+  (D : ⊢ y⸨y'⸩.z⸨⸩.P ∷ {(Δ‚ z ∶ ⊥)‚ y ∶ Aᗮ ⅋ Bᗮ})
+  (D' : ⊢ z⸨⸩.P ∷ {(Δ‚ z ∶ ⊥)‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
   D -[y⸨y'⸩]-> D' := by
   apply TypingStep.parr
 
 /- And so I cannot get something like the below to work, which would be what is produced
 by the typing rules. If I could apply rewrite that would be a different story. -/
 example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
-  (D : ⊢ y⸨y'⸩.z⸨⸩.P ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥)
-  (D' : ⊢ z⸨⸩.P ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥) :
+  (D : ⊢ y⸨y'⸩.z⸨⸩.P ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥})
+  (D' : ⊢ z⸨⸩.P ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥}) :
   D -[y⸨y'⸩]-> D' := by sorry
   -- apply TypingStep.parr
