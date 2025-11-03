@@ -256,7 +256,7 @@ abbrev EmptyHyperEnv : HyperEnv := {}
 
 -- Coercion makes extending a hyperenv with env and merging the same
 -- and env1 |ₕ env2 => hyperenv due to envs being lifted to hyperenv
--- instance : Coe Env HyperEnv := ⟨fun Γ => {Γ}⟩
+-- instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
 
 def pairwise {α : Type} (r : α → α → Prop) (s : Finset α) : Prop :=
   ∀ x ∈ s, ∀ y ∈ s, y ≠ x → r x y
@@ -369,6 +369,7 @@ infixr:85 "‚ " => Env.merge
 /- HYPERENV -/
 notation:60 𝒢 "⸨" x "⸩" => HyperEnv.lookup 𝒢 x
 infixr:55 " |ₕ " => HyperEnv.merge
+notation:max "⦃" Δ "⦄" => ({Δ} : HyperEnv)
 
 --------------------------------------- TYPING RULES ---------------------------------------
 
@@ -565,18 +566,18 @@ def unexpandLblAct : Unexpander
   | `($_ $a) => pure a
   | _ => pure Syntax.missing
 
------------------------------------ MULTISTEP-TRANSITIONS ----------------------------------
+-------------------------- MULTI-TYPING-STEP-TRANSITIONS ---------------------------
 notation:80 "ε" => (List.nil : Lbls)
-notation:60 xs " ∷ₘ " x => List.concat (xs : Lbls) (x : Lbl)
+notation:60 xs " ∷ₗ " x => List.concat (xs : Lbls) (x : Lbl)
 
 lemma eq_concat_nil {l} :
-  [l] = (ε ∷ₘ l) := by rfl
+  [l] = (ε ∷ₗ l) := by rfl
 
 lemma cons_concat_eq {x xs y} :
-  x :: (xs ∷ₘ y) = x :: (xs ∷ₘ y) := by simp
+  x :: (xs ∷ₗ y) = x :: (xs ∷ₗ y) := by simp
 
 lemma append_concat_eq {xs ys y} :
-  xs ++ (ys ∷ₘ y) = (xs ++ ys) ∷ₘ y := by simp
+  xs ++ (ys ∷ₗ y) = (xs ++ ys) ∷ₗ y := by simp
 
 lemma cons_append_assoc {x : Lbl} {xs ys : Lbls} :
   x :: (xs ++ ys) = (x :: xs) ++ ys := by rfl
@@ -592,6 +593,6 @@ inductive MTST : {𝒢 𝒢' : HyperEnv} → {P P' : Proc} →
     (𝒟  : Typing 𝒢  P) (𝒟' : Typing 𝒢' P') (𝒟'' : Typing 𝒢'' P'') :
     (MTST 𝒟 ls 𝒟') → (𝒟' -[l]-> 𝒟'') →
     ----------------------------------
-          MTST 𝒟 (ls ∷ₘ l) 𝒟''
+          MTST 𝒟 (ls ∷ₗ l) 𝒟''
 
 notation:50 𝒟 " -[" ls "]->> " 𝒟' => MTST 𝒟 ls 𝒟'
