@@ -13,10 +13,12 @@ import PiLL.Definitions
 
 -- TODO: Look through old revisions of main.pdf and transfer / check marked uncertanties
 
-/- TODO: define πMLL derivation transition rules - I THINK THIS IS FIXED
+/- TODO: Define πMLL derivation transition rules - I THINK THIS IS FIXED
     · fix how the types don't match but are generic
     · fix how the one_bot rule does not match signature
 -/
+
+/- TODO: Fix #eval env (Typing 𝒢 P) not working -/
 
 /- TODO: Make Lean infer more of the arguments given to cut from the judgements instead
 of supplying them -/
@@ -40,12 +42,6 @@ of supplying them -/
 -/
 
 -- TODO: Look at sideconditions for transition rules for derivations
-
-
-
--- TODO: make a smart constructor for hyper-environments for less boiler plate?
--- TODO: define wellformedness for hyper-environments
--- TODO: Check that typing rules work and that syntax binds in the way it should
 
 ------------ Questions ------------
 -- Is it the typing rules which ensure that a single name cannot be used by multiple environments
@@ -109,16 +105,7 @@ from the label set as well -/
 -/
 --------------------------------------- QUESTIONS ---------------------------------------
 /-
-(1) Isn't the order y and y' in the last HyperEnv of the tensor_parr rule flipped based
-    on what the parr rule requires in its signature i.e.:
-    applying parr to y⸨y'⸩.P ∷ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ --> P ∷ Ξ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ, but in the example
-    applying parr resutls in the reverse order of y and y': P ∷ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ
-    (The typing are however correct)
-    -- Yes, it has been fixed now.
--/
-
-/-
-(2) Currently have an issue environments not matching what is required by rules
+(1) Currently have an issue environments not matching what is required by rules
     D' would not be the result of direct rule application but needs rw to exist
     direct rule application would create:
     · Typing.mix₀           => 𝟘 ∷ ∅
@@ -258,7 +245,6 @@ example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
 /- Additionally:
   · It is not possible to do cases on Envs / HyperEnvs since they are Quots
 -/
-
 
 /- Done:
   removed Env -> HyperEnv coercion:

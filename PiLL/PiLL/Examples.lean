@@ -109,7 +109,7 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
         ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
 -/
 
-
+/- Some examples of single and multistep transitions -/
 example (x : PName) :
   Typing.one (x := x) Typing.mix₀ -[x⟦⟧]-> Typing.mix₀ := by
   apply TypingStep.one
@@ -141,7 +141,7 @@ example (x y : PName) :
   · apply Typing.mix₀     -- ℰ':= ⊢ 𝟘 ∷ ∅
 
 
--- Small alpha equivalence example
+/- Small alpha equivalence example -/
 def P : Proc := .parr 1 2 (.tensor 2 4 .nil)
 def Q : Proc := .parr 1 3 (.tensor 3 4 .nil)
 
@@ -150,3 +150,48 @@ def P' :=  renameBound 2 w P --> Proc.parr 1 5 (Proc.tensor 5 4 (Proc.nil))
 def Q' :=  renameBound 3 w Q --> Proc.parr 1 5 (Proc.tensor 5 4 (Proc.nil))
 
 #eval P' = Q'
+
+/- Some examples using proc and env -/
+def t := Typing.mix
+        (Typing.one (x := 1) (Typing.mix₀))
+        (Typing.bot (x := 2) (Typing.one (x := 1) (Typing.mix₀)))
+
+#check t
+
+#eval proc t
+-- #eval env t -- Doesn't currenly work do to non-computability of toList on Finset
+
+variable (P : Proc) (T : HyperEnv)
+
+example (h : ⊢ P ∷ T) : proc h = P := by
+  simp [proc]
+
+example (h : ⊢ P ∷ T) : env h = T := by
+  simp [env]
+
+def y : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥} := by
+  apply Typing.mix
+  · apply Typing.one
+    apply Typing.mix₀
+  · apply Typing.bot
+    apply Typing.one
+    apply Typing.mix₀
+
+#eval proc y
+-- #eval env y same as above
+
+example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
+  ⊢ proc h ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥} := by
+  simp only [proc]
+  exact t
+
+example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
+  ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ env h := by
+  simp only [env]
+  exact t
+
+example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
+  ⊢ proc h ∷ env h := by
+  simp only [proc]
+  simp only [env]
+  exact h

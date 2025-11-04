@@ -2,7 +2,6 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Finset.Fold
--- import Mathlib.Data.Finset.Pairwise
 import Lean.PrettyPrinter.Delaborator
 ------------------------------------------ Proc  ------------------------------------------
 
@@ -16,7 +15,22 @@ inductive Proc : Type where
   | cut     (x y : PName) (P : Proc)   -- 𝒗xy P
   | par     (P Q : Proc)               -- P | Q
   | nil                                -- 𝟘
-deriving Repr, DecidableEq
+deriving DecidableEq
+
+private def reprProcAux : Proc → Nat → String
+  | .nil, _ => "𝟘"
+  | .tensor x y P, _ => s!"{x}⟦{y}⟧.{reprProcAux P 0}"
+  | .one x P, _ => s!"{x}⟦⟧.{reprProcAux P 0}"
+  | .parr x y P, _ => s!"{x}⸨{y}⸩.{reprProcAux P 0}"
+  | .bot x P, _ => s!"{x}⸨⸩.{reprProcAux P 0}"
+  | .cut x y P, _ => s!"𝑣⸨{x}, {y}⸩ {reprProcAux P 0}"
+  | .par P Q, _ => s!"({reprProcAux P 0} |ₚ {reprProcAux Q 0})"
+
+instance : Repr Proc where
+  reprPrec P _ := reprProcAux P 0
+
+instance : ToString Proc where
+  toString p := reprStr p
 
 abbrev Renaming := PName → PName
 
@@ -126,7 +140,21 @@ inductive Types : Type where
   | parr      (A B : Types)   -- t₁ ⅋ t₂ (receive)
   | one                       -- 𝟙 (empty output, unit for ⊗)
   | bot                       -- ⊥ (empty send, unit for ⅋)
-deriving Repr, DecidableEq
+deriving DecidableEq
+
+private def reprTypesAux : Types → Nat → String
+  | .atom a, _ => s!"A{a}"
+  | .atomDual a, _ => s!"A{a}ᗮ"
+  | .tensor A B, _ => s!"({reprTypesAux A 0} ⊗ {reprTypesAux B 0})"
+  | .parr A B, _ => s!"({reprTypesAux A 0} ⅋ {reprTypesAux B 0})"
+  | .one, _ => "𝟙"
+  | .bot, _ => "⊥"
+
+instance : Repr Types where
+  reprPrec A _ := reprTypesAux A 0
+
+instance : ToString Types where
+  toString t := reprStr t
 
 def Types.pos : Types → Prop
   | atom _ => True
@@ -180,6 +208,17 @@ theorem dual.involution (A : Types) : Types.dual (Types.dual A) = A := by
 abbrev Env := Finset (PName × Types)
 
 abbrev EmptyEnv : Env := ∅
+
+/- FIXME: eval does not work since non-computable -/
+noncomputable instance : Repr Env where
+  reprPrec (Γ : Env) _ :=
+    if Γ = ∅ then "∅"
+    else
+      let entries := Γ.toList.map (fun (x, A) => s!"{x} ∶ {reprStr A}")
+      String.intercalate "‚ " entries
+
+noncomputable instance : ToString Env where
+  toString e := reprStr e
 
 def Env.mk (x : PName) (A : Types) : Env :=
   {(x, A)}
@@ -257,6 +296,18 @@ abbrev EmptyHyperEnv : HyperEnv := {}
 -- Coercion makes extending a hyperenv with env and merging the same
 -- and env1 |ₕ env2 => hyperenv due to envs being lifted to hyperenv
 -- instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
+
+/- FIXME: eval does not work since non-computable -/
+open Lean in
+noncomputable instance : Repr HyperEnv where
+  reprPrec (𝒢 : HyperEnv) _ :=
+    if 𝒢 = ∅ then "∅"
+    else
+      let entries := 𝒢.toList.map repr
+      Format.joinSep entries " |ₕ "
+
+noncomputable instance : ToString HyperEnv where
+  toString g := reprStr g
 
 def pairwise {α : Type} (r : α → α → Prop) (s : Finset α) : Prop :=
   ∀ x ∈ s, ∀ y ∈ s, y ≠ x → r x y
@@ -408,8 +459,8 @@ inductive Typing : HyperEnv → Proc → Prop where
     ------------------------
     Typing ({Γ‚ x ∶ ⊥}) (x⸨⸩.P)
 
-notation:50 "⊢ " P " ∷ " T => Typing T P -- FIXME: This seems to not work that well when writing
-                                         -- but when Lean pretty prints it seems fine
+notation:50 "⊢ " P " ∷ " T => Typing T P --FIXME: This seems to not work that well when
+                                         --writing but when Lean pretty prints it seems fine
 
 ----------------------------- TRANSITION RULES FOR DERIVATIONS -----------------------------
 
@@ -596,3 +647,9 @@ inductive MTST : {𝒢 𝒢' : HyperEnv} → {P P' : Proc} →
           MTST 𝒟 (ls ∷ₗ l) 𝒟''
 
 notation:50 𝒟 " -[" ls "]->> " 𝒟' => MTST 𝒟 ls 𝒟'
+
+------------------------- PROC-FUCNTION & TRANSITION RULES -------------------------
+
+def proc {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : Proc := P
+
+def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
