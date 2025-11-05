@@ -796,23 +796,41 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       {Γ Δ : Env} {x x' : PName} {A B : Types} :
       EnvStep ⦃Γ‚ x ∶ A ⅋ B⦄ (x⸨x'⸩) (⦃Γ‚ x' ∶ A⦄ |ₕ ⦃Δ‚ x ∶ B⦄)
 
+  | par₁
+      {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl} :
+      EnvStep 𝒢 l 𝒢' →
+      -----------------------------
+      EnvStep (𝒢 |ₕ ℋ) l (𝒢' |ₕ ℋ)
 
-  -- | par₁
+  | par₂
+      {𝒢 ℋ ℋ': HyperEnv} {l : Lbl} :
+      EnvStep ℋ l ℋ' →
+      -----------------------------
+      EnvStep (𝒢 |ₕ ℋ) l (𝒢 |ₕ ℋ')
 
+  | syn
+      {𝒢 𝒢' ℋ ℋ': HyperEnv} {l l' : Act} :
+      EnvStep 𝒢 l 𝒢' → EnvStep ℋ l' ℋ' →
+      -----------------------------------
+      EnvStep (𝒢 |ₕ ℋ) (l |ₗ l') (𝒢' |ₕ ℋ')
 
-  -- | par₂
+  | one_bot
+      {𝒢 : HyperEnv} {Γ : Env} {x y : PName} :
+      EnvStep (𝒢 |ₕ ⦃x ∶ 𝟙⦄ |ₕ ⦃Γ‚ y ∶ ⊥⦄) (x⟦⟧ |ₗ y⸨⸩) (𝒢 |ₕ ⦃Γ⦄) →
+      ----------------------------------------------------------
+      EnvStep (𝒢 |ₕ ⦃Γ⦄) (τ) (𝒢 |ₕ ⦃Γ⦄)
 
+  | tensor_parr
+      {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {x x' y y': PName} {A B : Types} :
+      EnvStep
+        (𝒢 |ₕ ⦃Γ‚ Δ‚ x ∶ A ⊗ B⦄ |ₕ ⦃Ξ‚ y ∶ Aᗮ ⅋ Bᗮ⦄)
+        (x⟦x'⟧ |ₗ y⸨y'⸩)
+        (𝒢 |ₕ ⦃Γ‚ x' ∶ A⦄ |ₕ ⦃Δ‚ x ∶ B⦄ |ₕ ⦃Ξ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ⦄) →
+      --------------------------------------------------------
+      EnvStep (𝒢 |ₕ ⦃Γ‚ Δ‚ Ξ⦄) (τ) (𝒢 |ₕ ⦃Γ‚ Δ‚ Ξ⦄)
 
-  -- | syn
-
-
-  -- | alpha_equiv
-
-
-  -- | one_bot
-
-
-  -- | tensor_parr
-
-
-  -- | res
+  | res
+      {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : PName} {A B : Types} {l : Lbl} :
+      EnvStep (𝒢 |ₕ ⦃Γ‚ x ∶ Aᗮ⦄ |ₕ ⦃Δ‚ y ∶ A⦄) (l) (𝒢' |ₕ ⦃Γ'‚ x ∶ Aᗮ⦄ |ₕ ⦃Δ'‚ y ∶ A⦄) →
+      ----------------------------------------------------------------------------
+      EnvStep (𝒢 |ₕ ⦃Γ‚ Δ⦄) l (𝒢' |ₕ ⦃Γ'‚ Δ'⦄)

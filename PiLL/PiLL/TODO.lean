@@ -177,6 +177,11 @@ example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
 example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
   (ℱ : ⊢ y⸨y'⸩.z⸨⸩.P ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥})
   (ℱ' : ⊢ P ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) : ℱ -[y⸨y'⸩]->ₜ Typing.bot (x := z) ℱ' := by sorry
+  -- simp only [← Env.merge_assoc, Env.merge_swap_last]
+  -- simp only [← Env.merge_assoc, Env.merge_comm]
+  -- apply TypingStep.parr
+
+
   -- change (⊢ y⸨y'⸩.z⸨⸩.P ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥}) at ℱ
   -- subst t
   -- unfold t at ℱ
@@ -292,4 +297,11 @@ example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
     transition rules in Fig. 5 to have the order of x and x' flipped in the HyperEnv
     compared to the other similar rules. The others have them x' then x, but here its
     x then x'.
+
+    NOTE: Depending on the answer to this EnvStep.parr, .tensor, .tensor_parr
+          might need to be changed.
+-/
+
+/-
+(8) Don't really understand the conclusions of the RES, 𝟙⊥, and ⊗⅋
 -/
