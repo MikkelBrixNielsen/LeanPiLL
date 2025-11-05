@@ -811,7 +811,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
   | syn
       {𝒢 𝒢' ℋ ℋ': HyperEnv} {l l' : Act} :
       EnvStep 𝒢 l 𝒢' → EnvStep ℋ l' ℋ' →
-      -----------------------------------
+      ------------------------------------
       EnvStep (𝒢 |ₕ ℋ) (l |ₗ l') (𝒢' |ₕ ℋ')
 
   | one_bot
