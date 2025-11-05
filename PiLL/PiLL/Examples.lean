@@ -111,18 +111,18 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
 
 /- Some examples of single and multistep transitions -/
 example (x : PName) :
-  Typing.one (x := x) Typing.mix₀ -[x⟦⟧]-> Typing.mix₀ := by
+  Typing.one (x := x) Typing.mix₀ -[x⟦⟧]->ₜ Typing.mix₀ := by
   apply TypingStep.one
 
 example (x : PName) :
-  Typing.one (x := x) Typing.mix₀ -[[x⟦⟧]]->> Typing.mix₀ := by
+  Typing.one (x := x) Typing.mix₀ -[[x⟦⟧]]->>ₜ Typing.mix₀ := by
   rw [eq_concat_nil]
   apply MTST.stepR
   · apply MTST.refl
   · apply TypingStep.one
 
 example (x y : PName) :
-  Typing.bot (x := y) (Typing.one (x := x) Typing.mix₀) -[[y⸨⸩] ∷ₗ x⟦⟧]->> Typing.mix₀ := by
+  Typing.bot (x := y) (Typing.one (x := x) Typing.mix₀) -[[y⸨⸩] ∷ₗ x⟦⟧]->>ₜ Typing.mix₀ := by
   apply MTST.stepR
   · rw [eq_concat_nil]
     apply MTST.stepR
@@ -132,7 +132,7 @@ example (x y : PName) :
 
 example (x y : PName) :
   Typing.mix (Typing.one (x := x) Typing.mix₀) (Typing.one (x := y) Typing.mix₀)
-  -[(x⟦⟧ |ₗ y⟦⟧)]-> Typing.mix (Typing.mix₀) (Typing.mix₀) := by
+  -[(x⟦⟧ |ₗ y⟦⟧)]->ₜ Typing.mix (Typing.mix₀) (Typing.mix₀) := by
   apply TypingStep.syn
   · apply TypingStep.one  -- 𝒟 -[l]-> 𝒟'
   · apply TypingStep.one  -- ℰ -[l']-> ℰ'
@@ -154,14 +154,29 @@ def Q' :=  renameBound 3 w Q --> Proc.parr 1 5 (Proc.tensor 5 4 (Proc.nil))
 /- Some examples using proc and env -/
 def t := Typing.mix
         (Typing.one (x := 1) (Typing.mix₀))
-        (Typing.bot (x := 2) (Typing.one (x := 1) (Typing.mix₀)))
+        (Typing.bot (x := 2) (Typing.one (x := 3) (Typing.mix₀)))
 
 #check t
 
 #eval proc t
 -- #eval env t -- Doesn't currenly work do to non-computability of toList on Finset
 
+def 𝒟' := (Typing.one (x := 1) (Typing.mix₀))
+def ℱ' := (Typing.bot (x := 2) (Typing.one (x := 3) (Typing.mix₀)))
+
+def p := Typing.mix 𝒟' ℱ'
+
+#eval proc p
+
 variable (P : Proc) (T : HyperEnv)
+  (𝒟 : ⊢ 1⟦⟧.𝟘 ∷ ⦃1 ∶ 𝟙⦄) (ℱ : ⊢ 2⸨⸩.3⟦⟧.𝟘 ∷ ⦃2 ∶ ⊥‚ 3 ∶ 𝟙⦄)
+
+-- Does not work when premises aren't concrete proofs
+-- def q := Typing.mix 𝒟 ℱ
+-- #eval proc q
+
+example : proc (Typing.mix 𝒟 ℱ) = 1⟦⟧.𝟘 |ₚ 2⸨⸩.3⟦⟧.𝟘 := by
+  simp only [proc]
 
 example (h : ⊢ P ∷ T) : proc h = P := by
   simp [proc]
@@ -183,15 +198,81 @@ def y : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 
 example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
   ⊢ proc h ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥} := by
   simp only [proc]
-  exact t
+  exact h
 
 example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
   ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ env h := by
   simp only [env]
-  exact t
+  exact h
 
 example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
   ⊢ proc h ∷ env h := by
   simp only [proc]
   simp only [env]
   exact h
+
+
+
+
+
+
+-- Execution of the first parallel component of P in Latch_xyz
+example (x x₁ : PName) :
+  (x⸨⸩.x₁⟦⟧.𝟘) -[[x⸨⸩] ∷ₗ x₁⟦⟧]->>ₚ (𝟘) := by
+  apply MPST.stepR
+  · rw [eq_concat_nil]
+    apply MPST.stepR
+    · apply MPST.refl
+    · apply ProcStep.bot
+  · apply ProcStep.one
+
+-- Execution of the second parallel component of P in Latch_xyz
+example (y y₁ : PName) :
+  y⸨⸩.y₁⟦⟧.𝟘 -[[y⸨⸩] ∷ₗ y₁⟦⟧]->>ₚ 𝟘 := by
+  apply MPST.stepR
+  · rw [eq_concat_nil]
+    apply MPST.stepR
+    · apply MPST.refl
+    · apply ProcStep.bot
+  · apply ProcStep.one
+
+-- Execution of the third parallel component of P in Latch_xyz
+example  (x₂ y₂ z : PName) :
+  x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘 -[([x₂⸨⸩] ∷ₗ y₂⸨⸩) ∷ₗ z⟦⟧]->>ₚ 𝟘 := by
+  apply MPST.stepR
+  · apply MPST.stepR
+    · rw [eq_concat_nil]
+      apply MPST.stepR
+      · apply MPST.refl
+      · apply ProcStep.bot
+    · apply ProcStep.bot
+  · apply ProcStep.one
+
+
+/- Example of Latch_xyz's process execution (Example 3.3 in PDF) -/
+-- example (x x₁ x₂ y y₁ y₂ z : PName) :
+--   (𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘)
+--   -[x⸨⸩]->ₚ
+--   (𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘) := by
+--   apply ProcStep.tensor_parr
+
+
+example :
+  1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 -[(([1⸨⸩] ∷ₗ 3⸨⸩) ∷ₗ 2⟦⟧) ∷ₗ 4⟦⟧]->>ₚ 𝟘 := by
+  apply MPST.stepR
+  · apply MPST.stepR
+    · apply MPST.stepR
+      · rw [eq_concat_nil]
+        apply MPST.stepR
+        · apply MPST.refl
+        · apply ProcStep.par₁
+          · apply ProcStep.bot
+          · simp
+      · apply ProcStep.par₂
+        · apply ProcStep.bot
+        · simp
+    · apply ProcStep.par₁
+      · apply ProcStep.one
+      · simp
+  · simp
+    · apply ProcStep.one

@@ -13,9 +13,26 @@ inductive Proc : Type where
   | one     (x : PName) (P : Proc)     -- x[].P
   | bot     (x : PName) (P : Proc)     -- x().P
   | cut     (x y : PName) (P : Proc)   -- 𝒗xy P
-  | par     (P Q : Proc)               -- P | Q
+  | _par     (P Q : Proc)               -- P | Q
   | nil                                -- 𝟘
 deriving DecidableEq
+
+notation:80 x "⟦" y "⟧" "." P:80 => Proc.tensor x y P
+notation:80 x "⟦⟧" "." P:80 => Proc.one x P
+notation:80 x "⸨" y "⸩" "." P:80 => Proc.parr x y P
+notation:80 x "⸨⸩" "." P:80 => Proc.bot x P
+notation:60 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
+
+notation "𝟘" => Proc.nil
+
+-- Process parallel only happens when if both processes aren't 𝟘
+@[simp]
+def Proc.par : Proc → Proc → Proc
+  | 𝟘, Q => Q
+  | P, 𝟘 => P
+  | P, Q =>  Proc._par P Q
+
+infixr:65 " |ₚ " => Proc.par
 
 private def reprProcAux : Proc → Nat → String
   | .nil, _ => "𝟘"
@@ -24,13 +41,36 @@ private def reprProcAux : Proc → Nat → String
   | .parr x y P, _ => s!"{x}⸨{y}⸩.{reprProcAux P 0}"
   | .bot x P, _ => s!"{x}⸨⸩.{reprProcAux P 0}"
   | .cut x y P, _ => s!"𝑣⸨{x}, {y}⸩ {reprProcAux P 0}"
-  | .par P Q, _ => s!"({reprProcAux P 0} |ₚ {reprProcAux Q 0})"
+  | ._par P Q, _ => s!"({reprProcAux P 0} |ₚ {reprProcAux Q 0})"
 
 instance : Repr Proc where
   reprPrec P _ := reprProcAux P 0
 
 instance : ToString Proc where
   toString p := reprStr p
+
+-- inductive ProcCongr : Proc → Proc → Prop
+--   | refl (P : Proc) : ProcCongr P P
+--   | symm (P Q : Proc) : ProcCongr P Q → ProcCongr Q P
+--   | trans (P Q R : Proc) : ProcCongr P Q → ProcCongr Q R → ProcCongr P R
+--   | par_nil_l (P : Proc) : ProcCongr (𝟘 |ₚ P) P
+--   | par_nil_r (P : Proc) : ProcCongr (P |ₚ 𝟘) P
+--   | par_comm (P Q : Proc) : ProcCongr  (P |ₚ Q) (Q |ₚ P)
+--   | par_assoc (P Q R : Proc) : ProcCongr ((P |ₚ Q) |ₚ R) (P |ₚ (Q |ₚ R))
+
+-- notation:50 P " ≡ₚ " Q => ProcCongr P Q
+
+-- @[simp]
+-- theorem Proc.nil_par_eq_nil : 𝟘 |ₚ 𝟘 ≡ₚ 𝟘 := by
+--   apply ProcCongr.par_nil_l
+
+-- @[simp]
+-- theorem Proc.par_nil (P : Proc) : P |ₚ 𝟘 ≡ₚ P := by
+--   apply ProcCongr.par_nil_r
+
+-- @[simp]
+-- theorem Proc.nil_par (P : Proc) : 𝟘 |ₚ P ≡ₚ P := by
+--   apply ProcCongr.par_nil_l
 
 abbrev Renaming := PName → PName
 
@@ -40,7 +80,7 @@ def rename (ρ : Renaming) : Proc → Proc
   | .one x P      => .one (ρ x) (rename ρ P)
   | .bot x P      => .bot (ρ x) (rename ρ P)
   | .cut x y P    => .cut (ρ x) (ρ y) (rename ρ P)
-  | .par P Q      => .par (rename ρ P) (rename ρ Q)
+  | ._par P Q      => .par (rename ρ P) (rename ρ Q)
   | .nil          => .nil
 
 @[simp]
@@ -50,7 +90,7 @@ def Proc.fNames : Proc → Finset PName
   | .one x P              => {x} ∪ P.fNames
   | .bot x P              => {x} ∪ P.fNames
   | .cut x y P            => P.fNames \ {x, y}
-  | .par P Q              => P.fNames ∪ Q.fNames
+  | ._par P Q              => P.fNames ∪ Q.fNames
   | .nil                  => {}
 
 @[simp]
@@ -60,7 +100,7 @@ def Proc.names : Proc → Finset PName
   | .one x P      => {x} ∪ P.names
   | .bot x P      => {x} ∪ P.names
   | .cut x y P    => {x, y} ∪ P.names
-  | .par P Q      => P.names ∪ Q.names
+  | ._par P Q      => P.names ∪ Q.names
   | .nil          => {}
 
 def freshName (s : Finset Nat) : PName :=
@@ -96,6 +136,8 @@ inductive AlphaEq : Proc → Proc → Prop where
       (w1 w2 : PName) (hFresh : w1 ∉ P.names ∪ Q.names ∧ w2 ∉ P.names ∪ Q.names) :
         AlphaEq (renameBound2 x y w1 w2 P) (renameBound2 x' y' w1 w2 Q) →
         AlphaEq (.cut x y P) (.cut x' y' Q)
+
+notation P " =ₐ " Q => AlphaEq P Q
 
 -- TODO:
 -- Reflexivity
@@ -141,6 +183,11 @@ inductive Types : Type where
   | one                       -- 𝟙 (empty output, unit for ⊗)
   | bot                       -- ⊥ (empty send, unit for ⅋)
 deriving DecidableEq
+
+infixr:95 " ⊗ " => Types.tensor
+infixr:95 " ⅋ " => Types.parr
+notation:100 "𝟙" => Types.one
+notation:100 "⊥" => Types.bot
 
 private def reprTypesAux : Types → Nat → String
   | .atom a, _ => s!"A{a}"
@@ -191,16 +238,18 @@ def Types.dual : Types → Types
   | .atom a     => .atomDual a
   | .atomDual a => .atom a
 
+notation:max A "ᗮ" => Types.dual A
+
 @[simp]
-theorem Types.dual.neq (A : Types) : A ≠ dual A := by
+theorem Types.dual.neq (A : Types) : A ≠ Aᗮ := by
   cases A <;> simp [dual]
 
 @[simp]
-theorem dual.inj (A B : Types) : Types.dual A = Types.dual B ↔ A = B := by
+theorem dual.inj (A B : Types) : Aᗮ = Bᗮ ↔ A = B := by
   induction A generalizing B <;> cases B <;> simp [Types.dual, *]
 
 @[simp]
-theorem dual.involution (A : Types) : Types.dual (Types.dual A) = A := by
+theorem dual.involution (A : Types) : Aᗮᗮ = A := by
   induction A <;> simp [*]
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
@@ -223,6 +272,8 @@ noncomputable instance : ToString Env where
 def Env.mk (x : PName) (A : Types) : Env :=
   {(x, A)}
 
+infixr:90 " ∶ " => Env.mk
+
 def Env.linear (Δ : Env) : Prop :=
   (Δ.image Prod.fst).card = Δ.card
 
@@ -236,23 +287,28 @@ noncomputable def Env.lookup (Δ : Env) (x : PName) : Option Types :=
   -- Finset.fold (· ∪ ·) none (fun p => if p.fst = x then p.snd else none) Δ
   (Δ.toList.find? (fun p => p.fst = x)).map Prod.snd
 
+notation Δ "⸨" x "⸩ₑ" => Env.lookup Δ x
+
 -- Order independent equality for environments
+@[simp]
 def Env.Eq (Δ Γ : Env) : Prop :=
-  ∀ x : (PName), Δ.lookup x = Γ.lookup x
+  ∀ x : (PName), Δ⸨x⸩ₑ = Γ⸨x⸩ₑ
+
+notation Δ " =ₑ " Γ => Env.Eq Δ Γ
 
 -- Eq reflexivity
 @[simp]
-theorem Env.Eq_refl (Δ : Env) : Env.Eq Δ Δ :=
+theorem Env.Eq_refl (Δ : Env) : Δ =ₑ Δ :=
   fun _ => rfl
 
 -- Eq symmetry
 @[simp]
-theorem Env.Eq_symm (Δ Γ : Env) (h : Env.Eq Δ Γ) : Env.Eq Γ Δ :=
+theorem Env.Eq_symm (Δ Γ : Env) (h : Δ =ₑ Γ) : Γ =ₑ Δ :=
   fun x => (h x).symm
 
 -- Eq transitivity
 @[simp]
-theorem Env.Eq_trans (Δ Γ Ε : Env) (h₁ : Env.Eq Δ Γ) (h₂ : Env.Eq Γ Ε) : Env.Eq Δ Ε :=
+theorem Env.Eq_trans (Δ Γ Ε : Env) (h₁ : Δ =ₑ Γ) (h₂ : Γ =ₑ Ε) : Δ =ₑ Ε :=
   fun x => Eq.trans (h₁ x) (h₂ x)
 
 instance : Equivalence Env.Eq :=
@@ -260,30 +316,32 @@ instance : Equivalence Env.Eq :=
 
 def Env.merge (Δ Γ : Env) : Env := Δ ∪ Γ
 
+infixr:85 "‚ " => Env.merge
+
 -- Merge identity
 @[simp]
-theorem Env.merge_unitR (Δ : Env) : Δ.merge EmptyEnv = Δ := by
+theorem Env.merge_unitR (Δ : Env) : Δ‚ ∅ = Δ := by
   simp [Env.merge]
 
 @[simp]
-theorem Env.merge_unitL (Δ : Env) : Env.merge EmptyEnv Δ = Δ := by
+theorem Env.merge_unitL (Δ : Env) : ∅‚ Δ = Δ := by
   simp [Env.merge]
 
 -- Merge commutivity
 -- theorem mergeEnv.comm (Δ Γ : Env) : disjointEnv Δ Γ → mergeEnv Δ Γ = mergeEnv Γ Δ := by
 @[simp]
-theorem Env.merge_comm (Δ Γ : Env) : Δ.merge Γ = Γ.merge Δ := by
+theorem Env.merge_comm (Δ Γ : Env) : Δ‚ Γ = Γ‚ Δ := by
   simp [Env.merge]
   simp [Finset.union_comm]
 
 -- Merge associativity
 @[simp]
-theorem Env.merge_assoc (Δ Γ Ε : Env) : (Δ.merge Γ).merge Ε = Δ.merge (Γ.merge Ε) := by
+theorem Env.merge_assoc (Δ Γ Ε : Env) : (Δ‚ Γ)‚ Ε = Δ‚ (Γ‚ Ε) := by
   simp [Env.merge]
 
 @[simp]
 lemma Env.merge_swap_last (Γ Δ Ξ : Env) :
-  (Γ.merge Δ).merge Ξ = (Γ.merge Ξ).merge Δ := by
+  (Γ‚ Δ)‚ Ξ = (Γ‚ Ξ)‚ Δ := by
   rw [Env.merge_comm, ←Env.merge_assoc]
   conv => lhs ; lhs ; rw [Env.merge_comm]
 
@@ -291,7 +349,9 @@ lemma Env.merge_swap_last (Γ Δ Ξ : Env) :
 
 abbrev HyperEnv := Finset (Env)
 
-abbrev EmptyHyperEnv : HyperEnv := {}
+abbrev EmptyHyperEnv : HyperEnv := ∅
+
+notation:max "⦃" Δ "⦄" => ({Δ} : HyperEnv)
 
 -- Coercion makes extending a hyperenv with env and merging the same
 -- and env1 |ₕ env2 => hyperenv due to envs being lifted to hyperenv
@@ -321,7 +381,9 @@ def HyperEnv.names (𝒢 : HyperEnv) : Finset PName :=
 
 -- Lookup method for finding the type of a name in the hyperenvironment
 noncomputable def HyperEnv.lookup (𝒢 : HyperEnv) (x : PName) : Option Types :=
-  (𝒢.toList.find? (fun Δ => Δ.lookup x ≠ none)) >>= fun Δ  => Δ.lookup x
+  (𝒢.toList.find? (fun Δ => Δ⸨x⸩ₑ ≠ none)) >>= fun Δ  => Δ⸨x⸩ₑ
+
+notation:60 𝒢 "⸨" x "⸩ₕ" => HyperEnv.lookup 𝒢 x
 
 def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
   -- 1. ensure both hyperenvs are lienar
@@ -335,20 +397,23 @@ def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
   (𝒢.names ∩ ℋ.names).card = 0
 
 -- Order independent equality for hyper-environments
+@[simp]
 def HyperEnv.Eq (𝒢 ℋ : HyperEnv) : Prop :=
-  -- 𝒢 and ℋ must define the same names
+  -- (1) 𝒢 and ℋ must define the same names
+  -- (2) The typing of all defined names must match i.e. ∀ x, 𝒢(x) = ℋ(x)
   HyperEnv.names 𝒢 = HyperEnv.names ℋ ∧
-  -- The typing of all defined names must match i.e. ∀ x, 𝒢(x) = ℋ(x)
-  ∀ x ∈ HyperEnv.names 𝒢, 𝒢.lookup x = ℋ.lookup x
+  ∀ x ∈ HyperEnv.names 𝒢, 𝒢⸨x⸩ₕ = ℋ⸨x⸩ₕ
+
+notation 𝒢 " =ₕ " ℋ => HyperEnv.Eq 𝒢 ℋ
 
 -- Eq reflexivity
 @[simp]
-theorem HyperEnv.Eq_refl (𝒢 : HyperEnv) : HyperEnv.Eq 𝒢 𝒢 := by
-  simp [HyperEnv.Eq]
+theorem HyperEnv.Eq_refl (𝒢 : HyperEnv) : 𝒢 =ₕ 𝒢 := by
+  simp
 
 -- Eq symmetry
 @[simp]
-theorem HyperEnv.Eq_symm (𝒢 ℋ : HyperEnv) (h : HyperEnv.Eq 𝒢 ℋ) : HyperEnv.Eq ℋ 𝒢 := by
+theorem HyperEnv.Eq_symm (𝒢 ℋ : HyperEnv) (h : 𝒢 =ₕ ℋ) : ℋ =ₕ 𝒢 := by
   rcases h with ⟨h_names, h_vals⟩
   refine ⟨h_names.symm, ?vals⟩
   intro x hx
@@ -357,8 +422,8 @@ theorem HyperEnv.Eq_symm (𝒢 ℋ : HyperEnv) (h : HyperEnv.Eq 𝒢 ℋ) : Hype
 
 -- Eq transitivity
 @[simp]
-theorem HyperEnv.Eq_trans (𝒢 ℋ 𝒦 : HyperEnv) (h₁ : HyperEnv.Eq 𝒢 ℋ) (h₂ : HyperEnv.Eq ℋ 𝒦) :
-  HyperEnv.Eq 𝒢 𝒦 := by
+theorem HyperEnv.Eq_trans (𝒢 ℋ 𝒦 : HyperEnv) (h₁ : 𝒢 =ₕ ℋ) (h₂ : ℋ =ₕ 𝒦) :
+  𝒢 =ₕ 𝒦 := by
   rcases h₁ with ⟨h₁_names, h₁_vals⟩
   rcases h₂ with ⟨h₂_names, h₂_vals⟩
   refine ⟨?names, ?vals⟩
@@ -366,8 +431,8 @@ theorem HyperEnv.Eq_trans (𝒢 ℋ 𝒦 : HyperEnv) (h₁ : HyperEnv.Eq 𝒢 �
   · intro x hx
     have hxH : x ∈ ℋ.names := by rw [← h₁_names]; exact hx
     calc
-      𝒢.lookup x = ℋ.lookup x := h₁_vals x hx
-      _          = 𝒦.lookup x := h₂_vals x hxH
+      𝒢⸨x⸩ₕ = ℋ⸨x⸩ₕ := h₁_vals x hx
+      _          = 𝒦⸨x⸩ₕ := h₂_vals x hxH
 
 instance : Equivalence HyperEnv.Eq :=
 ⟨HyperEnv.Eq_refl, @HyperEnv.Eq_symm, @HyperEnv.Eq_trans⟩
@@ -375,52 +440,27 @@ instance : Equivalence HyperEnv.Eq :=
 @[simp]
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ∪ ℋ
 
+infixr:55 " |ₕ " => HyperEnv.merge
+
 -- Merge identity
 @[simp]
-theorem HyperEnv.merge_unitL (𝒢 : HyperEnv) : HyperEnv.merge EmptyHyperEnv 𝒢 = 𝒢 := by
+theorem HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by
   simp
 
 @[simp]
-theorem HyperEnv.merge_unitR (𝒢 : HyperEnv) : HyperEnv.merge 𝒢 EmptyHyperEnv = 𝒢 := by
+theorem HyperEnv.merge_unitR (𝒢 : HyperEnv) : 𝒢 |ₕ ∅ = 𝒢 := by
   simp
 
 -- Merge commutative
 @[simp]
-theorem HyperEnv.merge_comm (𝒢 ℋ : HyperEnv) : HyperEnv.merge 𝒢 ℋ = HyperEnv.merge ℋ 𝒢 := by
+theorem HyperEnv.merge_comm (𝒢 ℋ : HyperEnv) : 𝒢 |ₕ ℋ = ℋ |ₕ 𝒢 := by
   simp [Finset.union_comm]
 
 -- Merge associativity
 @[simp]
 theorem HyperEnv.merge_assoc (𝒢 ℋ 𝒦 : HyperEnv) :
-  HyperEnv.merge (HyperEnv.merge 𝒢 ℋ) 𝒦 = HyperEnv.merge 𝒢 (HyperEnv.merge ℋ 𝒦) := by
+  (𝒢 |ₕ ℋ) |ₕ 𝒦 = 𝒢 |ₕ (ℋ |ₕ 𝒦) := by
   simp
-
------------------------------------------ NOTATION -----------------------------------------
-
-/- PROC -/
-notation:80 x "⟦" y "⟧" "." P:80 => Proc.tensor x y P
-notation:80 x "⟦⟧" "." P:80 => Proc.one x P
-notation:80 x "⸨" y "⸩" "." P:80 => Proc.parr x y P
-notation:80 x "⸨⸩" "." P:80 => Proc.bot x P
-notation:60 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
-notation "𝟘" => Proc.nil
-infixr:65 " |ₚ " => Proc.par
-
-/- TYPING -/
-infixr:95 " ⊗ " => Types.tensor
-infixr:95 " ⅋ " => Types.parr
-notation:100 "𝟙" => Types.one
-notation:100 "⊥" => Types.bot
-notation:max A "ᗮ" => Types.dual A
-
-/- ENV -/
-infixr:90 " ∶ " => Env.mk
-infixr:85 "‚ " => Env.merge
-
-/- HYPERENV -/
-notation:60 𝒢 "⸨" x "⸩" => HyperEnv.lookup 𝒢 x
-infixr:55 " |ₕ " => HyperEnv.merge
-notation:max "⦃" Δ "⦄" => ({Δ} : HyperEnv)
 
 --------------------------------------- TYPING RULES ---------------------------------------
 
@@ -504,6 +544,10 @@ def iNamesAct : Act → Finset PName -- introduced names for a given action
 def Lbl.iNames : Lbl → Finset PName :=
   getNamesOfLbl iNamesAct
 
+@[simp]
+def Lbl.fresh (xs : List PName) (l : Lbl) :=
+  ∀ n ∈ xs, n ∉ l.fNames ∪ l.iNames
+
 -- def Lbl.wf : Lbl → Prop
 --   | Lbl.par l l' => (iNamesAct l) ∩ (iNamesAct l') = ∅
 --   | _ => True
@@ -520,30 +564,40 @@ def Lbl.iNames : Lbl → Finset PName :=
 --       |>.image (fun (p : Act × Act) => Lbl.par p.1 p.2)
 --   τ ∪ single ∪ parallel
 
+notation:80 x "⟦" y "⟧" => Act.tensor x y
+notation:80 x "⟦⟧" => Act.one x
+notation:80 x "⸨" y "⸩" => Act.parr x y
+notation:80 x "⸨⸩" => Act.bot x
+notation:70 "τ" => Lbl.tau
+notation:70 l " |ₗ " l' => Lbl.par l l'
+
+-- CHANGE LABELS TO USE THE DEFINED NOTATION...
+
 inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
   Lbl → {Γ' : HyperEnv} → {P' : Proc} → Typing Γ' P' → Prop where
   | one
       {P : Proc} {x : PName} {𝒟 : Typing ∅ P} :
-      TypingStep (Typing.one 𝒟) (Lbl.act (Act.one x)) 𝒟
+      TypingStep (Typing.one 𝒟) (x⟦⟧) 𝒟
 
   | tensor
       {Γ Δ : Env} {P : Proc} {x x': PName} {A B : Types}
       {𝒟 : Typing ({Γ‚ x' ∶ A} |ₕ {Δ‚ x ∶ B}) P} :
-      TypingStep (Typing.tensor 𝒟) (Lbl.act (Act.tensor x x')) 𝒟
+      TypingStep (Typing.tensor 𝒟) (x⟦x'⟧) 𝒟
 
   | bot
       {Γ : Env} {P : Proc} {x : PName} {𝒟 : Typing {Γ} P} :
-      TypingStep (Typing.bot 𝒟) (Lbl.act (Act.bot x)) 𝒟
+      TypingStep (Typing.bot 𝒟) (x⸨⸩) 𝒟
 
   | parr
-      {Γ : Env} {P : Proc} {x x' : PName} {A B : Types} {𝒟 : Typing ({Γ‚ x' ∶ A‚ x ∶ B}) P} :
-      TypingStep (Typing.parr 𝒟) (Lbl.act (Act.parr x x')) 𝒟
+      {Γ : Env} {P : Proc} {x x' : PName} {A B : Types}
+      {𝒟 : Typing ({Γ‚ x' ∶ A‚ x ∶ B}) P} :
+      TypingStep (Typing.parr 𝒟) (x⸨x'⸩) 𝒟
 
   | par₁
       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {𝒟' : Typing 𝒢' P'} {ℰ : Typing ℋ Q}
       (h : TypingStep 𝒟 l 𝒟') (disj : (l.iNames) ∩ (Q.fNames) = ∅) :
-      --------------------------------------------------------------------
+      ---------------------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
 
   | par₂
@@ -557,37 +611,36 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
       {𝒢 𝒢' ℋ ℋ' : HyperEnv} {P P' Q Q' : Proc} {a a' : Act}
       {𝒟 : Typing 𝒢 P} {𝒟' : Typing 𝒢' P'}
       {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
-      (h₁ : TypingStep 𝒟 (Lbl.act a) 𝒟')
-      (h₂ : TypingStep ℰ (Lbl.act a') ℰ')
+      (h₁ : TypingStep 𝒟 a 𝒟')
+      (h₂ : TypingStep ℰ a' ℰ')
       (disj : ((Lbl.par a a').iNames ∩ (Proc.par P Q).fNames) = ∅) :
       ---------------------------------------------------------------
-      TypingStep (Typing.mix 𝒟 ℰ) (Lbl.par a a') (Typing.mix 𝒟' ℰ')
+      TypingStep (Typing.mix 𝒟 ℰ) (a |ₗ a') (Typing.mix 𝒟' ℰ')
 
   | alpha_equiv
       {𝒢 𝒢' : HyperEnv} {P Q Q' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {ℰ : Typing 𝒢 Q} {ℰ' : Typing 𝒢' Q'}
-      (h₁ : AlphaEq P Q)
-      (h₂ : TypingStep ℰ l ℰ') :
+      (h₁ : P =ₐ Q) (h₂ : TypingStep ℰ l ℰ') :
       -------------------------------------------------------
       TypingStep 𝒟 l ℰ'
 
   | one_bot
       {𝒢: HyperEnv} {Γ : Env} {P P' : Proc} {x y : PName}
       {𝒟 : Typing (𝒢 |ₕ {x ∶ 𝟙} |ₕ {Γ‚ y ∶ ⊥}) P} {𝒟' : Typing (𝒢 |ₕ {Γ}) P'}
-      (h : TypingStep 𝒟 (Lbl.par (Act.one x) (Act.bot y)) 𝒟') :
+      (h : TypingStep 𝒟 (x⟦⟧ |ₗ y⸨⸩) 𝒟') :
       ----------------------------------------------------------------------
       TypingStep
-        (Typing.cut 𝒢 ∅ Γ P x y (𝟙) 𝒟) (Lbl.tau) 𝒟'
+        (Typing.cut 𝒢 ∅ Γ P x y (𝟙) 𝒟) (τ) 𝒟'
 
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
       {𝒟 : Typing (𝒢 |ₕ {(Γ‚ Δ)‚ x ∶ A ⊗ B} |ₕ {Ξ‚ y ∶ Aᗮ ⅋ Bᗮ}) P}
       {𝒟' : Typing ((𝒢 |ₕ {Γ‚ x ∶ B}) |ₕ {Δ‚ x' ∶ A} |ₕ {(Ξ‚ y ∶ Bᗮ)‚ y' ∶ Aᗮ}) P'}
-      (h : TypingStep 𝒟 (Lbl.par (Act.tensor x x') (Act.parr y y')) 𝒟') :
-      -----------------------------------------------------------------------------
+      (h : TypingStep 𝒟 (x⟦x'⟧ |ₗ y⸨y'⸩) 𝒟') :
+      ----------------------------------------------------------------------------
       TypingStep
         (Typing.cut 𝒢 (Γ‚ Δ) Ξ P x y (A ⊗ B) 𝒟)
-        Lbl.tau
+        (τ)
         (by
           let inner := Typing.cut (𝒢 |ₕ {Γ‚ x ∶ B}) Δ (Ξ‚ y ∶ Bᗮ) P' x' y' A 𝒟'
           rw [← Env.merge_assoc, HyperEnv.merge_assoc] at inner
@@ -595,21 +648,17 @@ inductive TypingStep : {Γ : HyperEnv} → {P : Proc} → Typing Γ P →
         )
 
   | res
-      {𝒢 𝒢': HyperEnv} {Γ Γ' Δ Δ' : Env} {P P' : Proc} {x y : PName} {A : Types} {l : Lbl}
+      {𝒢 𝒢': HyperEnv} {Γ Γ' Δ Δ' : Env} {P P' : Proc}
+      {x y : PName} {A : Types} {l : Lbl}
       {𝒟 : Typing (𝒢 |ₕ {Γ‚ x ∶ A} |ₕ {Δ‚ y ∶ Aᗮ}) P}
       {𝒟' : Typing (𝒢' |ₕ {Γ'‚ x ∶ A} |ₕ {Δ'‚ y ∶ Aᗮ}) P'}
       (h : TypingStep 𝒟 l 𝒟')
-      (disj : x ∉ l.fNames ∪ l.iNames ∧ y ∉ l.fNames ∪ l.iNames) :
-      ------------------------------------------------------------------------------------
+      -- (disj : ∀ n ∈ [x, y], n ∉ l.fNames ∪ l.iNames)
+      (disj : l.fresh [x, y]) :
+      ----------------------------------------------------------------------------
       TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) l (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
 
-notation:50 𝒟 " -[" l "]-> " 𝒟' => TypingStep 𝒟 l 𝒟'
-notation:80 x "⟦" y "⟧" => Act.tensor x y
-notation:80 x "⟦⟧" => Act.one x
-notation:80 x "⸨" y "⸩" => Act.parr x y
-notation:80 x "⸨⸩" => Act.bot x
-notation:70 "τ" => Lbl.tau
-notation:70 l " |ₗ " l' => Lbl.par l l'
+notation:50 𝒟 " -[" l "]->ₜ " 𝒟' => TypingStep 𝒟 l 𝒟'
 
 open Lean PrettyPrinter in
 @[app_unexpander Lbl.act]
@@ -636,20 +685,96 @@ lemma cons_append_assoc {x : Lbl} {xs ys : Lbls} :
 inductive MTST : {𝒢 𝒢' : HyperEnv} → {P P' : Proc} →
   Typing 𝒢 P → Lbls → Typing 𝒢' P' → Prop where
   | refl
-    {𝒢 : HyperEnv} {P: Proc} (𝒟 : Typing 𝒢 P) :
-    ------------
+    {𝒢 : HyperEnv} {P: Proc} {𝒟 : Typing 𝒢 P} :
     MTST 𝒟 (ε) 𝒟
 
   | stepR {l : Lbl} {ls : Lbls} {𝒢 𝒢' 𝒢'' : HyperEnv} {P P' P'' : Proc}
     (𝒟  : Typing 𝒢  P) (𝒟' : Typing 𝒢' P') (𝒟'' : Typing 𝒢'' P'') :
-    (MTST 𝒟 ls 𝒟') → (𝒟' -[l]-> 𝒟'') →
-    ----------------------------------
-          MTST 𝒟 (ls ∷ₗ l) 𝒟''
+    (MTST 𝒟 ls 𝒟'') → (𝒟'' -[l]->ₜ 𝒟') →
+    -------------------------------------
+          MTST 𝒟 (ls ∷ₗ l) 𝒟'
 
-notation:50 𝒟 " -[" ls "]->> " 𝒟' => MTST 𝒟 ls 𝒟'
+notation:50 𝒟 " -[" ls "]->>ₜ " 𝒟' => MTST 𝒟 ls 𝒟'
 
 ------------------------- PROC-FUCNTION & TRANSITION RULES -------------------------
 
 def proc {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : Proc := P
+
+inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
+  | one
+      {P : Proc} {x : PName} :
+      ProcStep (x⟦⟧.P) (x⟦⟧) P
+
+  | tensor
+      {P : Proc} {x x' : PName} :
+      ProcStep (x⟦x'⟧.P) (x⟦x'⟧) P
+
+  | bot
+      {P : Proc} {x : PName} :
+      ProcStep (x⸨⸩.P) (x⸨⸩) P
+
+  | parr
+      {P : Proc} {x x' : PName} :
+      ProcStep (x⸨x'⸩.P) (x⸨x'⸩) P
+
+  | par₁
+      {P P' Q : Proc} {l : Lbl} :
+      ProcStep P l P' → l.iNames ∩ Q.fNames = ∅ →
+      -------------------------------------------
+      ProcStep (P |ₚ Q) l (P' |ₚ Q)
+
+  | par₂
+      {P Q Q' : Proc} {l : Lbl} :
+      ProcStep Q l Q' → l.iNames ∩ P.fNames = ∅ →
+      --------------------------------------------
+      ProcStep (P |ₚ Q) l (P |ₚ Q')
+
+  | syn
+      {P P' Q Q' : Proc} {l l' : Act} :
+      ProcStep P l P' → ProcStep Q l' Q' →
+      (l |ₗ l').iNames ∩ (P |ₚ Q).fNames = ∅  →
+      ----------------------------------------
+      ProcStep (P |ₚ Q) (l |ₗ l') (P' |ₚ Q')
+
+  | alpha_equiv
+      {P Q Q' : Proc} {l : Lbl} :
+      (P =ₐ Q) → ProcStep Q l Q' →
+      -------------------------------
+      ProcStep P l Q'
+
+  | one_bot
+      {P P' : Proc} {x y : PName} :
+      ProcStep P (x⟦⟧ |ₗ y⸨⸩) P' →
+      --------------------------------------
+      ProcStep (𝑣⸨x, y⸩ P) (τ) P'
+
+  | tensor_parr
+      {P P' : Proc} {x x' y y' : PName} :
+      ProcStep P (x⟦x'⟧ |ₗ y⸨y'⸩) P' →
+      --------------------------------------------------------------------
+      ProcStep (𝑣⸨x, y⸩ P) (τ) (𝑣⸨x, y⸩ (𝑣⸨x', y'⸩ P'))
+
+  | res
+      {P P' : Proc} {x y : PName} {l : Lbl} :
+      ProcStep P l P' → l.fresh [x, y] →
+      -------------------------------------
+      ProcStep (𝑣⸨x, y⸩ P) (τ) P'
+
+notation:50 P " -[" l "]->ₚ " P' => ProcStep P l P'
+
+inductive MPST : (P : Proc) → Lbls → (P' : Proc) → Prop where
+  | refl
+    {P : Proc} :
+    ------------
+    MPST P (ε) P
+
+  | stepR {l : Lbl} {ls : Lbls} {P P'' P' : Proc} :
+    (MPST P ls P'') → (P'' -[l]->ₚ P') →
+    ----------------------------------
+          MPST P (ls ∷ₗ l) P'
+
+notation:50 P " -[" ls "]->>ₚ " P' => MPST P ls P'
+
+------------------------- ENV-FUCNTION & TRANSITION RULES --------------------------
 
 def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
