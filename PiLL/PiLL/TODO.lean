@@ -260,7 +260,9 @@ example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
 
 /- Done:
   removed Env -> HyperEnv coercion:
-  · Try adding it again when the above issue has been resolved -/
+  · Try adding it again when the above issue has been resolved
+  · If this is added again remove all instances of ⦃⦄ to lift Env to HyperEnv
+-/
 
 /-
 (3) Get clerafication on the notion of erasure and the diagram on line 467-472. Should
@@ -283,4 +285,11 @@ example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
 /-
 (6) Ask about whether the way Proc.par is defined to only use the Proc._par constructor
     when both given processes aren't 𝟘 is valid or if it should be redefined.
+-/
+
+/-
+(7) With HyperEnvs / Envs not caring about order is there a reason for tensor and parr
+    transition rules in Fig. 5 to have the order of x and x' flipped in the HyperEnv
+    compared to the other similar rules. The others have them x' then x, but here its
+    x then x'.
 -/

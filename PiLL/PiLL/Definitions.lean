@@ -778,3 +778,41 @@ notation:50 P " -[" ls "]->>ₚ " P' => MPST P ls P'
 ------------------------- ENV-FUCNTION & TRANSITION RULES --------------------------
 
 def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
+
+inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
+  | one
+      {x : PName} :
+      EnvStep ⦃x ∶ 𝟙⦄ (x⟦⟧) ∅
+
+  | tensor
+      {Γ Δ : Env} {x x' : PName} {A B : Types} :
+      EnvStep ⦃Γ‚ Δ‚ x ∶ A ⊗ B⦄ (x⟦x'⟧) (⦃Γ‚ x'∶ A⦄ |ₕ ⦃Δ‚ x ∶ B⦄)
+
+  | bot
+      {Γ : Env} {x : PName} :
+      EnvStep ⦃Γ‚ x ∶ ⊥⦄ (x⸨⸩) ⦃Γ⦄
+
+  | parr
+      {Γ Δ : Env} {x x' : PName} {A B : Types} :
+      EnvStep ⦃Γ‚ x ∶ A ⅋ B⦄ (x⸨x'⸩) (⦃Γ‚ x' ∶ A⦄ |ₕ ⦃Δ‚ x ∶ B⦄)
+
+
+  -- | par₁
+
+
+  -- | par₂
+
+
+  -- | syn
+
+
+  -- | alpha_equiv
+
+
+  -- | one_bot
+
+
+  -- | tensor_parr
+
+
+  -- | res
