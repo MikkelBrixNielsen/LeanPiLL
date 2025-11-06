@@ -237,7 +237,7 @@ example (y y₁ : PName) :
   · apply ProcStep.one
 
 -- Execution of the third parallel component of P in Latch_xyz
-example  (x₂ y₂ z : PName) :
+example (x₂ y₂ z : PName) :
   x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘 -[([x₂⸨⸩] ∷ₗ y₂⸨⸩) ∷ₗ z⟦⟧]->>ₚ 𝟘 := by
   apply MPST.stepR
   · apply MPST.stepR

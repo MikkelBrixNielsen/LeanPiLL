@@ -3,6 +3,9 @@ import PiLL.Definitions
 
 -- (MAYBE IGNORE SIDE CONDITIONS FOR NOW AND FOCUS ON JUST GETTING THE RULES ETC. TO WORK)
 
+/- TOOD: Check all Typing and TypingStep rules -/
+
+
 /- TODO: In regard to exampel 2.5 and figure 3
     · Fix the examples broken by Typing refactoring
     · See if it is possible to do the execution of in many single steps ?
@@ -174,6 +177,11 @@ example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
   -- apply TypingStep.parr
 
 /- The issue mentioned on discord -/
+example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
+  (ℱ : ⊢ y⸨y'⸩.z⸨⸩.P ∷ {(Δ‚ z ∶ ⊥)‚ y ∶ Aᗮ ⅋ Bᗮ})
+  (ℱ' : ⊢ z⸨⸩.P ∷ {(Δ‚ z ∶ ⊥)‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) : ℱ -[y⸨y'⸩]->ₜ ℱ' := by
+  apply TypingStep.parr
+
 example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
   (ℱ : ⊢ y⸨y'⸩.z⸨⸩.P ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥})
   (ℱ' : ⊢ P ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) : ℱ -[y⸨y'⸩]->ₜ Typing.bot (x := z) ℱ' := by sorry
