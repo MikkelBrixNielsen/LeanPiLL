@@ -234,24 +234,17 @@ example {Γ : Env} {P : Proc} {x y z : PName} {A B : Types}
     𝒟
     (Lbl.act (Act.parr x y))
     𝒟' := by
+    sorry
+  -- rw [swap_last] at 𝒟 -- creates copy
+  -- rw [move_last_two_forward] at 𝒟' -- creates copy
+  -- rw [swap_last, move_last_two_forward] -- motive error
+  -- apply TypingStep_ALT.parr
+  -- · rw [← swap_last]
+  --   exact 𝒟
+  -- · rw [← move_last_two_forward]
+  --   exact 𝒟'
 
-  rw [swap_last, move_last_two_forward]
-  apply TypingStep_ALT.parr
-  · rw [← swap_last]
-    exact 𝒟
-  · rw [← move_last_two_forward]
-    exact 𝒟'
-
-
-
-
-
-
-
-
-
-
-
+/- WIP: Small extension to TypingStep trying to get the execution in example 2.5 to work -/
 inductive TypingStep_extended : HyperEnv → Proc → Lbl →
   HyperEnv → Proc → Prop where
    | bot
