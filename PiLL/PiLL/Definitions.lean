@@ -41,12 +41,6 @@ instance : Repr Proc where
 instance : ToString Proc where
   toString p := reprStr p
 
-theorem Proc.par_comm (P Q : Proc) : P |ₚ Q = Q |ₚ P := by
-  sorry
-
-theorem Proc.par_assoc (P Q R : Proc) : P |ₚ (Q |ₚ R) = (P |ₚ Q) |ₚ R := by
-  sorry
-
 -- inductive ProcCongr : Proc → Proc → Prop
 --   | refl (P : Proc) : ProcCongr P P
 --   | symm (P Q : Proc) : ProcCongr P Q → ProcCongr Q P
