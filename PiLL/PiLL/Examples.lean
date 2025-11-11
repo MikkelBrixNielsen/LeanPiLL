@@ -57,8 +57,6 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
     · apply Typing.bot at ℱ'
       · rw [Env.merge_swap_last] at ℱ'
         apply Typing.parr at ℱ'
-        -- rw [Env.merge_swap_last, Env.merge_assoc] at ℱ'  -- These would make the goals
-        -- rw [Env.merge_swap_last, Env.merge_assoc]        -- look more like in the paper
         exact ℱ'
 
 -- example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
@@ -248,17 +246,8 @@ example (x₂ y₂ z : PName) :
     · apply ProcStep.bot
   · apply ProcStep.one
 
-
-/- Example of Latch_xyz's process execution (Example 3.3 in PDF) -/
--- example (x x₁ x₂ y y₁ y₂ z : PName) :
---   (𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘)
---   -[x⸨⸩]->ₚ
---   (𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘) := by
---   apply ProcStep.tensor_parr
-
-
 example :
-  1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 -[(([1⸨⸩] ∷ₗ 3⸨⸩) ∷ₗ 2⟦⟧) ∷ₗ 4⟦⟧]->>ₚ 𝟘 := by
+  1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 -[(([1⸨⸩] ∷ₗ 3⸨⸩) ∷ₗ 2⟦⟧) ∷ₗ 4⟦⟧]->>ₚ 𝟘 |ₚ 𝟘 := by
   apply MPST.stepR
   · apply MPST.stepR
     · apply MPST.stepR
@@ -274,5 +263,210 @@ example :
     · apply ProcStep.par₁
       · apply ProcStep.one
       · simp
-  · simp
+  · apply ProcStep.par₂
     · apply ProcStep.one
+    · simp
+
+example : 1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘
+  -[((((([1⸨⸩] ∷ₗ 2⟦⟧) ∷ₗ 3⸨⸩) ∷ₗ4⟦⟧) ∷ₗ 5⸨⸩) ∷ₗ 6⸨⸩) ∷ₗ 7⟦⟧]->>ₚ 𝟘 |ₚ 𝟘 |ₚ 𝟘 := by
+  repeat constructor
+  · rw [eq_concat_nil]
+    · apply MPST.stepR
+      · apply MPST.refl
+      · apply ProcStep.par₁
+        · apply ProcStep.bot
+        · simp
+  · apply ProcStep.par₁
+    · apply ProcStep.one
+    · simp
+  · apply ProcStep.par₂
+    · apply ProcStep.par₁
+      · apply ProcStep.bot
+      · simp
+    · simp
+  · apply ProcStep.par₂
+    · apply ProcStep.par₁
+      · apply ProcStep.one
+      · simp
+    · simp
+  · apply ProcStep.par₂
+    · apply ProcStep.par₂
+      · apply ProcStep.bot
+      · simp
+    · simp
+  · apply ProcStep.par₂
+    · apply ProcStep.par₂
+      · apply ProcStep.bot
+      · simp
+    · simp
+  · apply ProcStep.par₂
+    · apply ProcStep.par₂
+      · apply ProcStep.one
+      · simp
+    · simp
+
+  -- apply MPST.stepR
+  -- · apply MPST.stepR
+  --   · apply MPST.stepR
+  --     · apply MPST.stepR
+  --       · apply MPST.stepR
+  --         · apply MPST.stepR
+  --           · rw [eq_concat_nil]
+  --             apply MPST.stepR
+  --             · apply MPST.refl
+  --             · apply ProcStep.par₁
+  --               · apply ProcStep.bot
+  --               · simp
+  --           · apply ProcStep.par₁
+  --             · apply ProcStep.one
+  --             · simp
+  --         · apply ProcStep.par₂
+  --           · apply ProcStep.par₁
+  --             · apply ProcStep.bot
+  --             · simp
+  --           · simp
+  --       · apply ProcStep.par₂
+  --         · apply ProcStep.par₁
+  --           · apply ProcStep.one
+  --           · simp
+  --         · simp
+  --     · apply ProcStep.par₂
+  --       · apply ProcStep.par₂
+  --         · apply ProcStep.bot
+  --         · simp
+  --       · simp
+  --   · apply ProcStep.par₂
+  --     · apply ProcStep.par₂
+  --       · apply ProcStep.bot
+  --       · simp
+  --     · simp
+  -- · apply ProcStep.par₂
+  --   · apply ProcStep.par₂
+  --     · apply ProcStep.one
+  --     · simp
+  --   · simp
+
+
+
+/- Example of Latch_xyz's process execution (Example 3.3 in PDF) -/
+-- example (x x₁ x₂ y y₁ y₂ z : PName) :
+--   (𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘)
+--   -[x⸨⸩]->ₚ
+--   (𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘) := by
+--   apply ProcStep.tensor_parr
+
+
+
+-- individual step x, y, τ, τ execution of latch
+example :
+  (𝑣⸨2, 5⸩ (𝑣⸨4, 6⸩ 1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘))
+  -[1⸨⸩]->ₚ
+  (𝑣⸨2, 5⸩ (𝑣⸨4, 6⸩ 2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘)) := by
+  apply ProcStep.res
+  · apply ProcStep.res
+    · apply ProcStep.par₁
+      · apply ProcStep.bot
+      · simp
+    · simp
+  · simp
+
+example :
+  (𝑣⸨2, 5⸩ (𝑣⸨4, 6⸩ 2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘))
+  -[3⸨⸩]->ₚ
+  (𝑣⸨2, 5⸩ (𝑣⸨4, 6⸩ 2⟦⟧.𝟘 |ₚ 4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘)) := by
+  apply ProcStep.res
+  · apply ProcStep.res
+    · apply ProcStep.par₂
+      · apply ProcStep.par₁
+        · apply ProcStep.bot
+        · simp
+      · simp
+    · simp
+  · simp
+
+example :
+  (𝑣⸨2, 5⸩ (𝑣⸨4, 6⸩ 2⟦⟧.𝟘 |ₚ 4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘))
+  -[τ]->ₚ
+  (𝑣⸨4, 6⸩ 𝟘 |ₚ 4⟦⟧.𝟘 |ₚ 6⸨⸩.7⟦⟧.𝟘) := by
+  apply ProcStep.one_bot
+  apply ProcStep.res
+  · apply ProcStep.syn
+    · apply ProcStep.one
+    · apply ProcStep.par₂
+      · apply ProcStep.bot
+      · simp
+    · simp
+  · simp
+
+example :
+  (𝑣⸨4, 6⸩ 𝟘 |ₚ 4⟦⟧.𝟘 |ₚ 6⸨⸩.7⟦⟧.𝟘)
+  -[τ]->ₚ
+  (𝟘 |ₚ 𝟘 |ₚ 7⟦⟧.𝟘) := by
+  apply ProcStep.one_bot
+  apply ProcStep.par₂
+  · apply ProcStep.syn
+    · apply ProcStep.one
+    · apply ProcStep.bot
+    · simp
+  · simp
+
+example :
+  (𝟘 |ₚ 𝟘 |ₚ 7⟦⟧.𝟘)
+  -[7⟦⟧]->ₚ
+  (𝟘 |ₚ 𝟘 |ₚ 𝟘) := by
+  apply ProcStep.par₂
+  · apply ProcStep.par₂
+    · apply ProcStep.one
+    · simp
+  · simp
+
+
+-- x(), y(), τ, τ multistep execution of latch
+example :
+  (𝑣⸨2, 5⸩ (𝑣⸨4, 6⸩ 1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘))
+  -[((([1⸨⸩] ∷ₗ 3⸨⸩) ∷ₗ τ) ∷ₗ τ) ∷ₗ 7⟦⟧]->>ₚ
+  (𝟘 |ₚ 𝟘 |ₚ 𝟘)  := by
+  apply MPST.stepR
+  · apply MPST.stepR
+    · apply MPST.stepR
+      · apply MPST.stepR
+        · rw [eq_concat_nil]
+          · apply MPST.stepR
+            · apply MPST.refl
+            · apply ProcStep.res
+              · apply ProcStep.res
+                · apply ProcStep.par₁
+                  · apply ProcStep.bot
+                  · simp
+                · simp
+              · simp
+        · apply ProcStep.res
+          · apply ProcStep.res
+            · apply ProcStep.par₂
+              · apply ProcStep.par₁
+                · apply ProcStep.bot
+                · simp
+              · simp
+            · simp
+          · simp
+      · apply ProcStep.one_bot
+        apply ProcStep.res
+        · apply ProcStep.syn
+          · apply ProcStep.one
+          · apply ProcStep.par₂
+            · apply ProcStep.bot
+            · simp
+          · simp
+        · simp
+    · apply ProcStep.one_bot
+      apply ProcStep.par₂
+      · apply ProcStep.syn
+        · apply ProcStep.one
+        · apply ProcStep.bot
+        · simp
+      · simp
+  · apply ProcStep.par₂
+    · apply ProcStep.par₂
+      · apply ProcStep.one
+      · simp
+    · simp

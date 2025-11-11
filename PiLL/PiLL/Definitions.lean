@@ -26,14 +26,6 @@ notation:60 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
 notation "𝟘" => Proc.nil
 infixr:65 " |ₚ " => Proc.par
 
--- Zero's should not disappear
--- -- Process parallel only happens when if both processes aren't 𝟘
--- @[simp]
--- def Proc.par : Proc → Proc → Proc
---   | 𝟘, Q => Q
---   | P, 𝟘 => P
---   | P, Q =>  Proc._par P Q
-
 private def reprProcAux : Proc → Nat → String
   | .nil, _ => "𝟘"
   | .tensor x y P, _ => s!"{x}⟦{y}⟧.{reprProcAux P 0}"
@@ -48,6 +40,12 @@ instance : Repr Proc where
 
 instance : ToString Proc where
   toString p := reprStr p
+
+theorem Proc.par_comm (P Q : Proc) : P |ₚ Q = Q |ₚ P := by
+  sorry
+
+theorem Proc.par_assoc (P Q R : Proc) : P |ₚ (Q |ₚ R) = (P |ₚ Q) |ₚ R := by
+  sorry
 
 -- inductive ProcCongr : Proc → Proc → Prop
 --   | refl (P : Proc) : ProcCongr P P
@@ -750,7 +748,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P P' : Proc} {x y : PName} {l : Lbl} :
       ProcStep P l P' → l.fresh [x, y] →
       -------------------------------------
-      ProcStep (𝑣⸨x, y⸩ P) (τ) P'
+      ProcStep (𝑣⸨x, y⸩ P) (l) (𝑣⸨x, y⸩ P')
 
 notation:50 P " -[" l "]->ₚ " P' => ProcStep P l P'
 
@@ -826,3 +824,18 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       EnvStep (𝒢 |ₕ ⦃Γ‚ x ∶ Aᗮ⦄ |ₕ ⦃Δ‚ y ∶ A⦄) (l) (𝒢' |ₕ ⦃Γ'‚ x ∶ Aᗮ⦄ |ₕ ⦃Δ'‚ y ∶ A⦄) →
       ----------------------------------------------------------------------------
       EnvStep (𝒢 |ₕ ⦃Γ‚ Δ⦄) l (𝒢' |ₕ ⦃Γ'‚ Δ'⦄)
+
+notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
+
+inductive MEST : (𝒢 : HyperEnv) → Lbls → (𝒢' : HyperEnv) → Prop where
+  | refl
+    {𝒢 : HyperEnv} :
+    ------------
+    MEST 𝒢 (ε) 𝒢
+
+  | stepR {l : Lbl} {ls : Lbls} {𝒢 𝒢'' 𝒢' : HyperEnv} :
+    (MEST 𝒢 ls 𝒢'') → (𝒢'' -[l]->ₑ 𝒢') →
+    ----------------------------------
+          MEST 𝒢 (ls ∷ₗ l) 𝒢'
+
+notation:50 𝒢 " -[" ls "]->>ₑ " 𝒢' => MPST 𝒢 ls 𝒢'
