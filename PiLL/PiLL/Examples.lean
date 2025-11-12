@@ -8,12 +8,14 @@ import PiLL.Definitions
 example (x x₁ x₂ y y₁ y₂ z : PName) :
   ⊢ 𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘 ∷
     {x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 𝟙} := by
+  rw [Env.merge_assoc]
   apply Typing.cut ∅ _ _ _ _ _ (𝟙)
-  rw [HyperEnv.merge_unitL, Env.merge_comm]
-  conv => lhs ; rhs ; rhs ; rw [Env.merge_assoc]
+  rw [HyperEnv.merge_unitL, Env.merge_assoc]
   apply Typing.cut _ _ _ _ _ _ (𝟙)
+  rw [HyperEnv.merge_assoc]
   apply Typing.mix
-  · apply Typing.bot
+  · rw [Env.merge_comm]
+    apply Typing.bot
     apply Typing.one
     exact Typing.mix₀
   · apply Typing.mix
@@ -31,11 +33,11 @@ example (x x₁ x₂ y y₁ y₂ z : PName) :
 theorem ℱ (Δ : Env) (R : Proc) (y y' z : PName) (A B : Types)
   (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
   ⊢ y⸨y'⸩.z⸨⸩.R ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥} := by
-  apply Typing.bot at ℱ'
-  · rw [Env.merge_swap_last] at ℱ'
-    apply Typing.parr at ℱ'
-    rw [Env.merge_swap_last, Env.merge_assoc] at ℱ'
-    exact ℱ'
+  rw [Env.merge_swap_last]
+  apply Typing.parr
+  rw [Env.merge_move_second_two_right]
+  apply Typing.bot
+  exact ℱ'
 
 theorem ℰ (Γ Γ' : Env) (Q : Proc) (x x' : PName) (A B : Types)
   (ℰ' : ⊢ Q ∷ {Γ‚ x' ∶ A} |ₕ {Γ'‚ x ∶ B}) :
@@ -48,31 +50,19 @@ theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
   ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ {Γ‚ Γ'‚ Δ‚ z ∶ ⊥} := by
     let t := Typing.cut ∅ (Γ‚ Γ') (Δ‚ z ∶ ⊥) (x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R) x y (A ⊗ B)
     repeat rw [HyperEnv.merge_unitL] at t
-    conv => lhs ; rhs ; rw [←Env.merge_assoc]
+    rw [← Env.merge_assoc] at t
     apply t
     apply Typing.mix
-    · conv => lhs ; simp
-      apply Typing.tensor
+    · apply Typing.tensor
       exact ℰ'
-    · apply Typing.bot at ℱ'
-      · rw [Env.merge_swap_last] at ℱ'
-        apply Typing.parr at ℱ'
-        exact ℱ'
+    · apply Typing.parr
+      rw [Env.merge_move_second_two_right]
+      apply Typing.bot
+      exact ℱ'
 
--- example (Γ Γ' Δ : Env) (x x' y y' z : PName) (A B : Types)
---   (ℰ' : ⊢ 𝟘 ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B) (ℱ' : ⊢ z⸨⸩.𝟘 ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ)
---   (ℰ : ⊢ x⟦x'⟧.𝟘 ∷ Γ‚ Γ'‚ x ∶ A ⊗ B) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.𝟘 ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥) :
---   Typing.mix ℰ ℱ  -[x⟦x'⟧ |ₗ y⸨y'⸩]-> Typing.mix ℰ' (Typing.bot (x := z) ℱ') := by
---   apply TypingStep.syn
---   · apply TypingStep.tensor
---   · apply TypingStep.parr
---   · simp ; sorry -- TODO: Need disjointness proof x x' y y' being different s.t. ∩ is empty
---   · exact ℰ'     -- how did we do it in Concurrency Theory?
---   · exact ℱ'
+----------------------------- EXAMPLE 𝒟 HERE -------------------------
 
--- FIGURE OUT HOW IN THE WORLD I CAN GET LEAN TO LET ME DO RWs ON A GOAL DEFINED FROM HYPOTHESES
 
--- GET EXECUTION OF 𝒟 TO WORK
 
 /-
             ℰ                                       ℱ
@@ -182,7 +172,7 @@ example (h : ⊢ P ∷ T) : proc h = P := by
 example (h : ⊢ P ∷ T) : env h = T := by
   simp [env]
 
-def y : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥} := by
+def y_proc : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥} := by
   apply Typing.mix
   · apply Typing.one
     apply Typing.mix₀
@@ -190,7 +180,7 @@ def y : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 
     apply Typing.one
     apply Typing.mix₀
 
-#eval proc y
+#eval proc y_proc
 -- #eval env y same as above
 
 example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
@@ -208,11 +198,6 @@ example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1
   simp only [proc]
   simp only [env]
   exact h
-
-
-
-
-
 
 -- Execution of the first parallel component of P in Latch_xyz
 example (x x₁ : PName) :
@@ -305,59 +290,7 @@ example : 1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7�
       · simp
     · simp
 
-  -- apply MPST.stepR
-  -- · apply MPST.stepR
-  --   · apply MPST.stepR
-  --     · apply MPST.stepR
-  --       · apply MPST.stepR
-  --         · apply MPST.stepR
-  --           · rw [eq_concat_nil]
-  --             apply MPST.stepR
-  --             · apply MPST.refl
-  --             · apply ProcStep.par₁
-  --               · apply ProcStep.bot
-  --               · simp
-  --           · apply ProcStep.par₁
-  --             · apply ProcStep.one
-  --             · simp
-  --         · apply ProcStep.par₂
-  --           · apply ProcStep.par₁
-  --             · apply ProcStep.bot
-  --             · simp
-  --           · simp
-  --       · apply ProcStep.par₂
-  --         · apply ProcStep.par₁
-  --           · apply ProcStep.one
-  --           · simp
-  --         · simp
-  --     · apply ProcStep.par₂
-  --       · apply ProcStep.par₂
-  --         · apply ProcStep.bot
-  --         · simp
-  --       · simp
-  --   · apply ProcStep.par₂
-  --     · apply ProcStep.par₂
-  --       · apply ProcStep.bot
-  --       · simp
-  --     · simp
-  -- · apply ProcStep.par₂
-  --   · apply ProcStep.par₂
-  --     · apply ProcStep.one
-  --     · simp
-  --   · simp
-
-
-
-/- Example of Latch_xyz's process execution (Example 3.3 in PDF) -/
--- example (x x₁ x₂ y y₁ y₂ z : PName) :
---   (𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘)
---   -[x⸨⸩]->ₚ
---   (𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘) := by
---   apply ProcStep.tensor_parr
-
-
-
--- individual step x, y, τ, τ execution of latch
+-- individual step x, y, τ, τ, z execution of latch
 example :
   (𝑣⸨2, 5⸩ (𝑣⸨4, 6⸩ 1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘))
   -[1⸨⸩]->ₚ
@@ -420,8 +353,7 @@ example :
     · simp
   · simp
 
-
--- x(), y(), τ, τ multistep execution of latch
+-- x(), y(), τ, τ, z multistep execution of latch
 example :
   (𝑣⸨2, 5⸩ (𝑣⸨4, 6⸩ 1⸨⸩.2⟦⟧.𝟘 |ₚ 3⸨⸩.4⟦⟧.𝟘 |ₚ 5⸨⸩.6⸨⸩.7⟦⟧.𝟘))
   -[((([1⸨⸩] ∷ₗ 3⸨⸩) ∷ₗ τ) ∷ₗ τ) ∷ₗ 7⟦⟧]->>ₚ
@@ -470,3 +402,59 @@ example :
       · apply ProcStep.one
       · simp
     · simp
+
+
+def x := 1
+def x' := 2
+def y := 3
+def y' := 4
+def z := 5
+def S := 𝟘
+def R := 𝟘
+
+example (Γ Γ' Δ : Env) (A B : Types)
+  (ℰ' : ⊢ S ∷ {Γ'‚ x' ∶ A} |ₕ {Γ‚ x ∶ B}) (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ})
+  (ℰ : ⊢ x⟦x'⟧.S ∷ {Γ'‚ Γ‚ x ∶ A ⊗ B}) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.R ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥}) :
+  Typing.mix ℰ ℱ  -[x⟦x'⟧ |ₗ y⸨y'⸩]->ₜ Typing.mix ℰ' (Typing.bot (x := z) ℱ') := by
+  apply TypingStep.syn
+  · apply TypingStep.tensor
+  · rw! [Env.merge_swap_last]
+    rw! [Env.merge_move_last_two_left]
+    apply TypingStep.parr
+  · aesop
+  · exact ℰ'
+  · exact ℱ
+  · apply Typing.bot
+    exact ℱ'
+
+
+
+
+
+example (Γ Γ' Δ : Env) (A B : Types)
+  (ℰ' : ⊢ S ∷ {Γ'‚ x' ∶ A} |ₕ {Γ‚ x ∶ B}) (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ})
+  (ℰ : ⊢ x⟦x'⟧.S ∷ {Γ'‚ Γ‚ x ∶ A ⊗ B}) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.R ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥})
+  -- (𝒟 : ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.S |ₚ y⸨y'⸩.z⸨⸩.R ∷ {Γ'‚ Γ‚ Δ‚ z ∶ ⊥})
+  -- (𝒟' : ⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ S |ₚ z⸨⸩.R ∷ {Γ'‚ Γ‚ Δ‚ z ∶ ⊥})
+
+  :
+  (by
+    let mix := Typing.mix ℰ ℱ
+    rw [← HyperEnv.merge_unitL ({Γ'‚ Γ‚ x ∶ A ⊗ B} |ₕ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥}),
+      Env.merge_swap_last Δ (y ∶ Aᗮ ⅋ Bᗮ) (z ∶ ⊥)] at mix
+    let cut := Typing.cut ∅ (Γ'‚ Γ) (Δ‚ z ∶ ⊥) (x⟦x'⟧.S |ₚ y⸨y'⸩.z⸨⸩.R) x y (A ⊗ B) mix
+    exact cut)
+    -[τ]->ₜ
+    (by
+      let mix := Typing.mix ℰ' (Typing.bot (x := z) ℱ')
+      rw [HyperEnv.merge_comm {Γ'‚ x' ∶ A} {Γ‚ x ∶ B}] at mix
+      rw [Env.merge_move_second_two_right] at mix
+      let cut1 := Typing.cut ({Γ‚ x ∶ B}) Γ' (Δ‚ y ∶ Bᗮ‚ z ∶ ⊥) (S |ₚ z⸨⸩.R) x' y' A mix
+
+      rw [← Env.merge_assoc, ← Env.merge_assoc] at cut1
+      rw [← HyperEnv.merge_unitL ({Γ‚ x ∶ B} |ₕ {Γ'‚ Δ‚ y ∶ Bᗮ‚ z ∶ ⊥})] at cut1
+      rw [← HyperEnv.merge_assoc, Env.merge_swap_last] at cut1
+      let cut2 := Typing.cut ∅ Γ (Γ'‚ Δ‚ z ∶ ⊥) (𝑣⸨x', y'⸩ S |ₚ z⸨⸩.R) x y B cut1
+      exact cut2
+    )
+    := by sorry

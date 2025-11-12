@@ -3,6 +3,7 @@ import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Finset.Fold
 import Lean.PrettyPrinter.Delaborator
+import Mathlib.Tactic
 ------------------------------------------ Proc  ------------------------------------------
 
 abbrev PName := Nat -- Process names are just numbers (ensures not empty)
@@ -40,29 +41,6 @@ instance : Repr Proc where
 
 instance : ToString Proc where
   toString p := reprStr p
-
--- inductive ProcCongr : Proc → Proc → Prop
---   | refl (P : Proc) : ProcCongr P P
---   | symm (P Q : Proc) : ProcCongr P Q → ProcCongr Q P
---   | trans (P Q R : Proc) : ProcCongr P Q → ProcCongr Q R → ProcCongr P R
---   | par_nil_l (P : Proc) : ProcCongr (𝟘 |ₚ P) P
---   | par_nil_r (P : Proc) : ProcCongr (P |ₚ 𝟘) P
---   | par_comm (P Q : Proc) : ProcCongr  (P |ₚ Q) (Q |ₚ P)
---   | par_assoc (P Q R : Proc) : ProcCongr ((P |ₚ Q) |ₚ R) (P |ₚ (Q |ₚ R))
-
--- notation:50 P " ≡ₚ " Q => ProcCongr P Q
-
--- @[simp]
--- theorem Proc.nil_par_eq_nil : 𝟘 |ₚ 𝟘 ≡ₚ 𝟘 := by
---   apply ProcCongr.par_nil_l
-
--- @[simp]
--- theorem Proc.par_nil (P : Proc) : P |ₚ 𝟘 ≡ₚ P := by
---   apply ProcCongr.par_nil_r
-
--- @[simp]
--- theorem Proc.nil_par (P : Proc) : 𝟘 |ₚ P ≡ₚ P := by
---   apply ProcCongr.par_nil_l
 
 abbrev Renaming := PName → PName
 
@@ -309,7 +287,7 @@ instance : Equivalence Env.Eq :=
 @[simp]
 def Env.merge (Δ Γ : Env) : Env := Δ ∪ Γ
 
-infixr:85 "‚ " => Env.merge
+infixl:85 "‚ " => Env.merge
 
 -- Merge identity
 @[simp]
@@ -328,7 +306,7 @@ theorem Env.merge_comm (Δ Γ : Env) : Δ‚ Γ = Γ‚ Δ := by
 
 -- Merge associativity
 @[simp]
-theorem Env.merge_assoc (Δ Γ Ε : Env) : (Δ‚ Γ)‚ Ε = Δ‚ (Γ‚ Ε) := by
+theorem Env.merge_assoc (Δ Γ Ε : Env) : Δ‚ Γ‚ Ε = Δ‚ (Γ‚ Ε) := by
   simp
 
 @[simp]
@@ -336,6 +314,17 @@ lemma Env.merge_swap_last (Γ Δ Ξ : Env) :
   (Γ‚ Δ)‚ Ξ = (Γ‚ Ξ)‚ Δ := by
   rw [Env.merge_comm, ←Env.merge_assoc]
   conv => lhs ; lhs ; rw [Env.merge_comm]
+
+@[simp]
+lemma Env.merge_move_last_two_left (Γ Δ Ξ Ε : Env) :
+  Γ‚ Δ‚ Ξ‚ Ε = Γ‚ Ε‚ Δ‚ Ξ := by
+  rw [Env.merge_swap_last, Env.merge_swap_last Γ Δ Ε]
+
+@[simp]
+lemma Env.merge_move_second_two_right (Γ Δ Ξ Ε : Env) :
+  Γ‚ Δ‚ Ξ‚ Ε = Γ‚ Ξ‚ Ε‚ Δ := by
+  rw [Env.merge_swap_last Γ Δ Ξ, Env.merge_swap_last]
+
 
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
@@ -432,12 +421,12 @@ instance : Equivalence HyperEnv.Eq :=
 @[simp]
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ∪ ℋ
 
-infixr:55 " |ₕ " => HyperEnv.merge
+infixl:55 " |ₕ " => HyperEnv.merge
 
 -- Merge identity
 @[simp]
 theorem HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by
-  simp?
+  simp
 
 @[simp]
 theorem HyperEnv.merge_unitR (𝒢 : HyperEnv) : 𝒢 |ₕ ∅ = 𝒢 := by
@@ -622,14 +611,18 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
-      {𝒟 : Typing (𝒢 |ₕ {(Γ‚ Δ)‚ x ∶ A ⊗ B} |ₕ {Ξ‚ y ∶ Aᗮ ⅋ Bᗮ}) P}
-      {𝒟' : Typing ((𝒢 |ₕ {Γ‚ x ∶ B}) |ₕ {Δ‚ x' ∶ A} |ₕ {(Ξ‚ y ∶ Bᗮ)‚ y' ∶ Aᗮ}) P'}
+      {𝒟 : Typing (𝒢 |ₕ {Γ‚ Δ‚ x ∶ A ⊗ B} |ₕ {Ξ‚ y ∶ Aᗮ ⅋ Bᗮ}) P}
+      {𝒟' : Typing (𝒢 |ₕ {Γ‚ x ∶ B} |ₕ {Δ‚ x' ∶ A} |ₕ {Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ}) P'}
       (h : TypingStep 𝒟 (x⟦x'⟧ |ₗ y⸨y'⸩) 𝒟') :
       ----------------------------------------------------------------------------
       TypingStep
         (Typing.cut 𝒢 (Γ‚ Δ) Ξ P x y (A ⊗ B) 𝒟)
         (τ)
-        (by constructor)
+        (by
+          let inter := Typing.cut (𝒢 |ₕ {Γ‚ x ∶ B}) Δ (Ξ‚ y ∶ Bᗮ) P' x' y' A 𝒟'
+          rw [← Env.merge_assoc] at inter
+          exact Typing.cut 𝒢 Γ (Δ‚ Ξ) (𝑣⸨x', y'⸩ P') x y B inter
+        )
 
   | res
       {𝒢 𝒢': HyperEnv} {Γ Γ' Δ Δ' : Env} {P P' : Proc}
