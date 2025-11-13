@@ -528,22 +528,6 @@ def Lbl.iNames : Lbl → Finset PName :=
 def Lbl.fresh (xs : List PName) (l : Lbl) :=
   ∀ n ∈ xs, n ∉ l.fNames ∪ l.iNames
 
--- def Lbl.wf : Lbl → Prop
---   | Lbl.par l l' => (iNamesAct l) ∩ (iNamesAct l') = ∅
---   | _ => True
-
--- def Finset.prod (s₁ s₂ : Finset Act) : Finset (Act × Act) :=
---   (Finset.fold (· ∪ ·) ∅ (fun (a : Act) => s₂.image (fun (a' : Act) => (a, a'))) s₁)
-
--- def LblSet (acts : Finset Act) : Finset Lbl :=
---   let τ := ∅
---   let single := acts.image Lbl.act
---   let parallel :=
---     (Finset.prod acts acts)
---       |>.filter (fun (p : Act × Act) => (iNamesAct p.1) ∩ (iNamesAct p.2) = ∅)
---       |>.image (fun (p : Act × Act) => Lbl.par p.1 p.2)
---   τ ∪ single ∪ parallel
-
 notation:80 x "⟦" y "⟧" => Act.tensor x y
 notation:80 x "⟦⟧" => Act.one x
 notation:80 x "⸨" y "⸩" => Act.parr x y

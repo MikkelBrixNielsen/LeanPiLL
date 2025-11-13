@@ -443,18 +443,29 @@ example (Γ Γ' Δ : Env) (A B : Types)
     rw [← HyperEnv.merge_unitL ({Γ'‚ Γ‚ x ∶ A ⊗ B} |ₕ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥}),
       Env.merge_swap_last Δ (y ∶ Aᗮ ⅋ Bᗮ) (z ∶ ⊥)] at mix
     let cut := Typing.cut ∅ (Γ'‚ Γ) (Δ‚ z ∶ ⊥) (x⟦x'⟧.S |ₚ y⸨y'⸩.z⸨⸩.R) x y (A ⊗ B) mix
-    exact cut)
-    -[τ]->ₜ
-    (by
-      let mix := Typing.mix ℰ' (Typing.bot (x := z) ℱ')
-      rw [HyperEnv.merge_comm {Γ'‚ x' ∶ A} {Γ‚ x ∶ B}] at mix
-      rw [Env.merge_move_second_two_right] at mix
-      let cut1 := Typing.cut ({Γ‚ x ∶ B}) Γ' (Δ‚ y ∶ Bᗮ‚ z ∶ ⊥) (S |ₚ z⸨⸩.R) x' y' A mix
+    rw [HyperEnv.merge_unitL] at cut
+    rw [← Env.merge_assoc] at cut
+    exact cut
+  )
+  -[τ]->ₜ
+  (by
+    let mix := Typing.mix ℰ' (Typing.bot (x := z) ℱ')
+    rw [HyperEnv.merge_comm {Γ'‚ x' ∶ A} {Γ‚ x ∶ B}] at mix
+    rw [Env.merge_move_second_two_right] at mix
+    let cut1 := Typing.cut ({Γ‚ x ∶ B}) Γ' (Δ‚ y ∶ Bᗮ‚ z ∶ ⊥) (S |ₚ z⸨⸩.R) x' y' A mix
+    rw [← Env.merge_assoc, ← Env.merge_assoc] at cut1
+    rw [← HyperEnv.merge_unitL ({Γ‚ x ∶ B} |ₕ {Γ'‚ Δ‚ y ∶ Bᗮ‚ z ∶ ⊥})] at cut1
+    rw [← HyperEnv.merge_assoc, Env.merge_swap_last] at cut1
+    let cut2 := Typing.cut ∅ Γ (Γ'‚ Δ‚ z ∶ ⊥) (𝑣⸨x', y'⸩ S |ₚ z⸨⸩.R) x y B cut1
+    rw [HyperEnv.merge_unitL] at cut2
+    rw [← Env.merge_assoc, ← Env.merge_assoc] at cut2
+    rw [Env.merge_comm Γ Γ'] at cut2
+    exact cut2
+  )
+  := by
 
-      rw [← Env.merge_assoc, ← Env.merge_assoc] at cut1
-      rw [← HyperEnv.merge_unitL ({Γ‚ x ∶ B} |ₕ {Γ'‚ Δ‚ y ∶ Bᗮ‚ z ∶ ⊥})] at cut1
-      rw [← HyperEnv.merge_assoc, Env.merge_swap_last] at cut1
-      let cut2 := Typing.cut ∅ Γ (Γ'‚ Δ‚ z ∶ ⊥) (𝑣⸨x', y'⸩ S |ₚ z⸨⸩.R) x y B cut1
-      exact cut2
-    )
-    := by sorry
+
+  -- LHS
+  -- ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.S |ₚ y⸨y'⸩.z⸨⸩.R ∷ {Γ'‚ Γ‚ (Δ‚ z ∶ ⊥)}
+  -- RHS
+  -- ⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ S |ₚ z⸨⸩.R ∷ {Γ'‚ Γ‚ Δ‚ z ∶ ⊥}

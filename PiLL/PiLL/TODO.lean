@@ -267,10 +267,6 @@ example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
   (ℱ : ⊢ y⸨y'⸩.z⸨⸩.P ∷ {t}) (ℱ' : ⊢ P ∷ {t'}) :
   ℱ -[y⸨y'⸩]->ₜ ℱ' := by sorry
 
-/- Additionally:
-  · It is not possible to do cases on Envs / HyperEnvs since they are Quots
--/
-
 /- Done:
   removed Env -> HyperEnv coercion:
   · Try adding it again when the above issue has been resolved
