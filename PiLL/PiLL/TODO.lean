@@ -309,3 +309,10 @@ example (Δ : Env) (P : Proc) (y y' z : PName) (A B : Types)
 /-
 (8) Don't really understand the conclusions of the RES, 𝟙⊥, and ⊗⅋
 -/
+
+/-
+  Ask about the cut-rule being used when there isn't three parallel HyperEnvs
+  present in the derivation
+  · Should there be a cut implicitly adding this s.t. a cut with only two parallel
+    HyperEnvs can be done or should one just use rewrites to add the third HyperEnv
+-/

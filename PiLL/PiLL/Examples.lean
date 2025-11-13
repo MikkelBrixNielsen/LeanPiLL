@@ -2,6 +2,7 @@ import PiLL.Definitions
 
 ---------------------------------------- EXAMPLES ----------------------------------------
 
+section Latch
 -- Latch_xyz example from main.pdf
 -- TODO: Try and use simp more, try and omit giving explicit types to cut,
 --       in general try minimizing things given to cut
@@ -29,74 +30,9 @@ example (x x₁ x₂ y y₁ y₂ z : PName) :
       apply Typing.one
       exact Typing.mix₀
 
--- Example 2.5/ fig 3 from the main.pdf and some other stuff
-theorem ℱ (Δ : Env) (R : Proc) (y y' z : PName) (A B : Types)
-  (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
-  ⊢ y⸨y'⸩.z⸨⸩.R ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥} := by
-  rw [Env.merge_swap_last]
-  apply Typing.parr
-  rw [Env.merge_move_second_two_right]
-  apply Typing.bot
-  exact ℱ'
+end Latch
 
-theorem ℰ (Γ Γ' : Env) (Q : Proc) (x x' : PName) (A B : Types)
-  (ℰ' : ⊢ Q ∷ {Γ‚ x' ∶ A} |ₕ {Γ'‚ x ∶ B}) :
-  ⊢ x⟦x'⟧.Q ∷ {Γ‚ Γ'‚ x ∶ A ⊗ B} := by
-  apply Typing.tensor
-  exact ℰ'
-
-theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
-  (ℰ' : ⊢ Q ∷ {Γ‚ x' ∶ A} |ₕ {Γ'‚ x ∶ B}) (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
-  ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ {Γ‚ Γ'‚ Δ‚ z ∶ ⊥} := by
-    let t := Typing.cut ∅ (Γ‚ Γ') (Δ‚ z ∶ ⊥) (x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R) x y (A ⊗ B)
-    repeat rw [HyperEnv.merge_unitL] at t
-    rw [← Env.merge_assoc] at t
-    apply t
-    apply Typing.mix
-    · apply Typing.tensor
-      exact ℰ'
-    · apply Typing.parr
-      rw [Env.merge_move_second_two_right]
-      apply Typing.bot
-      exact ℱ'
-
------------------------------ EXAMPLE 𝒟 HERE -------------------------
-
-
-
-/-
-            ℰ                                       ℱ
-⊢ x⟦x'⟧.Q ∷ Γ‚ Γ'‚ x ∶ A ⊗ B       ⊢ y⸨y'⸩.z⸨⸩.R ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥
------------------------------------------------------------------------- MIX
-  ⊢ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ x ∶ A ⊗ B |ₕ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ⊥
-  ----------------------------------------------------------------- CUT
-          ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ Δ‚ z ∶ ⊥
-
---[ τ ]->
-
-                                                ℱ'
-                                      ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
-          ℰ'                      ---------------------------------- Typing.bot
-⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B       ⊢ z⸨⸩.R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
--------------------------------------------------------------------- Typing.mix
-  ⊢ Q |ₚ z⸨⸩.R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B |ₕ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
-  ---------------------------------------------------------------- Typing.cut
-      ⊢ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ‚ x' ∶ A |ₕ Γ' |ₕ Δ‚ y' ∶ Aᗮ‚ z ∶ ⊥
-      -------------------------------------------------------- Typing.cut
-          ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
-
---[z⸨⸩]->
-
-          ℰ'                                     ℱ'
-⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B             ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
----------------------------------------------------------------- Typing.mix
-  ⊢ Q |ₚ R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B |ₕ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
-  ------------------------------------------------------------ Typing.cut
-      ⊢ 𝑣⸨x, y⸩ Q |ₚ R ∷ Γ‚ x' ∶ A |ₕ Γ' |ₕ Δ‚ y' ∶ Aᗮ‚ z ∶ ⊥
-      ----------------------------------------------------- Typing.cut
-        ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
--/
-
+section Single_Multi_Step
 /- Some examples of single and multistep transitions -/
 example (x : PName) :
   Typing.one (x := x) Typing.mix₀ -[x⟦⟧]->ₜ Typing.mix₀ := by
@@ -128,7 +64,9 @@ example (x y : PName) :
   · apply Typing.mix₀     -- 𝒟':= ⊢ 𝟘 ∷ ∅
   · apply Typing.mix₀     -- ℰ':= ⊢ 𝟘 ∷ ∅
 
+end Single_Multi_Step
 
+section AlphaEq
 /- Small alpha equivalence example -/
 def P : Proc := .parr 1 2 (.tensor 2 4 .nil)
 def Q : Proc := .parr 1 3 (.tensor 3 4 .nil)
@@ -139,6 +77,9 @@ def Q' :=  renameBound 3 w Q --> Proc.parr 1 5 (Proc.tensor 5 4 (Proc.nil))
 
 #eval P' = Q'
 
+end AlphaEq
+
+section Proc_Env
 /- Some examples using proc and env -/
 def t := Typing.mix
         (Typing.one (x := 1) (Typing.mix₀))
@@ -199,6 +140,9 @@ example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1
   simp only [env]
   exact h
 
+end Proc_Env
+
+section Latch_execution
 -- Execution of the first parallel component of P in Latch_xyz
 example (x x₁ : PName) :
   (x⸨⸩.x₁⟦⟧.𝟘) -[[x⸨⸩] ∷ₗ x₁⟦⟧]->>ₚ (𝟘) := by
@@ -427,24 +371,55 @@ example (Γ Γ' Δ : Env) (A B : Types)
   · apply Typing.bot
     exact ℱ'
 
+end Latch_execution
 
 
+section example_2_5 -- FIXME: Don't depend on definitions from previous section
+-- Example 2.5/ fig 3 from the main.pdf and some other stuff
+theorem ℱ (Δ : Env) (R : Proc) (y y' z : PName) (A B : Types)
+  (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
+  ⊢ y⸨y'⸩.z⸨⸩.R ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥} := by
+  rw [Env.merge_swap_last]
+  apply Typing.parr
+  rw [Env.merge_move_second_two_right]
+  apply Typing.bot
+  exact ℱ'
 
+theorem ℰ (Γ Γ' : Env) (Q : Proc) (x x' : PName) (A B : Types)
+  (ℰ' : ⊢ Q ∷ {Γ‚ x' ∶ A} |ₕ {Γ'‚ x ∶ B}) :
+  ⊢ x⟦x'⟧.Q ∷ {Γ‚ Γ'‚ x ∶ A ⊗ B} := by
+  apply Typing.tensor
+  exact ℰ'
 
+theorem 𝒟 (Γ Γ' Δ : Env) (Q R : Proc) (x x' y y' z) (A B : Types)
+  (ℰ' : ⊢ Q ∷ {Γ‚ x' ∶ A} |ₕ {Γ'‚ x ∶ B}) (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ}) :
+  ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ {Γ‚ Γ'‚ Δ‚ z ∶ ⊥} := by
+    let t := Typing.cut ∅ (Γ‚ Γ') (Δ‚ z ∶ ⊥) (x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R) x y (A ⊗ B)
+    repeat rw [HyperEnv.merge_unitL] at t
+    rw [← Env.merge_assoc] at t
+    apply t
+    apply Typing.mix
+    · apply Typing.tensor
+      exact ℰ'
+    · apply Typing.parr
+      rw [Env.merge_move_second_two_right]
+      apply Typing.bot
+      exact ℱ'
+
+-- It is possible to either predefine the derivation on which to cut or to build it
+-- from scratch (from scratch is a lot more cluttered)
 example (Γ Γ' Δ : Env) (A B : Types)
   (ℰ' : ⊢ S ∷ {Γ'‚ x' ∶ A} |ₕ {Γ‚ x ∶ B}) (ℱ' : ⊢ R ∷ {Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ})
   (ℰ : ⊢ x⟦x'⟧.S ∷ {Γ'‚ Γ‚ x ∶ A ⊗ B}) (ℱ : ⊢ y⸨y'⸩.z⸨⸩.R ∷ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥})
   -- (𝒟 : ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.S |ₚ y⸨y'⸩.z⸨⸩.R ∷ {Γ'‚ Γ‚ Δ‚ z ∶ ⊥})
   -- (𝒟' : ⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ S |ₚ z⸨⸩.R ∷ {Γ'‚ Γ‚ Δ‚ z ∶ ⊥})
-
+  -- (mix : ⊢ x⟦x'⟧.S |ₚ y⸨y'⸩.z⸨⸩.R ∷ ({Γ'‚ Γ‚ x ∶ A ⊗ B} |ₕ {Δ‚ z ∶ ⊥‚ y ∶ Aᗮ ⅋ Bᗮ}))
   :
   (by
     let mix := Typing.mix ℰ ℱ
-    rw [← HyperEnv.merge_unitL ({Γ'‚ Γ‚ x ∶ A ⊗ B} |ₕ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥}),
-      Env.merge_swap_last Δ (y ∶ Aᗮ ⅋ Bᗮ) (z ∶ ⊥)] at mix
+    rw [← HyperEnv.merge_unitL ({Γ'‚ Γ‚ x ∶ A ⊗ B} |ₕ {Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥})] at mix
+    rw [← HyperEnv.merge_assoc, Env.merge_swap_last Δ (y ∶ Aᗮ ⅋ Bᗮ) (z ∶ ⊥)] at mix
     let cut := Typing.cut ∅ (Γ'‚ Γ) (Δ‚ z ∶ ⊥) (x⟦x'⟧.S |ₚ y⸨y'⸩.z⸨⸩.R) x y (A ⊗ B) mix
-    rw [HyperEnv.merge_unitL] at cut
-    rw [← Env.merge_assoc] at cut
     exact cut
   )
   -[τ]->ₜ
@@ -453,19 +428,68 @@ example (Γ Γ' Δ : Env) (A B : Types)
     rw [HyperEnv.merge_comm {Γ'‚ x' ∶ A} {Γ‚ x ∶ B}] at mix
     rw [Env.merge_move_second_two_right] at mix
     let cut1 := Typing.cut ({Γ‚ x ∶ B}) Γ' (Δ‚ y ∶ Bᗮ‚ z ∶ ⊥) (S |ₚ z⸨⸩.R) x' y' A mix
-    rw [← Env.merge_assoc, ← Env.merge_assoc] at cut1
-    rw [← HyperEnv.merge_unitL ({Γ‚ x ∶ B} |ₕ {Γ'‚ Δ‚ y ∶ Bᗮ‚ z ∶ ⊥})] at cut1
-    rw [← HyperEnv.merge_assoc, Env.merge_swap_last] at cut1
+    rw [← Env.merge_assoc, ← Env.merge_assoc,
+      ← HyperEnv.merge_unitL ({Γ‚ x ∶ B} |ₕ {Γ'‚ Δ‚ y ∶ Bᗮ‚ z ∶ ⊥}),
+      ← HyperEnv.merge_assoc, Env.merge_swap_last] at cut1
     let cut2 := Typing.cut ∅ Γ (Γ'‚ Δ‚ z ∶ ⊥) (𝑣⸨x', y'⸩ S |ₚ z⸨⸩.R) x y B cut1
-    rw [HyperEnv.merge_unitL] at cut2
-    rw [← Env.merge_assoc, ← Env.merge_assoc] at cut2
-    rw [Env.merge_comm Γ Γ'] at cut2
+    rw [HyperEnv.merge_unitL, ← Env.merge_assoc, ← Env.merge_assoc,
+      Env.merge_comm Γ Γ', Env.merge_assoc] at cut2
     exact cut2
   )
   := by
+  rw! [Env.merge_comm Γ' Γ]
+  apply TypingStep.tensor_parr
+  · apply TypingStep.syn
+    · rw! [HyperEnv.merge_unitL]
+      rw! [HyperEnv.merge_assoc, HyperEnv.merge_unitL ({Γ‚ x ∶ ?B} |ₕ {Γ'‚ x' ∶ ?A})]
+      · rw! [HyperEnv.merge_comm {Γ‚ x ∶ ?B} {Γ'‚ x' ∶ ?A}]
+        · rw! [Env.merge_comm Γ Γ']
+          exact TypingStep.tensor
+        · exact B
+        · exact A
+    · rw! [Env.merge_swap_last (Δ‚ z ∶ ⊥) (y ∶ Bᗮ) (y' ∶ Aᗮ)]
+      apply TypingStep.parr
+    · aesop
+    · rw [HyperEnv.merge_unitL, Env.merge_comm Γ Γ']
+      exact ℰ
+    · rw [HyperEnv.merge_unitL, HyperEnv.merge_comm]
+      exact ℰ'
+    · have f := Typing.bot (x := z) ℱ'
+      rw [Env.merge_move_second_two_right, Env.merge_swap_last Δ (y ∶ Bᗮ) (y' ∶ Aᗮ)]
+      exact f
 
 
-  -- LHS
-  -- ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.S |ₚ y⸨y'⸩.z⸨⸩.R ∷ {Γ'‚ Γ‚ (Δ‚ z ∶ ⊥)}
-  -- RHS
-  -- ⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ S |ₚ z⸨⸩.R ∷ {Γ'‚ Γ‚ Δ‚ z ∶ ⊥}
+/-
+            ℰ                                       ℱ
+⊢ x⟦x'⟧.Q ∷ Γ‚ Γ'‚ x ∶ A ⊗ B       ⊢ y⸨y'⸩.z⸨⸩.R ∷ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ∶ ⊥
+------------------------------------------------------------------------ MIX
+  ⊢ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ x ∶ A ⊗ B |ₕ Δ‚ y ∶ Aᗮ ⅋ Bᗮ‚ z ⊥
+  ----------------------------------------------------------------- CUT
+          ⊢ 𝑣⸨x, y⸩ x⟦x'⟧.Q |ₚ y⸨y'⸩.z⸨⸩.R ∷ Γ‚ Γ'‚ Δ‚ z ∶ ⊥
+
+--[ τ ]->
+
+                                                ℱ'
+                                      ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
+          ℰ'                      ---------------------------------- Typing.bot
+⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B       ⊢ z⸨⸩.R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
+-------------------------------------------------------------------- Typing.mix
+  ⊢ Q |ₚ z⸨⸩.R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B |ₕ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
+  ---------------------------------------------------------------- Typing.cut
+      ⊢ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ‚ x' ∶ A |ₕ Γ' |ₕ Δ‚ y' ∶ Aᗮ‚ z ∶ ⊥
+      -------------------------------------------------------- Typing.cut
+          ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
+
+--[z⸨⸩]->
+
+          ℰ'                                     ℱ'
+⊢ Q ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B             ⊢ R ∷ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ
+---------------------------------------------------------------- Typing.mix
+  ⊢ Q |ₚ R ∷ Γ‚ x' ∶ A |ₕ Γ'‚ x ∶ B |ₕ Δ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ‚ z ∶ ⊥
+  ------------------------------------------------------------ Typing.cut
+      ⊢ 𝑣⸨x, y⸩ Q |ₚ R ∷ Γ‚ x' ∶ A |ₕ Γ' |ₕ Δ‚ y' ∶ Aᗮ‚ z ∶ ⊥
+      ----------------------------------------------------- Typing.cut
+        ⊢ 𝑣⸨x', y'⸩ 𝑣⸨x, y⸩ Q |ₚ z⸨⸩.R ∷ Γ |ₕ Γ' |ₕ Δ‚ z ∶ ⊥
+-/
+
+end example_2_5

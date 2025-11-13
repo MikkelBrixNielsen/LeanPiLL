@@ -603,10 +603,17 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
         (Typing.cut 𝒢 (Γ‚ Δ) Ξ P x y (A ⊗ B) 𝒟)
         (τ)
         (by
-          let inter := Typing.cut (𝒢 |ₕ {Γ‚ x ∶ B}) Δ (Ξ‚ y ∶ Bᗮ) P' x' y' A 𝒟'
-          rw [← Env.merge_assoc] at inter
-          exact Typing.cut 𝒢 Γ (Δ‚ Ξ) (𝑣⸨x', y'⸩ P') x y B inter
+          let cut := Typing.cut (𝒢 |ₕ {Γ‚ x ∶ B}) Δ (Ξ‚ y ∶ Bᗮ) P' x' y' A 𝒟'
+          rw [← Env.merge_assoc] at cut
+          let double_cut := Typing.cut 𝒢 Γ (Δ‚ Ξ) (𝑣⸨x', y'⸩ P') x y B cut
+          rw [← Env.merge_assoc] at double_cut
+          exact double_cut
         )
+
+-- ⊢ P'                   ∷ 𝒢 |ₕ {Γ‚ x ∶ B} |ₕ {Δ‚ x' ∶ A} |ₕ {Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ}
+-- ⊢ 𝑣⸨x', y'⸩ P'         ∷ 𝒢 |ₕ {Γ‚ x ∶ B} |ₕ {Δ‚ Ξ‚ y ∶ Bᗮ}
+-- ⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ P' ∷ 𝒢 |ₕ {Γ‚ Δ‚ Ξ}
+
 
   | res
       {𝒢 𝒢': HyperEnv} {Γ Γ' Δ Δ' : Env} {P P' : Proc}
@@ -614,7 +621,6 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       {𝒟 : Typing (𝒢 |ₕ {Γ‚ x ∶ A} |ₕ {Δ‚ y ∶ Aᗮ}) P}
       {𝒟' : Typing (𝒢' |ₕ {Γ'‚ x ∶ A} |ₕ {Δ'‚ y ∶ Aᗮ}) P'}
       (h : TypingStep 𝒟 l 𝒟')
-      -- (disj : ∀ n ∈ [x, y], n ∉ l.fNames ∪ l.iNames)
       (disj : l.fresh [x, y]) :
       ----------------------------------------------------------------------------
       TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) l (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
