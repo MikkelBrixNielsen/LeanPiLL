@@ -96,7 +96,6 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
   same order which is expected for the next cut.
 -/
 
-
 /-
   Get clerafication on the notion of erasure and the diagram on line 467-472. Should
   I include proofs of this, show the square commuting? Or is it enough to just have
@@ -130,12 +129,9 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
 -/
 
 /-
-(8)
   Don't really understand the conclusions of the RES, 𝟙⊥, and ⊗⅋
 -/
 
-ᗮ
 /-
-  (12)
     Get an explanaiton of Remark 3.6
 -/
