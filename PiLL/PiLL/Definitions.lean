@@ -332,11 +332,7 @@ abbrev HyperEnv := Finset (Env)
 
 abbrev EmptyHyperEnv : HyperEnv := ∅
 
-notation:max "⦃" Δ "⦄" => ({Δ} : HyperEnv)
-
--- Coercion makes extending a hyperenv with env and merging the same
--- and env1 |ₕ env2 => hyperenv due to envs being lifted to hyperenv
--- instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
+instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
 
 /- FIXME: eval does not work since non-computable -/
 open Lean in
@@ -456,29 +452,29 @@ inductive Typing : HyperEnv → Proc → Prop where
       Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
 
   | cut (𝒢 : HyperEnv) (Γ Δ : Env) (P : Proc) (x y : PName) (A : Types) :
-      Typing (𝒢 |ₕ {Γ‚ x ∶ A} |ₕ {Δ‚ y ∶ Aᗮ}) P →
+      Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P →
       -----------------------------------------
-      Typing (𝒢 |ₕ {Γ‚ Δ}) (𝑣⸨x, y⸩ P)
+      Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩ P)
 
   | tensor {Γ Δ : Env} {P : Proc} {x y : PName} {B A : Types} :
-      Typing ({Γ‚ y ∶ A} |ₕ {Δ‚ x ∶ B}) P →
+      Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
       ------------------------------------
-      Typing ({Γ‚ Δ‚ x ∶ A ⊗ B}) (x⟦y⟧.P)
+      Typing (Γ‚ Δ‚ x ∶ A ⊗ B) (x⟦y⟧.P)
 
   | one {P : Proc} {x : PName} :
       Typing ∅ P →
       ----------------------
-      Typing ({x ∶ 𝟙}) (x⟦⟧.P)
+      Typing (x ∶ 𝟙) (x⟦⟧.P)
 
   | parr {Γ : Env} {P : Proc} {x y : PName} {A B : Types} :
-      Typing ({Γ‚ y ∶ A‚ x ∶ B}) P →
+      Typing (Γ‚ y ∶ A‚ x ∶ B) P →
       --------------------------------
-      Typing ({Γ‚ x ∶ A ⅋ B}) (x⸨y⸩.P)
+      Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩.P)
 
   | bot {Γ : Env} {P : Proc} {x : PName} :
-      Typing {Γ} P →
+      Typing Γ P →
       --------------------------
-      Typing ({Γ‚ x ∶ ⊥}) (x⸨⸩.P)
+      Typing (Γ‚ x ∶ ⊥) (x⸨⸩.P)
 
 notation:50 "⊢ " P " ∷ " T => Typing T P
 
@@ -543,7 +539,7 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 
   | tensor
       {Γ Δ : Env} {P : Proc} {x x': PName} {A B : Types}
-      {𝒟 : Typing ({Γ‚ x' ∶ A} |ₕ {Δ‚ x ∶ B}) P} :
+      {𝒟 : Typing (Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B) P} :
       TypingStep (Typing.tensor 𝒟) (x⟦x'⟧) 𝒟
 
   | bot
@@ -552,7 +548,7 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 
   | parr
       {Γ : Env} {P : Proc} {x x' : PName} {A B : Types}
-      {𝒟 : Typing ({Γ‚ x' ∶ A‚ x ∶ B}) P} :
+      {𝒟 : Typing (Γ‚ x' ∶ A‚ x ∶ B) P} :
       TypingStep (Typing.parr 𝒟) (x⸨x'⸩) 𝒟
 
   | par₁
@@ -575,7 +571,7 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
       (h₁ : TypingStep 𝒟 a 𝒟')
       (h₂ : TypingStep ℰ a' ℰ')
-      (disj : ((Lbl.par a a').iNames ∩ (Proc.par P Q).fNames) = ∅) :
+      (disj : (a |ₗ a').iNames ∩ (P |ₚ Q).fNames = ∅) :
       ---------------------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) (a |ₗ a') (Typing.mix 𝒟' ℰ')
 
@@ -588,38 +584,33 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 
   | one_bot
       {𝒢: HyperEnv} {Γ : Env} {P P' : Proc} {x y : PName}
-      {𝒟 : Typing (𝒢 |ₕ {x ∶ 𝟙} |ₕ {Γ‚ y ∶ ⊥}) P} {𝒟' : Typing (𝒢 |ₕ {Γ}) P'}
+      {𝒟 : Typing (𝒢 |ₕ x ∶ 𝟙 |ₕ Γ‚ y ∶ ⊥) P} {𝒟' : Typing (𝒢 |ₕ Γ) P'}
       (h : TypingStep 𝒟 (x⟦⟧ |ₗ y⸨⸩) 𝒟') :
       ----------------------------------------------------------------------
       TypingStep (Typing.cut 𝒢 ∅ Γ P x y (𝟙) 𝒟) (τ) 𝒟'
 
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
-      {𝒟 : Typing (𝒢 |ₕ {Γ‚ Δ‚ x ∶ A ⊗ B} |ₕ {Ξ‚ y ∶ Aᗮ ⅋ Bᗮ}) P}
-      {𝒟' : Typing (𝒢 |ₕ {Γ‚ x ∶ B} |ₕ {Δ‚ x' ∶ A} |ₕ {Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ}) P'}
+      {𝒟 : Typing (𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ) P}
+      {𝒟' : Typing (𝒢 |ₕ Γ‚ x ∶ B |ₕ Δ‚ x' ∶ A |ₕ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ) P'}
       (h : TypingStep 𝒟 (x⟦x'⟧ |ₗ y⸨y'⸩) 𝒟') :
       ----------------------------------------------------------------------------
       TypingStep
         (Typing.cut 𝒢 (Γ‚ Δ) Ξ P x y (A ⊗ B) 𝒟)
         (τ)
-        (by
-          let cut := Typing.cut (𝒢 |ₕ {Γ‚ x ∶ B}) Δ (Ξ‚ y ∶ Bᗮ) P' x' y' A 𝒟'
-          rw [← Env.merge_assoc] at cut
-          let double_cut := Typing.cut 𝒢 Γ (Δ‚ Ξ) (𝑣⸨x', y'⸩ P') x y B cut
-          rw [← Env.merge_assoc] at double_cut
-          exact double_cut
+        (Typing.cut 𝒢 Γ (Δ‚ Ξ) (𝑣⸨x', y'⸩ P') x y B
+          (by
+           let inner := Typing.cut (𝒢 |ₕ {Γ‚ x ∶ B}) Δ (Ξ‚ y ∶ Bᗮ) P' x' y' A 𝒟'
+           rw [← Env.merge_assoc] at inner
+           exact inner
+          )
         )
-
--- ⊢ P'                   ∷ 𝒢 |ₕ {Γ‚ x ∶ B} |ₕ {Δ‚ x' ∶ A} |ₕ {Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ}
--- ⊢ 𝑣⸨x', y'⸩ P'         ∷ 𝒢 |ₕ {Γ‚ x ∶ B} |ₕ {Δ‚ Ξ‚ y ∶ Bᗮ}
--- ⊢ 𝑣⸨x, y⸩ 𝑣⸨x', y'⸩ P' ∷ 𝒢 |ₕ {Γ‚ Δ‚ Ξ}
-
 
   | res
       {𝒢 𝒢': HyperEnv} {Γ Γ' Δ Δ' : Env} {P P' : Proc}
       {x y : PName} {A : Types} {l : Lbl}
-      {𝒟 : Typing (𝒢 |ₕ {Γ‚ x ∶ A} |ₕ {Δ‚ y ∶ Aᗮ}) P}
-      {𝒟' : Typing (𝒢' |ₕ {Γ'‚ x ∶ A} |ₕ {Δ'‚ y ∶ Aᗮ}) P'}
+      {𝒟 : Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P}
+      {𝒟' : Typing (𝒢' |ₕ Γ'‚ x ∶ A |ₕ Δ'‚ y ∶ Aᗮ) P'}
       (h : TypingStep 𝒟 l 𝒟')
       (disj : l.fresh [x, y]) :
       ----------------------------------------------------------------------------
@@ -749,19 +740,19 @@ def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
 inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
   | one
       {x : PName} :
-      EnvStep ⦃x ∶ 𝟙⦄ (x⟦⟧) ∅
+      EnvStep (x ∶ 𝟙) (x⟦⟧) ∅
 
   | tensor
       {Γ Δ : Env} {x x' : PName} {A B : Types} :
-      EnvStep ⦃Γ‚ Δ‚ x ∶ A ⊗ B⦄ (x⟦x'⟧) (⦃Γ‚ x'∶ A⦄ |ₕ ⦃Δ‚ x ∶ B⦄)
+      EnvStep (Γ‚ Δ‚ x ∶ A ⊗ B) (x⟦x'⟧) (Γ‚ x'∶ A |ₕ Δ‚ x ∶ B)
 
   | bot
       {Γ : Env} {x : PName} :
-      EnvStep ⦃Γ‚ x ∶ ⊥⦄ (x⸨⸩) ⦃Γ⦄
+      EnvStep (Γ‚ x ∶ ⊥) (x⸨⸩) Γ
 
   | parr
       {Γ Δ : Env} {x x' : PName} {A B : Types} :
-      EnvStep ⦃Γ‚ x ∶ A ⅋ B⦄ (x⸨x'⸩) (⦃Γ‚ x' ∶ A⦄ |ₕ ⦃Δ‚ x ∶ B⦄)
+      EnvStep (Γ‚ x ∶ A ⅋ B) (x⸨x'⸩) (Γ‚ x' ∶ A‚ Δ‚ x ∶ B)
 
   | par₁
       {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl} :
@@ -783,24 +774,24 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
 
   | one_bot
       {𝒢 : HyperEnv} {Γ : Env} {x y : PName} :
-      EnvStep (𝒢 |ₕ ⦃x ∶ 𝟙⦄ |ₕ ⦃Γ‚ y ∶ ⊥⦄) (x⟦⟧ |ₗ y⸨⸩) (𝒢 |ₕ ⦃Γ⦄) →
+      EnvStep (𝒢 |ₕ x ∶ 𝟙 |ₕ Γ‚ y ∶ ⊥) (x⟦⟧ |ₗ y⸨⸩) (𝒢 |ₕ Γ) →
       ----------------------------------------------------------
-      EnvStep (𝒢 |ₕ ⦃Γ⦄) (τ) (𝒢 |ₕ ⦃Γ⦄)
+      EnvStep (𝒢 |ₕ Γ) (τ) (𝒢 |ₕ Γ)
 
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {x x' y y': PName} {A B : Types} :
       EnvStep
-        (𝒢 |ₕ ⦃Γ‚ Δ‚ x ∶ A ⊗ B⦄ |ₕ ⦃Ξ‚ y ∶ Aᗮ ⅋ Bᗮ⦄)
+        (𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ)
         (x⟦x'⟧ |ₗ y⸨y'⸩)
-        (𝒢 |ₕ ⦃Γ‚ x' ∶ A⦄ |ₕ ⦃Δ‚ x ∶ B⦄ |ₕ ⦃Ξ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ⦄) →
+        (𝒢 |ₕ Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B |ₕ Ξ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) →
       --------------------------------------------------------
-      EnvStep (𝒢 |ₕ ⦃Γ‚ Δ‚ Ξ⦄) (τ) (𝒢 |ₕ ⦃Γ‚ Δ‚ Ξ⦄)
+      EnvStep (𝒢 |ₕ Γ‚ Δ‚ Ξ) (τ) (𝒢 |ₕ Γ‚ Δ‚ Ξ)
 
   | res
       {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : PName} {A B : Types} {l : Lbl} :
-      EnvStep (𝒢 |ₕ ⦃Γ‚ x ∶ Aᗮ⦄ |ₕ ⦃Δ‚ y ∶ A⦄) (l) (𝒢' |ₕ ⦃Γ'‚ x ∶ Aᗮ⦄ |ₕ ⦃Δ'‚ y ∶ A⦄) →
+      EnvStep (𝒢 |ₕ Γ‚ x ∶ Aᗮ |ₕ Δ‚ y ∶ A) (l) (𝒢' |ₕ Γ'‚ x ∶ Aᗮ |ₕ Δ'‚ y ∶ A) →
       ----------------------------------------------------------------------------
-      EnvStep (𝒢 |ₕ ⦃Γ‚ Δ⦄) l (𝒢' |ₕ ⦃Γ'‚ Δ'⦄)
+      EnvStep (𝒢 |ₕ Γ‚ Δ) l (𝒢' |ₕ Γ'‚ Δ')
 
 notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
 
