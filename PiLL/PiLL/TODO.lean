@@ -11,9 +11,43 @@ import PiLL.Definitions
       share a PName or should I add a sidecondition somewhere.
 -/
 
--- TODO: Look at sideconditions for transition rules for derivations
+-- TODO: Look at side conditions for transition rules for derivations
 
--- TODO: Alpha renaming
+/- TODO:
+  make Types be non-recursive s.t. tensor A B has A = some atom B = some atom and aren't
+  a potential infinite recursion of some other Types.
+-/
+
+/- TODO:
+  Find out how to define X in Types i.e. the type variable.
+
+  Find out if X in Proc.input is the type variable X in Types or just some instance
+  of the Types inductive.
+
+  Should Top and Zero be included????
+-/
+
+-- TODO: Check that renaming Types.offer to Types.with does not clash with Leans `with` command?
+
+-- TOOD: Make notation check section in Examples.lean as has been done for Proc's notation
+
+-- TODO: Example 5.1 (check if it is compileable)
+
+-- TODO: Check alpha renaming and extend it to full πLL
+
+/- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity
+    · P |ₚ 𝟘 ∼ P
+    · P |ₚ Q ∼  Q |ₚ P
+    · P |ₚ (Q |ₚ R) ∼ (P |ₚ Q) |ₚ R
+
+    And for cut when it distributes, provided it does not depend on the restricted endpoints.
+    I.e. x,y ∉ fn(Q, π) (where π is some prefix)
+    · (𝑣⸨x, y⸩ P) |ₚ Q ∼ 𝑣⸨x, y⸩ (P |ₚ Q)
+    · 𝑣⸨x,y⸩ (𝑣⸨x', y'⸩ P) ∼ 𝑣⸨x', y'⸩ (𝑣⸨x,y⸩ P)
+    · 𝑣⸨x, y⸩ π.P ∼ π.(𝑣⸨x,y⸩ P)    (NOTE: LHS is ill-typed even if RHS is well-typed)
+    · 𝑣⸨x, y⸩ Q ∼ Q                 (NOTE: LHS is ill-typed even if RHS is well-typed)
+-/
+
 
 /- TODO: show erasure for processes and environments / hyperenvironments
   · if 𝒟 -[l]-> 𝒟' then proc(𝒟) -[l]-> proc(𝒟'), and
@@ -29,9 +63,11 @@ import PiLL.Definitions
   · Both of the above are related to question (4)
 -/
 
+-- τ-reflexicity
+
 -- TODO: Look through old revisions of main.pdf and transfer / check marked uncertanties
 
-/- TODO: Fix #eval env (Typing 𝒢 P) not working -/
+-- TODO: Fix #eval env (Typing 𝒢 P) not working
 
 --------------------------------------- QUESTIONS ---------------------------------------
 /-
@@ -39,6 +75,8 @@ import PiLL.Definitions
   environments otherwise how is 𝒢(x) supposed to be defined and is it correctly '
   understood that typing rules ensure name linearity in environments.
 -/
+
+------------------------------------- Kinda related -------------------------------------
 
 /-
   Currently have an issue environments not matching what is required by rules
@@ -96,6 +134,8 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
   same order which is expected for the next cut.
 -/
 
+------------------------------------- Kinda related -------------------------------------
+
 /-
   Get clerafication on the notion of erasure and the diagram on line 467-472. Should
   I include proofs of this, show the square commuting? Or is it enough to just have
@@ -119,19 +159,34 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
 -/
 
 /-
-  With HyperEnvs / Envs not caring about order is there a reason for tensor and parr
-  transition rules in Fig. 5 to have the order of x and x' flipped in the HyperEnv
-  compared to the other similar rules. The others have them x' then x, but here its
-  x then x'.
-
-  NOTE: Depending on the answer to this EnvStep.parr, .tensor, .tensor_parr
-        might need to be changed.
--/
-
-/-
   Don't really understand the conclusions of the RES, 𝟙⊥, and ⊗⅋
 -/
 
 /-
-    Get an explanaiton of Remark 3.6
+  Get an explanaiton of Remark 3.6
+-/
+
+/-
+  Get an explanation of pp. 1:13 (line. 602-623)
+-/
+
+/-
+  What is going on in chapter 4.1
+  · Definition 4.1
+  · Last two monoid laws for cut being ill-typed, why?
+  · TODO: Saturation line 689-694 (is this the same as τ-flexavility)
+  · What is meant by πMLL follows local reasoning
+  · Is Theorem 4.5 something is also should construct a proof of?
+    and by extension derivations, HyperEnv.
+  · TODO: Definition 4.11 i.e. being able to count number of parallel components
+
+  · NOTE: Diamond propery (definition 4.14)
+    . Erasure => well-typed processes enjoy diamond property
+    · Any process violating diamond property is ill-typed
+      · TOOD: Find out if a process can be ill-typed and enjoy diamond property?
+    · Diamond property ensures τ transitions does not affect possible interactions
+      interactions available before a τ transition are also available after
+
+  · why is 𝒗wx (w().0 | x[].y[].0 | x[].z[].0) ill-typed (becuase the two x's?)
+
 -/

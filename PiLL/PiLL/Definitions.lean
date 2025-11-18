@@ -4,25 +4,165 @@ import Mathlib.Data.Finset.Card
 import Mathlib.Data.Finset.Fold
 import Lean.PrettyPrinter.Delaborator
 import Mathlib.Tactic
+
+------------------------------------------ TYPES  ------------------------------------------
+
+abbrev Atom := Nat
+
+inductive Types : Type where
+  | atom      (a : Atom)      -- named type, like A, B, ...
+  | atomDual  (a : Atom)      -- dual of a named type
+  | tensor    (A B : Types)   -- t₁ ⊗ t₂ (send)
+  | parr      (A B : Types)   -- t₁ ⅋ t₂ (receive)
+  | one                       -- 𝟙 (empty output, unit for ⊗)
+  | bot                       -- ⊥ (empty send, unit for ⅋)
+  | oplus    (A B : Types)    -- A ⊕ B
+  | with      (A B : Types)   -- A & B
+  | X                         -- X : type variable (not sure how to define)
+  | XDual                     -- Xᗮ
+  | existX    (A : Types)     -- ∃X.A (existential type output)
+  | forallX   (A : Types)     -- ∀X.A (universal type input)
+  | quest     (A : Types)     -- client request
+  | bang      (A : Types)     -- server accept
+deriving DecidableEq
+
+infixr:90 " ⊗ " => Types.tensor
+infixr:90 " ⅋ " => Types.parr
+notation:100 "𝟙" => Types.one
+notation:100 "⊥" => Types.bot
+
+notation:95 "ʔ" A => Types.quest A -- FIXME: Find better symbol or a way to write
+notation:95 "!" A => Types.bang A
+infixr:90 " ⊕" => Types.oplus
+infixr:90 " & " => Types.with     -- FIXME: This might clash with Lean's `with` command
+notation:90 "∃𝑋." A => Types.existX A
+notation:90 "∀𝑋." A => Types.forallX A
+notation:100 "𝑋" => Types.X
+notation:100 "𝑋ᗮ" => Types.XDual -- FIXME: This might break how dual works
+
+
+private def reprTypesAux : Types → Nat → String
+  | .atom a, _ => s!"A{a}"
+  | .atomDual a, _ => s!"A{a}ᗮ"
+  | .tensor A B, _ => s!"({reprTypesAux A 0} ⊗ {reprTypesAux B 0})"
+  | .parr A B, _ => s!"({reprTypesAux A 0} ⅋ {reprTypesAux B 0})"
+  | .one, _ => "𝟙"
+  | .bot, _ => "⊥"
+  | .X, _ => "𝑋"
+  | .XDual, _ => "𝑋ᗮ"
+  | .existX A, _ => s!"∃𝑋.{reprTypesAux A 0}"
+  | .forallX A, _ => s!"∀𝑋.{reprTypesAux A 0}"
+  | .quest A, _ => s!"ʔ{reprTypesAux A 0}" -- FIXME: Find better symbol or a way to write
+  | .bang A, _ => s!"!{reprTypesAux A 0}"
+  | .oplus A B, _ => s!"({reprTypesAux A 0} ⊕ {reprTypesAux B 0})"
+  | .with A B, _ => s!"({reprTypesAux A 0} & {reprTypesAux B 0})"
+
+instance : Repr Types where
+  reprPrec A _ := reprTypesAux A 0
+
+instance : ToString Types where
+  toString t := reprStr t
+
+-- FIXME: Where should ∃𝑋.A and ∀𝑋.A be placed (pos or neg)?
+--        and where should 𝑋 and 𝑋ᗮ be placed
+
+def Types.pos : Types → Prop
+  | atom _ => True
+  | one => True
+  | tensor _ _ => True
+  | oplus _ _ => True
+  | bang _ => True
+  -- | zero => True
+  | _ => False
+
+def Types.neg : Types → Prop
+  | atomDual _ => True
+  | bot => True
+  | parr _ _ => True
+  -- | top => True
+  | .with _ _ => True
+  | quest _ => True
+  | _ => False
+
+instance Types.posDecidable (A : Types) : Decidable A.pos := by
+  unfold Types.pos
+  split <;> infer_instance
+
+instance Types.negDecidable (A : Types) : Decidable A.neg := by
+  unfold Types.neg
+  split <;> infer_instance
+
+@[simp]
+def Types.dual : Types → Types
+  | .tensor A B => .parr (dual A) (dual B)
+  | .parr A B   => .tensor (dual A) (dual B)
+  | .one        => .bot
+  | .bot        => .one
+  | .atom a     => .atomDual a
+  | .atomDual a => .atom a
+  | .bang A     => .quest (dual A)
+  | .quest A    => .bang (dual A)
+  | .oplus A B  => .with (dual A) (dual B)
+  | .with A B   => oplus (dual A) (dual B)
+  | .existX A   => .forallX (dual A)
+  | .forallX A  => .existX (dual A)
+  | .X          => .XDual
+  | .XDual      => .X
+
+notation:max A "ᗮ" => Types.dual A
+
+@[simp]
+theorem Types.dual.neq (A : Types) : A ≠ Aᗮ := by
+  cases A <;> simp [dual]
+
+@[simp]
+theorem dual.inj (A B : Types) : Aᗮ = Bᗮ ↔ A = B := by
+  induction A generalizing B <;> cases B <;> simp [Types.dual, *]
+
+@[simp]
+theorem dual.involution (A : Types) : Aᗮᗮ = A := by
+  induction A <;> simp [*]
+
 ------------------------------------------ Proc  ------------------------------------------
 
 abbrev PName := Nat -- Process names are just numbers (ensures not empty)
 
 inductive Proc : Type where
-  | tensor  (x y : PName) (P : Proc)   -- x[y].P
-  | parr    (x y : PName) (P : Proc)   -- x(y).P
-  | one     (x : PName) (P : Proc)     -- x[].P
-  | bot     (x : PName) (P : Proc)     -- x().P
-  | cut     (x y : PName) (P : Proc)   -- 𝒗xy P
-  | par     (P Q : Proc)               -- P | Q
-  | nil                                -- 𝟘
+  | tensor    (x y : PName) (P : Proc)            -- x[y].P
+  | parr      (x y : PName) (P : Proc)            -- x(y).P
+  | one       (x : PName) (P : Proc)              -- x[].P
+  | bot       (x : PName) (P : Proc)              -- x().P
+  | cut       (x y : PName) (P : Proc)            -- 𝒗xy P
+  | par       (P Q : Proc)                        -- P | Q
+  | nil                                           -- 𝟘
+  | selectL   (x : PName) (P : Proc)              -- x[L].P
+  | selectR   (x : PName) (P : Proc)              -- x[R].P
+  | offer     (x : PName) (P Q : Proc)            -- x.case{L : P, R : Q}
+  | output    (x : PName) (P : Proc) (A : Types)  -- x[A].P
+  | input     (x : PName) (P : Proc) (X : Types)  -- x(X).P
+  | server    (x : PName) (P : Proc)              -- !x.{P}
+  | consume   (x : PName) (P : Proc)              -- x[USE].P
+  | duplicate (x y : PName) (P : Proc)            -- x[DUP](y).P
+  | dispose   (x : PName) (P : Proc)              -- x[DISP].P
+  | link      (x y : PName)                       -- x ⟷ y
 deriving DecidableEq
 
-notation:80 x "⟦" y "⟧" "." P:80 => Proc.tensor x y P
-notation:80 x "⟦⟧" "." P:80 => Proc.one x P
-notation:80 x "⸨" y "⸩" "." P:80 => Proc.parr x y P
-notation:80 x "⸨⸩" "." P:80 => Proc.bot x P
+notation:80 x "⟦" y "⟧." P:80 => Proc.tensor x y P
+notation:80 x "⟦⟧." P:80 => Proc.one x P
+notation:80 x "⸨" y "⸩." P:80 => Proc.parr x y P
+notation:80 x "⸨⸩." P:80 => Proc.bot x P
 notation:60 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
+
+notation:80 x "⟦𝐋⟧." P:80 => Proc.selectL x P
+notation:80 x "⟦𝐑⟧." P:80 => Proc.selectR x P
+notation:80 "⸨" x "⸩.case⦃𝐋" " : " P:80 ", " "𝐑" " : " Q :80"⦄" => Proc.offer x P Q
+notation:80 x "⟦" A "⟧." P => Proc.output x P A
+notation:80 x "⸨" A "⸩." P => Proc.input x P A
+notation:80 "!" x ".⦃" P "⦄" => Proc.server x P
+notation:80 x "⟦USE⟧." P => Proc.consume x P
+notation:80 x "⟦DUP⟧⸨" y "⸩." P => Proc.duplicate x y P
+notation:80 x "⟦DISP⟧." P => Proc.dispose x P
+notation:80 x "⟷" y => Proc.link x y
 
 notation "𝟘" => Proc.nil
 infixr:65 " |ₚ " => Proc.par
@@ -35,6 +175,16 @@ private def reprProcAux : Proc → Nat → String
   | .bot x P, _ => s!"{x}⸨⸩.{reprProcAux P 0}"
   | .cut x y P, _ => s!"𝑣⸨{x}, {y}⸩ {reprProcAux P 0}"
   | .par P Q, _ => s!"({reprProcAux P 0} |ₚ {reprProcAux Q 0})"
+  | .selectL x P, _ => s!"{x}⟦𝐋⟧.{reprProcAux P 0}"
+  | .selectR x P, _ => s!"{x}⟦𝐑⟧.{reprProcAux P 0}"
+  | .offer x P Q, _ => s!"⸨{x}⸩.case⦃𝐋 : {reprProcAux P 0}, 𝐑 : {reprProcAux Q 0}⦄"
+  | .output x P A, _ => s!"{x}⟦{A}⟧.{reprProcAux P 0}"
+  | .input x P X, _ => s!"{x}⟦{X}⟧.{reprProcAux P 0}"
+  | .server x P, _ => s!"!{x}.⦃{reprProcAux P 0}⦄"
+  | .consume x P, _ => s!"{x}⟦USE⟧.{reprProcAux P 0}"
+  | .duplicate x y P, _ => s!"{x}⟦DUP⟧⸨{y}⸩.{reprProcAux P 0}"
+  | .dispose x P, _ => s!"{x}⟦DISP⟧.{reprProcAux P 0}"
+  | .link x y, _ => s!"{x}⟷{y}"
 
 instance : Repr Proc where
   reprPrec P _ := reprProcAux P 0
@@ -52,6 +202,7 @@ def rename (ρ : Renaming) : Proc → Proc
   | .cut x y P    => .cut (ρ x) (ρ y) (rename ρ P)
   | .par P Q      => .par (rename ρ P) (rename ρ Q)
   | .nil          => .nil
+  | _ => sorry
 
 @[simp]
 def Proc.fNames : Proc → Finset PName
@@ -62,6 +213,7 @@ def Proc.fNames : Proc → Finset PName
   | .cut x y P            => P.fNames \ {x, y}
   | .par P Q              => P.fNames ∪ Q.fNames
   | .nil                  => {}
+  | _ => sorry
 
 @[simp]
 def Proc.names : Proc → Finset PName
@@ -72,6 +224,7 @@ def Proc.names : Proc → Finset PName
   | .cut x y P    => {x, y} ∪ P.names
   | .par P Q      => P.names ∪ Q.names
   | .nil          => {}
+  | _ => sorry
 
 def freshName (s : Finset Nat) : PName :=
   (Finset.fold Nat.max 0 id s) + 1
@@ -140,87 +293,6 @@ notation P " =ₐ " Q => AlphaEq P Q
 -- { refl := @AlphaEq.refl,
 --   symm := AlphaEq.symm,
 --   trans := AlphaEq.trans}
-
------------------------------------------- TYPES  ------------------------------------------
-
-abbrev Atom := Nat
-
-inductive Types : Type where
-  | atom      (a : Atom)      -- named type, like A, B, ...
-  | atomDual  (a : Atom)      -- dual of a named type
-  | tensor    (A B : Types)   -- t₁ ⊗ t₂ (send)
-  | parr      (A B : Types)   -- t₁ ⅋ t₂ (receive)
-  | one                       -- 𝟙 (empty output, unit for ⊗)
-  | bot                       -- ⊥ (empty send, unit for ⅋)
-deriving DecidableEq
-
-infixr:95 " ⊗ " => Types.tensor
-infixr:95 " ⅋ " => Types.parr
-notation:100 "𝟙" => Types.one
-notation:100 "⊥" => Types.bot
-
-private def reprTypesAux : Types → Nat → String
-  | .atom a, _ => s!"A{a}"
-  | .atomDual a, _ => s!"A{a}ᗮ"
-  | .tensor A B, _ => s!"({reprTypesAux A 0} ⊗ {reprTypesAux B 0})"
-  | .parr A B, _ => s!"({reprTypesAux A 0} ⅋ {reprTypesAux B 0})"
-  | .one, _ => "𝟙"
-  | .bot, _ => "⊥"
-
-instance : Repr Types where
-  reprPrec A _ := reprTypesAux A 0
-
-instance : ToString Types where
-  toString t := reprStr t
-
-def Types.pos : Types → Prop
-  | atom _ => True
-  | one => True
-  | tensor _ _ => True
-  -- | oplus _ _ => True
-  -- | bang _ => True
-  -- | zero => True
-  | _ => False
-
-def Types.neg : Types → Prop
-  | atomDual _ => True
-  | bot => True
-  | parr _ _ => True
-  -- | top => True
-  -- | .with _ _ => True
-  -- | quest _ => True
-  | _ => False
-
-instance Types.posDecidable (A : Types) : Decidable A.pos := by
-  unfold Types.pos
-  split <;> infer_instance
-
-instance Types.negDecidable (A : Types) : Decidable A.neg := by
-  unfold Types.neg
-  split <;> infer_instance
-
-@[simp]
-def Types.dual : Types → Types
-  | .tensor A B => .parr (dual A) (dual B)
-  | .parr A B   => .tensor (dual A) (dual B)
-  | .one        => .bot
-  | .bot        => .one
-  | .atom a     => .atomDual a
-  | .atomDual a => .atom a
-
-notation:max A "ᗮ" => Types.dual A
-
-@[simp]
-theorem Types.dual.neq (A : Types) : A ≠ Aᗮ := by
-  cases A <;> simp [dual]
-
-@[simp]
-theorem dual.inj (A B : Types) : Aᗮ = Bᗮ ↔ A = B := by
-  induction A generalizing B <;> cases B <;> simp [Types.dual, *]
-
-@[simp]
-theorem dual.involution (A : Types) : Aᗮᗮ = A := by
-  induction A <;> simp [*]
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 

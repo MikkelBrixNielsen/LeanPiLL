@@ -1,5 +1,30 @@
 import PiLL.Definitions
 
+---------------------------------------- NOTATION -----------------------------------------
+
+section Notation
+variable (x y : PName) (P Q : Proc) (A : Types)
+
+-- set_option pp.notation false
+#check x⟦⟧.P
+#check x⸨⸩.P
+#check x⟦y⟧.P
+#check x⸨y⸩.P
+#check 𝑣⸨x, y⸩ P
+
+#check x⟦𝐋⟧.P
+#check x⟦𝐑⟧.P
+#check ⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄
+#check x⟦A⟧.P
+#check x⸨A⸩.P
+#check !x.⦃P⦄
+#check x⟦USE⟧.P
+#check x⟦DUP⟧⸨y⸩.P
+#check x⟦DISP⟧.P
+#check x⟷y
+
+end Notation
+
 ---------------------------------------- EXAMPLES ----------------------------------------
 
 section Latch
@@ -455,3 +480,60 @@ example (Γ Γ' Δ : Env) (A B : Types)
       exact f
 
 end example_2_5
+
+section example_3_12
+def x1 := 1
+def x₁ := 2
+def x₂ := 3
+def y1 := 4
+def y₁ := 5
+def y₂ := 6
+
+
+
+/- Proc Execution for latch x⸨⸩ and y⸨⸩-/
+example :
+  (𝑣⸨x₁, y₁⸩ 𝑣⸨x₂, y₂⸩ x1⸨⸩.x₁⟦⟧.𝟘 |ₚ y1⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘)
+  -[x1⸨⸩]->ₚ
+  (𝑣⸨x₁, y₁⸩ 𝑣⸨x₂, y₂⸩ x₁⟦⟧.𝟘 |ₚ y1⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘)
+  := by
+  apply ProcStep.res
+  · apply ProcStep.res
+    · apply ProcStep.par₁
+      · apply ProcStep.bot
+      · aesop
+    · unfold x1 x₂ y₂
+      simp
+  · unfold x1 x₁ y₁
+    simp
+
+example :
+  (𝑣⸨x₁, y₁⸩ 𝑣⸨x₂, y₂⸩ x₁⟦⟧.𝟘 |ₚ y1⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘)
+  -[y1⸨⸩]->ₚ
+  (𝑣⸨x₁, y₁⸩ 𝑣⸨x₂, y₂⸩ x₁⟦⟧.𝟘 |ₚ y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘)
+  := by
+  apply ProcStep.res
+  · apply ProcStep.res
+    · apply ProcStep.par₂
+      · apply ProcStep.par₁
+        · apply ProcStep.bot
+        · simp
+      · unfold y1 x₁
+        simp
+    · unfold y1 x₂ y₂
+      simp
+  · unfold y1 x₁ y₁
+    simp
+
+/- Typing making the same execution -/
+example (x y z : PName) :
+  x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 𝟙 -[x⸨⸩]->ₑ y ∶ ⊥‚ z ∶ 𝟙 := by
+  rw [Env.merge_assoc, Env.merge_comm]
+  apply EnvStep.bot
+
+example :
+  y1 ∶ ⊥‚ z ∶ 𝟙 -[y1⸨⸩]->ₑ z ∶ 𝟙 := by
+  rw [Env.merge_comm]
+  apply EnvStep.bot
+
+end example_3_12
