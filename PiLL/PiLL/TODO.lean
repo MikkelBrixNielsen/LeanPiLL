@@ -13,6 +13,8 @@ import PiLL.Definitions
 
 -- TODO: Look at side conditions for transition rules for derivations
 
+-- TODO: Fix Proc notation it is ambiguous
+
 /- TODO:
   make Types be non-recursive s.t. tensor A B has A = some atom B = some atom and aren't
   a potential infinite recursion of some other Types.
