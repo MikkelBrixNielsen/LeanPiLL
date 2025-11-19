@@ -15,8 +15,8 @@ variable (x y : PName) (P Q : Proc) (A : Types)
 #check x⟦𝐋⟧.P
 #check x⟦𝐑⟧.P
 #check ⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄
-#check x⟦A⟧.P
-#check x⸨A⸩.P
+#check x⟦A⟧:P
+#check x⸨A⸩:P
 #check !x.⦃P⦄
 #check x⟦USE⟧.P
 #check x⟦DUP⟧⸨y⸩.P

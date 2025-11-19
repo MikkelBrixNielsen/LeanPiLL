@@ -8,54 +8,61 @@ import Mathlib.Tactic
 ------------------------------------------ TYPES  ------------------------------------------
 
 abbrev Atom := Nat
+abbrev Var := Nat
 
+--FIXME: are atoms needed
 inductive Types : Type where
-  | atom      (a : Atom)      -- named type, like A, B, ...
-  | atomDual  (a : Atom)      -- dual of a named type
-  | tensor    (A B : Types)   -- t₁ ⊗ t₂ (send)
-  | parr      (A B : Types)   -- t₁ ⅋ t₂ (receive)
-  | one                       -- 𝟙 (empty output, unit for ⊗)
-  | bot                       -- ⊥ (empty send, unit for ⅋)
-  | oplus    (A B : Types)    -- A ⊕ B
-  | with      (A B : Types)   -- A & B
-  | X                         -- X : type variable (not sure how to define)
-  | XDual                     -- Xᗮ
-  | existX    (A : Types)     -- ∃X.A (existential type output)
-  | forallX   (A : Types)     -- ∀X.A (universal type input)
-  | quest     (A : Types)     -- client request
-  | bang      (A : Types)     -- server accept
-deriving DecidableEq
+  | atom      (a : Atom)              -- named type, like A, B, ...
+  | atomDual  (a : Atom)              -- dual of a named type
+  | var       (v : Var)               -- X, Y, Z (type variables)
+  | varDual   (v : Var)               -- dual type variables
+  | one                               -- 𝟙 (empty output, unit for ⊗)
+  | bot                               -- ⊥ (empty send, unit for ⅋)
+  | zero                              -- 𝟘 (unit for ⊕)
+  | top                               -- ⊤ (unit for &)
+  | tensor    (A B : Types)           -- A ⊗ B (send)
+  | parr      (A B : Types)           -- A ⅋ B (receive)
+  | oplus     (A B : Types)           -- A ⊕ B (select A or B)
+  | amp       (A B : Types)           -- A & B (Offer A or B)
+  | bang      (A : Types)             -- !A (server accept)
+  | quest     (A : Types)             -- ?A (client request)
+  | forall_   (v : Var) (A : Types)   -- ∀X.A (universal type input)
+  | exist_    (v : Var) (A : Types)   -- ∃X.A (existential type output)
+deriving DecidableEq, BEq
 
 infixr:90 " ⊗ " => Types.tensor
-infixr:90 " ⅋ " => Types.parr
-notation:100 "𝟙" => Types.one
-notation:100 "⊥" => Types.bot
-
-notation:95 "ʔ" A => Types.quest A -- FIXME: Find better symbol or a way to write
-notation:95 "!" A => Types.bang A
 infixr:90 " ⊕" => Types.oplus
-infixr:90 " & " => Types.with     -- FIXME: This might clash with Lean's `with` command
-notation:90 "∃𝑋." A => Types.existX A
-notation:90 "∀𝑋." A => Types.forallX A
-notation:100 "𝑋" => Types.X
-notation:100 "𝑋ᗮ" => Types.XDual -- FIXME: This might break how dual works
+infixr:90 " ⅋ " => Types.parr
+infixr:90 " & " => Types.amp
 
+instance : Zero Types := ⟨Types.zero⟩
+instance : One Types := ⟨Types.one⟩
+instance : Top Types := ⟨Types.top⟩
+instance : Bot Types := ⟨Types.bot⟩
+
+prefix:95 "ʔ" => Types.quest
+prefix:95 "!" => Types.bang
+
+notation:90 "∃" v "." A => Types.existX v A
+notation:90 "∀" v "." A => Types.forallX v A
 
 private def reprTypesAux : Types → Nat → String
   | .atom a, _ => s!"A{a}"
   | .atomDual a, _ => s!"A{a}ᗮ"
+  | .var v, _ => s!"{v}"
+  | .varDual v, _ => s!"{v}ᗮ"
+  | .one, _ => "1"
+  | .bot, _ => "⊥"
+  | .zero, _ => "0"
+  | .top, _ => "⊤"
   | .tensor A B, _ => s!"({reprTypesAux A 0} ⊗ {reprTypesAux B 0})"
   | .parr A B, _ => s!"({reprTypesAux A 0} ⅋ {reprTypesAux B 0})"
-  | .one, _ => "𝟙"
-  | .bot, _ => "⊥"
-  | .X, _ => "𝑋"
-  | .XDual, _ => "𝑋ᗮ"
-  | .existX A, _ => s!"∃𝑋.{reprTypesAux A 0}"
-  | .forallX A, _ => s!"∀𝑋.{reprTypesAux A 0}"
-  | .quest A, _ => s!"ʔ{reprTypesAux A 0}" -- FIXME: Find better symbol or a way to write
-  | .bang A, _ => s!"!{reprTypesAux A 0}"
   | .oplus A B, _ => s!"({reprTypesAux A 0} ⊕ {reprTypesAux B 0})"
-  | .with A B, _ => s!"({reprTypesAux A 0} & {reprTypesAux B 0})"
+  | .amp A B, _ => s!"({reprTypesAux A 0} & {reprTypesAux B 0})"
+  | .bang A, _ => s!"!{reprTypesAux A 0}"
+  | .quest A, _ => s!"ʔ{reprTypesAux A 0}"
+  | .forall_ v A, _ => s!"∀{v}.{reprTypesAux A 0}"
+  | .exist_ v A, _ => s!"∃{v}.{reprTypesAux A 0}"
 
 instance : Repr Types where
   reprPrec A _ := reprTypesAux A 0
@@ -68,20 +75,24 @@ instance : ToString Types where
 
 def Types.pos : Types → Prop
   | atom _ => True
+  | var _ => True
   | one => True
+  | zero => True
   | tensor _ _ => True
   | oplus _ _ => True
   | bang _ => True
-  -- | zero => True
+  | exist_ _ _ => True
   | _ => False
 
 def Types.neg : Types → Prop
   | atomDual _ => True
+  | varDual _ => True
   | bot => True
+  | top => True
   | parr _ _ => True
-  -- | top => True
-  | .with _ _ => True
+  | .amp _ _ => True
   | quest _ => True
+  | forall_ _ _ => True
   | _ => False
 
 instance Types.posDecidable (A : Types) : Decidable A.pos := by
@@ -94,20 +105,22 @@ instance Types.negDecidable (A : Types) : Decidable A.neg := by
 
 @[simp]
 def Types.dual : Types → Types
-  | .tensor A B => .parr (dual A) (dual B)
-  | .parr A B   => .tensor (dual A) (dual B)
-  | .one        => .bot
-  | .bot        => .one
   | .atom a     => .atomDual a
   | .atomDual a => .atom a
+  | .var v          => .varDual v
+  | .varDual v      => .var v
+  | .one        => .bot
+  | .bot        => .one
+  | .zero       => .top
+  | .top        => .zero
+  | .tensor A B => .parr (dual A) (dual B)
+  | .parr A B   => .tensor (dual A) (dual B)
+  | .oplus A B  => .amp (dual A) (dual B)
+  | .amp A B   => oplus (dual A) (dual B)
   | .bang A     => .quest (dual A)
   | .quest A    => .bang (dual A)
-  | .oplus A B  => .with (dual A) (dual B)
-  | .with A B   => oplus (dual A) (dual B)
-  | .existX A   => .forallX (dual A)
-  | .forallX A  => .existX (dual A)
-  | .X          => .XDual
-  | .XDual      => .X
+  | .forall_ v A  => .exist_ v (dual A)
+  | .exist_ v A   => .forall_ v (dual A)
 
 notation:max A "ᗮ" => Types.dual A
 
@@ -156,8 +169,8 @@ notation:60 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
 notation:80 x "⟦𝐋⟧." P:80 => Proc.selectL x P
 notation:80 x "⟦𝐑⟧." P:80 => Proc.selectR x P
 notation:80 "⸨" x "⸩.case⦃𝐋" " : " P:80 ", " "𝐑" " : " Q :80"⦄" => Proc.offer x P Q
-notation:80 x "⟦" A "⟧." P => Proc.output x P A
-notation:80 x "⸨" A "⸩." P => Proc.input x P A
+notation:80 x "⟦" A "⟧:" P => Proc.output x P A
+notation:80 x "⸨" A "⸩:" P => Proc.input x P A
 notation:80 "!" x ".⦃" P "⦄" => Proc.server x P
 notation:80 x "⟦USE⟧." P => Proc.consume x P
 notation:80 x "⟦DUP⟧⸨" y "⸩." P => Proc.duplicate x y P
@@ -195,14 +208,23 @@ instance : ToString Proc where
 abbrev Renaming := PName → PName
 
 def rename (ρ : Renaming) : Proc → Proc
-  | .tensor x y P => .tensor (ρ x) (ρ y) (rename ρ P)
-  | .parr x y P   => .parr (ρ x) (ρ y) (rename ρ P)
-  | .one x P      => .one (ρ x) (rename ρ P)
-  | .bot x P      => .bot (ρ x) (rename ρ P)
-  | .cut x y P    => .cut (ρ x) (ρ y) (rename ρ P)
-  | .par P Q      => .par (rename ρ P) (rename ρ Q)
-  | .nil          => .nil
-  | _ => sorry
+  | .tensor x y P     => .tensor (ρ x) (ρ y) (rename ρ P)
+  | .parr x y P       => .parr (ρ x) (ρ y) (rename ρ P)
+  | .one x P          => .one (ρ x) (rename ρ P)
+  | .bot x P          => .bot (ρ x) (rename ρ P)
+  | .cut x y P        => .cut (ρ x) (ρ y) (rename ρ P)
+  | .par P Q          => .par (rename ρ P) (rename ρ Q)
+  | .nil              => .nil
+  | .selectL x P      => .selectL (ρ x) (rename ρ P)
+  | .selectR x P      => .selectR (ρ x) (rename ρ P)
+  | .offer x P Q      => .offer (ρ x) (rename ρ P) (rename ρ Q)
+  | .output x P A     => .output (ρ x) (rename ρ P) A
+  | .input x P A      => .input (ρ x) (rename ρ P) A
+  | .server x P       => .server (ρ x) (rename ρ P)
+  | .consume x P      => .consume (ρ x) (rename ρ P)
+  | .duplicate x y P  => .duplicate (ρ x) (ρ y) (rename ρ P)
+  | .dispose x P      => .dispose (ρ x) (rename ρ P)
+  | .link x y         => .link (ρ x) (ρ y)
 
 @[simp]
 def Proc.fNames : Proc → Finset PName
@@ -213,7 +235,16 @@ def Proc.fNames : Proc → Finset PName
   | .cut x y P            => P.fNames \ {x, y}
   | .par P Q              => P.fNames ∪ Q.fNames
   | .nil                  => {}
-  | _ => sorry
+  | .selectL x P          => {x} ∪ P.fNames
+  | .selectR x P          => {x} ∪ P.fNames
+  | .offer x P Q          => {x} ∪ (P.fNames ∪ Q.fNames)
+  | .output x P _         => {x} ∪ P.fNames
+  | .input  x P _         => {x} ∪ P.fNames
+  | .server x P           => {x} ∪ P.fNames
+  | .consume x P          => {x} ∪ P.fNames
+  | .duplicate x y P      => {x, y} ∪ P.fNames
+  | .dispose x P          => {x} ∪ P.fNames
+  | .link x y             => {x, y}
 
 @[simp]
 def Proc.names : Proc → Finset PName
@@ -224,7 +255,16 @@ def Proc.names : Proc → Finset PName
   | .cut x y P    => {x, y} ∪ P.names
   | .par P Q      => P.names ∪ Q.names
   | .nil          => {}
-  | _ => sorry
+  | .selectL x P          => {x} ∪ P.names
+  | .selectR x P          => {x} ∪ P.names
+  | .offer x P Q          => {x} ∪ (P.names ∪ Q.names)
+  | .output x P _         => {x} ∪ P.names
+  | .input  x P _         => {x} ∪ P.names
+  | .server x P           => {x} ∪ P.names
+  | .consume x P          => {x} ∪ P.names
+  | .duplicate x y P      => {x, y} ∪ P.names
+  | .dispose x P          => {x} ∪ P.names
+  | .link x y             => {x, y}
 
 def freshName (s : Finset Nat) : PName :=
   (Finset.fold Nat.max 0 id s) + 1
@@ -536,7 +576,7 @@ inductive Typing : HyperEnv → Proc → Prop where
   | one {P : Proc} {x : PName} :
       Typing ∅ P →
       ----------------------
-      Typing (x ∶ 𝟙) (x⟦⟧.P)
+      Typing (x ∶ 1) (x⟦⟧.P)
 
   | parr {Γ : Env} {P : Proc} {x y : PName} {A B : Types} :
       Typing (Γ‚ y ∶ A‚ x ∶ B) P →
@@ -656,10 +696,10 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 
   | one_bot
       {𝒢: HyperEnv} {Γ : Env} {P P' : Proc} {x y : PName}
-      {𝒟 : Typing (𝒢 |ₕ x ∶ 𝟙 |ₕ Γ‚ y ∶ ⊥) P} {𝒟' : Typing (𝒢 |ₕ Γ) P'}
+      {𝒟 : Typing (𝒢 |ₕ x ∶ 1 |ₕ Γ‚ y ∶ ⊥) P} {𝒟' : Typing (𝒢 |ₕ Γ) P'}
       (h : TypingStep 𝒟 (x⟦⟧ |ₗ y⸨⸩) 𝒟') :
       ----------------------------------------------------------------------
-      TypingStep (Typing.cut 𝒢 ∅ Γ P x y (𝟙) 𝒟) (τ) 𝒟'
+      TypingStep (Typing.cut 𝒢 ∅ Γ P x y (1) 𝒟) (τ) 𝒟'
 
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
@@ -812,7 +852,7 @@ def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
 inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
   | one
       {x : PName} :
-      EnvStep (x ∶ 𝟙) (x⟦⟧) ∅
+      EnvStep (x ∶ 1) (x⟦⟧) ∅
 
   | tensor
       {Γ Δ : Env} {x x' : PName} {A B : Types} :
@@ -846,7 +886,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
 
   | one_bot
       {𝒢 : HyperEnv} {Γ : Env} {x y : PName} :
-      EnvStep (𝒢 |ₕ x ∶ 𝟙 |ₕ Γ‚ y ∶ ⊥) (x⟦⟧ |ₗ y⸨⸩) (𝒢 |ₕ Γ) →
+      EnvStep (𝒢 |ₕ x ∶ 1 |ₕ Γ‚ y ∶ ⊥) (x⟦⟧ |ₗ y⸨⸩) (𝒢 |ₕ Γ) →
       ----------------------------------------------------------
       EnvStep (𝒢 |ₕ Γ) (τ) (𝒢 |ₕ Γ)
 

@@ -13,23 +13,20 @@ import PiLL.Definitions
 
 -- TODO: Look at side conditions for transition rules for derivations
 
--- TODO: Fix Proc notation it is ambiguous
-
-/- TODO:
-  make Types be non-recursive s.t. tensor A B has A = some atom B = some atom and aren't
-  a potential infinite recursion of some other Types.
--/
-
 /- TODO:
   Find out how to define X in Types i.e. the type variable.
 
   Find out if X in Proc.input is the type variable X in Types or just some instance
   of the Types inductive.
-
-  Should Top and Zero be included????
 -/
 
--- TODO: Check that renaming Types.offer to Types.with does not clash with Leans `with` command?
+-- TODO: Retrofit new notation to Examples.lean
+
+-- TODO: Extend Typing and TypingStep
+
+-- TOOD: Extend ProcStep
+
+-- TOOD: Extend EnvStep
 
 -- TOOD: Make notation check section in Examples.lean as has been done for Proc's notation
 
