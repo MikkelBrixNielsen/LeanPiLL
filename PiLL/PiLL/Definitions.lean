@@ -280,12 +280,13 @@ inductive AlphaEq : Proc → Proc → Prop where
   | par {P1 Q1 P2 Q2 : Proc} :
       AlphaEq P1 Q1 → AlphaEq P2 Q2 → AlphaEq (.par P1 P2) (.par Q1 Q2)
 
-  | tensor {P Q : Proc} {x y x' y' : PName} : -- All PNames are free
-      AlphaEq P Q → AlphaEq (.tensor x y P) (.tensor x' y' Q)
-      → x = x' → y = y' → AlphaEq (.tensor x y P) (.tensor x' y' Q)
-
   | one {P Q : Proc} {x x' : PName} : -- Both PNames are free
       AlphaEq P Q → x = x' → AlphaEq (.one x P) (.one x' Q)
+
+  | tensor {P Q : Proc} {x y x' y' : PName} -- x, x' are free y, y' are bound
+      (w : PName) (hFresh : w ∉ P.names ∪ Q.names) :
+      AlphaEq (renameBound y w P) (renameBound y' w Q) → x = x' →
+      AlphaEq (.tensor x y P) (.tensor x' y' Q)
 
   | bot {P Q : Proc} {x x' : PName} : -- Both PNames are free
       AlphaEq P Q → x = x' → AlphaEq (.bot x P) (.bot x' Q)
@@ -296,43 +297,124 @@ inductive AlphaEq : Proc → Proc → Prop where
         AlphaEq (.parr x y P) (.parr x' y' Q)
 
   | cut {P Q : Proc} {x y x' y' : PName} -- x y x' y' are all bound
-      (w1 w2 : PName) (hFresh : w1 ∉ P.names ∪ Q.names ∧ w2 ∉ P.names ∪ Q.names) :
+      (w1 w2 : PName) (hFresh : w1 ≠ w2 ∧ w1 ∉ P.names ∪ Q.names ∧ w2 ∉ P.names ∪ Q.names) :
         AlphaEq (renameBound2 x y w1 w2 P) (renameBound2 x' y' w1 w2 Q) →
         AlphaEq (.cut x y P) (.cut x' y' Q)
 
+  | selectL {P Q : Proc} {x x' : PName} :
+      AlphaEq P Q → x = x' → AlphaEq (.selectL x P) (.selectL x' Q)
+
+  | selectR {P Q : Proc} {x x' : PName} :
+      AlphaEq P Q → x = x' → AlphaEq (.selectR x P) (.selectR x' Q)
+
+  | offer {P1 Q1 P2 Q2 : Proc} {x x' : PName} :
+      AlphaEq P1 P2 → AlphaEq Q1 Q2 → x = x' → AlphaEq (.offer x P1 Q1) (.offer x' P2 Q2)
+
+  | output {P Q : Proc} {x x' : PName} {A A' : Types}:
+      AlphaEq P Q → x = x' → A = A' → AlphaEq (.output x P A) (.output x' Q A')
+
+  | input {P Q : Proc} {x x' : PName} {X X' : Types} :
+      AlphaEq P Q → x = x' → X = X' → AlphaEq (.input x P X) (.input x' Q X')
+
+  | server {P Q : Proc} {x x' : PName} :
+      AlphaEq P Q → x = x' → AlphaEq (.server x P) (.server x' Q)
+
+  | consume {P Q : Proc} {x x' : PName} :
+      AlphaEq P Q → x = x' → AlphaEq (.consume x P) (.consume x' Q)
+
+  | duplicate {P Q : Proc} {x y x' y' : PName} :
+      AlphaEq P Q → x = x' → y = y' → AlphaEq (.duplicate x y P) (.duplicate x' y' Q)
+
+  | dispose {P Q : Proc} {x x' : PName} :
+      AlphaEq P Q → x = x' → AlphaEq (.dispose x P) (.dispose x' Q)
+
+  | link {x y x' y' : PName} :
+      x = x' → y = y' → AlphaEq (.link x y) (.link x' y')
+
 notation P " =ₐ " Q => AlphaEq P Q
 
--- TODO:
--- Reflexivity
+def Proc.size : Proc → Nat
+| .nil => 1
+| .link _ _ => 1
+| .par P Q => 1 + P.size + Q.size
+| .offer _ P Q => 1 + P.size + Q.size
+| .tensor _ _ P | .parr _ _ P | .one _ P | .bot _ P | .cut _ _ P | .selectL _ P
+| .selectR _ P | .output _ P _ | .input _ P _ | .server _ P | .consume _ P
+| .dispose _ P | .duplicate _ _ P => 1 + P.size
 
--- Symmetry
--- @[simp]
--- theorem AlphaEq.symm {P Q : Proc} (h : AlphaEq P Q) : AlphaEq Q P := by
---   induction h
---   case refl => sorry
---   case tensor => sorry
---   case parr => sorry
---   case one => sorry
---   case bot => sorry
---   case cut => sorry
---   case par => sorry
+lemma freshName_is_fresh (s : Finset PName) : freshName s ∉ s := by
+  let m := Finset.fold Nat.max 0 id s
+  have h_max : ∀ n ∈ s, n ≤ m := by
+    intro n hn ; rw [Finset.le_fold_max] ; grind
+  intro h_contra
+  specialize h_max (freshName s) h_contra
+  unfold m freshName at h_max
+  apply Nat.not_succ_le_self (Finset.fold Nat.max 0 id s)
+  exact h_max
 
--- -- Transitivity
--- @[simp]
--- theorem AlphaEq.trans {P Q R : Proc} (h₁ : AlphaEq P R) (h₂ : AlphaEq R Q) : AlphaEq P Q := by
---   induction h₁
---   case refl => exact h₂
---   case tensor => sorry
---   case parr => sorry
---   case one => sorry
---   case bot => sorry
---   case cut => sorry
---   case par => sorry
+theorem AlphaEq.refl (P : Proc) : P =ₐ P := by
+  -- induction h : P.size using Nat.strong_induction_on generalizing P
+  -- rename_i n ih
+  -- cases P
+  -- case nil => exact .nil
+  -- case par P Q =>
+  --   apply AlphaEq.par
+  --   · apply ih P.size
+  --     rw [← h]
+  --     simp [Proc.size]
+  --     rw [Nat.add_assoc]
+  --     apply Nat.
+  induction P
+  case nil => exact .nil
+  case link _ _ => exact .link rfl rfl
+  case one _ hP => exact .one hP rfl
+  case bot _ hP => exact .bot hP rfl
+  case selectL _ hP => exact .selectL hP rfl
+  case selectR _ hP => exact .selectR hP rfl
+  case output _ hP => exact .output hP rfl rfl
+  case input _ hP => exact .input hP rfl rfl
+  case server _ hP => exact .server hP rfl
+  case consume _ hP => exact .consume hP rfl
+  case dispose _ hP => exact .dispose hP rfl
+  case duplicate _ hP => exact .duplicate hP rfl rfl
+  case offer _ hP hQ => exact .offer hP hQ rfl
+  case parr x y P hP =>
+    apply AlphaEq.parr
+    · simp ; exact freshName_is_fresh P.names
+    · admit
+    · rfl
+  case tensor x y P hP =>
+    apply AlphaEq.tensor
+    · simp ; exact freshName_is_fresh P.names
+    · admit
+    . rfl
+  case cut x y P hP =>
+    apply AlphaEq.cut
+    let w1 := freshName P.names
+    let w2 := freshName (P.names ∪ {w1})
+    have h_fresh : w1 ≠ w2 ∧ w1 ∉ P.names ∪ P.names ∧ w2 ∉ P.names ∪ P.names := by
+      simp
+      constructor
+      · intro h_eq ; rw [h_eq] at w2 ; simp [freshName] at w2
+        exact absurd (freshName_is_fresh (P-names ∪ {w1})) (by simp)
+      · constructor
+        · exact freshName_is_fresh P.names
+        · exact freshName_is_fresh P.names
+    · exact h_fresh
+    · admit
 
--- instance : Equivalence AlphaEq :=
--- { refl := @AlphaEq.refl,
---   symm := AlphaEq.symm,
---   trans := AlphaEq.trans}
+
+
+
+
+
+
+
+
+
+
+
+
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 

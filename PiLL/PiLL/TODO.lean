@@ -30,6 +30,8 @@ import PiLL.Definitions
 
 -- TOOD: Make notation check section in Examples.lean as has been done for Proc's notation
 
+-- TODO: Check if rules depending on AlphaEq work as intended or get stuck
+
 -- TODO: Example 5.1 (check if it is compileable)
 
 -- TODO: Check alpha renaming and extend it to full πLL
@@ -75,7 +77,7 @@ import PiLL.Definitions
   understood that typing rules ensure name linearity in environments.
 -/
 
-------------------------------------- Kinda related -------------------------------------
+--------------------------- Kinda related ---------------------------
 
 /-
   Currently have an issue environments not matching what is required by rules
@@ -133,7 +135,7 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
   same order which is expected for the next cut.
 -/
 
-------------------------------------- Kinda related -------------------------------------
+--------------------------- Kinda related ---------------------------
 
 /-
   Get clerafication on the notion of erasure and the diagram on line 467-472. Should
@@ -159,6 +161,7 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
 
 /-
   Don't really understand the conclusions of the RES, 𝟙⊥, and ⊗⅋
+  - I Think I get it now
 -/
 
 /-
