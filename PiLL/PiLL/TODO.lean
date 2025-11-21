@@ -36,7 +36,8 @@ import PiLL.Definitions
 
 -- TODO: Check alpha renaming and extend it to full πLL
 
-/- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity
+/- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
+   This might need to be a structural congruence (≡)
     · P |ₚ 𝟘 ∼ P
     · P |ₚ Q ∼  Q |ₚ P
     · P |ₚ (Q |ₚ R) ∼ (P |ₚ Q) |ₚ R

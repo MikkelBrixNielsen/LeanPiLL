@@ -105,20 +105,20 @@ instance Types.negDecidable (A : Types) : Decidable A.neg := by
 
 @[simp]
 def Types.dual : Types → Types
-  | .atom a     => .atomDual a
-  | .atomDual a => .atom a
-  | .var v          => .varDual v
-  | .varDual v      => .var v
-  | .one        => .bot
-  | .bot        => .one
-  | .zero       => .top
-  | .top        => .zero
-  | .tensor A B => .parr (dual A) (dual B)
-  | .parr A B   => .tensor (dual A) (dual B)
-  | .oplus A B  => .amp (dual A) (dual B)
-  | .amp A B   => oplus (dual A) (dual B)
-  | .bang A     => .quest (dual A)
-  | .quest A    => .bang (dual A)
+  | .atom a       => .atomDual a
+  | .atomDual a   => .atom a
+  | .var v        => .varDual v
+  | .varDual v    => .var v
+  | .one          => .bot
+  | .bot          => .one
+  | .zero         => .top
+  | .top          => .zero
+  | .tensor A B   => .parr (dual A) (dual B)
+  | .parr A B     => .tensor (dual A) (dual B)
+  | .oplus A B    => .amp (dual A) (dual B)
+  | .amp A B      => oplus (dual A) (dual B)
+  | .bang A       => .quest (dual A)
+  | .quest A      => .bang (dual A)
   | .forall_ v A  => .exist_ v (dual A)
   | .exist_ v A   => .forall_ v (dual A)
 
@@ -248,13 +248,13 @@ def Proc.fNames : Proc → Finset PName
 
 @[simp]
 def Proc.names : Proc → Finset PName
-  | .tensor x y P => {x, y} ∪ P.names
-  | .parr x y P   => {x, y} ∪ P.names
-  | .one x P      => {x} ∪ P.names
-  | .bot x P      => {x} ∪ P.names
-  | .cut x y P    => {x, y} ∪ P.names
-  | .par P Q      => P.names ∪ Q.names
-  | .nil          => {}
+  | .tensor x y P         => {x, y} ∪ P.names
+  | .parr x y P           => {x, y} ∪ P.names
+  | .one x P              => {x} ∪ P.names
+  | .bot x P              => {x} ∪ P.names
+  | .cut x y P            => {x, y} ∪ P.names
+  | .par P Q              => P.names ∪ Q.names
+  | .nil                  => {}
   | .selectL x P          => {x} ∪ P.names
   | .selectR x P          => {x} ∪ P.names
   | .offer x P Q          => {x} ∪ (P.names ∪ Q.names)
@@ -331,7 +331,7 @@ inductive AlphaEq : Proc → Proc → Prop where
   | link {x y x' y' : PName} :
       x = x' → y = y' → AlphaEq (.link x y) (.link x' y')
 
-notation P " =ₐ " Q => AlphaEq P Q
+notation:55 P " =ₐ " Q => AlphaEq P Q
 
 def Proc.size : Proc → Nat
 | .nil => 1
@@ -352,56 +352,195 @@ lemma freshName_is_fresh (s : Finset PName) : freshName s ∉ s := by
   apply Nat.not_succ_le_self (Finset.fold Nat.max 0 id s)
   exact h_max
 
-theorem AlphaEq.refl (P : Proc) : P =ₐ P := by
-  -- induction h : P.size using Nat.strong_induction_on generalizing P
-  -- rename_i n ih
-  -- cases P
-  -- case nil => exact .nil
-  -- case par P Q =>
-  --   apply AlphaEq.par
-  --   · apply ih P.size
-  --     rw [← h]
-  --     simp [Proc.size]
-  --     rw [Nat.add_assoc]
-  --     apply Nat.
+lemma size_renameBound_eq (old new : PName) (P : Proc) :
+  (renameBound old new P).size = P.size := by
   induction P
-  case nil => exact .nil
-  case link _ _ => exact .link rfl rfl
-  case one _ hP => exact .one hP rfl
-  case bot _ hP => exact .bot hP rfl
-  case selectL _ hP => exact .selectL hP rfl
-  case selectR _ hP => exact .selectR hP rfl
-  case output _ hP => exact .output hP rfl rfl
-  case input _ hP => exact .input hP rfl rfl
-  case server _ hP => exact .server hP rfl
-  case consume _ hP => exact .consume hP rfl
-  case dispose _ hP => exact .dispose hP rfl
-  case duplicate _ hP => exact .duplicate hP rfl rfl
-  case offer _ hP hQ => exact .offer hP hQ rfl
-  case parr x y P hP =>
-    apply AlphaEq.parr
+  case nil | link =>
+    simp [renameBound, Proc.size]
+    apply rfl
+  case one P ih | bot P ih | selectL P ih | selectR P ih | server P ih
+    | consume P ih | duplicate P ih | dispose P ih =>
+    simp [renameBound, rename, Proc.size]
+    unfold renameBound at ih
+    simp at ih
+    apply ih
+  case input P A ih | output P X ih | tensor P ih | parr P ih | cut P ih =>
+    simp [renameBound, rename, Proc.size]
+    simp [renameBound] at ih
+    rw [ih]
+  case par P Q ihP ihQ | offer P Q ihP ihQ =>
+    simp [renameBound, rename, Proc.size]
+    simp [renameBound] at ihP
+    simp [renameBound] at ihQ
+    rw [ihP, ihQ]
+
+@[refl]
+theorem AlphaEq.refl (P : Proc) : P =ₐ P := by
+  induction h : P.size using Nat.strong_induction_on generalizing P
+  rename_i n ih
+  cases P
+
+  case nil | link => repeat constructor
+
+  case par P Q =>
+    constructor
+    · apply ih P.size
+      · rw [← h]
+        simp [Proc.size]
+        omega
+      · rfl
+    · apply ih Q.size
+      · rw [← h]
+        simp [Proc.size]
+      · rfl
+
+  case tensor x y P | parr x y P =>
+    constructor
     · simp ; exact freshName_is_fresh P.names
-    · admit
+    · apply ih P.size
+      · rw [← h]
+        simp only [Proc.size]
+        omega
+      · simp [size_renameBound_eq]
     · rfl
-  case tensor x y P hP =>
-    apply AlphaEq.tensor
-    · simp ; exact freshName_is_fresh P.names
-    · admit
-    . rfl
-  case cut x y P hP =>
-    apply AlphaEq.cut
+
+  case cut x y P =>
     let w1 := freshName P.names
     let w2 := freshName (P.names ∪ {w1})
     have h_fresh : w1 ≠ w2 ∧ w1 ∉ P.names ∪ P.names ∧ w2 ∉ P.names ∪ P.names := by
-      simp
       constructor
-      · intro h_eq ; rw [h_eq] at w2 ; simp [freshName] at w2
-        exact absurd (freshName_is_fresh (P-names ∪ {w1})) (by simp)
-      · constructor
+      · intro h_eq ; unfold w1 at h_eq ; unfold w2 at h_eq
+        exact absurd (freshName_is_fresh (P.names ∪ {w1})) (by grind)
+      · simp
+        apply And.intro
         · exact freshName_is_fresh P.names
-        · exact freshName_is_fresh P.names
+        · unfold w2 w1
+          · intro h_contra
+            apply freshName_is_fresh (P.names ∪ {freshName P.names})
+            apply Finset.mem_union_left
+            exact h_contra
+    apply AlphaEq.cut
     · exact h_fresh
-    · admit
+    · apply ih P.size
+      · rw [← h]
+        simp [Proc.size]
+      · unfold renameBound2
+        simp [size_renameBound_eq]
+
+  case one _ P | bot _ P | selectL _ P | selectR _ P | server _ P | dispose _ P
+    | consume _ P | duplicate _ _ P | output _ P _ | input _ P _ =>
+    constructor
+    · apply ih P.size
+      · rw [← h]
+        simp [Proc.size]
+      · rfl
+    repeat rfl
+
+  case offer _ P Q =>
+    apply AlphaEq.offer
+    · apply ih P.size
+      · rw [← h]
+        simp [Proc.size]
+        omega
+      · rfl
+    · apply ih Q.size
+      · rw [← h]
+        simp [Proc.size]
+      · rfl
+    · rfl
+
+theorem AlphaEq.symm (P Q : Proc) (h : P =ₐ Q) : (Q =ₐ P) := by
+  induction h
+  case nil => rfl
+  case one | bot | par | selectL | selectR | offer | output | input | server
+    | consume | duplicate | dispose | link => constructor ; repeat simp [*]
+
+  case tensor _ _ _ _ _ _ _ hwnPQ _ hxxp hrbQP
+    | parr tensor _ _ _ _ _ _ hwnPQ _ hxxp hrbQP =>
+    constructor
+    · rw [Finset.union_comm] ; exact hwnPQ
+    · exact hrbQP
+    · rw [Eq.comm] ; exact hxxp
+
+  case cut _ _ _ _ _ _ _ _ h_fresh hrbPQ hrbQP =>
+    constructor
+    · rw [Finset.union_comm] ; exact h_fresh
+    · exact hrbQP
+
+theorem AlphaEq.comm (P Q : Proc) : (P =ₐ Q) = (Q =ₐ P) := by
+  apply propext
+  constructor
+  · apply AlphaEq.symm
+  · apply AlphaEq.symm
+
+theorem AlphaEq.trans (P Q R : Proc) : (P =ₐ Q) → (Q =ₐ R) → (P =ₐ R) := by
+  -- intro hpq hqr
+  -- induction hpq generalizing R
+  -- case nil => simp [*]
+  -- case one | bot | par | selectL | selectR | offer | output | input | server
+  --   | consume | duplicate | dispose | link =>
+  --   cases hqr ; constructor ; repeat simp [*]
+
+  -- case tensor P Q x x' y y' w hwnPQ hrbPQ hxy ih =>
+  --   cases hqr
+  --   rename_i Z xn yn wn hyxp hwnQZ hrbQZ
+  --   let k := freshName (P.names ∪ Q.names ∪ Z.names)
+  --   have hk : k ∉ P.names ∧ k ∉ Q.names ∧ k ∉ Z.names := by
+  --     simpa [k] using freshName_is_fresh (P.names ∪ Q.names ∪ Z.names)
+  --   apply AlphaEq.tensor k
+  --   . simp [hk]
+  --   · admit -- #@!? ih mismatch goal...  do strong induction on size instead :((
+
+  intro h1 h2
+  induction h : P.size using Nat.strong_induction_on generalizing Q R P
+  rename_i n ih
+  cases h1
+  case nil => exact h2
+  case par hpq1 hpq2 =>
+    cases h2
+    rename_i P1 Q1 P2 Q2 R1 R2 hqr1 hqr2
+    constructor
+    · apply ih P1.size
+      · rw [← h] ; simp [Proc.size] ; omega
+      · exact hpq1
+      · exact hqr1
+      · rfl
+    · apply ih P2.size
+      · rw [← h] ; simp [Proc.size]
+      · exact hpq2
+      · exact hqr2
+      · rfl
+
+
+
+
+  sorry
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
