@@ -269,34 +269,9 @@ def Proc.names : Proc → Finset PName
 def freshName (s : Finset Nat) : PName :=
   (Finset.fold Nat.max 0 id s) + 1
 
--- def renameVar (old new curr : PName) : PName :=
---   if curr = old then new else curr
-
 def renameBound old new P := rename (fun curr => if curr = old then new else curr) P
 
 def renameBound2 old1 old2 new1 new2 P := renameBound old2 new2 (renameBound old1 new1 P)
-
--- @[simp] lemma renameVar_self {x new : PName} :
---   renameVar x new x = new := by simp [renameVar]
-
--- @[simp] lemma renamevar_other {x y new : PName} (h : x ≠ y) :
---   renameVar x new y = y := by
---   simp [renameVar]
---   intro hyx
---   subst hyx
---   simp_all only [ne_eq, not_true_eq_false]
-
--- @[simp]
--- lemma renameVar_comm (x y a b z)
---   (hxy : x ≠ y) (hab : a ≠ b) (hxb : x ≠ b) (hya : y ≠ a) :
---   renameVar x a (renameVar y b z) = renameVar y b (renameVar x a z) := by
---   unfold renameVar
---   by_cases hz_x : z = x <;> by_cases hz_y : z = y <;>
---   simp [hz_x, hz_y, hxy, hab]
---   · have : x = y := by simpa [hz_x] using hz_y
---     cases hxy this
---   · intro h ; apply hya ; symm ; exact h
---   · repeat split <;> simp_all
 
 -- Only bound names should be renamed and free names should match exactly
 inductive AlphaEq : Proc → Proc → Prop where
@@ -497,104 +472,124 @@ theorem AlphaEq.comm (P Q : Proc) : (P =ₐ Q) = (Q =ₐ P) := by
   · apply AlphaEq.symm
   · apply AlphaEq.symm
 
-lemma renameBound_comm {x y a b : PName} {P : Proc} :
-  (hxy : x ≠ y) → (hab : a ≠ b) → (hxb : x ≠ b) → (hya : y ≠ a) →
-  renameBound x a (renameBound y b P) = renameBound y b (renameBound x a P) := by
-  intros
-  induction P <;> simp [renameBound, rename, *]
-  case one ih | bot ih | selectL ih | selectR ih | output ih | input ih
-    | server ih | consume ih | dispose ih =>
-    apply And.intro
-    · aesop
-    · exact ih
-
-  case par P_ih Q_ih =>
-    apply And.intro
-    · exact P_ih
-    · exact Q_ih
-
-  case offer P_ih Q_ih =>
-    apply And.intro
-    · aesop
-    · apply And.intro
-      · exact P_ih
-      · exact Q_ih
-
-  case link =>
-    apply And.intro
-    · aesop
-    · aesop
-
-  case tensor ih | parr ih | cut ih | duplicate ih =>
-    apply And.intro
-    · aesop
-    · apply And.intro
-      · aesop
-      · exact ih
-
-
-lemma AlphaEq_swap_fresh (y y' w1 w2 : PName) (P Q : Proc)
-  (hFresh1 : w1 ∉ P.names ∪ Q.names)
-  (hFresh2 : w2 ∉ P.names ∪ Q.names) :
-  (renameBound y w1 P =ₐ renameBound y' w1 Q) →
-  (renameBound y w2 P =ₐ renameBound y' w2 Q) := by sorry
-
-
-theorem AlphaEq.trans (P Q R : Proc) : (P =ₐ Q) → (Q =ₐ R) → (P =ₐ R) := by
-  induction P.size using Nat.strong_induction_on generalizing P Q R
-  case h n ih =>
-    intro hPQ hQR
-    cases hPQ
-    case nil => cases hQR ; exact .nil
-
-    case tensor P_inner Q_inner x y x' y' w hFresh hAlphaEq hxxp =>
-      cases hQR
-      rename_i R_inner xr yr wr hxxr hFreshR hAlphaEqR
-      let w' := freshName (P_inner.names ∪ Q_inner.names ∪ R_inner.names)
-      have hFresh' : w' ∉ (P_inner.names ∪ Q_inner.names ∪ R_inner.names) := freshName_is_fresh _
-      apply AlphaEq.tensor w' hFresh'
 
 
 
 
 
+-- lemma renameBound_comm {x y a b : PName} {P : Proc} :
+--   (hxy : x ≠ y) → (hab : a ≠ b) → (hxb : x ≠ b) → (hya : y ≠ a) →
+--   renameBound x a (renameBound y b P) = renameBound y b (renameBound x a P) := by
+--   intros
+--   induction P <;> simp [renameBound, rename, *]
+--   case one ih | bot ih | selectL ih | selectR ih | output ih | input ih
+--     | server ih | consume ih | dispose ih =>
+--     apply And.intro
+--     · aesop
+--     · exact ih
+
+--   case par P_ih Q_ih =>
+--     apply And.intro
+--     · exact P_ih
+--     · exact Q_ih
+
+--   case offer P_ih Q_ih =>
+--     apply And.intro
+--     · aesop
+--     · apply And.intro
+--       · exact P_ih
+--       · exact Q_ih
+
+--   case link =>
+--     apply And.intro
+--     · aesop
+--     · aesop
+
+--   case tensor ih | parr ih | cut ih | duplicate ih =>
+--     apply And.intro
+--     · aesop
+--     · apply And.intro
+--       · aesop
+--       · exact ih
+
+-- lemma renameBound_commutes (a b : PName) (P : Proc) (ha : a ∉ P.names) (hb : b ∉ P.names) :
+--   renameBound a b P = P := by
+--   induction P generalizing a b
+--   all_goals simp [rename, renameBound, *]
+
+--   case tensor x y P ih | parr x y P ih | cut x y P ih | duplicate x y P ih =>
+--     apply And.intro
+--     · intro h ; simp_all
+--     · apply And.intro
+--       · intro h ; simp_all
+--       · apply ih <;> simp_all
+
+--   case one x P ih | bot x P ih | selectL x P ih | selectR x P ih | server x P ih
+--     | consume x P ih | dispose x P ih | output x P A ih | input x P X ih =>
+--     apply And.intro
+--     · intro h ; simp_all
+--     · apply ih <;> simp_all
+
+--   case offer x P Q ihP ihQ =>
+--     apply And.intro
+--     · intro h ; simp_all
+--     · apply And.intro
+--       · apply ihP <;> simp_all
+--       · apply ihQ <;> simp_all
+
+--   case par P Q ihP ihQ =>
+--     apply And.intro
+--     · apply ihP <;> simp_all
+--     · apply ihQ <;> simp_all
+
+--   case link =>
+--     apply And.intro
+--     · intro h ; simp_all
+--     · intro h ; simp_all
+
+
+-- lemma renameBound_comp (x y z : PName) (P : Proc) (hx : x ∉ P.names) (hxy : x ≠ y) :
+--   renameBound x z (renameBound y x P) = renameBound y z P := by
+--   induction P generalizing x y z <;> simp [renameBound, rename, *] at *
+--   all_goals aesop
+
+-- theorem AlphaEq_swap_fresh (y y' w1 w2 : PName) (P Q : Proc)
+--   (hFresh1 : w1 ∉ P.names ∪ Q.names)
+--   (hFresh2 : w2 ∉ P.names ∪ Q.names)
+--   (h : renameBound y w1 P =ₐ renameBound y' w1 Q) :
+--   (renameBound y w2 P =ₐ renameBound y' w2 Q) := by sorry
 
 
 
 
-sorry
-  -- intro h1 h2
-  -- induction h : P.size using Nat.strong_induction_on generalizing Q R P
-  -- rename_i n ih
-  -- cases h1
-  -- case nil => exact h2
 
-  -- case par hpq1 hpq2 =>
-  --   cases h2
-  --   rename_i P1 Q1 P2 Q2 R1 R2 hqr1 hqr2
-  --   constructor
-  --   · apply ih P1.size
-  --     · rw [← h] ; simp [Proc.size] ; omega
-  --     · exact hpq1
-  --     · exact hqr1
-  --     · rfl
-  --   · apply ih P2.size
-  --     · rw [← h] ; simp [Proc.size]
-  --     · exact hpq2
-  --     · exact hqr2
-  --     · rfl
 
-  -- case tensor P Q x y x' y' w h_fresh hrbPQ hxy =>
-  --   cases h2
-  --   rename_i Qp xp yp wp hxxp h_freshp hrbQpQ
-  --   let ws := freshName (P.names ∪ Q.names ∪ Qp.names)
-  --   have hws : ws ∉ P.names ∧ ws ∉ Q.names ∧ ws ∉ Qp.names := by
-  --     simpa [ws] using freshName_is_fresh (P.names ∪ Q.names ∪ Qp.names)
-  --   apply AlphaEq.tensor ws
-  --   · simp ; constructor
-  --     · exact hws.1
-  --     · exact hws.2.2
-  --   ·
+
+
+
+
+
+
+
+
+theorem AlphaEq.trans (P Q R : Proc) (hPQ : P =ₐ Q) (hQR : Q =ₐ R) : P =ₐ R := by
+  induction P.size + Q.size using Nat.strong_induction_on generalizing P Q R
+  rename_i n ih
+  cases hPQ <;> cases hQR
+  case nil.nil => rfl
+  case par.par =>
+    rename_i P1 Q1 P2 Q2 h1 h2 Q1' Q2' h5 h6
+    apply AlphaEq.par
+    · sorry
+
+
+
+
+
+
+
+
+
 
 
 
