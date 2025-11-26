@@ -9,18 +9,20 @@ import PiLL.Definitions
     · i.e. typing rules should enforce linearity
     · Is it perhaps just an assumption that we don't merge Envs / HyperEnvs which
       share a PName or should I add a sidecondition somewhere.
+    · Take another look as all side conditions
 -/
 
--- TODO: Look at side conditions for transition rules for derivations
+-- TOOD: Get merging of Envs / HyperEnvs to include disjointness condition
 
 /- TODO:
   Find out how to define X in Types i.e. the type variable.
 
   Find out if X in Proc.input is the type variable X in Types or just some instance
   of the Types inductive.
--/
 
--- TODO: Retrofit new notation to Examples.lean
+  Find out how to define the syntax enabling replacing some type with all instances of X
+  in either a Proc or a HyperEnv.
+-/
 
 -- TODO: Extend Typing and TypingStep
 
@@ -28,13 +30,23 @@ import PiLL.Definitions
 
 -- TOOD: Extend EnvStep
 
--- TOOD: Make notation check section in Examples.lean as has been done for Proc's notation
+-- TODO: WF for ProcStep
 
--- TODO: Check if rules depending on AlphaEq work as intended or get stuck
+-- TODO: WF for EnvStep
+
+-- TODO: WF for TypingStep without having WF hyp in .syn rule
+
+-- TODO: Retrofit new notation to Examples.lean
+
+-- TOOD: Make notation check section in Examples.lean as has been done for Proc's notation
 
 -- TODO: Example 5.1 (check if it is compileable)
 
 -- TODO: Check alpha renaming and extend it to full πLL
+
+-- TODO: Transitivity proof for AlphaEq (i.e. prove it's an equivalence relation)
+
+-- TODO: Check if rules depending on AlphaEq work as intended or get stuck
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
    This might need to be a structural congruence (≡)
@@ -49,7 +61,6 @@ import PiLL.Definitions
     · 𝑣⸨x, y⸩ π.P ∼ π.(𝑣⸨x,y⸩ P)    (NOTE: LHS is ill-typed even if RHS is well-typed)
     · 𝑣⸨x, y⸩ Q ∼ Q                 (NOTE: LHS is ill-typed even if RHS is well-typed)
 -/
-
 
 /- TODO: show erasure for processes and environments / hyperenvironments
   · if 𝒟 -[l]-> 𝒟' then proc(𝒟) -[l]-> proc(𝒟'), and
@@ -76,6 +87,22 @@ import PiLL.Definitions
   Is it the typing rules which ensure that a single name cannot be used by multiple
   environments otherwise how is 𝒢(x) supposed to be defined and is it correctly '
   understood that typing rules ensure name linearity in environments.
+-/
+
+/-
+  in the rule from Fig 7:
+  π ≠ x(A), x[DISP], x[DUP](x')
+  -----------------------------
+          π.P -[π]-> P
+
+  The premise excludes inputting A on x, disposing of a server on x and duplicating a
+  server on x to x' from being able to make a transition on their matching label
+  based on the definition:
+  π := 𝑥[𝑥′], 𝑥(𝑥′), 𝑥[], 𝑥(), 𝑥[l], 𝑥[r], 𝑥[USE], 𝑥[DUP](x'), and 𝑥[DISP]
+  But shouldn't x[A] (output type A on x) be included in π?
+
+  Depending on answer removed x[X] (output) from ProcStep
+
 -/
 
 --------------------------- Kinda related ---------------------------
@@ -162,7 +189,7 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
 
 /-
   Don't really understand the conclusions of the RES, 𝟙⊥, and ⊗⅋
-  - I Think I get it now
+  · I Think I get it now
 -/
 
 /-
@@ -191,5 +218,4 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
       interactions available before a τ transition are also available after
 
   · why is 𝒗wx (w().0 | x[].y[].0 | x[].z[].0) ill-typed (becuase the two x's?)
-
 -/
