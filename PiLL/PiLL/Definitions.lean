@@ -10,7 +10,7 @@ import Mathlib.Tactic
 abbrev Atom := Nat
 abbrev Var := Nat
 
---FIXME: are atoms needed
+--FIXME: are atoms / var needed
 inductive Types : Type where
   | atom      (a : Atom)              -- named type, like A, B, ...
   | atomDual  (a : Atom)              -- dual of a named type
@@ -40,11 +40,11 @@ instance : One Types := ⟨Types.one⟩
 instance : Top Types := ⟨Types.top⟩
 instance : Bot Types := ⟨Types.bot⟩
 
-prefix:95 "ʔ" => Types.quest
-prefix:95 "!" => Types.bang
+prefix:max "?ₜ" => Types.quest
+prefix:max "!ₜ" => Types.bang
 
-notation:90 "∃" v "." A => Types.existX v A
-notation:90 "∀" v "." A => Types.forallX v A
+notation:90 "∃⸨" v "⸩." A => Types.exist_ v A
+notation:90 "∀⸨" v "⸩." A => Types.forall_ v A
 
 private def reprTypesAux : Types → Nat → String
   | .atom a, _ => s!"A{a}"
@@ -53,25 +53,22 @@ private def reprTypesAux : Types → Nat → String
   | .varDual v, _ => s!"{v}ᗮ"
   | .one, _ => "1"
   | .bot, _ => "⊥"
-  | .zero, _ => "0"
-  | .top, _ => "⊤"
+  | .zero, _ => "0" -- FIXME: Probably don't need
+  | .top, _ => "⊤"  -- FIXME: Probably don't need
   | .tensor A B, _ => s!"({reprTypesAux A 0} ⊗ {reprTypesAux B 0})"
   | .parr A B, _ => s!"({reprTypesAux A 0} ⅋ {reprTypesAux B 0})"
   | .oplus A B, _ => s!"({reprTypesAux A 0} ⊕ {reprTypesAux B 0})"
   | .amp A B, _ => s!"({reprTypesAux A 0} & {reprTypesAux B 0})"
-  | .bang A, _ => s!"!{reprTypesAux A 0}"
-  | .quest A, _ => s!"ʔ{reprTypesAux A 0}"
-  | .forall_ v A, _ => s!"∀{v}.{reprTypesAux A 0}"
-  | .exist_ v A, _ => s!"∃{v}.{reprTypesAux A 0}"
+  | .bang A, _ => s!"!ₜ{reprTypesAux A 0}"
+  | .quest A, _ => s!"?ₜ{reprTypesAux A 0}"
+  | .forall_ v A, _ => s!"∀⸨{v}⸩.{reprTypesAux A 0}"
+  | .exist_ v A, _ => s!"∃⸨{v}⸩.{reprTypesAux A 0}"
 
 instance : Repr Types where
   reprPrec A _ := reprTypesAux A 0
 
 instance : ToString Types where
   toString t := reprStr t
-
--- FIXME: Where should ∃𝑋.A and ∀𝑋.A be placed (pos or neg)?
---        and where should 𝑋 and 𝑋ᗮ be placed
 
 def Types.pos : Types → Prop
   | atom _ => True
@@ -564,7 +561,6 @@ theorem AlphaEq.trans (P Q R : Proc) (hPQ : P =ₐ Q) (hQR : Q =ₐ R) : P =ₐ 
 --     apply AlphaEq.par
 --     · sorry
 
-
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 
 abbrev Env := Finset (PName × Types)
@@ -668,6 +664,15 @@ lemma Env.merge_move_second_two_right (Γ Δ Ξ Ε : Env) :
   Γ‚ Δ‚ Ξ‚ Ε = Γ‚ Ξ‚ Ε‚ Δ := by
   rw [Env.merge_swap_last Γ Δ Ξ, Env.merge_swap_last]
 
+def isServerUsable : Types → Prop
+  | .quest _  => True
+  | .bang _   => True
+  | _         => False
+
+def serverUsableEnv (Γ : Env) : Prop :=
+  ∀p, p ∈ Γ → isServerUsable p.snd = True
+
+prefix:max "?ₑ" => serverUsableEnv
 
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
@@ -819,6 +824,63 @@ inductive Typing : HyperEnv → Proc → Prop where
       --------------------------
       Typing (Γ‚ x ∶ ⊥) (x⸨⸩.P)
 
+  | oplus₁
+      {Γ : Env} {P : Proc} {x : PName} {A B : Types} :
+      Typing (Γ‚ x ∶ A) P →
+      ------------------------------
+      Typing (Γ‚ x ∶ A ⊕ B) (x⟦𝐋⟧.P)
+
+  | oplus₂
+      {Γ : Env} {P : Proc} {x : PName} {A B : Types} :
+      Typing (Γ‚ x ∶ B) P →
+      ------------------------------
+      Typing (Γ‚ x ∶ A ⊕ B) (x⟦𝐑⟧.P)
+
+  | amp
+      {Γ : Env} {P Q : Proc} {x : PName} {A B : Types} :
+      Typing (Γ‚ x ∶ A) P → Typing (Γ‚ x ∶ B) Q →
+      ---------------------------------------------
+      Typing (Γ‚ x ∶ A & B) (⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄)
+
+  | quest
+      {Γ : Env} {P : Proc} {x : PName} {A : Types} :
+      Typing (Γ‚ x ∶ A) P →
+      -----------------------------
+      Typing (Γ‚ x ∶ ?ₜA) (x⟦USE⟧.P)
+
+  | w
+      {Γ : Env} {P : Proc} {x : PName} {A : Types} :
+      Typing Γ P →
+      -----------------------------
+      Typing (Γ‚ x ∶ ?ₜA) (x⟦DISP⟧.P)
+
+  | c
+      {Γ : Env} {P : Proc} {x x' : PName} {A : Types} :
+      Typing (Γ‚ x ∶ ?ₜA‚ x' ∶ ?ₜA) P →
+      --------------------------------
+      Typing (Γ‚ x ∶ ?ₜA) (x⟦DUP⟧⸨x'⸩.P)
+
+  | bang
+      {Γ : Env} {P : Proc} {x : PName} {A : Types} :
+      Typing (Γ‚ x ∶ A) P → ?ₑΓ →
+      ------------------------------
+      Typing (Γ‚ x ∶ !ₜA) (!x.⦃P⦄)
+
+  -- | exists_ -- FIXME: Need replacement syntax defined
+  --     {Γ : Env} {P : Proc} {x : PName} {A : Types} :
+  --     Typing (Γ‚ x ∶ B{A / X}) P →
+  --     --------------------------
+  --     Typing (Γ‚ x ∶ ∃⸨X⸩.B) (x⟦A⟧:P)
+
+  -- | forall_ -- FIXME: How to define Type variable X? And ft does not exist
+  --     {Γ : Env} {P : Proc} {x : PName} {A : Types} : -- {X : Types.var} :
+  --     Typing (Γ‚ x ∶ A) P → -- X ∉ Γ.fTypes →
+  --     Typing (Γ‚ x ∶ ∀⸨X⸩.A) (x⸨X⸩:P)
+
+  | ax
+      {x y : PName} {A : Types} :
+      Typing (x ∶ Aᗮ‚ y ∶ A) (x ⟷ₚ y)
+
 notation:50 "⊢ " P " ∷ " T => Typing T P
 
 ----------------------------- TRANSITION RULES FOR DERIVATIONS -----------------------------
@@ -863,9 +925,9 @@ abbrev Lbls := List Lbl
 instance : Coe Act Lbl := ⟨Lbl.act⟩
 
 def Lbl.WF : Lbl → Prop
-  | .tau => true
-  | .link _ _ => true
-  | .act _ => true
+  | .tau => True
+  | .link _ _ => True
+  | .act _ => True
   | .par l l' => (iNamesAct l) ∩ (iNamesAct l') = ∅
 
 @[simp]
@@ -951,7 +1013,7 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       (h₁ : TypingStep 𝒟 l 𝒟')
       (h₂ : TypingStep ℰ l' ℰ')
       (disj : (l |ₗ l').iNames ∩ (P |ₚ Q).fNames = ∅)
-      (WF : (l |ₗ l').WF) : -- Don't know how to show TypingStep preserves WF without this
+      (WF : (l |ₗ l').WF) : -- FIXME: Don't know how to show TypingStep preserves WF without this
       ---------------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) (l |ₗ l') (Typing.mix 𝒟' ℰ')
 
@@ -1110,35 +1172,39 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P : Proc} {x : PName} {X : Types} :
       ProcStep (x⟦X⟧:P) (x⟦X⟧:) P
 
-  -- | dispParen
-
-  | disposeBrack
+  | dispose₁
       {P : Proc} {x : PName} :
       ProcStep (x⟦DISP⟧.P) (x⟦DISP⟧) (x⸨⸩.P)
 
-  -- | dupParen
+  -- | disp₂ -- FIXME: how to define / produce z-set in premise and z processes in conclusion
+  --     {P : Proc} {x x' z: PName} :
+  --     P.fNames \ {x'} = {z, ..., zₙ} →
+  --     ---------------------------------------------------------
+  --     ProcStep (!x.{P}) (x⸨DISP⸩) (z₁⟦DISP⟧ ... zₙ⟦DISP⟧.x⟦⟧.𝟘)
 
-  | dupBrack
+  | dup₁
       {P : Proc} {x x' : PName} :
       ProcStep (x⟦DUP⟧⸨x'⸩.P) (x⟦DUP⟧) (x⸨x'⸩.P)
 
-  | useParen
+  -- | dup₂ -- FIXME: define sigma expansion, also needs z-set expansion
+  --     {P Pσ : Proc} {x x' : PName} :
+  --     P.fNames ∩ Pσ.fNames = ∅ → P.fNames \ {x} = {z,..., zₙ} →
+  --     ---------------------------------------------------------------------------------
+  --     ProcStep (!x.{P}) (x⸨DUP⸩) (z₁⟦DUP⟧⸨z₁σ⸩ ... zₙ⟦DUP⟧⸨zₙσ⸩.x⟦xσ⟧.((!x.P)σ) |ₚ !x.{P})
+
+  | use₂
       {P : Proc} {x : PName} :
       ProcStep (!x.⦃P⦄) (x⸨USE⸩) P
 
-  | useBrack
-      {P : Proc} {x : PName} :
-      ProcStep (x⟦USE⟧.P) (x⟦USE⟧) P
-
-  | input -- FIXME: missing the replace A with X thingy
+  | input -- FIXME: Need replacement notation defined
       {P : Proc} {x : PName} {A X : Types}:
-      ProcStep (x⸨X⸩:P) (x⸨A⸩:) P --{A/X}
+      ProcStep (x⸨X⸩:P) (x⸨A⸩:) P --{A / X}
 
   | selectL
       {P : Proc} {x : PName} :
       ProcStep (x⟦𝐋⟧.P) (x⟦𝐋⟧) P
 
-  | recieveL
+  | offerL
       {P Q : Proc} {x : PName} :
       ProcStep (⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄) (x⸨𝐋⸩) P
 
@@ -1146,7 +1212,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P : Proc} {x : PName} :
       ProcStep (x⟦𝐑⟧.P) (x⟦𝐑⟧) P
 
-  | recieveR
+  | offerR
       {P Q : Proc} {x : PName} :
       ProcStep (⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄) (x⸨𝐑⸩) Q
 
@@ -1163,11 +1229,11 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ----------------------------------------
       ProcStep (𝑣⸨x, y⸩ P) (τ) (𝑣⸨x, y⸩ P')
 
-  | axcut -- FIXME: missing the replacement syntax thingy
+  | axcut -- FIXME: Need replacement notation defined
       {P P' : Proc} {x y z : PName} :
       ProcStep P (x ⟷ₗ y) P' →
       -------------------------------------
-      ProcStep (𝑣⸨y, z⸩ P) (τ) P' -- {x/z}
+      ProcStep (𝑣⸨y, z⸩ P) (τ) P' -- {x / z}
 
 notation:50 P " -[" l "]->ₚ " P' => ProcStep P l P'
 
@@ -1243,6 +1309,62 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       EnvStep (𝒢 |ₕ Γ‚ x ∶ Aᗮ |ₕ Δ‚ y ∶ A) (l) (𝒢' |ₕ Γ'‚ x ∶ Aᗮ |ₕ Δ'‚ y ∶ A) →
       ----------------------------------------------------------------------------
       EnvStep (𝒢 |ₕ Γ‚ Δ) l (𝒢' |ₕ Γ'‚ Δ')
+
+  | selectL
+      {Γ : Env} {x : PName} {A B : Types} :
+      EnvStep (Γ‚ x ∶ A ⊕ B) (x⟦𝐋⟧) (Γ‚ x ∶ A)
+
+  | offerL
+      {Γ : Env} {x : PName} {A B : Types} :
+      EnvStep (Γ‚ x ∶ A & B) (x⸨𝐋⸩) (Γ‚ x ∶ A)
+
+  | selectR
+      {Γ : Env} {x : PName} {A B : Types} :
+      EnvStep (Γ‚ x ∶ A ⊕ B) (x⟦𝐑⟧) (Γ‚ x ∶ B)
+
+  | offerR
+      {Γ : Env} {x : PName} {A B : Types} :
+      EnvStep (Γ‚ x ∶ A & B) (x⸨𝐑⸩) (Γ‚ x ∶ B)
+
+  | link₁
+      {x y : PName} {A : Types} :
+      EnvStep (x ∶ Aᗮ‚ y ∶ A) (x ⟷ₗ y) ∅
+
+  | link₂
+      {x y : PName} {A : Types} :
+      EnvStep (x ∶ Aᗮ‚ y ∶ A) (y ⟷ₗ x) ∅
+
+  | use₁
+      {Γ : Env} {x : PName} {A : Types} :
+      EnvStep (Γ‚ x ∶ ?ₜA) (x⟦USE⟧) (Γ‚ x ∶ A)
+
+  | use₂
+      {Γ : Env} {x : PName} {A : Types} (h : ?ₑΓ) :
+      EnvStep (Γ‚ x ∶ !ₜA) (x⸨USE⸩) (Γ‚ x ∶ A)
+
+  | disp₁
+      {Γ : Env} {x : PName} {A : Types} :
+      EnvStep (Γ‚ x ∶ ?ₜA) (x⟦DISP⟧) (Γ‚ x ∶ ⊥)
+
+  | disp₂
+      {Γ : Env} {x : PName} {A : Types} :
+      EnvStep {Γ‚ x ∶ !ₜA} (x⸨DISP⸩) (Γ‚ x ∶ 1)
+
+  | dup₁
+      {Γ : Env} {x : PName} {A : Types} :
+      EnvStep (Γ‚ x ∶ ?ₜA) (x⟦DUP⟧) (Γ‚ x ∶ ?ₜA ⅋ ?ₜA)
+
+  | dup₂ -- FIXME : (maybe different notation, ! does bool stuff)
+      {Γ : Env} {x : PName} {A : Types} (h : ?ₑΓ) :
+      EnvStep (Γ‚ x ∶ !ₜA) (x⸨DUP⸩) (Γ‚ x ∶ !ₜA ⊗ !ₜA)
+
+  -- | output -- FIXME: Needs replacement notation defined
+  --     {Γ : Env} {x : PName} {A B : Types} :
+  --     EnvStep (Γ‚ x ∶ ∃⸨X⸩.B) (x⟦A⟧:) (Γ‚ x ∶ B{A / X})
+
+  -- | input -- FIXME: Needs replacement notation defined
+  --     {Γ : Env} {x : PName} {A B : Types} :
+  --     EnvStep (Γ‚ x ∶ ∀⸨X⸩.B) (x⸨A⸩) (Γ‚ x ∶ B{A / X})
 
 notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
 

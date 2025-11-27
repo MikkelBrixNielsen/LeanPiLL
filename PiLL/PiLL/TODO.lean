@@ -1,8 +1,6 @@
 import PiLL.Definitions
 ------------------------------------------ TODOs  ------------------------------------------
 
--- (MAYBE IGNORE SIDE CONDITIONS FOR NOW AND FOCUS ON JUST GETTING THE RULES ETC. TO WORK)
-
 /- TODO: Add side conditions to typing rules enforcing
     · Environments can only contain one occurence of a process name
     · Hyper-environments can only contain one occurence of an environment name
@@ -14,6 +12,12 @@ import PiLL.Definitions
 
 -- TOOD: Get merging of Envs / HyperEnvs to include disjointness condition
 
+
+
+
+
+-- TODO: Look at the things Marco said in Discord and probably send him some more questions
+
 /- TODO:
   Find out how to define X in Types i.e. the type variable.
 
@@ -24,17 +28,25 @@ import PiLL.Definitions
   in either a Proc or a HyperEnv.
 -/
 
+-- Define fTypes on Envs and HyperEnvs
+
+-- TODO: Define replacement syntax on Types and Procs
+
+-- TODO: Define z-set expansion and σ-expansion
+
 -- TODO: Extend Typing and TypingStep
 
--- TOOD: Extend ProcStep
+-- TOOD: Extend ProcStep with the set replacement notation
 
 -- TOOD: Extend EnvStep
+
+-- TODO: Check how well the serverUsableEnv predicates work if at all
 
 -- TODO: WF for ProcStep
 
 -- TODO: WF for EnvStep
 
--- TODO: WF for TypingStep without having WF hyp in .syn rule
+-- TODO: WF for TypingStep without having WF hyp in .syn rule (even possible? side condition too weak?)
 
 -- TODO: Retrofit new notation to Examples.lean
 
@@ -103,6 +115,20 @@ import PiLL.Definitions
 
   Depending on answer removed x[X] (output) from ProcStep
 
+-/
+
+/-
+  Ask about the rules in Fig 8, using the DUP label and whether or not they are suppsoed to
+  use the parr and tensor operator and not the offer and select operator.
+-/
+
+/-
+  Get clerafication on whether or not having a HyperEnv defined as Finset (Finset (PNames × Types))
+  is okay, since it yields a structure where individually merged envs cannot be distinguished i.e.
+  Γ = Γ1, Γ2, but given Γ you cannot get Γ1 and Γ2 from Γ, since Envs don't carry names. Similarly,
+  HyperEnvs don't carry names, so when they are merged they exhibit the same behaviour. Thus, the
+  internal structure of a HyperEnv is not a flat list like structure of (x, A) pairs but rather
+  a it contains Envs which then contain the (x, A) pairs.
 -/
 
 --------------------------- Kinda related ---------------------------
