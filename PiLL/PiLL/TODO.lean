@@ -12,8 +12,10 @@ import PiLL.Definitions
 
 -- TOOD: Get merging of Envs / HyperEnvs to include disjointness condition
 
-
-
+/- TODO:
+  Have sequents instead of using types as is
+  · Github has some inspiration
+-/
 
 
 -- TODO: Look at the things Marco said in Discord and probably send him some more questions
@@ -28,8 +30,14 @@ import PiLL.Definitions
   in either a Proc or a HyperEnv.
 -/
 
--- Define fTypes on Envs and HyperEnvs
+/- TODO: Define fTypes on Envs and HyperEnvs
+  · So far defining it on Envs seems to be enough
+-/
 
+/- TODO:
+  · Check correctness of Mu inductive and Lbl since A seems to be part of Mu
+  · Find out if that means x[A] should be removed from the prefix transition
+-/
 -- TODO: Define replacement syntax on Types and Procs
 
 -- TODO: Define z-set expansion and σ-expansion
@@ -102,6 +110,13 @@ import PiLL.Definitions
 -/
 
 /-
+  Should replacement avoid capturing exisitng variables e.g.
+  · (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀X.X ⊗ (X ⅋ A)), this seems bad since both X's
+    aren't the same thing, so instead pick new no clashing name for bound X s.t.
+    (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀Z.Z ⊗ (X ⅋ A))
+-/
+
+/-
   in the rule from Fig 7:
   π ≠ x(A), x[DISP], x[DUP](x')
   -----------------------------
@@ -109,9 +124,8 @@ import PiLL.Definitions
 
   The premise excludes inputting A on x, disposing of a server on x and duplicating a
   server on x to x' from being able to make a transition on their matching label
-  based on the definition:
-  π := 𝑥[𝑥′], 𝑥(𝑥′), 𝑥[], 𝑥(), 𝑥[l], 𝑥[r], 𝑥[USE], 𝑥[DUP](x'), and 𝑥[DISP]
-  But shouldn't x[A] (output type A on x) be included in π?
+  based on the definition π := 𝑥[𝑥′], 𝑥(𝑥′), 𝑥[], 𝑥(), 𝑥[l], 𝑥[r], 𝑥[USE], 𝑥[DUP](x'), and 𝑥[DISP]
+  shouldn't x[A] (output type A on x) be included in π?
 
   Depending on answer removed x[X] (output) from ProcStep
 

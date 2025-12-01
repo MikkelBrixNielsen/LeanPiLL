@@ -8,14 +8,13 @@ import Mathlib.Tactic
 ------------------------------------------ TYPES  ------------------------------------------
 
 abbrev Atom := Nat
-abbrev Var := Nat
+abbrev TVar := Nat
 
---FIXME: are atoms / var needed
 inductive Types : Type where
   | atom      (a : Atom)              -- named type, like A, B, ...
   | atomDual  (a : Atom)              -- dual of a named type
-  | var       (v : Var)               -- X, Y, Z (type variables)
-  | varDual   (v : Var)               -- dual type variables
+  | var       (v : TVar)              -- type variable
+  | varDual   (v : TVar)              -- dual type variables
   | one                               -- 𝟙 (empty output, unit for ⊗)
   | bot                               -- ⊥ (empty send, unit for ⅋)
   | zero                              -- 𝟘 (unit for ⊕)
@@ -26,8 +25,8 @@ inductive Types : Type where
   | amp       (A B : Types)           -- A & B (Offer A or B)
   | bang      (A : Types)             -- !A (server accept)
   | quest     (A : Types)             -- ?A (client request)
-  | forall_   (v : Var) (A : Types)   -- ∀X.A (universal type input)
-  | exist_    (v : Var) (A : Types)   -- ∃X.A (existential type output)
+  | forall_   (v : TVar) (A : Types)   -- ∀X.A (universal type input)
+  | exist_    (v : TVar) (A : Types)   -- ∃X.A (existential type output)
 deriving DecidableEq, BEq
 
 infixr:90 " ⊗ " => Types.tensor
@@ -71,32 +70,32 @@ instance : ToString Types where
   toString t := reprStr t
 
 def Types.pos : Types → Prop
-  | atom _ => True
-  | var _ => True
-  | one => True
-  | zero => True
-  | tensor _ _ => True
-  | oplus _ _ => True
-  | bang _ => True
-  | exist_ _ _ => True
+  | .atom _ => True
+  | .var _ => True
+  | .one => True
+  | .zero => True
+  | .tensor _ _ => True
+  | .oplus _ _ => True
+  | .bang _ => True
+  | .exist_ _ _ => True
   | _ => False
 
 def Types.neg : Types → Prop
-  | atomDual _ => True
-  | varDual _ => True
-  | bot => True
-  | top => True
-  | parr _ _ => True
+  | .atomDual _ => True
+  | .varDual _ => True
+  | .bot => True
+  | .top => True
+  | .parr _ _ => True
   | .amp _ _ => True
-  | quest _ => True
-  | forall_ _ _ => True
+  | .quest _ => True
+  | .forall_ _ _ => True
   | _ => False
 
-instance Types.posDecidable (A : Types) : Decidable A.pos := by
+instance Types.positive_decidable (A : Types) : Decidable A.pos := by
   unfold Types.pos
   split <;> infer_instance
 
-instance Types.negDecidable (A : Types) : Decidable A.neg := by
+instance Types.negative_decidable (A : Types) : Decidable A.neg := by
   unfold Types.neg
   split <;> infer_instance
 
@@ -113,7 +112,7 @@ def Types.dual : Types → Types
   | .tensor A B   => .parr (dual A) (dual B)
   | .parr A B     => .tensor (dual A) (dual B)
   | .oplus A B    => .amp (dual A) (dual B)
-  | .amp A B      => oplus (dual A) (dual B)
+  | .amp A B      => .oplus (dual A) (dual B)
   | .bang A       => .quest (dual A)
   | .quest A      => .bang (dual A)
   | .forall_ v A  => .exist_ v (dual A)
@@ -122,16 +121,52 @@ def Types.dual : Types → Types
 notation:max A "ᗮ" => Types.dual A
 
 @[simp]
-theorem Types.dual.neq (A : Types) : A ≠ Aᗮ := by
+theorem Types.dual_neq (A : Types) : A ≠ Aᗮ := by
   cases A <;> simp [dual]
 
 @[simp]
-theorem dual.inj (A B : Types) : Aᗮ = Bᗮ ↔ A = B := by
+theorem Types.dual_inj (A B : Types) : Aᗮ = Bᗮ ↔ A = B := by
   induction A generalizing B <;> cases B <;> simp [Types.dual, *]
 
 @[simp]
-theorem dual.involution (A : Types) : Aᗮᗮ = A := by
+theorem Types.dual_involution (A : Types) : Aᗮᗮ = A := by
   induction A <;> simp [*]
+
+def Types.linImpl (A B : Types) : Types := Aᗮ ⅋ B
+infix:90 " ⊸ " => Types.linImpl
+
+def Types.freeTypes : Types → Finset TVar
+  | .atom _ | .atomDual _ | .one | .bot | .zero | .top => ∅
+  | .var v        => {v}
+  | .varDual v    => {v}
+  | .tensor A B   => A.freeTypes ∪ B.freeTypes
+  | .parr A B     => A.freeTypes ∪ B.freeTypes
+  | .oplus A B    => A.freeTypes ∪ B.freeTypes
+  | .amp A B      => A.freeTypes ∪ B.freeTypes
+  | .bang A       => A.freeTypes
+  | .quest A      => A.freeTypes
+  | .forall_ v A  => A.freeTypes \ {v}
+  | .exist_ v A   => A.freeTypes \ {v}
+
+def Types.subst (T R : Types) (X : TVar) : Types :=
+  match T with
+  | .atom a => .atom a
+  | .atomDual a => .atomDual a
+  | .var v => if v = X then R else .var v
+  | .varDual v => if v = X then Rᗮ else .varDual v
+  | .one => .one
+  | .bot => .one
+  | .zero => .top
+  | .top => .zero
+  | .tensor A B => .tensor (A.subst R X) (B.subst R X)
+  | .parr A B => .parr (A.subst R X) (B.subst R X)
+  | .oplus A B => .oplus (A.subst R X) (B.subst R X)
+  | .amp A B => .amp (A.subst R X) (B.subst R X)
+  | .bang A       => .bang (A.subst R X)
+  | .quest A      => .quest (A.subst R X)
+  -- FIXME: This does not avoud capture if B includes v
+  | .forall_ v A  => if v = X then .forall_ v A else .forall_ v (A.subst R X)
+  | .exist_ v A  => if v = X then .exist_ v A else .exist_ v (A.subst R X)
 
 ------------------------------------------ Proc  ------------------------------------------
 
@@ -224,23 +259,23 @@ def rename (ρ : Renaming) : Proc → Proc
   | .link x y         => .link (ρ x) (ρ y)
 
 @[simp]
-def Proc.fNames : Proc → Finset PName
-  | .tensor x y P         => {x} ∪ (P.fNames \ {y})
-  | .parr x y P           => {x} ∪ (P.fNames \ {y})
-  | .one x P              => {x} ∪ P.fNames
-  | .bot x P              => {x} ∪ P.fNames
-  | .cut x y P            => P.fNames \ {x, y}
-  | .par P Q              => P.fNames ∪ Q.fNames
+def Proc.f : Proc → Finset PName
+  | .tensor x y P         => {x} ∪ (P.f \ {y})
+  | .parr x y P           => {x} ∪ (P.f \ {y})
+  | .one x P              => {x} ∪ P.f
+  | .bot x P              => {x} ∪ P.f
+  | .cut x y P            => P.f \ {x, y}
+  | .par P Q              => P.f ∪ Q.f
   | .nil                  => {}
-  | .selectL x P          => {x} ∪ P.fNames
-  | .selectR x P          => {x} ∪ P.fNames
-  | .offer x P Q          => {x} ∪ (P.fNames ∪ Q.fNames)
-  | .output x P _         => {x} ∪ P.fNames
-  | .input  x P _         => {x} ∪ P.fNames
-  | .server x P           => {x} ∪ P.fNames
-  | .consume x P          => {x} ∪ P.fNames
-  | .duplicate x y P      => {x, y} ∪ P.fNames
-  | .dispose x P          => {x} ∪ P.fNames
+  | .selectL x P          => {x} ∪ P.f
+  | .selectR x P          => {x} ∪ P.f
+  | .offer x P Q          => {x} ∪ (P.f ∪ Q.f)
+  | .output x P _         => {x} ∪ P.f
+  | .input  x P _         => {x} ∪ P.f
+  | .server x P           => {x} ∪ P.f
+  | .consume x P          => {x} ∪ P.f
+  | .duplicate x y P      => {x, y} ∪ P.f
+  | .dispose x P          => {x} ∪ P.f
   | .link x y             => {x, y}
 
 @[simp]
@@ -674,6 +709,11 @@ def serverUsableEnv (Γ : Env) : Prop :=
 
 prefix:max "?ₑ" => serverUsableEnv
 
+def Env.freeTypes (Γ : Env) : Finset TVar :=
+  Γ.biUnion (fun (_, A) => A.freeTypes)
+
+notation "ft(" Γ ")" => Env.freeTypes Γ
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := Finset (Env)
@@ -886,7 +926,7 @@ notation:50 "⊢ " P " ∷ " T => Typing T P
 ----------------------------- TRANSITION RULES FOR DERIVATIONS -----------------------------
 
 inductive Mu : Type
-  | L | R | DISP | DUP | USE
+  | L | R | DISP | DUP | USE -- | A -- FIXME: Should this be included??
 deriving Repr, DecidableEq
 
 inductive Act : Type
@@ -931,14 +971,14 @@ def Lbl.WF : Lbl → Prop
   | .par l l' => (iNamesAct l) ∩ (iNamesAct l') = ∅
 
 @[simp]
-def Lbl.fNames : Lbl → Finset PName
+def Lbl.f : Lbl → Finset PName
   | .tau        => ∅
   | .link x y   => {x, y}
   | .act a      => fNamesAct a
   | .par l l'   => fNamesAct l ∪ fNamesAct l'
 
 @[simp]
-def Lbl.iNames : Lbl → Finset PName
+def Lbl.i : Lbl → Finset PName
   | .tau        => ∅
   | .link _ _   => {}
   | .act a      => iNamesAct a
@@ -946,7 +986,7 @@ def Lbl.iNames : Lbl → Finset PName
 
 @[simp]
 def Lbl.fresh (xs : List PName) (l : Lbl) :=
-  ∀ n ∈ xs, n ∉ l.fNames ∪ l.iNames
+  ∀ n ∈ xs, n ∉ l.f ∪ l.i
 
 notation:80 x "⟦" y "⟧" => Act.tensor x y
 notation:80 x "⟦⟧" => Act.one x
@@ -995,14 +1035,14 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
   | par₁
       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {𝒟' : Typing 𝒢' P'} {ℰ : Typing ℋ Q}
-      (h : TypingStep 𝒟 l 𝒟') (disj : (l.iNames) ∩ (Q.fNames) = ∅) :
+      (h : TypingStep 𝒟 l 𝒟') (disj : (l.i) ∩ (Q.f) = ∅) :
       ---------------------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
 
   | par₂
       {𝒢 ℋ ℋ': HyperEnv} {P Q Q' : Proc} {l : Lbl}
       {𝒟 : Typing 𝒢 P} {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
-      (h : TypingStep ℰ l ℰ') (disj : (l.iNames) ∩ (P.fNames) = ∅) :
+      (h : TypingStep ℰ l ℰ') (disj : (l.i) ∩ (P.f) = ∅) :
       ---------------------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟 ℰ')
 
@@ -1012,7 +1052,7 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
       (h₁ : TypingStep 𝒟 l 𝒟')
       (h₂ : TypingStep ℰ l' ℰ')
-      (disj : (l |ₗ l').iNames ∩ (P |ₚ Q).fNames = ∅)
+      (disj : (l |ₗ l').i ∩ (P |ₚ Q).f = ∅)
       (WF : (l |ₗ l').WF) : -- FIXME: Don't know how to show TypingStep preserves WF without this
       ---------------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) (l |ₗ l') (Typing.mix 𝒟' ℰ')
@@ -1127,20 +1167,20 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 
   | par₁
       {P P' Q : Proc} {l : Lbl} :
-      ProcStep P l P' → l.iNames ∩ Q.fNames = ∅ →
+      ProcStep P l P' → l.i ∩ Q.f = ∅ →
       -------------------------------------------
       ProcStep (P |ₚ Q) l (P' |ₚ Q)
 
   | par₂
       {P Q Q' : Proc} {l : Lbl} :
-      ProcStep Q l Q' → l.iNames ∩ P.fNames = ∅ →
+      ProcStep Q l Q' → l.i ∩ P.f = ∅ →
       --------------------------------------------
       ProcStep (P |ₚ Q) l (P |ₚ Q')
 
   | syn
       {P P' Q Q' : Proc} {l l' : Act} :
       ProcStep P l P' → ProcStep Q l' Q' →
-      (l |ₗ l').iNames ∩ (P |ₚ Q).fNames = ∅  →
+      (l |ₗ l').i ∩ (P |ₚ Q).f = ∅  →
       ----------------------------------------
       ProcStep (P |ₚ Q) (l |ₗ l') (P' |ₚ Q')
 
@@ -1178,7 +1218,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 
   -- | disp₂ -- FIXME: how to define / produce z-set in premise and z processes in conclusion
   --     {P : Proc} {x x' z: PName} :
-  --     P.fNames \ {x'} = {z, ..., zₙ} →
+  --     P.f \ {x'} = {z, ..., zₙ} →
   --     ---------------------------------------------------------
   --     ProcStep (!x.{P}) (x⸨DISP⸩) (z₁⟦DISP⟧ ... zₙ⟦DISP⟧.x⟦⟧.𝟘)
 
@@ -1188,7 +1228,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 
   -- | dup₂ -- FIXME: define sigma expansion, also needs z-set expansion
   --     {P Pσ : Proc} {x x' : PName} :
-  --     P.fNames ∩ Pσ.fNames = ∅ → P.fNames \ {x} = {z,..., zₙ} →
+  --     P.f ∩ Pσ.f = ∅ → P.f \ {x} = {z,..., zₙ} →
   --     ---------------------------------------------------------------------------------
   --     ProcStep (!x.{P}) (x⸨DUP⸩) (z₁⟦DUP⟧⸨z₁σ⸩ ... zₙ⟦DUP⟧⸨zₙσ⸩.x⟦xσ⟧.((!x.P)σ) |ₚ !x.{P})
 
