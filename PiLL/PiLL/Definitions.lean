@@ -11,26 +11,26 @@ abbrev Atom := Nat
 abbrev TVar := Nat
 
 inductive Types : Type where
-  | atom      (a : Atom)              -- named type, like A, B, ...
-  | atomDual  (a : Atom)              -- dual of a named type
-  | var       (v : TVar)              -- type variable
-  | varDual   (v : TVar)              -- dual type variables
-  | one                               -- 𝟙 (empty output, unit for ⊗)
-  | bot                               -- ⊥ (empty send, unit for ⅋)
-  | zero                              -- 𝟘 (unit for ⊕)
-  | top                               -- ⊤ (unit for &)
-  | tensor    (A B : Types)           -- A ⊗ B (send)
-  | parr      (A B : Types)           -- A ⅋ B (receive)
-  | oplus     (A B : Types)           -- A ⊕ B (select A or B)
-  | amp       (A B : Types)           -- A & B (Offer A or B)
-  | bang      (A : Types)             -- !A (server accept)
-  | quest     (A : Types)             -- ?A (client request)
-  | forall_   (v : TVar) (A : Types)   -- ∀X.A (universal type input)
-  | exist_    (v : TVar) (A : Types)   -- ∃X.A (existential type output)
+  | atom      (a : Atom)                -- named type, like A, B, ...
+  | atomDual  (a : Atom)                -- dual of a named type
+  | var       (v : TVar)                -- type variable
+  | varDual   (v : TVar)                -- dual type variables
+  | one                                 -- 𝟙 (empty output, unit for ⊗)
+  | bot                                 -- ⊥ (empty send, unit for ⅋)
+  | zero                                -- 𝟘 (unit for ⊕)
+  | top                                 -- ⊤ (unit for &)
+  | tensor    (A B : Types)             -- A ⊗ B (send)
+  | parr      (A B : Types)             -- A ⅋ B (receive)
+  | oplus     (A B : Types)             -- A ⊕ B (select A or B)
+  | amp       (A B : Types)             -- A & B (Offer A or B)
+  | bang      (A : Types)               -- !A (server accept)
+  | quest     (A : Types)               -- ?A (client request)
+  | forall_   (v : TVar) (A : Types)    -- ∀X.A (universal type input)
+  | exist_    (v : TVar) (A : Types)    -- ∃X.A (existential type output)
 deriving DecidableEq, BEq
 
 infixr:90 " ⊗ " => Types.tensor
-infixr:90 " ⊕" => Types.oplus
+infixr:90 " ⊕ " => Types.oplus
 infixr:90 " ⅋ " => Types.parr
 infixr:90 " & " => Types.amp
 
@@ -48,8 +48,8 @@ notation:90 "∀⸨" v "⸩." A => Types.forall_ v A
 private def reprTypesAux : Types → Nat → String
   | .atom a, _ => s!"A{a}"
   | .atomDual a, _ => s!"A{a}ᗮ"
-  | .var v, _ => s!"{v}"
-  | .varDual v, _ => s!"{v}ᗮ"
+  | .var v, _ => s!"V{v}"
+  | .varDual v, _ => s!"V{v}ᗮ"
   | .one, _ => "1"
   | .bot, _ => "⊥"
   | .zero, _ => "0" -- FIXME: Probably don't need
@@ -168,6 +168,8 @@ def Types.subst (T R : Types) (X : TVar) : Types :=
   | .forall_ v A  => if v = X then .forall_ v A else .forall_ v (A.subst R X)
   | .exist_ v A  => if v = X then .exist_ v A else .exist_ v (A.subst R X)
 
+notation:88 T "{" R " // " X "}" => Types.subst T R X
+
 ------------------------------------------ Proc  ------------------------------------------
 
 abbrev PName := Nat -- Process names are just numbers (ensures not empty)
@@ -184,7 +186,7 @@ inductive Proc : Type where
   | selectR   (x : PName) (P : Proc)              -- x[R].P
   | offer     (x : PName) (P Q : Proc)            -- x.case{L : P, R : Q}
   | output    (x : PName) (P : Proc) (A : Types)  -- x[A].P
-  | input     (x : PName) (P : Proc) (X : Types)  -- x(X).P
+  | input     (x : PName) (P : Proc) (X : TVar)   -- x(X).P
   | server    (x : PName) (P : Proc)              -- !x.{P}
   | consume   (x : PName) (P : Proc)              -- x[USE].P
   | duplicate (x y : PName) (P : Proc)            -- x[DUP](y).P
@@ -196,7 +198,7 @@ notation:80 x "⟦" y "⟧." P:80 => Proc.tensor x y P
 notation:80 x "⟦⟧." P:80 => Proc.one x P
 notation:80 x "⸨" y "⸩." P:80 => Proc.parr x y P
 notation:80 x "⸨⸩." P:80 => Proc.bot x P
-notation:60 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
+notation:75 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
 
 notation:80 x "⟦𝐋⟧." P:80 => Proc.selectL x P
 notation:80 x "⟦𝐑⟧." P:80 => Proc.selectR x P
@@ -210,7 +212,7 @@ notation:80 x "⟦DISP⟧." P => Proc.dispose x P
 notation:80 x "⟷ₚ" y => Proc.link x y
 
 notation "𝟘" => Proc.nil
-infixr:65 " |ₚ " => Proc.par
+infixr:70 " |ₚ " => Proc.par
 
 private def reprProcAux : Proc → Nat → String
   | .nil, _ => "𝟘"
@@ -237,27 +239,6 @@ instance : Repr Proc where
 instance : ToString Proc where
   toString p := reprStr p
 
-abbrev Renaming := PName → PName
-
-def rename (ρ : Renaming) : Proc → Proc
-  | .tensor x y P     => .tensor (ρ x) (ρ y) (rename ρ P)
-  | .parr x y P       => .parr (ρ x) (ρ y) (rename ρ P)
-  | .one x P          => .one (ρ x) (rename ρ P)
-  | .bot x P          => .bot (ρ x) (rename ρ P)
-  | .cut x y P        => .cut (ρ x) (ρ y) (rename ρ P)
-  | .par P Q          => .par (rename ρ P) (rename ρ Q)
-  | .nil              => .nil
-  | .selectL x P      => .selectL (ρ x) (rename ρ P)
-  | .selectR x P      => .selectR (ρ x) (rename ρ P)
-  | .offer x P Q      => .offer (ρ x) (rename ρ P) (rename ρ Q)
-  | .output x P A     => .output (ρ x) (rename ρ P) A
-  | .input x P A      => .input (ρ x) (rename ρ P) A
-  | .server x P       => .server (ρ x) (rename ρ P)
-  | .consume x P      => .consume (ρ x) (rename ρ P)
-  | .duplicate x y P  => .duplicate (ρ x) (ρ y) (rename ρ P)
-  | .dispose x P      => .dispose (ρ x) (rename ρ P)
-  | .link x y         => .link (ρ x) (ρ y)
-
 @[simp]
 def Proc.f : Proc → Finset PName
   | .tensor x y P         => {x} ∪ (P.f \ {y})
@@ -274,7 +255,7 @@ def Proc.f : Proc → Finset PName
   | .input  x P _         => {x} ∪ P.f
   | .server x P           => {x} ∪ P.f
   | .consume x P          => {x} ∪ P.f
-  | .duplicate x y P      => {x, y} ∪ P.f
+  | .duplicate x y P      => {x} ∪ (P.f \ {y})
   | .dispose x P          => {x} ∪ P.f
   | .link x y             => {x, y}
 
@@ -297,6 +278,27 @@ def Proc.names : Proc → Finset PName
   | .duplicate x y P      => {x, y} ∪ P.names
   | .dispose x P          => {x} ∪ P.names
   | .link x y             => {x, y}
+
+abbrev Renaming := PName → PName
+
+def rename (ρ : Renaming) : Proc → Proc
+  | .tensor x y P     => .tensor (ρ x) (ρ y) (rename ρ P)
+  | .parr x y P       => .parr (ρ x) (ρ y) (rename ρ P)
+  | .one x P          => .one (ρ x) (rename ρ P)
+  | .bot x P          => .bot (ρ x) (rename ρ P)
+  | .cut x y P        => .cut (ρ x) (ρ y) (rename ρ P)
+  | .par P Q          => .par (rename ρ P) (rename ρ Q)
+  | .nil              => .nil
+  | .selectL x P      => .selectL (ρ x) (rename ρ P)
+  | .selectR x P      => .selectR (ρ x) (rename ρ P)
+  | .offer x P Q      => .offer (ρ x) (rename ρ P) (rename ρ Q)
+  | .output x P A     => .output (ρ x) (rename ρ P) A
+  | .input x P A      => .input (ρ x) (rename ρ P) A
+  | .server x P       => .server (ρ x) (rename ρ P)
+  | .consume x P      => .consume (ρ x) (rename ρ P)
+  | .duplicate x y P  => .duplicate (ρ x) (ρ y) (rename ρ P)
+  | .dispose x P      => .dispose (ρ x) (rename ρ P)
+  | .link x y         => .link (ρ x) (ρ y)
 
 def freshName (s : Finset Nat) : PName :=
   (Finset.fold Nat.max 0 id s) + 1
@@ -345,7 +347,7 @@ inductive AlphaEq : Proc → Proc → Prop where
   | output {P Q : Proc} {x x' : PName} {A A' : Types}:
       AlphaEq P Q → x = x' → A = A' → AlphaEq (.output x P A) (.output x' Q A')
 
-  | input {P Q : Proc} {x x' : PName} {X X' : Types} :
+  | input {P Q : Proc} {x x' : PName} {X X' : TVar} :
       AlphaEq P Q → x = x' → X = X' → AlphaEq (.input x P X) (.input x' Q X')
 
   | server {P Q : Proc} {x x' : PName} :
@@ -363,7 +365,7 @@ inductive AlphaEq : Proc → Proc → Prop where
   | link {x y x' y' : PName} :
       x = x' → y = y' → AlphaEq (.link x y) (.link x' y')
 
-notation:55 P " =ₐ " Q => AlphaEq P Q
+notation:60 P " =ₐ " Q => AlphaEq P Q
 
 def Proc.size : Proc → Nat
 | .nil => 1
@@ -596,6 +598,59 @@ theorem AlphaEq.trans (P Q R : Proc) (hPQ : P =ₐ Q) (hQR : Q =ₐ R) : P =ₐ 
 --     apply AlphaEq.par
 --     · sorry
 
+def Proc.substType (P : Proc) (A : Types) (X : TVar) : Proc :=
+  match P with
+  | .nil => .nil
+  | .one x P => .one x (P.substType A X)
+  | .bot x P => .bot x (P.substType A X)
+  | .tensor x y P => .tensor x y (P.substType A X)
+  | .parr x y P => .parr x y (P.substType A X)
+  | .cut x y P => .cut x y (P.substType A X)
+  | .par P Q => .par (P.substType A X) (Q.substType A X)
+  | .selectL x P => .selectL x (P.substType A X)
+  | .selectR x P => .selectR x (P.substType A X)
+  | .offer x P Q => .offer x (P.substType A X) (Q.substType A X)
+  | .server x P => .server x (P.substType A X)
+  | .dispose x P => .dispose x (P.substType A X)
+  | .duplicate x y P => .duplicate x y (P.substType A X)
+  | .consume x P => .consume x (P.substType A X)
+  | .link x y => .link x y
+  | .output x P B => .output x (P.substType A X) (B.subst A X)
+  | .input x P Y => if Y = X then .input x P Y else .input x (P.substType A X) Y
+
+notation:65 P"⦃" A "//" X "⦄ₜ" => Proc.substType P A X
+
+def Proc.substName (P : Proc) (x z : PName) : Proc :=
+  let sub := fun (c : PName) => if c = z then x else c
+  match P with
+  | .nil => .nil
+  | .one a P => .one (sub a) (P.substName x z)
+  | .bot a P => .bot (sub a) (P.substName x z)
+  | .tensor a b P =>
+      if b = z then .tensor (sub a) b P
+      else .tensor (sub a) b (P.substName x z)
+  | .parr a b P =>
+      if b = z then .parr (sub a) b P
+      else .parr (sub a) b (P.substName x z)
+  | .cut a b P =>
+      if a = z ∨ b = z then .cut (sub a) (sub b) P
+      else .cut (sub a) (sub b) (P.substName x z)
+  | .par P Q => .par (P.substName x z) (Q.substName x z)
+  | .selectL a P => .selectL (sub a) (P.substName x z)
+  | .selectR a P => .selectR (sub a) (P.substName x z)
+  | .offer a P Q => .offer (sub a) (P.substName x z) (Q.substName x z)
+  | .server a P => .server (sub a) (P.substName x z)
+  | .dispose a P => .dispose (sub a) (P.substName x z)
+  | .duplicate a b P =>
+      if b = z then .duplicate (sub a) (sub b) P
+      else .duplicate (sub a) (sub b) (P.substName x z)
+  | .consume a P => .consume (sub a) (P.substName x z)
+  | .link a b => .link (sub a) (sub b)
+  | .output a P A => .output (sub a) (P.substName x z) A
+  | .input a P X => .input (sub a) (P.substName x z) X
+
+notation:65 P"⦃" x "//" z "⦄ₙ" => Proc.substName P x z
+
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 
 abbrev Env := Finset (PName × Types)
@@ -616,7 +671,7 @@ noncomputable instance : ToString Env where
 def Env.mk (x : PName) (A : Types) : Env :=
   {(x, A)}
 
-infixr:90 " ∶ " => Env.mk
+infixr:86 " ∶ " => Env.mk
 
 def Env.linear (Δ : Env) : Prop :=
   (Δ.image Prod.fst).card = Δ.card
@@ -926,7 +981,12 @@ notation:50 "⊢ " P " ∷ " T => Typing T P
 ----------------------------- TRANSITION RULES FOR DERIVATIONS -----------------------------
 
 inductive Mu : Type
-  | L | R | DISP | DUP | USE -- | A -- FIXME: Should this be included??
+  | L
+  | R
+  | DISP
+  | DUP
+  | USE
+  | A (t : Types)
 deriving Repr, DecidableEq
 
 inductive Act : Type
@@ -935,7 +995,7 @@ inductive Act : Type
   | tensor    (x y : PName)             -- x[y]
   | parr      (x y : PName)             -- x(y)
   | output    (x : PName) (A : Types)   -- x[A]
-  | input     (x : PName) (A : Types)   -- x(X)
+  | input     (x : PName) (A : Types)   -- x(A)
   | muBrack   (x : PName) (μ : Mu)      -- x[μ]
   | muParen   (x : PName) (μ : Mu)      -- x[μ]
 deriving Repr, DecidableEq
@@ -950,7 +1010,7 @@ def fNamesAct : Act -> Finset PName -- free names
 @[simp]
 def iNamesAct : Act → Finset PName -- introduced names
   | .one _ | .bot _ | .input _ _ | .output _ _
-  | Act.muBrack _ _ | Act.muParen _ _ => {}
+  | Act.muBrack _ _ | Act.muParen _ _ => ∅
   | .tensor _ y | .parr _ y => {y}
 
 inductive Lbl : Type
@@ -980,7 +1040,7 @@ def Lbl.f : Lbl → Finset PName
 @[simp]
 def Lbl.i : Lbl → Finset PName
   | .tau        => ∅
-  | .link _ _   => {}
+  | .link _ _   => ∅
   | .act a      => iNamesAct a
   | .par l l'   => iNamesAct l ∪ iNamesAct l'
 
@@ -996,7 +1056,7 @@ notation:80 "τ" => Lbl.tau
 notation:80 x "⟷ₗ" y => Lbl.link x y
 notation:70 l " |ₗ " l' => Lbl.par l l'
 notation:80 x "⟦" A "⟧:" => Act.output x A
-notation:80 x "⸨" X "⸩:" => Act.input x X
+notation:80 x "⸨" A "⸩:" => Act.input x A
 
 notation:80 x "⟦𝐋⟧" => Act.muBrack x Mu.L
 notation:80 x "⸨𝐋⸩" => Act.muParen x Mu.L
@@ -1168,20 +1228,20 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | par₁
       {P P' Q : Proc} {l : Lbl} :
       ProcStep P l P' → l.i ∩ Q.f = ∅ →
-      -------------------------------------------
+      ----------------------------------
       ProcStep (P |ₚ Q) l (P' |ₚ Q)
 
   | par₂
       {P Q Q' : Proc} {l : Lbl} :
       ProcStep Q l Q' → l.i ∩ P.f = ∅ →
-      --------------------------------------------
+      ----------------------------------
       ProcStep (P |ₚ Q) l (P |ₚ Q')
 
   | syn
       {P P' Q Q' : Proc} {l l' : Act} :
       ProcStep P l P' → ProcStep Q l' Q' →
       (l |ₗ l').i ∩ (P |ₚ Q).f = ∅  →
-      ----------------------------------------
+      -------------------------------------
       ProcStep (P |ₚ Q) (l |ₗ l') (P' |ₚ Q')
 
   | alpha_equiv
@@ -1236,9 +1296,9 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P : Proc} {x : PName} :
       ProcStep (!x.⦃P⦄) (x⸨USE⸩) P
 
-  | input -- FIXME: Need replacement notation defined
-      {P : Proc} {x : PName} {A X : Types}:
-      ProcStep (x⸨X⸩:P) (x⸨A⸩:) P --{A / X}
+  | input
+      {P : Proc} {x : PName} {A : Types} {X : TVar}:
+      ProcStep (x⸨X⸩:P) (x⸨A⸩:) (P⦃A // X⦄ₜ)
 
   | selectL
       {P : Proc} {x : PName} :
@@ -1266,14 +1326,14 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 
   | com {P P' : Proc} {x y : PName} {μ : Mu} :
       ProcStep P (x⟦μ⟧ₘ |ₗ y⟦μ⟧ₘ) P' →
-      ----------------------------------------
+      -------------------------------------
       ProcStep (𝑣⸨x, y⸩ P) (τ) (𝑣⸨x, y⸩ P')
 
-  | axcut -- FIXME: Need replacement notation defined
+  | axcut
       {P P' : Proc} {x y z : PName} :
       ProcStep P (x ⟷ₗ y) P' →
-      -------------------------------------
-      ProcStep (𝑣⸨y, z⸩ P) (τ) P' -- {x / z}
+      --------------------------------------
+      ProcStep (𝑣⸨y, z⸩ P) (τ) (P'⦃x // z⦄ₙ)
 
 notation:50 P " -[" l "]->ₚ " P' => ProcStep P l P'
 
@@ -1394,17 +1454,17 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       {Γ : Env} {x : PName} {A : Types} :
       EnvStep (Γ‚ x ∶ ?ₜA) (x⟦DUP⟧) (Γ‚ x ∶ ?ₜA ⅋ ?ₜA)
 
-  | dup₂ -- FIXME : (maybe different notation, ! does bool stuff)
+  | dup₂
       {Γ : Env} {x : PName} {A : Types} (h : ?ₑΓ) :
       EnvStep (Γ‚ x ∶ !ₜA) (x⸨DUP⸩) (Γ‚ x ∶ !ₜA ⊗ !ₜA)
 
-  -- | output -- FIXME: Needs replacement notation defined
-  --     {Γ : Env} {x : PName} {A B : Types} :
-  --     EnvStep (Γ‚ x ∶ ∃⸨X⸩.B) (x⟦A⟧:) (Γ‚ x ∶ B{A / X})
+  | output
+      {Γ : Env} {x : PName} {A B : Types} {X : TVar} :
+      EnvStep (Γ‚ x ∶ ∃⸨X⸩.B) (x⟦A⟧:) (Γ‚ x ∶ B{A // X})
 
-  -- | input -- FIXME: Needs replacement notation defined
-  --     {Γ : Env} {x : PName} {A B : Types} :
-  --     EnvStep (Γ‚ x ∶ ∀⸨X⸩.B) (x⸨A⸩) (Γ‚ x ∶ B{A / X})
+  | input
+      {Γ : Env} {x : PName} {A B : Types} {X : TVar} :
+      EnvStep (Γ‚ x ∶ ∀⸨X⸩.B) (x⸨A⸩:) (Γ‚ x ∶ B{A // X})
 
 notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
 

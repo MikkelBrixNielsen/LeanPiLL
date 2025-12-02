@@ -537,3 +537,19 @@ example :
   apply EnvStep.bot
 
 end example_3_12
+
+
+/- REPLACEMENT SYNTAX EXAMPLES -/
+
+def A := (Types.var 0) ⊕ (Types.atom 2)
+
+def B := Types.atom 1
+def C := Types.atom 2
+
+#check A{(B ⊕ C) // 2}
+#eval A
+#eval A{(B ⊕ C) // 0}
+#eval A{(B ⊕ C) // 2}
+
+
+-- FIXME: Add more examples and do for Proc as well

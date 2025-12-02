@@ -12,35 +12,27 @@ import PiLL.Definitions
 
 -- TOOD: Get merging of Envs / HyperEnvs to include disjointness condition
 
-/- TODO:
-  Have sequents instead of using types as is
-  · Github has some inspiration
--/
 
-
--- TODO: Look at the things Marco said in Discord and probably send him some more questions
-
-/- TODO:
-  Find out how to define X in Types i.e. the type variable.
-
-  Find out if X in Proc.input is the type variable X in Types or just some instance
-  of the Types inductive.
-
-  Find out how to define the syntax enabling replacing some type with all instances of X
-  in either a Proc or a HyperEnv.
--/
-
-/- TODO: Define fTypes on Envs and HyperEnvs
-  · So far defining it on Envs seems to be enough
--/
 
 /- TODO:
   · Check correctness of Mu inductive and Lbl since A seems to be part of Mu
-  · Find out if that means x[A] should be removed from the prefix transition
--/
--- TODO: Define replacement syntax on Types and Procs
+  · Find out if that means x[A] should be removed from the prefix transition.
 
--- TODO: Define z-set expansion and σ-expansion
+  · Depends on answer from Marco
+-/
+
+
+
+
+/- TODO:
+  Define the syntax enabling replacing some type with all instances of X in either
+  a Proc or any instance of Types and extend it to Env. Additionally, do the same
+  for process names.
+-/
+
+-- TODO: Define z-set and σ-expansion
+
+
 
 -- TODO: Extend Typing and TypingStep
 
@@ -48,7 +40,10 @@ import PiLL.Definitions
 
 -- TOOD: Extend EnvStep
 
--- TODO: Check how well the serverUsableEnv predicates work if at all
+/- TODO:
+  Check how well the serverUsableEnv predicates work if at all
+  · Consider using the sequent / check all quest definition from Github
+-/
 
 -- TODO: WF for ProcStep
 
@@ -96,7 +91,9 @@ import PiLL.Definitions
   · Both of the above are related to question (4)
 -/
 
--- τ-reflexicity
+-- TODO: Show simulation thingy
+
+-- TODO: τ-reflexicity
 
 -- TODO: Look through old revisions of main.pdf and transfer / check marked uncertanties
 
@@ -109,32 +106,34 @@ import PiLL.Definitions
   understood that typing rules ensure name linearity in environments.
 -/
 
+
+
+
 /-
-  Should replacement avoid capturing exisitng variables e.g.
-  · (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀X.X ⊗ (X ⅋ A)), this seems bad since both X's
-    aren't the same thing, so instead pick new no clashing name for bound X s.t.
-    (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀Z.Z ⊗ (X ⅋ A))
+  Should replacement avoid capturing exisitng variables e.g. don't allow this
+  (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀X.X ⊗ (X ⅋ A))
+  and instead do something to avoid capturing existing variables s.t.
+  (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀Z.Z ⊗ (X ⅋ A))
+  and should replacement in for processes do the same?
 -/
 
 /-
-  in the rule from Fig 7:
+  in the prefix rule from Fig 7:
   π ≠ x(A), x[DISP], x[DUP](x')
   -----------------------------
           π.P -[π]-> P
 
-  The premise excludes inputting A on x, disposing of a server on x and duplicating a
-  server on x to x' from being able to make a transition on their matching label
-  based on the definition π := 𝑥[𝑥′], 𝑥(𝑥′), 𝑥[], 𝑥(), 𝑥[l], 𝑥[r], 𝑥[USE], 𝑥[DUP](x'), and 𝑥[DISP]
-  shouldn't x[A] (output type A on x) be included in π?
+  why does the premise exclude x(A) when it isn't in π? And why isn't it and x[A] part of
+  π's definition?
 
-  Depending on answer removed x[X] (output) from ProcStep
+
+  Depending on answer remove / correct x[X] (output) from / in ProcStep
 
 -/
 
-/-
-  Ask about the rules in Fig 8, using the DUP label and whether or not they are suppsoed to
-  use the parr and tensor operator and not the offer and select operator.
--/
+
+
+
 
 /-
   Get clerafication on whether or not having a HyperEnv defined as Finset (Finset (PNames × Types))
@@ -218,18 +217,6 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
   Or would it be best to define it manually? (Vice versa for env)
   · Additionally, should I be able to define the tripls describing the various lts's
     since they respectively are the least relation closed under their SOS rules?
--/
-
-/-
-  Get some clerafication on how Lbl is defined. Should parallel be recursive on Lbl. Or
-  Should it only be defined on single instances of Act. And how is this reflected in
-  the transitions rules whihc use parallel labels e.g. for syn should l in P -[l]-> P'
-  be able to be a parallel label in itself or should this only be a single action.
--/
-
-/-
-  Don't really understand the conclusions of the RES, 𝟙⊥, and ⊗⅋
-  · I Think I get it now
 -/
 
 /-
