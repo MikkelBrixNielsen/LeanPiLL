@@ -1017,7 +1017,7 @@ inductive Lbl : Type
   | tau                   -- τ
   | link  (x y : PName)   -- x ⟷ y
   | act   (p : Act)       -- l, for l ∈ Act
-  | par   (l l' : Act)    -- l | l' for l, l' ∈ Act, missing: i(l) ∩ i(l') = ∅
+  | par   (l l' : Act)    -- l | l' for l, l' ∈ Act, i(l) ∩ i(l') = ∅ (.WF)
 deriving Repr, DecidableEq
 
 abbrev Lbls := List Lbl

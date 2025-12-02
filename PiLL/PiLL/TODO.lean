@@ -24,32 +24,27 @@ import PiLL.Definitions
 
 
 
-/- TODO:
-  Define the syntax enabling replacing some type with all instances of X in either
-  a Proc or any instance of Types and extend it to Env. Additionally, do the same
-  for process names.
--/
-
 -- TODO: Define z-set and σ-expansion
 
+-- TOOD: Extend ProcStep with z-set and σ-expansion
 
+-- TOOD: Extend EnvStep
 
 -- TODO: Extend Typing and TypingStep
 
--- TOOD: Extend ProcStep with the set replacement notation
+/- TODO:
+  WF for TypingStep without having WF hyp in .syn rule. Side condition seems to weak, so
+  maybe try and define the size of a label and do induction on the size of a label instead
+  of its structure
+-/
+-- TODO: WF for ProcStep
 
--- TOOD: Extend EnvStep
+-- TODO: WF for EnvStep
 
 /- TODO:
   Check how well the serverUsableEnv predicates work if at all
   · Consider using the sequent / check all quest definition from Github
 -/
-
--- TODO: WF for ProcStep
-
--- TODO: WF for EnvStep
-
--- TODO: WF for TypingStep without having WF hyp in .syn rule (even possible? side condition too weak?)
 
 -- TODO: Retrofit new notation to Examples.lean
 
@@ -58,6 +53,10 @@ import PiLL.Definitions
 -- TODO: Example 5.1 (check if it is compileable)
 
 -- TODO: Check alpha renaming and extend it to full πLL
+
+-- TODO: Create replacement examples
+
+-- TODO: Create examples / test usage of new ProcStep, EnvStep, Typing and TypingStep rules
 
 -- TODO: Transitivity proof for AlphaEq (i.e. prove it's an equivalence relation)
 
