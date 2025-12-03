@@ -3,7 +3,7 @@ import PiLL.Definitions
 ---------------------------------------- NOTATION -----------------------------------------
 
 section Notation
-variable (x y : PName) (P Q : Proc) (A : Types)
+variable (x y : PName) (P Q : Proc) (A : Types) (X : TVar)
 
 -- set_option pp.notation false
 #check x⟦⟧.P
@@ -16,12 +16,12 @@ variable (x y : PName) (P Q : Proc) (A : Types)
 #check x⟦𝐑⟧.P
 #check ⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄
 #check x⟦A⟧:P
-#check x⸨A⸩:P
+#check x⸨X⸩:P
 #check !x.⦃P⦄
 #check x⟦USE⟧.P
 #check x⟦DUP⟧⸨y⸩.P
 #check x⟦DISP⟧.P
-#check x⟷y
+#check x ⟷ₚ y
 
 end Notation
 
@@ -33,11 +33,11 @@ section Latch
 --       in general try minimizing things given to cut
 example (x x₁ x₂ y y₁ y₂ z : PName) :
   ⊢ 𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘 ∷
-    {x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 𝟙} := by
+    {x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 1} := by
   rw [Env.merge_assoc]
-  apply Typing.cut ∅ _ _ _ _ _ (𝟙)
+  apply Typing.cut ∅ _ _ _ _ _ (1)
   rw [HyperEnv.merge_unitL, Env.merge_assoc]
-  apply Typing.cut _ _ _ _ _ _ (𝟙)
+  apply Typing.cut _ _ _ _ _ _ (1)
   rw [HyperEnv.merge_assoc]
   apply Typing.mix
   · rw [Env.merge_comm]
@@ -86,6 +86,7 @@ example (x y : PName) :
   · apply TypingStep.one  -- 𝒟 -[l]-> 𝒟'
   · apply TypingStep.one  -- ℰ -[l']-> ℰ'
   · simp                  -- i(l | l') ∩ f(P | Q) = ∅
+  · unfold Lbl.WF ; simp
   · apply Typing.mix₀     -- 𝒟':= ⊢ 𝟘 ∷ ∅
   · apply Typing.mix₀     -- ℰ':= ⊢ 𝟘 ∷ ∅
 
@@ -123,7 +124,7 @@ def p := Typing.mix 𝒟' ℱ'
 #eval proc p
 
 variable (P : Proc) (T : HyperEnv)
-  (𝒟 : ⊢ 1⟦⟧.𝟘 ∷ 1 ∶ 𝟙) (ℱ : ⊢ 2⸨⸩.3⟦⟧.𝟘 ∷ 2 ∶ ⊥‚ 3 ∶ 𝟙)
+  (𝒟 : ⊢ 1⟦⟧.𝟘 ∷ 1 ∶ 1) (ℱ : ⊢ 2⸨⸩.3⟦⟧.𝟘 ∷ 2 ∶ ⊥‚ 3 ∶ 1)
 
 -- Does not work when premises aren't concrete proofs
 -- def q := Typing.mix 𝒟 ℱ
@@ -138,7 +139,7 @@ example (h : ⊢ P ∷ T) : proc h = P := by
 example (h : ⊢ P ∷ T) : env h = T := by
   simp [env]
 
-def y_proc : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥} := by
+def y_proc : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 1} |ₕ {1 ∶ 1‚ 2 ∶ ⊥} := by
   apply Typing.mix
   · apply Typing.one
     apply Typing.mix₀
@@ -149,17 +150,17 @@ def y_proc : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1
 #eval proc y_proc
 -- #eval env y same as above
 
-example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
-  ⊢ proc h ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥} := by
+example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 1} |ₕ {1 ∶ 1‚ 2 ∶ ⊥}) :
+  ⊢ proc h ∷ {1 ∶ 1} |ₕ {1 ∶ 1‚ 2 ∶ ⊥} := by
   simp only [proc]
   exact h
 
-example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
+example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 1} |ₕ {1 ∶ 1‚ 2 ∶ ⊥}) :
   ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ env h := by
   simp only [env]
   exact h
 
-example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 𝟙} |ₕ {1 ∶ 𝟙‚ 2 ∶ ⊥}) :
+example (h : ⊢ 1⟦⟧.𝟘 |ₚ 2⸨⸩.1⟦⟧.𝟘 ∷ {1 ∶ 1} |ₕ {1 ∶ 1‚ 2 ∶ ⊥}) :
   ⊢ proc h ∷ env h := by
   simp only [proc]
   simp only [env]
@@ -391,6 +392,7 @@ example (Γ Γ' Δ : Env) (A B : Types)
     rw! [Env.merge_move_last_two_left]
     apply TypingStep.parr
   · aesop
+  · unfold Lbl.WF ; rfl
   · exact ℰ'
   · exact ℱ
   · apply Typing.bot
@@ -471,6 +473,7 @@ example (Γ Γ' Δ : Env) (A B : Types)
     · rw! [Env.merge_swap_last (Δ‚ z ∶ ⊥) (y ∶ Bᗮ) (y' ∶ Aᗮ)]
       apply TypingStep.parr
     · aesop
+    · unfold Lbl.WF ; rfl
     · rw [HyperEnv.merge_unitL, Env.merge_comm Γ Γ']
       exact ℰ
     · rw [HyperEnv.merge_unitL, HyperEnv.merge_comm]
@@ -488,8 +491,6 @@ def x₂ := 3
 def y1 := 4
 def y₁ := 5
 def y₂ := 6
-
-
 
 /- Proc Execution for latch x⸨⸩ and y⸨⸩-/
 example :
@@ -527,12 +528,12 @@ example :
 
 /- Typing making the same execution -/
 example (x y z : PName) :
-  x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 𝟙 -[x⸨⸩]->ₑ y ∶ ⊥‚ z ∶ 𝟙 := by
+  x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 1 -[x⸨⸩]->ₑ y ∶ ⊥‚ z ∶ 1 := by
   rw [Env.merge_assoc, Env.merge_comm]
   apply EnvStep.bot
 
 example :
-  y1 ∶ ⊥‚ z ∶ 𝟙 -[y1⸨⸩]->ₑ z ∶ 𝟙 := by
+  y1 ∶ ⊥‚ z ∶ 1 -[y1⸨⸩]->ₑ z ∶ 1 := by
   rw [Env.merge_comm]
   apply EnvStep.bot
 

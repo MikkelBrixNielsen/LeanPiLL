@@ -978,7 +978,7 @@ inductive Typing : HyperEnv → Proc → Prop where
 
 notation:50 "⊢ " P " ∷ " T => Typing T P
 
------------------------------ TRANSITION RULES FOR DERIVATIONS -----------------------------
+------------------------------------------ LABELS ------------------------------------------
 
 inductive Mu : Type
   | L
@@ -1024,6 +1024,7 @@ abbrev Lbls := List Lbl
 
 instance : Coe Act Lbl := ⟨Lbl.act⟩
 
+@[simp]
 def Lbl.WF : Lbl → Prop
   | .tau => True
   | .link _ _ => True
@@ -1071,6 +1072,8 @@ notation:80 x "⸨DISP⸩" => Act.muParen x Mu.DISP
 
 notation:80 x "⟦" μ "⟧ₘ" => Act.muBrack x μ
 notation:80 x "⸨" μ "⸩ₘ" => Act.muParen x μ
+
+----------------------------- TRANSITION RULES FOR DERIVATIONS -----------------------------
 
 inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
   Lbl → {𝒢' : HyperEnv} → {P' : Proc} → Typing 𝒢' P' → Prop where
@@ -1174,7 +1177,6 @@ theorem TypingStep.preserves_WF (Γ Γ' : HyperEnv) (P P' : Proc)
   case par₁ | par₂| alpha_equiv | res => simp_all
   case syn WF ih1 ih2 => exact WF
 
--------------------------- MULTI-TYPING-STEP-TRANSITIONS ---------------------------
 notation:80 "ε" => (List.nil : Lbls)
 notation:60 xs " ∷ₗ " x => List.concat (xs : Lbls) (x : Lbl)
 
@@ -1268,10 +1270,6 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       -------------------------------------
       ProcStep (𝑣⸨x, y⸩ P) (l) (𝑣⸨x, y⸩ P')
 
-  | output
-      {P : Proc} {x : PName} {X : Types} :
-      ProcStep (x⟦X⟧:P) (x⟦X⟧:) P
-
   | dispose₁
       {P : Proc} {x : PName} :
       ProcStep (x⟦DISP⟧.P) (x⟦DISP⟧) (x⸨⸩.P)
@@ -1292,9 +1290,17 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   --     ---------------------------------------------------------------------------------
   --     ProcStep (!x.{P}) (x⸨DUP⸩) (z₁⟦DUP⟧⸨z₁σ⸩ ... zₙ⟦DUP⟧⸨zₙσ⸩.x⟦xσ⟧.((!x.P)σ) |ₚ !x.{P})
 
+  | use₁
+      {P : Proc} {x : PName} :
+      ProcStep (x⟦USE⟧.P) (x⟦USE⟧) P
+
   | use₂
       {P : Proc} {x : PName} :
       ProcStep (!x.⦃P⦄) (x⸨USE⸩) P
+
+  | output
+      {P : Proc} {x : PName} {A : Types} :
+      ProcStep (x⟦A⟧:P) (x⟦A⟧:) P
 
   | input
       {P : Proc} {x : PName} {A : Types} {X : TVar}:
@@ -1430,7 +1436,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       {x y : PName} {A : Types} :
       EnvStep (x ∶ Aᗮ‚ y ∶ A) (x ⟷ₗ y) ∅
 
-  | link₂
+  | link₂ -- FIXME this one isn't actually in the definition in Fig 8, but it matches ProcStep
       {x y : PName} {A : Types} :
       EnvStep (x ∶ Aᗮ‚ y ∶ A) (y ⟷ₗ x) ∅
 
@@ -1439,7 +1445,9 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       EnvStep (Γ‚ x ∶ ?ₜA) (x⟦USE⟧) (Γ‚ x ∶ A)
 
   | use₂
-      {Γ : Env} {x : PName} {A : Types} (h : ?ₑΓ) :
+      {Γ : Env} {x : PName} {A : Types} :
+      ?ₑΓ →
+      --------------------------------------
       EnvStep (Γ‚ x ∶ !ₜA) (x⸨USE⸩) (Γ‚ x ∶ A)
 
   | disp₁
@@ -1455,7 +1463,9 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       EnvStep (Γ‚ x ∶ ?ₜA) (x⟦DUP⟧) (Γ‚ x ∶ ?ₜA ⅋ ?ₜA)
 
   | dup₂
-      {Γ : Env} {x : PName} {A : Types} (h : ?ₑΓ) :
+      {Γ : Env} {x : PName} {A : Types} :
+      ?ₑΓ →
+      ----------------------------------------------
       EnvStep (Γ‚ x ∶ !ₜA) (x⸨DUP⸩) (Γ‚ x ∶ !ₜA ⊗ !ₜA)
 
   | output
@@ -1471,12 +1481,12 @@ notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
 inductive MEST : (𝒢 : HyperEnv) → Lbls → (𝒢' : HyperEnv) → Prop where
   | refl
     {𝒢 : HyperEnv} :
-    ------------
+    -------------
     MEST 𝒢 (ε) 𝒢
 
   | stepR {l : Lbl} {ls : Lbls} {𝒢 𝒢'' 𝒢' : HyperEnv} :
     (MEST 𝒢 ls 𝒢'') → (𝒢'' -[l]->ₑ 𝒢') →
-    ----------------------------------
+    ------------------------------------
           MEST 𝒢 (ls ∷ₗ l) 𝒢'
 
 notation:50 𝒢 " -[" ls "]->>ₑ " 𝒢' => MPST 𝒢 ls 𝒢'

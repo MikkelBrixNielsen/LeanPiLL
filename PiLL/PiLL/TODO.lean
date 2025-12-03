@@ -21,7 +21,7 @@ import PiLL.Definitions
   · Depends on answer from Marco
 -/
 
-
+-- TODO: Get quantifiers to bind tighter, should bind to as little as possible
 
 
 -- TODO: Define z-set and σ-expansion
