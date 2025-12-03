@@ -15,6 +15,39 @@
     · It is correct since we cannot exclude that Γ and Δ now depend on eachother.
 -/
 
+/- TODO:
+  · Check correctness of Mu inductive and Lbl since A seems to be part of Mu
+  · Find out if that means x[A] should be removed from the prefix transition.
+
+  · Both x(A) and x[A] should be in π, the definitions of μ are local, thus I
+    think keeping A in μ to make the com rule generic and encompas all the 
+    mentioned transitions is the way forward. 
+-/
+
+/-
+  Should replacement avoid capturing exisitng variables e.g. don't allow this
+  (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀X.X ⊗ (X ⅋ A))
+  and instead do something to avoid capturing existing variables s.t.
+  (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀Z.Z ⊗ (X ⅋ A))
+  and should replacement in for processes do the same?
+  · yes 
+-/
+
+/-
+  in the prefix rule from Fig 7:
+  π ≠ x(A), x[DISP], x[DUP](x')
+  -----------------------------
+          π.P -[π]-> P
+
+  why does the premise exclude x(A) when it isn't in π? And why isn't it and x[A] part of
+  π's definition?
+
+
+  Depending on answer remove / correct x[X] (output) from / in ProcStep
+  
+  · both are in π
+-/
+
 /- 
   Find out how to define X in Types i.e. the type variable.
   · It's just another terminal symbol / placeholder type to be replaced later

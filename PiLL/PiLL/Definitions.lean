@@ -10,6 +10,7 @@ import Mathlib.Tactic
 abbrev Atom := Nat
 abbrev TVar := Nat
 
+-- FIXME: Probably don't need zero or top
 inductive Types : Type where
   | atom      (a : Atom)                -- named type, like A, B, ...
   | atomDual  (a : Atom)                -- dual of a named type
@@ -39,11 +40,11 @@ instance : One Types := ⟨Types.one⟩
 instance : Top Types := ⟨Types.top⟩
 instance : Bot Types := ⟨Types.bot⟩
 
-prefix:max "?ₜ" => Types.quest
-prefix:max "!ₜ" => Types.bang
+prefix:95 "??" => Types.quest
+prefix:95 "!!" => Types.bang
 
-notation:90 "∃⸨" v "⸩." A => Types.exist_ v A
-notation:90 "∀⸨" v "⸩." A => Types.forall_ v A
+notation:max "∃" v ":" A => Types.exist_ v A
+notation:max "∀" v ":" A => Types.forall_ v A
 
 private def reprTypesAux : Types → Nat → String
   | .atom a, _ => s!"A{a}"
@@ -58,10 +59,10 @@ private def reprTypesAux : Types → Nat → String
   | .parr A B, _ => s!"({reprTypesAux A 0} ⅋ {reprTypesAux B 0})"
   | .oplus A B, _ => s!"({reprTypesAux A 0} ⊕ {reprTypesAux B 0})"
   | .amp A B, _ => s!"({reprTypesAux A 0} & {reprTypesAux B 0})"
-  | .bang A, _ => s!"!ₜ{reprTypesAux A 0}"
-  | .quest A, _ => s!"?ₜ{reprTypesAux A 0}"
-  | .forall_ v A, _ => s!"∀⸨{v}⸩.{reprTypesAux A 0}"
-  | .exist_ v A, _ => s!"∃⸨{v}⸩.{reprTypesAux A 0}"
+  | .bang A, _ => s!"!!{reprTypesAux A 0}"
+  | .quest A, _ => s!"??{reprTypesAux A 0}"
+  | .forall_ v A, _ => s!"∀{v}:{reprTypesAux A 0}"
+  | .exist_ v A, _ => s!"∃{v}:{reprTypesAux A 0}"
 
 instance : Repr Types where
   reprPrec A _ := reprTypesAux A 0
@@ -202,10 +203,10 @@ notation:75 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
 
 notation:80 x "⟦𝐋⟧." P:80 => Proc.selectL x P
 notation:80 x "⟦𝐑⟧." P:80 => Proc.selectR x P
-notation:80 "⸨" x "⸩.case⦃𝐋" " : " P:80 ", " "𝐑" " : " Q :80"⦄" => Proc.offer x P Q
+notation:80 x ":case{𝐋" " : " P:80 ", " "𝐑" " : " Q :80"}" => Proc.offer x P Q
 notation:80 x "⟦" A "⟧:" P => Proc.output x P A
 notation:80 x "⸨" X "⸩:" P => Proc.input x P X
-notation:80 "!" x ".⦃" P "⦄" => Proc.server x P
+notation:80 "!" x ":{" P "}" => Proc.server x P
 notation:80 x "⟦USE⟧." P => Proc.consume x P
 notation:80 x "⟦DUP⟧⸨" y "⸩." P => Proc.duplicate x y P
 notation:80 x "⟦DISP⟧." P => Proc.dispose x P
@@ -224,10 +225,11 @@ private def reprProcAux : Proc → Nat → String
   | .par P Q, _ => s!"({reprProcAux P 0} |ₚ {reprProcAux Q 0})"
   | .selectL x P, _ => s!"{x}⟦𝐋⟧.{reprProcAux P 0}"
   | .selectR x P, _ => s!"{x}⟦𝐑⟧.{reprProcAux P 0}"
-  | .offer x P Q, _ => s!"⸨{x}⸩.case⦃𝐋 : {reprProcAux P 0}, 𝐑 : {reprProcAux Q 0}⦄"
+  | .offer x P Q, _ =>
+      s!"{x}:case" ++ "{" ++ s!" 𝐋 : {reprProcAux P 0}, 𝐑 : {reprProcAux Q 0}" ++ "}"
   | .output x P A, _ => s!"{x}⟦{A}⟧.{reprProcAux P 0}"
   | .input x P X, _ => s!"{x}⟦{X}⟧.{reprProcAux P 0}"
-  | .server x P, _ => s!"!{x}.⦃{reprProcAux P 0}⦄"
+  | .server x P, _ => s!"!{x}:" ++ "{" ++ s!"{reprProcAux P 0}" ++ "}"
   | .consume x P, _ => s!"{x}⟦USE⟧.{reprProcAux P 0}"
   | .duplicate x y P, _ => s!"{x}⟦DUP⟧⸨{y}⸩.{reprProcAux P 0}"
   | .dispose x P, _ => s!"{x}⟦DISP⟧.{reprProcAux P 0}"
@@ -935,42 +937,43 @@ inductive Typing : HyperEnv → Proc → Prop where
       {Γ : Env} {P Q : Proc} {x : PName} {A B : Types} :
       Typing (Γ‚ x ∶ A) P → Typing (Γ‚ x ∶ B) Q →
       ---------------------------------------------
-      Typing (Γ‚ x ∶ A & B) (⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄)
+      Typing (Γ‚ x ∶ A & B) (x:case{𝐋 : P, 𝐑 : Q})
 
   | quest
       {Γ : Env} {P : Proc} {x : PName} {A : Types} :
       Typing (Γ‚ x ∶ A) P →
       -----------------------------
-      Typing (Γ‚ x ∶ ?ₜA) (x⟦USE⟧.P)
+      Typing (Γ‚ x ∶ ??A) (x⟦USE⟧.P)
 
   | w
       {Γ : Env} {P : Proc} {x : PName} {A : Types} :
       Typing Γ P →
       -----------------------------
-      Typing (Γ‚ x ∶ ?ₜA) (x⟦DISP⟧.P)
+      Typing (Γ‚ x ∶ ??A) (x⟦DISP⟧.P)
 
   | c
       {Γ : Env} {P : Proc} {x x' : PName} {A : Types} :
-      Typing (Γ‚ x ∶ ?ₜA‚ x' ∶ ?ₜA) P →
+      Typing (Γ‚ x ∶ ??A‚ x' ∶ ??A) P →
       --------------------------------
-      Typing (Γ‚ x ∶ ?ₜA) (x⟦DUP⟧⸨x'⸩.P)
+      Typing (Γ‚ x ∶ ??A) (x⟦DUP⟧⸨x'⸩.P)
 
   | bang
       {Γ : Env} {P : Proc} {x : PName} {A : Types} :
       Typing (Γ‚ x ∶ A) P → ?ₑΓ →
       ------------------------------
-      Typing (Γ‚ x ∶ !ₜA) (!x.⦃P⦄)
+      Typing (Γ‚ x ∶ !!A) (!x:{P})
 
-  -- | exists_ -- FIXME: Need replacement syntax defined
-  --     {Γ : Env} {P : Proc} {x : PName} {A : Types} :
-  --     Typing (Γ‚ x ∶ B{A / X}) P →
-  --     --------------------------
-  --     Typing (Γ‚ x ∶ ∃⸨X⸩.B) (x⟦A⟧:P)
+  | exists_
+      {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar} :
+      Typing (Γ‚ x ∶ B{A // X}) P →
+      -----------------------------
+      Typing (Γ‚ x ∶ ∃X:B) (x⟦A⟧:P)
 
-  -- | forall_ -- FIXME: How to define Type variable X? And ft does not exist
-  --     {Γ : Env} {P : Proc} {x : PName} {A : Types} : -- {X : Types.var} :
-  --     Typing (Γ‚ x ∶ A) P → -- X ∉ Γ.fTypes →
-  --     Typing (Γ‚ x ∶ ∀⸨X⸩.A) (x⸨X⸩:P)
+  | forall_
+      {Γ : Env} {P : Proc} {x : PName} {A : Types} {X : TVar} :
+      Typing (Γ‚ x ∶ A) P → X ∉ ft(Γ) →
+      ---------------------------------
+      Typing (Γ‚ x ∶ ∀X:A) (x⸨X⸩:P)
 
   | ax
       {x y : PName} {A : Types} :
@@ -1172,10 +1175,7 @@ theorem TypingStep.preserves_WF (Γ Γ' : HyperEnv) (P P' : Proc)
   (𝒟 : ⊢ P ∷ Γ) (𝒟' : ⊢ P' ∷ Γ') (l : Lbl) :
   TypingStep 𝒟 l 𝒟' → l.WF := by
   intro h
-  induction h
-  case one | bot | tensor | parr | one_bot | tensor_parr => simp [Lbl.WF]
-  case par₁ | par₂| alpha_equiv | res => simp_all
-  case syn WF ih1 ih2 => exact WF
+  induction h <;> simp_all [Lbl.WF]
 
 notation:80 "ε" => (List.nil : Lbls)
 notation:60 xs " ∷ₗ " x => List.concat (xs : Lbls) (x : Lbl)
@@ -1242,8 +1242,8 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | syn
       {P P' Q Q' : Proc} {l l' : Act} :
       ProcStep P l P' → ProcStep Q l' Q' →
-      (l |ₗ l').i ∩ (P |ₚ Q).f = ∅  →
-      -------------------------------------
+      (l |ₗ l').i ∩ (P |ₚ Q).f = ∅  → (l |ₗ l').WF →
+      ---------------------------------------------
       ProcStep (P |ₚ Q) (l |ₗ l') (P' |ₚ Q')
 
   | alpha_equiv
@@ -1296,7 +1296,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 
   | use₂
       {P : Proc} {x : PName} :
-      ProcStep (!x.⦃P⦄) (x⸨USE⸩) P
+      ProcStep (!x:{P}) (x⸨USE⸩) P
 
   | output
       {P : Proc} {x : PName} {A : Types} :
@@ -1312,7 +1312,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 
   | offerL
       {P Q : Proc} {x : PName} :
-      ProcStep (⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄) (x⸨𝐋⸩) P
+      ProcStep (x:case{𝐋 : P, 𝐑 : Q}) (x⸨𝐋⸩) P
 
   | selectR
       {P : Proc} {x : PName} :
@@ -1320,7 +1320,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 
   | offerR
       {P Q : Proc} {x : PName} :
-      ProcStep (⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄) (x⸨𝐑⸩) Q
+      ProcStep (x:case{𝐋 : P, 𝐑 : Q}) (x⸨𝐑⸩) Q
 
   | link₁
       {x y : PName} :
@@ -1342,6 +1342,11 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep (𝑣⸨y, z⸩ P) (τ) (P'⦃x // z⦄ₙ)
 
 notation:50 P " -[" l "]->ₚ " P' => ProcStep P l P'
+
+theorem ProcStep.preserves_WF (P P' : Proc) (l : Lbl) :
+  ProcStep P l P' → l.WF := by
+  intro h
+  induction h <;> simp_all [Lbl.WF]
 
 inductive MPST : (P : Proc) → Lbls → (P' : Proc) → Prop where
   | refl
@@ -1391,8 +1396,8 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
 
   | syn
       {𝒢 𝒢' ℋ ℋ': HyperEnv} {l l' : Act} :
-      EnvStep 𝒢 l 𝒢' → EnvStep ℋ l' ℋ' →
-      ------------------------------------
+      EnvStep 𝒢 l 𝒢' → EnvStep ℋ l' ℋ' → (l |ₗ l').WF →
+      --------------------------------------------------
       EnvStep (𝒢 |ₕ ℋ) (l |ₗ l') (𝒢' |ₕ ℋ')
 
   | one_bot
@@ -1442,41 +1447,46 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
 
   | use₁
       {Γ : Env} {x : PName} {A : Types} :
-      EnvStep (Γ‚ x ∶ ?ₜA) (x⟦USE⟧) (Γ‚ x ∶ A)
+      EnvStep (Γ‚ x ∶ ??A) (x⟦USE⟧) (Γ‚ x ∶ A)
 
   | use₂
       {Γ : Env} {x : PName} {A : Types} :
       ?ₑΓ →
       --------------------------------------
-      EnvStep (Γ‚ x ∶ !ₜA) (x⸨USE⸩) (Γ‚ x ∶ A)
+      EnvStep (Γ‚ x ∶ !!A) (x⸨USE⸩) (Γ‚ x ∶ A)
 
   | disp₁
       {Γ : Env} {x : PName} {A : Types} :
-      EnvStep (Γ‚ x ∶ ?ₜA) (x⟦DISP⟧) (Γ‚ x ∶ ⊥)
+      EnvStep (Γ‚ x ∶ ??A) (x⟦DISP⟧) (Γ‚ x ∶ ⊥)
 
   | disp₂
       {Γ : Env} {x : PName} {A : Types} :
-      EnvStep {Γ‚ x ∶ !ₜA} (x⸨DISP⸩) (Γ‚ x ∶ 1)
+      EnvStep {Γ‚ x ∶ !!A} (x⸨DISP⸩) (Γ‚ x ∶ 1)
 
   | dup₁
       {Γ : Env} {x : PName} {A : Types} :
-      EnvStep (Γ‚ x ∶ ?ₜA) (x⟦DUP⟧) (Γ‚ x ∶ ?ₜA ⅋ ?ₜA)
+      EnvStep (Γ‚ x ∶ ??A) (x⟦DUP⟧) (Γ‚ x ∶ ??A ⅋ ??A)
 
   | dup₂
       {Γ : Env} {x : PName} {A : Types} :
       ?ₑΓ →
       ----------------------------------------------
-      EnvStep (Γ‚ x ∶ !ₜA) (x⸨DUP⸩) (Γ‚ x ∶ !ₜA ⊗ !ₜA)
+      EnvStep (Γ‚ x ∶ !!A) (x⸨DUP⸩) (Γ‚ x ∶ !!A ⊗ !!A)
 
   | output
       {Γ : Env} {x : PName} {A B : Types} {X : TVar} :
-      EnvStep (Γ‚ x ∶ ∃⸨X⸩.B) (x⟦A⟧:) (Γ‚ x ∶ B{A // X})
+      EnvStep (Γ‚ x ∶ ∃X:B) (x⟦A⟧:) (Γ‚ x ∶ B{A // X})
 
   | input
       {Γ : Env} {x : PName} {A B : Types} {X : TVar} :
-      EnvStep (Γ‚ x ∶ ∀⸨X⸩.B) (x⸨A⸩:) (Γ‚ x ∶ B{A // X})
+      EnvStep (Γ‚ x ∶ ∀X:B) (x⸨A⸩:) (Γ‚ x ∶ B{A // X})
 
 notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
+
+theorem EnvStep.preserves_WF (Γ Γ' : HyperEnv) (l : Lbl) :
+  EnvStep Γ l Γ' → l.WF := by
+  intro h
+  induction h <;> simp_all [Lbl.WF]
 
 inductive MEST : (𝒢 : HyperEnv) → Lbls → (𝒢' : HyperEnv) → Prop where
   | refl

@@ -14,50 +14,48 @@ import PiLL.Definitions
 
 
 
-/- TODO:
-  · Check correctness of Mu inductive and Lbl since A seems to be part of Mu
-  · Find out if that means x[A] should be removed from the prefix transition.
 
-  · Depends on answer from Marco
--/
 
--- TODO: Get quantifiers to bind tighter, should bind to as little as possible
+
 
 
 -- TODO: Define z-set and σ-expansion
 
 -- TOOD: Extend ProcStep with z-set and σ-expansion
 
--- TOOD: Extend EnvStep
+-- TODO: Extend and TypingStep
 
--- TODO: Extend Typing and TypingStep
+-- TODO: Make substitution / replacement avoid capture (create fresh name function for TVar).
+
+-- TODO: Check if the generic µ label thing works
+
+-- TODO: Check if ft(Γ) works as inteded (create some examples as well)
+
+-- TODO: Create the qunatifier example Marco gave in discord
 
 /- TODO:
-  WF for TypingStep without having WF hyp in .syn rule. Side condition seems to weak, so
-  maybe try and define the size of a label and do induction on the size of a label instead
-  of its structure
+  WF for _Step without having WF hyp in .syn rule. Side condition seems to weak, so
+  maybe try and define the size of a label and do induction on the size instead.
 -/
--- TODO: WF for ProcStep
-
--- TODO: WF for EnvStep
 
 /- TODO:
   Check how well the serverUsableEnv predicates work if at all
   · Consider using the sequent / check all quest definition from Github
 -/
 
--- TODO: Retrofit new notation to Examples.lean
-
--- TOOD: Make notation check section in Examples.lean as has been done for Proc's notation
+-- TOOD: Make notation check section in Examples.lean for Proc, Types, Labels
 
 -- TODO: Example 5.1 (check if it is compileable)
 
 -- TODO: Check alpha renaming and extend it to full πLL
 
--- TODO: Create replacement examples
-
--- TODO: Create examples / test usage of new ProcStep, EnvStep, Typing and TypingStep rules
-
+/- TODO: Create examples / test usage of:
+  · ProcStep
+  · EnvStep
+  · Typing
+  · TypingStep
+  · Create replacement examples
+-/
 -- TODO: Transitivity proof for AlphaEq (i.e. prove it's an equivalence relation)
 
 -- TODO: Check if rules depending on AlphaEq work as intended or get stuck
@@ -98,41 +96,14 @@ import PiLL.Definitions
 
 -- TODO: Fix #eval env (Typing 𝒢 P) not working
 
+-- TODO: Try once more to get binders to bind tighter than infix operators without "()"
+
 --------------------------------------- QUESTIONS ---------------------------------------
 /-
   Is it the typing rules which ensure that a single name cannot be used by multiple
   environments otherwise how is 𝒢(x) supposed to be defined and is it correctly '
   understood that typing rules ensure name linearity in environments.
 -/
-
-
-
-
-/-
-  Should replacement avoid capturing exisitng variables e.g. don't allow this
-  (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀X.X ⊗ (X ⅋ A))
-  and instead do something to avoid capturing existing variables s.t.
-  (∀X.X ⊗ Y){(X ⅋ A) / Y} => (∀Z.Z ⊗ (X ⅋ A))
-  and should replacement in for processes do the same?
--/
-
-/-
-  in the prefix rule from Fig 7:
-  π ≠ x(A), x[DISP], x[DUP](x')
-  -----------------------------
-          π.P -[π]-> P
-
-  why does the premise exclude x(A) when it isn't in π? And why isn't it and x[A] part of
-  π's definition?
-
-
-  Depending on answer remove / correct x[X] (output) from / in ProcStep
-
--/
-
-
-
-
 
 /-
   Get clerafication on whether or not having a HyperEnv defined as Finset (Finset (PNames × Types))
