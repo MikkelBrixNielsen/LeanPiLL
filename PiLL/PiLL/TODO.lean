@@ -214,5 +214,6 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
     · Diamond property ensures τ transitions does not affect possible interactions
       interactions available before a τ transition are also available after
 
-  · why is 𝒗wx (w().0 | x[].y[].0 | x[].z[].0) ill-typed (becuase the two x's?)
+  · why is 𝒗wx (w().0 | x[].y[].0 | x[].z[].0) ill-typed
+    · because the cut between w and x is ambigous.
 -/

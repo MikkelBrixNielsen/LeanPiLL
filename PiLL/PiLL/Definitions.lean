@@ -653,6 +653,18 @@ def Proc.substName (P : Proc) (x z : PName) : Proc :=
 
 notation:65 P"⦃" x "//" z "⦄ₙ" => Proc.substName P x z
 
+@[simp]
+def Proc.close (P : Proc) (names : List PName) : Proc :=
+  match P with
+  | .server x _ => names.foldr (fun n acc => Proc.dispose n acc) (x⟦⟧.𝟘)
+  | _ => P
+
+@[simp]
+def Proc.open (P : Proc) (names : List PName) (σ : Renaming) : Proc :=
+  match P with
+  | .server _ _  => names.foldr (fun n acc => Proc.duplicate n (σ n) acc) (Proc.par (rename σ P) P)
+  | _ => P
+
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 
 abbrev Env := Finset (PName × Types)
@@ -1270,25 +1282,25 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       -------------------------------------
       ProcStep (𝑣⸨x, y⸩ P) (l) (𝑣⸨x, y⸩ P')
 
-  | dispose₁
+  | disp₁
       {P : Proc} {x : PName} :
       ProcStep (x⟦DISP⟧.P) (x⟦DISP⟧) (x⸨⸩.P)
 
-  -- | disp₂ -- FIXME: how to define / produce z-set in premise and z processes in conclusion
-  --     {P : Proc} {x x' z: PName} :
-  --     P.f \ {x'} = {z, ..., zₙ} →
-  --     ---------------------------------------------------------
-  --     ProcStep (!x.{P}) (x⸨DISP⸩) (z₁⟦DISP⟧ ... zₙ⟦DISP⟧.x⟦⟧.𝟘)
+  | disp₂
+      {P : Proc} {x : PName} {names : List PName} :
+      (P.f \ {x}).toList.mergeSort (· ≤ ·) = names →
+      -------------------------------------------------------
+      ProcStep (!x:{P}) (x⸨DISP⸩) (Proc.close (!x:{P}) names)
 
   | dup₁
       {P : Proc} {x x' : PName} :
       ProcStep (x⟦DUP⟧⸨x'⸩.P) (x⟦DUP⟧) (x⸨x'⸩.P)
 
-  -- | dup₂ -- FIXME: define sigma expansion, also needs z-set expansion
-  --     {P Pσ : Proc} {x x' : PName} :
-  --     P.f ∩ Pσ.f = ∅ → P.f \ {x} = {z,..., zₙ} →
-  --     ---------------------------------------------------------------------------------
-  --     ProcStep (!x.{P}) (x⸨DUP⸩) (z₁⟦DUP⟧⸨z₁σ⸩ ... zₙ⟦DUP⟧⸨zₙσ⸩.x⟦xσ⟧.((!x.P)σ) |ₚ !x.{P})
+  | dup₂
+      {P : Proc} {x x' : PName} {names : List PName} {σ : Renaming} :
+      P.f ∩ (P.f.image σ) = ∅ → names = (P.f \ {x}).toList.mergeSort (· ≤ ·) →
+      ---------------------------------------------------------------------------------
+      ProcStep (!x:{P}) (x⸨DUP⸩) (Proc.open (!x:{P}) names σ)
 
   | use₁
       {P : Proc} {x : PName} :

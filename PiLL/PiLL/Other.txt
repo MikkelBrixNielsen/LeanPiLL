@@ -1,5 +1,12 @@
 /- Resolved questions and notes -/
 
+/-
+  Regarding ProcStep disp₂
+  · P.f produces a set of all mentioned names i.e. the processes which needs to be send a
+    dispose signal. A process should not recieve multiple dispose signals i.e. sets are 
+    fine since P.f disregards multiplicity. 
+-/
+
 /- How should hyperenvs be defined
     · just a bag of envs no structure
     · par constructor to keep track of structure
