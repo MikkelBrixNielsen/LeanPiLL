@@ -19,11 +19,10 @@ import PiLL.Definitions
 
 
 
--- TODO: Define z-set and σ-expansion
 
--- TOOD: Extend ProcStep with z-set and σ-expansion
-
--- TODO: Extend and TypingStep
+/- TODO: Extend and TypingStep
+  · Give typing judgements replacement syntax
+-/
 
 -- TODO: Make substitution / replacement avoid capture (create fresh name function for TVar).
 
@@ -216,4 +215,20 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
 
   · why is 𝒗wx (w().0 | x[].y[].0 | x[].z[].0) ill-typed
     · because the cut between w and x is ambigous.
+-/
+
+
+-------- less pressing --------
+
+/-
+  I have been encountering situations where the constructor for a rule describing a step
+  between two derivations need a premise to be rewritten to fit the expected type. Specifically
+  when cut is involved I often need to incorporate a by block to construct the expected typing /
+  hyper-environment resulting from doing the step, since the resulting typing / hyper-environment
+  does not match exactly what is expected, but is equivalent and can be obtained through rewrites.
+
+  Would you prefer that I keep the by block in favour of having the rules stated as closely to the
+  paper as possible, or should I instead try and eliminate the use of by block by making the constructor
+  require that the premise is given as closely to the expected form as possible and leave more of the
+  rewriting to the user?
 -/

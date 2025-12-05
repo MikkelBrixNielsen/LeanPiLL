@@ -133,9 +133,11 @@ theorem Types.dual_inj (A B : Types) : Aᗮ = Bᗮ ↔ A = B := by
 theorem Types.dual_involution (A : Types) : Aᗮᗮ = A := by
   induction A <;> simp [*]
 
+@[simp]
 def Types.linImpl (A B : Types) : Types := Aᗮ ⅋ B
 infix:90 " ⊸ " => Types.linImpl
 
+@[simp]
 def Types.freeTypes : Types → Finset TVar
   | .atom _ | .atomDual _ | .one | .bot | .zero | .top => ∅
   | .var v        => {v}
@@ -149,6 +151,7 @@ def Types.freeTypes : Types → Finset TVar
   | .forall_ v A  => A.freeTypes \ {v}
   | .exist_ v A   => A.freeTypes \ {v}
 
+@[simp]
 def Types.subst (T R : Types) (X : TVar) : Types :=
   match T with
   | .atom a => .atom a
@@ -156,20 +159,25 @@ def Types.subst (T R : Types) (X : TVar) : Types :=
   | .var v => if v = X then R else .var v
   | .varDual v => if v = X then Rᗮ else .varDual v
   | .one => .one
-  | .bot => .one
-  | .zero => .top
-  | .top => .zero
+  | .bot => .bot
+  | .zero => .zero  -- FIXME: type probably not needed
+  | .top => .top    -- FIXME: type probably not needed
   | .tensor A B => .tensor (A.subst R X) (B.subst R X)
   | .parr A B => .parr (A.subst R X) (B.subst R X)
   | .oplus A B => .oplus (A.subst R X) (B.subst R X)
   | .amp A B => .amp (A.subst R X) (B.subst R X)
   | .bang A       => .bang (A.subst R X)
   | .quest A      => .quest (A.subst R X)
-  -- FIXME: This does not avoud capture if B includes v
+  -- FIXME: This does not avoid capture if B includes v
   | .forall_ v A  => if v = X then .forall_ v A else .forall_ v (A.subst R X)
   | .exist_ v A  => if v = X then .exist_ v A else .exist_ v (A.subst R X)
 
 notation:88 T "{" R " // " X "}" => Types.subst T R X
+
+@[simp]
+theorem Types.subst_dual (A B : Types) (X : TVar) : Bᗮ{A // X} = B{A // X}ᗮ := by
+  induction B <;> simp [dual, subst] <;> try split <;> simp_all
+  all_goals simp_all
 
 ------------------------------------------ Proc  ------------------------------------------
 
@@ -185,7 +193,7 @@ inductive Proc : Type where
   | nil                                           -- 𝟘
   | selectL   (x : PName) (P : Proc)              -- x[L].P
   | selectR   (x : PName) (P : Proc)              -- x[R].P
-  | offer     (x : PName) (P Q : Proc)            -- x.case{L : P, R : Q}
+  | amp     (x : PName) (P Q : Proc)            -- x.case{L : P, R : Q}
   | output    (x : PName) (P : Proc) (A : Types)  -- x[A].P
   | input     (x : PName) (P : Proc) (X : TVar)   -- x(X).P
   | server    (x : PName) (P : Proc)              -- !x.{P}
@@ -203,7 +211,7 @@ notation:75 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
 
 notation:80 x "⟦𝐋⟧." P:80 => Proc.selectL x P
 notation:80 x "⟦𝐑⟧." P:80 => Proc.selectR x P
-notation:80 x ":case{𝐋" " : " P:80 ", " "𝐑" " : " Q :80"}" => Proc.offer x P Q
+notation:80 x ":case{𝐋" " : " P:80 ", " "𝐑" " : " Q :80"}" => Proc.amp x P Q
 notation:80 x "⟦" A "⟧:" P => Proc.output x P A
 notation:80 x "⸨" X "⸩:" P => Proc.input x P X
 notation:80 "!" x ":{" P "}" => Proc.server x P
@@ -225,7 +233,7 @@ private def reprProcAux : Proc → Nat → String
   | .par P Q, _ => s!"({reprProcAux P 0} |ₚ {reprProcAux Q 0})"
   | .selectL x P, _ => s!"{x}⟦𝐋⟧.{reprProcAux P 0}"
   | .selectR x P, _ => s!"{x}⟦𝐑⟧.{reprProcAux P 0}"
-  | .offer x P Q, _ =>
+  | .amp x P Q, _ =>
       s!"{x}:case" ++ "{" ++ s!" 𝐋 : {reprProcAux P 0}, 𝐑 : {reprProcAux Q 0}" ++ "}"
   | .output x P A, _ => s!"{x}⟦{A}⟧.{reprProcAux P 0}"
   | .input x P X, _ => s!"{x}⟦{X}⟧.{reprProcAux P 0}"
@@ -252,7 +260,7 @@ def Proc.f : Proc → Finset PName
   | .nil                  => {}
   | .selectL x P          => {x} ∪ P.f
   | .selectR x P          => {x} ∪ P.f
-  | .offer x P Q          => {x} ∪ (P.f ∪ Q.f)
+  | .amp x P Q          => {x} ∪ (P.f ∪ Q.f)
   | .output x P _         => {x} ∪ P.f
   | .input  x P _         => {x} ∪ P.f
   | .server x P           => {x} ∪ P.f
@@ -272,7 +280,7 @@ def Proc.names : Proc → Finset PName
   | .nil                  => {}
   | .selectL x P          => {x} ∪ P.names
   | .selectR x P          => {x} ∪ P.names
-  | .offer x P Q          => {x} ∪ (P.names ∪ Q.names)
+  | .amp x P Q          => {x} ∪ (P.names ∪ Q.names)
   | .output x P _         => {x} ∪ P.names
   | .input  x P _         => {x} ∪ P.names
   | .server x P           => {x} ∪ P.names
@@ -293,7 +301,7 @@ def rename (ρ : Renaming) : Proc → Proc
   | .nil              => .nil
   | .selectL x P      => .selectL (ρ x) (rename ρ P)
   | .selectR x P      => .selectR (ρ x) (rename ρ P)
-  | .offer x P Q      => .offer (ρ x) (rename ρ P) (rename ρ Q)
+  | .amp x P Q      => .amp (ρ x) (rename ρ P) (rename ρ Q)
   | .output x P A     => .output (ρ x) (rename ρ P) A
   | .input x P A      => .input (ρ x) (rename ρ P) A
   | .server x P       => .server (ρ x) (rename ρ P)
@@ -343,8 +351,8 @@ inductive AlphaEq : Proc → Proc → Prop where
   | selectR {P Q : Proc} {x x' : PName} :
       AlphaEq P Q → x = x' → AlphaEq (.selectR x P) (.selectR x' Q)
 
-  | offer {P1 Q1 P2 Q2 : Proc} {x x' : PName} :
-      AlphaEq P1 P2 → AlphaEq Q1 Q2 → x = x' → AlphaEq (.offer x P1 Q1) (.offer x' P2 Q2)
+  | amp {P1 Q1 P2 Q2 : Proc} {x x' : PName} :
+      AlphaEq P1 P2 → AlphaEq Q1 Q2 → x = x' → AlphaEq (.amp x P1 Q1) (.amp x' P2 Q2)
 
   | output {P Q : Proc} {x x' : PName} {A A' : Types}:
       AlphaEq P Q → x = x' → A = A' → AlphaEq (.output x P A) (.output x' Q A')
@@ -373,7 +381,7 @@ def Proc.size : Proc → Nat
 | .nil => 1
 | .link _ _ => 1
 | .par P Q => 1 + P.size + Q.size
-| .offer _ P Q => 1 + P.size + Q.size
+| .amp _ P Q => 1 + P.size + Q.size
 | .tensor _ _ P | .parr _ _ P | .one _ P | .bot _ P | .cut _ _ P | .selectL _ P
 | .selectR _ P | .output _ P _ | .input _ P _ | .server _ P | .consume _ P
 | .dispose _ P | .duplicate _ _ P => 1 + P.size
@@ -403,7 +411,7 @@ lemma size_renameBound_eq (old new : PName) (P : Proc) :
     simp [renameBound, rename, Proc.size]
     simp [renameBound] at ih
     rw [ih]
-  case par P Q ihP ihQ | offer P Q ihP ihQ =>
+  case par P Q ihP ihQ | amp P Q ihP ihQ =>
     simp [renameBound, rename, Proc.size]
     simp [renameBound] at ihP
     simp [renameBound] at ihQ
@@ -471,8 +479,8 @@ theorem AlphaEq.refl (P : Proc) : P =ₐ P := by
       · rfl
     repeat rfl
 
-  case offer _ P Q =>
-    apply AlphaEq.offer
+  case amp _ P Q =>
+    apply AlphaEq.amp
     · apply ih P.size
       · rw [← h]
         simp [Proc.size]
@@ -487,7 +495,7 @@ theorem AlphaEq.refl (P : Proc) : P =ₐ P := by
 theorem AlphaEq.symm (P Q : Proc) (h : P =ₐ Q) : (Q =ₐ P) := by
   induction h
   case nil => rfl
-  case one | bot | par | selectL | selectR | offer | output | input | server
+  case one | bot | par | selectL | selectR | amp | output | input | server
     | consume | duplicate | dispose | link => constructor ; repeat simp [*]
 
   case tensor _ _ _ _ _ _ _ hwnPQ _ hxxp hrbQP
@@ -524,7 +532,7 @@ theorem AlphaEq.comm (P Q : Proc) : (P =ₐ Q) = (Q =ₐ P) := by
 --     · exact P_ih
 --     · exact Q_ih
 
---   case offer P_ih Q_ih =>
+--   case amp P_ih Q_ih =>
 --     apply And.intro
 --     · aesop
 --     · apply And.intro
@@ -561,7 +569,7 @@ theorem AlphaEq.comm (P Q : Proc) : (P =ₐ Q) = (Q =ₐ P) := by
 --     · intro h ; simp_all
 --     · apply ih <;> simp_all
 
---   case offer x P Q ihP ihQ =>
+--   case amp x P Q ihP ihQ =>
 --     apply And.intro
 --     · intro h ; simp_all
 --     · apply And.intro
@@ -611,7 +619,7 @@ def Proc.substType (P : Proc) (A : Types) (X : TVar) : Proc :=
   | .par P Q => .par (P.substType A X) (Q.substType A X)
   | .selectL x P => .selectL x (P.substType A X)
   | .selectR x P => .selectR x (P.substType A X)
-  | .offer x P Q => .offer x (P.substType A X) (Q.substType A X)
+  | .amp x P Q => .amp x (P.substType A X) (Q.substType A X)
   | .server x P => .server x (P.substType A X)
   | .dispose x P => .dispose x (P.substType A X)
   | .duplicate x y P => .duplicate x y (P.substType A X)
@@ -640,7 +648,7 @@ def Proc.substName (P : Proc) (x z : PName) : Proc :=
   | .par P Q => .par (P.substName x z) (Q.substName x z)
   | .selectL a P => .selectL (sub a) (P.substName x z)
   | .selectR a P => .selectR (sub a) (P.substName x z)
-  | .offer a P Q => .offer (sub a) (P.substName x z) (Q.substName x z)
+  | .amp a P Q => .amp (sub a) (P.substName x z) (Q.substName x z)
   | .server a P => .server (sub a) (P.substName x z)
   | .dispose a P => .dispose (sub a) (P.substName x z)
   | .duplicate a b P =>
@@ -910,7 +918,7 @@ inductive Typing : HyperEnv → Proc → Prop where
 
   | cut (𝒢 : HyperEnv) (Γ Δ : Env) (P : Proc) (x y : PName) (A : Types) :
       Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P →
-      -----------------------------------------
+      -------------------------------------
       Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩ P)
 
   | tensor {Γ Δ : Env} {P : Proc} {x y : PName} {B A : Types} :
@@ -982,10 +990,10 @@ inductive Typing : HyperEnv → Proc → Prop where
       Typing (Γ‚ x ∶ ∃X:B) (x⟦A⟧:P)
 
   | forall_
-      {Γ : Env} {P : Proc} {x : PName} {A : Types} {X : TVar} :
-      Typing (Γ‚ x ∶ A) P → X ∉ ft(Γ) →
+      {Γ : Env} {P : Proc} {x : PName} {B : Types} {X : TVar} :
+      Typing (Γ‚ x ∶ B) P → X ∉ ft(Γ) →
       ---------------------------------
-      Typing (Γ‚ x ∶ ∀X:A) (x⸨X⸩:P)
+      Typing (Γ‚ x ∶ ∀X:B) (x⸨X⸩:P)
 
   | ax
       {x y : PName} {A : Types} :
@@ -1088,48 +1096,52 @@ notation:80 x "⸨DISP⸩" => Act.muParen x Mu.DISP
 notation:80 x "⟦" μ "⟧ₘ" => Act.muBrack x μ
 notation:80 x "⸨" μ "⸩ₘ" => Act.muParen x μ
 
+@[app_unexpander Lbl.act]
+def unexpandLblAct : Lean.PrettyPrinter.Unexpander
+  | `($_ $a) => pure a
+  | _ => throw ()
+
 ----------------------------- TRANSITION RULES FOR DERIVATIONS -----------------------------
 
 inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
   Lbl → {𝒢' : HyperEnv} → {P' : Proc} → Typing 𝒢' P' → Prop where
   | one
-      {P : Proc} {x : PName} {𝒟 : Typing ∅ P} :
+      {P : Proc} {x : PName} {𝒟 : ⊢ P ∷ ∅} :
       TypingStep (Typing.one 𝒟) (x⟦⟧) 𝒟
 
   | tensor
       {Γ Δ : Env} {P : Proc} {x x': PName} {A B : Types}
-      {𝒟 : Typing (Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B) P} :
+      {𝒟 : ⊢ P ∷ Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B} :
       TypingStep (Typing.tensor 𝒟) (x⟦x'⟧) 𝒟
 
   | bot
-      {Γ : Env} {P : Proc} {x : PName} {𝒟 : Typing {Γ} P} :
+      {Γ : Env} {P : Proc} {x : PName} {𝒟 : ⊢ P ∷ Γ} :
       TypingStep (Typing.bot 𝒟) (x⸨⸩) 𝒟
 
   | parr
       {Γ : Env} {P : Proc} {x x' : PName} {A B : Types}
-      {𝒟 : Typing (Γ‚ x' ∶ A‚ x ∶ B) P} :
+      {𝒟 : ⊢ P ∷ Γ‚ x' ∶ A‚ x ∶ B} :
       TypingStep (Typing.parr 𝒟) (x⸨x'⸩) 𝒟
 
   | par₁
       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
-      {𝒟 : Typing 𝒢 P} {𝒟' : Typing 𝒢' P'} {ℰ : Typing ℋ Q}
+      {𝒟 : ⊢ P ∷ 𝒢} {𝒟' : ⊢ P' ∷ 𝒢'} {ℰ : ⊢ Q ∷ ℋ}
       (h : TypingStep 𝒟 l 𝒟') (disj : (l.i) ∩ (Q.f) = ∅) :
-      ---------------------------------------------------------------
+      -----------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
 
   | par₂
       {𝒢 ℋ ℋ': HyperEnv} {P Q Q' : Proc} {l : Lbl}
-      {𝒟 : Typing 𝒢 P} {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
+      {𝒟 : ⊢ P ∷ 𝒢} {ℰ : ⊢ Q ∷ ℋ} {ℰ' : ⊢ Q' ∷ ℋ'}
       (h : TypingStep ℰ l ℰ') (disj : (l.i) ∩ (P.f) = ∅) :
-      ---------------------------------------------------------------
+      ----------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟 ℰ')
 
   | syn
       {𝒢 𝒢' ℋ ℋ' : HyperEnv} {P P' Q Q' : Proc} {l l' : Act}
-      {𝒟 : Typing 𝒢 P} {𝒟' : Typing 𝒢' P'}
-      {ℰ : Typing ℋ Q} {ℰ' : Typing ℋ' Q'}
-      (h₁ : TypingStep 𝒟 l 𝒟')
-      (h₂ : TypingStep ℰ l' ℰ')
+      {𝒟 : ⊢ P ∷ 𝒢} {𝒟' : ⊢ P' ∷ 𝒢'}
+      {ℰ : ⊢ Q ∷ ℋ} {ℰ' : ⊢ Q' ∷ ℋ'}
+      (h₁ : TypingStep 𝒟 l 𝒟') (h₂ : TypingStep ℰ l' ℰ')
       (disj : (l |ₗ l').i ∩ (P |ₚ Q).f = ∅)
       (WF : (l |ₗ l').WF) : -- FIXME: Don't know how to show TypingStep preserves WF without this
       ---------------------------------------------------------
@@ -1137,22 +1149,22 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 
   | alpha_equiv
       {𝒢 𝒢' : HyperEnv} {P Q Q' : Proc} {l : Lbl}
-      {𝒟 : Typing 𝒢 P} {ℰ : Typing 𝒢 Q} {ℰ' : Typing 𝒢' Q'}
+      {𝒟 : ⊢ P ∷ 𝒢} {ℰ : ⊢ Q ∷ 𝒢} {ℰ' : ⊢ Q' ∷ 𝒢'}
       (h₁ : P =ₐ Q) (h₂ : TypingStep ℰ l ℰ') :
-      -------------------------------------------------------
+      -----------------------------------------------
       TypingStep 𝒟 l ℰ'
 
   | one_bot
       {𝒢: HyperEnv} {Γ : Env} {P P' : Proc} {x y : PName}
-      {𝒟 : Typing (𝒢 |ₕ x ∶ 1 |ₕ Γ‚ y ∶ ⊥) P} {𝒟' : Typing (𝒢 |ₕ Γ) P'}
+      {𝒟 : ⊢ P ∷  𝒢 |ₕ x ∶ 1 |ₕ Γ‚ y ∶ ⊥} {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ}
       (h : TypingStep 𝒟 (x⟦⟧ |ₗ y⸨⸩) 𝒟') :
-      ----------------------------------------------------------------
+      -------------------------------------------------------
       TypingStep (Typing.cut 𝒢 ∅ Γ P x y (1) 𝒟) (τ) 𝒟'
 
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
-      {𝒟 : Typing (𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ) P}
-      {𝒟' : Typing (𝒢 |ₕ Γ‚ x ∶ B |ₕ Δ‚ x' ∶ A |ₕ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ) P'}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ}
+      {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ B |ₕ Δ‚ x' ∶ A |ₕ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ}
       (h : TypingStep 𝒟 (x⟦x'⟧ |ₗ y⸨y'⸩) 𝒟') :
       ----------------------------------------------------------------------------
       TypingStep
@@ -1175,13 +1187,96 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       ----------------------------------------------------------------------------
       TypingStep (Typing.cut 𝒢 Γ Δ P x y A 𝒟) l (Typing.cut 𝒢' Γ' Δ' P' x y A 𝒟')
 
-notation:50 𝒟 " -[" l "]->ₜ " 𝒟' => TypingStep 𝒟 l 𝒟'
+  | selectL
+      {Γ : Env} {P : Proc} {x : PName} {A B : Types}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ A} :
+      TypingStep (Typing.oplus₁ (B := B) 𝒟) (x⟦𝐋⟧) 𝒟
 
-open Lean PrettyPrinter in
-@[app_unexpander Lbl.act]
-def unexpandLblAct : Unexpander
-  | `($_ $a) => pure a
-  | _ => pure Syntax.missing
+  | selectR
+      {Γ : Env} {P : Proc} {x : PName} {A B : Types}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ B} :
+      TypingStep (Typing.oplus₂ (A := A) 𝒟) (x⟦𝐑⟧) 𝒟
+
+  | ampL
+      {Γ : Env} {P Q : Proc} {x : PName} {A B : Types}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ A} {ℰ : ⊢ Q ∷ Γ‚ x ∶ B} :
+      TypingStep (Typing.amp 𝒟 ℰ) (x⸨𝐋⸩) 𝒟
+
+  | ampR
+      {Γ : Env} {P Q : Proc} {x : PName} {A B : Types}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ A} {ℰ : ⊢ Q ∷ Γ‚ x ∶ B} :
+      TypingStep (Typing.amp 𝒟 ℰ) (x⸨𝐑⸩) ℰ
+
+  | selectL_amp
+      {𝒢 : HyperEnv} {Γ Δ : Env} {P P' : Proc} {x y : PName} {A B : Types}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ A ⊕ B |ₕ Δ‚ y ∶ Aᗮ & Bᗮ}
+      {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ} :
+      TypingStep 𝒟 (x⟦𝐋⟧ |ₗ y⸨𝐋⸩) 𝒟' →
+      -------------------------------------
+      TypingStep
+        (Typing.cut 𝒢 Γ Δ P x y (A ⊕ B) 𝒟)
+        (τ)
+        (Typing.cut 𝒢 Γ Δ P' x y A 𝒟')
+
+  | selectR_amp
+      {𝒢 : HyperEnv} {Γ Δ : Env} {P P' : Proc} {x y : PName} {A B : Types}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ A ⊕ B |ₕ Δ‚ y ∶ Aᗮ & Bᗮ}
+      {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ B |ₕ Δ‚ y ∶ Bᗮ} :
+      TypingStep 𝒟 (x⟦𝐑⟧ |ₗ y⸨𝐑⸩) 𝒟' →
+      --------------------------------------
+      TypingStep
+        (Typing.cut 𝒢 Γ Δ P x y (A ⊕ B) 𝒟)
+        (τ)
+        (Typing.cut 𝒢 Γ Δ P' x y B 𝒟')
+
+  | output
+      {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ B{A // X}} :
+      TypingStep (Typing.exists_ 𝒟) (x⟦A⟧:) 𝒟
+
+  -- | input -- FIXME: Needs typing judgements to have replacement syntax
+  --     {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar}
+  --     {𝒟 : ⊢ P ∷ Γ‚ x ∶ B} {h : X ∉ ft(Γ)} :
+  --     TypingStep (Typing.forall_ (X := X) 𝒟 h) (x⸨A⸩:) (𝒟{A // X})
+
+  | input_output
+      {𝒢 : HyperEnv} {Γ Δ : Env} {P P' : Proc} {x y : PName} {A B : Types} {X : TVar}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ (∃X:B) |ₕ Δ‚ y ∶ ∀X:Bᗮ}
+      {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ B{A // X} |ₕ Δ‚ y ∶ Bᗮ{A // X}} :
+
+      TypingStep 𝒟 (x⟦A⟧: |ₗ y⸨A⸩:) 𝒟' →
+      -----------------------------------------------
+      TypingStep
+        (Typing.cut 𝒢 Γ Δ P x y (∃X:B) 𝒟)
+        (τ)
+        (by
+        rw [Types.subst_dual] at 𝒟'
+        exact Typing.cut 𝒢 Γ Δ P' x y (B{A // X}) 𝒟'
+        )
+
+  | link₁
+      {x y : PName} {A : Types} :
+      TypingStep (Typing.ax (x := x) (y := y) (A := A)) (x ⟷ₗ y) (⊢ 𝟘 ∷ ∅)
+
+  | link₂
+      {x y : PName} {A : Types} :
+      TypingStep (Typing.ax (x := x) (y := y) (A := A)) (y ⟷ₗ x) (⊢ 𝟘 ∷ ∅)
+
+  -- | axcut -- FIXME: Need typing judgement replacement syntax
+  --     {𝒢 : HyperEnv} {Γ : Env} {P P' : Proc} {x y z : PName} {A : Types}
+  --     {𝒟 : ⊢ P ∷ 𝒢 |ₕ x ∶ Aᗮ‚ y ∶ A |ₕ Γ‚ z ∶ Aᗮ}
+  --     {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ z ∶ Aᗮ} :
+  --     TypingStep 𝒟 (x ⟷ₗ y) 𝒟' →
+  --     TypingStep
+  --     (Typing.cut 𝒢 (x ∶ Aᗮ) Γ P y z A 𝒟)
+  --     (τ)
+  --     (𝒟'{x // z})
+
+
+
+
+
+notation:50 𝒟 " -[" l "]->ₜ " 𝒟' => TypingStep 𝒟 l 𝒟'
 
 theorem TypingStep.preserves_WF (Γ Γ' : HyperEnv) (P P' : Proc)
   (𝒟 : ⊢ P ∷ Γ) (𝒟' : ⊢ P' ∷ Γ') (l : Lbl) :
@@ -1299,7 +1394,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | dup₂
       {P : Proc} {x x' : PName} {names : List PName} {σ : Renaming} :
       P.f ∩ (P.f.image σ) = ∅ → names = (P.f \ {x}).toList.mergeSort (· ≤ ·) →
-      ---------------------------------------------------------------------------------
+      -------------------------------------------------------------------------
       ProcStep (!x:{P}) (x⸨DUP⸩) (Proc.open (!x:{P}) names σ)
 
   | use₁
@@ -1322,7 +1417,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P : Proc} {x : PName} :
       ProcStep (x⟦𝐋⟧.P) (x⟦𝐋⟧) P
 
-  | offerL
+  | ampL
       {P Q : Proc} {x : PName} :
       ProcStep (x:case{𝐋 : P, 𝐑 : Q}) (x⸨𝐋⸩) P
 
@@ -1330,7 +1425,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P : Proc} {x : PName} :
       ProcStep (x⟦𝐑⟧.P) (x⟦𝐑⟧) P
 
-  | offerR
+  | ampR
       {P Q : Proc} {x : PName} :
       ProcStep (x:case{𝐋 : P, 𝐑 : Q}) (x⸨𝐑⸩) Q
 
@@ -1437,7 +1532,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       {Γ : Env} {x : PName} {A B : Types} :
       EnvStep (Γ‚ x ∶ A ⊕ B) (x⟦𝐋⟧) (Γ‚ x ∶ A)
 
-  | offerL
+  | ampL
       {Γ : Env} {x : PName} {A B : Types} :
       EnvStep (Γ‚ x ∶ A & B) (x⸨𝐋⸩) (Γ‚ x ∶ A)
 
@@ -1445,7 +1540,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       {Γ : Env} {x : PName} {A B : Types} :
       EnvStep (Γ‚ x ∶ A ⊕ B) (x⟦𝐑⟧) (Γ‚ x ∶ B)
 
-  | offerR
+  | ampR
       {Γ : Env} {x : PName} {A B : Types} :
       EnvStep (Γ‚ x ∶ A & B) (x⸨𝐑⸩) (Γ‚ x ∶ B)
 
