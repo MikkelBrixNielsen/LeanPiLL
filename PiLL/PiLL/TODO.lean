@@ -20,11 +20,15 @@ import PiLL.Definitions
 
 
 
-/- TODO: Extend and TypingStep
+/- TODO: Extend Typing and TypingStep
   · Give typing judgements replacement syntax
 -/
 
--- TODO: Make substitution / replacement avoid capture (create fresh name function for TVar).
+/- TODO:
+  · Make substitution / replacement avoid capture (create fresh name function for TVar).
+  · Alternatively require freshness for new name
+  · Could also implicitly pick freshname if there is a clash and use that instead of the
+    supplied name. Seems a little dishonest idk.
 
 -- TODO: Check if the generic µ label thing works
 
@@ -46,8 +50,6 @@ import PiLL.Definitions
 
 -- TODO: Example 5.1 (check if it is compileable)
 
--- TODO: Check alpha renaming and extend it to full πLL
-
 /- TODO: Create examples / test usage of:
   · ProcStep
   · EnvStep
@@ -55,9 +57,14 @@ import PiLL.Definitions
   · TypingStep
   · Create replacement examples
 -/
+
+-- TODO: Check alpha renaming and extend it to full πLL
+
 -- TODO: Transitivity proof for AlphaEq (i.e. prove it's an equivalence relation)
 
 -- TODO: Check if rules depending on AlphaEq work as intended or get stuck
+
+-- TODO: Check whether during AlphaEq when the process is renamed if the HyperEnv also needs renaming
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
    This might need to be a structural congruence (≡)

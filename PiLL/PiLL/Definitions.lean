@@ -608,6 +608,7 @@ theorem AlphaEq.trans (P Q R : Proc) (hPQ : P =ₐ Q) (hQR : Q =ₐ R) : P =ₐ 
 --     apply AlphaEq.par
 --     · sorry
 
+@[simp]
 def Proc.substType (P : Proc) (A : Types) (X : TVar) : Proc :=
   match P with
   | .nil => .nil
@@ -630,6 +631,7 @@ def Proc.substType (P : Proc) (A : Types) (X : TVar) : Proc :=
 
 notation:65 P"⦃" A "//" X "⦄ₜ" => Proc.substType P A X
 
+@[simp]
 def Proc.substName (P : Proc) (x z : PName) : Proc :=
   let sub := fun (c : PName) => if c = z then x else c
   match P with
@@ -680,15 +682,15 @@ abbrev Env := Finset (PName × Types)
 abbrev EmptyEnv : Env := ∅
 
 /- FIXME: eval does not work since non-computable -/
-noncomputable instance : Repr Env where
-  reprPrec (Γ : Env) _ :=
-    if Γ = ∅ then "∅"
-    else
-      let entries := Γ.toList.map (fun (x, A) => s!"{x} ∶ {reprStr A}")
-      String.intercalate "‚ " entries
+-- noncomputable instance : Repr Env where
+--   reprPrec (Γ : Env) _ :=
+--     if Γ = ∅ then "∅"
+--     else
+--       let entries := Γ.toList.map (fun (x, A) => s!"{x} ∶ {reprStr A}")
+--       String.intercalate "‚ " entries
 
-noncomputable instance : ToString Env where
-  toString e := reprStr e
+-- noncomputable instance : ToString Env where
+--   toString e := reprStr e
 
 def Env.mk (x : PName) (A : Types) : Env :=
   {(x, A)}
@@ -776,20 +778,30 @@ lemma Env.merge_move_second_two_right (Γ Δ Ξ Ε : Env) :
   Γ‚ Δ‚ Ξ‚ Ε = Γ‚ Ξ‚ Ε‚ Δ := by
   rw [Env.merge_swap_last Γ Δ Ξ, Env.merge_swap_last]
 
+@[simp]
 def isServerUsable : Types → Prop
   | .quest _  => True
   | .bang _   => True
   | _         => False
 
+@[simp]
 def serverUsableEnv (Γ : Env) : Prop :=
   ∀p, p ∈ Γ → isServerUsable p.snd = True
 
 prefix:max "?ₑ" => serverUsableEnv
 
+@[simp]
 def Env.freeTypes (Γ : Env) : Finset TVar :=
   Γ.biUnion (fun (_, A) => A.freeTypes)
 
 notation "ft(" Γ ")" => Env.freeTypes Γ
+
+@[simp]
+def Env.substName (Γ : Env) (x z : PName) : Env :=
+  Γ.image (fun (n, (type : Types)) =>
+    if n = z then (x, type)
+    else (n, type)
+  )
 
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
@@ -800,16 +812,16 @@ abbrev EmptyHyperEnv : HyperEnv := ∅
 instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
 
 /- FIXME: eval does not work since non-computable -/
-open Lean in
-noncomputable instance : Repr HyperEnv where
-  reprPrec (𝒢 : HyperEnv) _ :=
-    if 𝒢 = ∅ then "∅"
-    else
-      let entries := 𝒢.toList.map repr
-      Format.joinSep entries " |ₕ "
+-- open Lean in
+-- noncomputable instance : Repr HyperEnv where
+--   reprPrec (𝒢 : HyperEnv) _ :=
+--     if 𝒢 = ∅ then "∅"
+--     else
+--       let entries := 𝒢.toList.map repr
+--       Format.joinSep entries " |ₕ "
 
-noncomputable instance : ToString HyperEnv where
-  toString g := reprStr g
+-- noncomputable instance : ToString HyperEnv where
+--   toString g := reprStr g
 
 def pairwise {α : Type} (r : α → α → Prop) (s : Finset α) : Prop :=
   ∀ x ∈ s, ∀ y ∈ s, y ≠ x → r x y
@@ -903,6 +915,10 @@ theorem HyperEnv.merge_comm (𝒢 ℋ : HyperEnv) : 𝒢 |ₕ ℋ = ℋ |ₕ �
 theorem HyperEnv.merge_assoc (𝒢 ℋ 𝒦 : HyperEnv) :
   (𝒢 |ₕ ℋ) |ₕ 𝒦 = 𝒢 |ₕ (ℋ |ₕ 𝒦) := by
   simp
+
+@[simp]
+def HyperEnv.substName (𝒢 : HyperEnv) (x z : PName) :=
+  𝒢.image (fun Γ => Γ.substName x z)
 
 --------------------------------------- TYPING RULES ---------------------------------------
 
@@ -1000,6 +1016,9 @@ inductive Typing : HyperEnv → Proc → Prop where
       Typing (x ∶ Aᗮ‚ y ∶ A) (x ⟷ₚ y)
 
 notation:50 "⊢ " P " ∷ " T => Typing T P
+
+theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (x z : PName)
+  (hFresh : x ∉ 𝒢.names) : ⊢ (P.substName x z) ∷ (𝒢.substName x z) := by sorry
 
 ------------------------------------------ LABELS ------------------------------------------
 
@@ -1256,11 +1275,11 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 
   | link₁
       {x y : PName} {A : Types} :
-      TypingStep (Typing.ax (x := x) (y := y) (A := A)) (x ⟷ₗ y) (⊢ 𝟘 ∷ ∅)
+      TypingStep (Typing.ax (x := x) (y := y) (A := A)) (x ⟷ₗ y) (Typing.mix₀)
 
   | link₂
       {x y : PName} {A : Types} :
-      TypingStep (Typing.ax (x := x) (y := y) (A := A)) (y ⟷ₗ x) (⊢ 𝟘 ∷ ∅)
+      TypingStep (Typing.ax (x := x) (y := y) (A := A)) (y ⟷ₗ x) (Typing.mix₀)
 
   -- | axcut -- FIXME: Need typing judgement replacement syntax
   --     {𝒢 : HyperEnv} {Γ : Env} {P P' : Proc} {x y z : PName} {A : Types}
@@ -1270,19 +1289,61 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
   --     TypingStep
   --     (Typing.cut 𝒢 (x ∶ Aᗮ) Γ P y z A 𝒟)
   --     (τ)
-  --     (𝒟'{x // z})
+  --     (𝒟'{x // z}) -- This could probably be done be just constructing a new derivation
+                      --  using the existing subst functions
 
+  | quest
+      {Γ : Env} {P : Proc} {x : PName} {A : Types}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ A} :
+      TypingStep (Typing.quest 𝒟) (x⟦USE⟧) 𝒟
 
+  | bang
+      {Γ : Env} {P : Proc} {x : PName} {A : Types}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ A} {h : ?ₑΓ} :
+      TypingStep (Typing.bang 𝒟 h) (x⸨USE⸩) 𝒟
 
+  | bang_quest
+      {𝒢 : HyperEnv} {Γ Δ : Env} {P P' : Proc} {x y : PName} {A : Types}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ ??A |ₕ Δ‚ y ∶ !!Aᗮ}
+      {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ} :
+      TypingStep 𝒟 (x⟦USE⟧ |ₗ x⸨USE⸩) 𝒟' →
+      TypingStep
+        (Typing.cut 𝒢 Γ Δ P x y (??A) 𝒟)
+        (τ)
+        (Typing.cut 𝒢 Γ Δ P' x y A 𝒟')
+
+  | duplicate₁
+      {Γ : Env} {P : Proc} {x x' : PName} {A : Types}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ ??A‚ x' ∶ ??A} :
+      TypingStep (Typing.c 𝒟) (x⟦DUP⟧) (Typing.parr 𝒟)
+
+  -- | duplicate₂
+      -- First thing on 1:44
+
+  -- | bang_c
+      -- Second thing on 1:44
+
+  -- | dispose
+      -- Third thing on 1:44
+
+  -- | dispose₂
+      -- Fourth thing on 1:44
+
+  -- | bang_w
+      -- Fifth thing on 1:44
 
 
 notation:50 𝒟 " -[" l "]->ₜ " 𝒟' => TypingStep 𝒟 l 𝒟'
 
-theorem TypingStep.preserves_WF (Γ Γ' : HyperEnv) (P P' : Proc)
-  (𝒟 : ⊢ P ∷ Γ) (𝒟' : ⊢ P' ∷ Γ') (l : Lbl) :
+theorem TypingStep.preserves_WF (𝒢 𝒢' : HyperEnv) (P P' : Proc)
+  (𝒟 : ⊢ P ∷ 𝒢) (𝒟' : ⊢ P' ∷ 𝒢') (l : Lbl) :
   TypingStep 𝒟 l 𝒟' → l.WF := by
   intro h
   induction h <;> simp_all [Lbl.WF]
+
+
+-- theorem TypingStep.preserves_serverUsableEnv
+
 
 notation:80 "ε" => (List.nil : Lbls)
 notation:60 xs " ∷ₗ " x => List.concat (xs : Lbls) (x : Lbl)
