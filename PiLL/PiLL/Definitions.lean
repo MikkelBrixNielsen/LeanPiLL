@@ -16,11 +16,11 @@ inductive Types : Type where
   | atomDual  (a : Atom)                -- dual of a named type
   | var       (v : TVar)                -- type variable
   | varDual   (v : TVar)                -- dual type variables
-  | one                                 -- 𝟙 (empty output, unit for ⊗)
+  | one                                 -- 𝟙 (empty output, unit for ⨂)
   | bot                                 -- ⊥ (empty send, unit for ⅋)
   | zero                                -- 𝟘 (unit for ⊕)
   | top                                 -- ⊤ (unit for &)
-  | tensor    (A B : Types)             -- A ⊗ B (send)
+  | tensor    (A B : Types)             -- A ⨂ B (send)
   | parr      (A B : Types)             -- A ⅋ B (receive)
   | oplus     (A B : Types)             -- A ⊕ B (select A or B)
   | amp       (A B : Types)             -- A & B (Offer A or B)
@@ -30,7 +30,7 @@ inductive Types : Type where
   | exist_    (v : TVar) (A : Types)    -- ∃X.A (existential type output)
 deriving DecidableEq, BEq
 
-infixr:90 " ⊗ " => Types.tensor
+infixr:90 " ⨂ " => Types.tensor
 infixr:90 " ⊕ " => Types.oplus
 infixr:90 " ⅋ " => Types.parr
 infixr:90 " & " => Types.amp
@@ -43,6 +43,7 @@ instance : Bot Types := ⟨Types.bot⟩
 prefix:95 "??" => Types.quest
 prefix:95 "!!" => Types.bang
 
+-- FIXME: Needs to bind tighter to the first type af ":" s.t. ∀X.A ⨂ A => (∀X.A) ⨂ A
 notation:max "∃" v ":" A => Types.exist_ v A
 notation:max "∀" v ":" A => Types.forall_ v A
 
@@ -55,7 +56,7 @@ private def reprTypesAux : Types → Nat → String
   | .bot, _ => "⊥"
   | .zero, _ => "0" -- FIXME: Probably don't need
   | .top, _ => "⊤"  -- FIXME: Probably don't need
-  | .tensor A B, _ => s!"({reprTypesAux A 0} ⊗ {reprTypesAux B 0})"
+  | .tensor A B, _ => s!"({reprTypesAux A 0} ⨂ {reprTypesAux B 0})"
   | .parr A B, _ => s!"({reprTypesAux A 0} ⅋ {reprTypesAux B 0})"
   | .oplus A B, _ => s!"({reprTypesAux A 0} ⊕ {reprTypesAux B 0})"
   | .amp A B, _ => s!"({reprTypesAux A 0} & {reprTypesAux B 0})"
@@ -119,7 +120,7 @@ def Types.dual : Types → Types
   | .forall_ v A  => .exist_ v (dual A)
   | .exist_ v A   => .forall_ v (dual A)
 
-notation:max A "ᗮ" => Types.dual A
+postfix:max "ᗮ" => Types.dual
 
 @[simp]
 theorem Types.dual_neq (A : Types) : A ≠ Aᗮ := by
@@ -172,7 +173,7 @@ def Types.subst (T R : Types) (X : TVar) : Types :=
   | .forall_ v A  => if v = X then .forall_ v A else .forall_ v (A.subst R X)
   | .exist_ v A  => if v = X then .exist_ v A else .exist_ v (A.subst R X)
 
-notation:88 T "{" R " // " X "}" => Types.subst T R X
+notation:max T "{" R " // " X "}" => Types.subst T R X
 
 @[simp]
 theorem Types.subst_dual (A B : Types) (X : TVar) : Bᗮ{A // X} = B{A // X}ᗮ := by
@@ -629,7 +630,7 @@ def Proc.substType (P : Proc) (A : Types) (X : TVar) : Proc :=
   | .output x P B => .output x (P.substType A X) (B.subst A X)
   | .input x P Y => if Y = X then .input x P Y else .input x (P.substType A X) Y
 
-notation:65 P"⦃" A "//" X "⦄ₜ" => Proc.substType P A X
+notation:65 P"⦃" A " // " X "⦄ₜ" => Proc.substType P A X
 
 @[simp]
 def Proc.substName (P : Proc) (x z : PName) : Proc :=
@@ -661,7 +662,7 @@ def Proc.substName (P : Proc) (x z : PName) : Proc :=
   | .output a P A => .output (sub a) (P.substName x z) A
   | .input a P X => .input (sub a) (P.substName x z) X
 
-notation:65 P"⦃" x "//" z "⦄ₙ" => Proc.substName P x z
+notation:65 P"⦃" x " // " z "⦄ₙ" => Proc.substName P x z
 
 @[simp]
 def Proc.close (P : Proc) (names : List PName) : Proc :=
@@ -940,7 +941,7 @@ inductive Typing : HyperEnv → Proc → Prop where
   | tensor {Γ Δ : Env} {P : Proc} {x y : PName} {B A : Types} :
       Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
       ------------------------------------
-      Typing (Γ‚ Δ‚ x ∶ A ⊗ B) (x⟦y⟧.P)
+      Typing (Γ‚ Δ‚ x ∶ A ⨂ B) (x⟦y⟧.P)
 
   | one {P : Proc} {x : PName} :
       Typing ∅ P →
@@ -1162,7 +1163,7 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       {ℰ : ⊢ Q ∷ ℋ} {ℰ' : ⊢ Q' ∷ ℋ'}
       (h₁ : TypingStep 𝒟 l 𝒟') (h₂ : TypingStep ℰ l' ℰ')
       (disj : (l |ₗ l').i ∩ (P |ₚ Q).f = ∅)
-      (WF : (l |ₗ l').WF) : -- FIXME: Don't know how to show TypingStep preserves WF without this
+      (WF : (l |ₗ l').WF) : -- FIXME: show TypingStep preserves WF without this
       ---------------------------------------------------------
       TypingStep (Typing.mix 𝒟 ℰ) (l |ₗ l') (Typing.mix 𝒟' ℰ')
 
@@ -1182,12 +1183,12 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
-      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⨂ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ}
       {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ B |ₕ Δ‚ x' ∶ A |ₕ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ}
       (h : TypingStep 𝒟 (x⟦x'⟧ |ₗ y⸨y'⸩) 𝒟') :
       ----------------------------------------------------------------------------
       TypingStep
-        (Typing.cut 𝒢 (Γ‚ Δ) Ξ P x y (A ⊗ B) 𝒟)
+        (Typing.cut 𝒢 (Γ‚ Δ) Ξ P x y (A ⨂ B) 𝒟)
         (τ)
         (Typing.cut 𝒢 Γ (Δ‚ Ξ) (𝑣⸨x', y'⸩ P') x y B
           (by
@@ -1253,10 +1254,12 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       {𝒟 : ⊢ P ∷ Γ‚ x ∶ B{A // X}} :
       TypingStep (Typing.exists_ 𝒟) (x⟦A⟧:) 𝒟
 
-  -- | input -- FIXME: Needs typing judgements to have replacement syntax
-  --     {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar}
-  --     {𝒟 : ⊢ P ∷ Γ‚ x ∶ B} {h : X ∉ ft(Γ)} :
-  --     TypingStep (Typing.forall_ (X := X) 𝒟 h) (x⸨A⸩:) (𝒟{A // X})
+  | input -- FIXME: Might need typing subst for judgements, test if current is ok
+      {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ B} {h : X ∉ ft(Γ)}
+      -- TypingStep (Typing.forall_ (X := X) 𝒟 h) (x⸨A⸩:) (𝒟{A // X}) --------------------------------------------------------------------------
+      {𝒟' : ⊢ P⦃A // X⦄ₜ ∷ Γ‚ x ∶ B{A // X}} :
+      TypingStep (Typing.forall_ (X := X) 𝒟 h) (x⸨A⸩:) 𝒟'
 
   | input_output
       {𝒢 : HyperEnv} {Γ Δ : Env} {P P' : Proc} {x y : PName} {A B : Types} {X : TVar}
@@ -1281,16 +1284,20 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       {x y : PName} {A : Types} :
       TypingStep (Typing.ax (x := x) (y := y) (A := A)) (y ⟷ₗ x) (Typing.mix₀)
 
-  -- | axcut -- FIXME: Need typing judgement replacement syntax
-  --     {𝒢 : HyperEnv} {Γ : Env} {P P' : Proc} {x y z : PName} {A : Types}
-  --     {𝒟 : ⊢ P ∷ 𝒢 |ₕ x ∶ Aᗮ‚ y ∶ A |ₕ Γ‚ z ∶ Aᗮ}
-  --     {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ z ∶ Aᗮ} :
-  --     TypingStep 𝒟 (x ⟷ₗ y) 𝒟' →
-  --     TypingStep
-  --     (Typing.cut 𝒢 (x ∶ Aᗮ) Γ P y z A 𝒟)
-  --     (τ)
-  --     (𝒟'{x // z}) -- This could probably be done be just constructing a new derivation
-                      --  using the existing subst functions
+  -- NOTE: Only free names can perform actions => HyperEnv only contains free names
+  -- => Renaming of a bound variable only needs to happen in the process term
+  | axcut -- FIXME: Might need typing subst for judgements, test if current is ok
+      {𝒢 : HyperEnv} {Γ : Env} {P P' : Proc} {x y z : PName} {A : Types}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ x ∶ Aᗮ‚ y ∶ A |ₕ Γ‚ z ∶ Aᗮ}
+      {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ z ∶ Aᗮ}
+      {𝒟'σ : ⊢ P'⦃x // z⦄ₙ ∷ 𝒢 |ₕ Γ‚ x ∶ Aᗮ} :
+      TypingStep 𝒟 (x ⟷ₗ y) 𝒟' →
+      -----------------------------------
+      TypingStep
+      (Typing.cut 𝒢 (x ∶ Aᗮ) Γ P y z A 𝒟)
+      (τ)
+      -- (𝒟'{x // z}) --------------------------------------------------------------------------------------------------------------------------
+      (𝒟'σ)
 
   | quest
       {Γ : Env} {P : Proc} {x : PName} {A : Types}
@@ -1307,30 +1314,78 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ ??A |ₕ Δ‚ y ∶ !!Aᗮ}
       {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ} :
       TypingStep 𝒟 (x⟦USE⟧ |ₗ x⸨USE⸩) 𝒟' →
+      ------------------------------------
       TypingStep
         (Typing.cut 𝒢 Γ Δ P x y (??A) 𝒟)
         (τ)
         (Typing.cut 𝒢 Γ Δ P' x y A 𝒟')
 
-  | duplicate₁
+  | dup₁
       {Γ : Env} {P : Proc} {x x' : PName} {A : Types}
       {𝒟 : ⊢ P ∷ Γ‚ x ∶ ??A‚ x' ∶ ??A} :
       TypingStep (Typing.c 𝒟) (x⟦DUP⟧) (Typing.parr 𝒟)
 
-  -- | duplicate₂
-      -- First thing on 1:44
+  -- FIXME: Needs sigma to be applicable to Proc and Env
+  -- FIXME: Theorem stating subst preserves serverUsable
+  | dup₂
+      {Γ Γσ : Env} {P Pσ : Proc} {x xσ : PName} {A : Types}
+      {names namesσ: List PName} {σ : Renaming}
+      -- NOTE: All the postfix σ variables are only here until σ can be applied to them
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ A} (h₁ : ?ₑΓ)
+      {𝒟σ : ⊢ Pσ ∷ Γσ‚ xσ ∶ A} (h₂ : ?ₑΓσ)
+      -- NOTE: Maybe don't need ?Γσ since it only contains a name for each dependency in Γ
+      -- which all get paired of (z, zσ), so ?Γσ is consumed during the repeated application
+      -- of the c-rule but there might still be some non-dependencies in Γ, so we keep it?
+      {𝒟σ' : ⊢ (x⟦xσ⟧.(!xσ:{Pσ} |ₚ !x:{P})).open namesσ σ ∷ Γ‚ x ∶ !!Aᗮ ⨂ !!Aᗮ} :
+      P.f ∩ (P.f.image σ) = ∅ →
+      names = (P.f \ {x}).toList.mergeSort (· ≤ ·) →
+      -------------------------------------------------------------------------
+      TypingStep
+        (Typing.bang 𝒟 h₁)
+        (x⸨DUP⸩)
+        -- (Typing.c_ALT? (Typing.tensor (Typing.mix (Typing.bang 𝒟σ h₂) (Typing.bang 𝒟 h₁)))) ------------------------------------------------
+        (𝒟σ')
 
-  -- | bang_c
-      -- Second thing on 1:44
+  | bang_c
+      {𝒢 : HyperEnv} {Γ Δ : Env} {P P' : Proc} {x y : PName} {A : Types}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ ??A |ₕ Δ‚ y ∶ !!Aᗮ} (h : ?ₑΔ)
+      {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ ??A ⅋ ??A |ₕ Δ‚ y ∶ !!Aᗮ ⨂ !!Aᗮ} :
+      TypingStep 𝒟 (x⟦DUP⟧ |ₗ x⸨DUP⸩) 𝒟' →
+      -------------------------------------------
+      TypingStep
+        (Typing.cut 𝒢 Γ Δ P x y (??A) 𝒟)
+        (τ)
+        (Typing.cut 𝒢 Γ Δ P' x y (??A ⅋ ??A) 𝒟')
 
-  -- | dispose
-      -- Third thing on 1:44
+  | dispose
+      {Γ : Env} {P : Proc} {x : PName} {A : Types}
+      {𝒟 : ⊢ P ∷ Γ} :
+      TypingStep
+        (Typing.w (x := x) (A := A) 𝒟)
+        (x⟦DISP⟧)
+        (Typing.bot (x := x) 𝒟)
 
-  -- | dispose₂
-      -- Fourth thing on 1:44
+  | dispose₂
+      {Γ : Env} {P : Proc} {x x' : PName} {A : Types} {names : List PName}
+      {𝒟 : ⊢ P ∷ Γ‚ x ∶ A} (h : ?ₑΓ)
+      {𝒟' : ⊢ (x⟦⟧.𝟘).close names ∷ Γ‚ x ∶ 1} :
+      (P.f \ {x}).toList.mergeSort (· ≤ ·) = names →
+      -----------------------------------------------
+      TypingStep
+        (Typing.bang 𝒟 h)
+        (x⸨DISP⸩)
+        𝒟'
 
-  -- | bang_w
-      -- Fifth thing on 1:44
+  | bang_w
+      {𝒢 : HyperEnv} {Γ Δ : Env} {P P' : Proc} {x y : PName} {A : Types}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ ??A |ₕ Δ‚ y ∶ !!Aᗮ} (h : ?ₑΔ)
+      {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ ⊥ |ₕ Δ‚ y ∶ 1} :
+      TypingStep 𝒟 (x⟦DISP⟧ |ₗ x⸨DISP⸩) 𝒟' →
+      --------------------------------------
+      TypingStep
+        (Typing.cut 𝒢 Γ Δ P x y (??A) 𝒟)
+        (τ)
+        (Typing.cut 𝒢 Γ Δ P' x y ⊥ 𝒟')
 
 
 notation:50 𝒟 " -[" l "]->ₜ " 𝒟' => TypingStep 𝒟 l 𝒟'
@@ -1445,8 +1500,8 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | disp₂
       {P : Proc} {x : PName} {names : List PName} :
       (P.f \ {x}).toList.mergeSort (· ≤ ·) = names →
-      -------------------------------------------------------
-      ProcStep (!x:{P}) (x⸨DISP⸩) (Proc.close (!x:{P}) names)
+      --------------------------------------------------
+      ProcStep (!x:{P}) (x⸨DISP⸩) ((!x:{P}).close names)
 
   | dup₁
       {P : Proc} {x x' : PName} :
@@ -1456,7 +1511,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P : Proc} {x x' : PName} {names : List PName} {σ : Renaming} :
       P.f ∩ (P.f.image σ) = ∅ → names = (P.f \ {x}).toList.mergeSort (· ≤ ·) →
       -------------------------------------------------------------------------
-      ProcStep (!x:{P}) (x⸨DUP⸩) (Proc.open (!x:{P}) names σ)
+      ProcStep (!x:{P}) (x⸨DUP⸩) ((!x:{P}).open names σ)
 
   | use₁
       {P : Proc} {x : PName} :
@@ -1540,7 +1595,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
 
   | tensor
       {Γ Δ : Env} {x x' : PName} {A B : Types} :
-      EnvStep (Γ‚ Δ‚ x ∶ A ⊗ B) (x⟦x'⟧) (Γ‚ x'∶ A |ₕ Δ‚ x ∶ B)
+      EnvStep (Γ‚ Δ‚ x ∶ A ⨂ B) (x⟦x'⟧) (Γ‚ x'∶ A |ₕ Δ‚ x ∶ B)
 
   | bot
       {Γ : Env} {x : PName} :
@@ -1577,7 +1632,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {x x' y y': PName} {A B : Types} :
       EnvStep
-        (𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⊗ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ)
+        (𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⨂ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ)
         (x⟦x'⟧ |ₗ y⸨y'⸩)
         (𝒢 |ₕ Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B |ₕ Ξ‚ y' ∶ Aᗮ‚ y ∶ Bᗮ) →
       ---------------------------------------------------
@@ -1639,7 +1694,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       {Γ : Env} {x : PName} {A : Types} :
       ?ₑΓ →
       ----------------------------------------------
-      EnvStep (Γ‚ x ∶ !!A) (x⸨DUP⸩) (Γ‚ x ∶ !!A ⊗ !!A)
+      EnvStep (Γ‚ x ∶ !!A) (x⸨DUP⸩) (Γ‚ x ∶ !!A ⨂ !!A)
 
   | output
       {Γ : Env} {x : PName} {A B : Types} {X : TVar} :

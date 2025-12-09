@@ -19,6 +19,18 @@ import PiLL.Definitions
 
 
 
+/- TODO:
+  · Depending on Marcos response define alternate version of c- and w- rule which
+    also work on thier dependencies.
+
+  · If not and depending on whether or not the current implementations of rules needing
+    to apply a substitution work or not - Make it possible to apply a σ to Env and Proc
+    just like a PName.
+
+  · Correct the rules using this as needed.
+-/
+
+-- TOOD: Find out whether to replace occurrence of TVar with generic Types.var
 
 /- TODO: Extend Typing and TypingStep
   · Give typing judgements replacement syntax
@@ -159,6 +171,7 @@ example (y y' z : PName) : ⊢ y⸨y'⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z �
   apply Typing.bot
   apply Typing.one
   apply Typing.mix₀
+-/
 
 /-
   There are instance of the cut-rule being used when there isn't three parallel HyperEnvs
