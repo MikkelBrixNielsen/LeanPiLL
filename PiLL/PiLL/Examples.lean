@@ -3,9 +3,11 @@ import PiLL.Definitions
 ---------------------------------------- NOTATION -----------------------------------------
 
 section Notation
-variable (x y : PName) (P Q : Proc) (A : Types) (X : TVar)
+variable (𝒢 : HyperEnv) (Γ : Env) (P Q : Proc) (x z : PName) (A B : Types) (X : TVar)
 
 -- set_option pp.notation false
+
+/- Proc Construction Syntax -/
 #check x⟦⟧.P
 #check x⸨⸩.P
 #check x⟦y⟧.P
@@ -22,6 +24,16 @@ variable (x y : PName) (P Q : Proc) (A : Types) (X : TVar)
 #check x⟦DUP⟧⸨y⸩.P
 #check x⟦DISP⟧.P
 #check x ⟷ₚ y
+
+/- Replacement Syntax (Types, Proc, Env, HyperEnv) -/
+#check 𝒢{A // X} -- uses HyperEnv.substTypes
+#check Γ{A // X} -- uses Env.substTypes
+#check P{A // X} -- uses Proc.substTypes
+#check B{A // X} -- uses Types.subst
+
+#check 𝒢{x // z} -- uses HyperEnv.substName
+#check Γ{x // z} -- uses Env.substName
+#check P{x // z} -- uses Proc.substName
 
 end Notation
 

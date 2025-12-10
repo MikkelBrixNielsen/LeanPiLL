@@ -1,4 +1,3 @@
-import PiLL.Definitions
 ------------------------------------------ TODOs  ------------------------------------------
 
 /- TODO: Add side conditions to typing rules enforcing
@@ -18,6 +17,7 @@ import PiLL.Definitions
 
 
 
+-- TODO: Give typing judgements replacement syntax
 
 /- TODO:
   · Depending on Marcos response define alternate version of c- and w- rule which
@@ -30,17 +30,36 @@ import PiLL.Definitions
   · Correct the rules using this as needed.
 -/
 
--- TOOD: Find out whether to replace occurrence of TVar with generic Types.var
-
-/- TODO: Extend Typing and TypingStep
-  · Give typing judgements replacement syntax
+/- TODO: Extend Typing and TypingStep and fix rules
+  · input : Types subst for derivations (𝒟{A // X})
+  · axcut : PName subst for derivations (𝒟{x // z})
+  · dup₂ : n-expansion rule + sigma substitution (𝒟σ)
+  · dispose₂ : Make it an n expansion of the c rule (n >= 0)
 -/
+
+/- TODO: Make polymorphic classes for notation s.t.
+  · Tensor and output etc. can use share "⟦⟧" -- Seems to work
+  · Parr and input etc. can share "⸨⸩"        -- Seems to work
+  · Do the same for Lbls                      -- Seems to work
+  · Parallel operator -- Can't use "|" since it breaks match etc. maybe stick with subscripts
+  · Env / HyperEnv lookup -- If lookup becomes computable, use HasParen enable notation
+  · Check if possible for ⟷ -- Maybe stick with subscripts
+  · Check if it is possible to get rid double brackets, parentheses and slashes
+-/
+
+/- TOOD:
+  · Make notation check section in Examples.lean for Proc, Types, Labels and check
+    if it works as expected
+-/
+
+-- TOOD: Find out whether to replace occurrence of TVar with generic Types.var
 
 /- TODO:
   · Make substitution / replacement avoid capture (create fresh name function for TVar).
   · Alternatively require freshness for new name
   · Could also implicitly pick freshname if there is a clash and use that instead of the
     supplied name. Seems a little dishonest idk.
+-/
 
 -- TODO: Check if the generic µ label thing works
 
@@ -58,8 +77,6 @@ import PiLL.Definitions
   · Consider using the sequent / check all quest definition from Github
 -/
 
--- TOOD: Make notation check section in Examples.lean for Proc, Types, Labels
-
 -- TODO: Example 5.1 (check if it is compileable)
 
 /- TODO: Create examples / test usage of:
@@ -70,13 +87,12 @@ import PiLL.Definitions
   · Create replacement examples
 -/
 
--- TODO: Check alpha renaming and extend it to full πLL
-
--- TODO: Transitivity proof for AlphaEq (i.e. prove it's an equivalence relation)
-
--- TODO: Check if rules depending on AlphaEq work as intended or get stuck
-
--- TODO: Check whether during AlphaEq when the process is renamed if the HyperEnv also needs renaming
+/- TODO: AlphaEQ
+  · Extend to full πLL
+  · Transitivity proof -> Equivalence relation
+  · Check rules depending on AlphaEq work as expected (Don't get stuck)
+  · Check if HyperEnv also needs renaming when Proc is renamed
+-/
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
    This might need to be a structural congruence (≡)
@@ -153,7 +169,7 @@ import PiLL.Definitions
    decide how the Env should be ordered when the rule is applied? Is that just something
    we fix / decide before applying the rule? I.e. depending on what we want to show / prove
    we fix the Envs / HyperEnvs to refelct this?
--/
+
 -- (*)
 example (y y' z : PName) : ⊢ y'⸨y⸩.z⸨⸩.y'⸨⸩.y⟦⟧.𝟘 ∷ {z ∶ ⊥‚ y' ∶ 𝟙 ⅋ ⊥} := by
   apply Typing.parr

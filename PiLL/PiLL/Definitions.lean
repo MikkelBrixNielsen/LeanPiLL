@@ -1,14 +1,33 @@
------------------------------------------ imports -----------------------------------------
+----------------------------------------- IMPORTS -----------------------------------------
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Finset.Fold
 import Lean.PrettyPrinter.Delaborator
 import Mathlib.Tactic
 
------------------------------------------- TYPES  ------------------------------------------
+------------------------------ POLYMORPHIC CLASSES (NOTATION)------------------------------
+
+class HasSubst (Target New Old : Type) where
+  subst : Target → New → Old → Target
+
+notation:max Target "{" New " // " Old "}" => HasSubst.subst Target New Old
+
+class HasBracket (Subject Content Result : Type) where
+   brack : Subject → Content → Result
+
+class HasParen (Subject Content Result : Type) where
+   paren : Subject → Content → Result
+
+------------------------------------------ TYPES ------------------------------------------
 
 abbrev Atom := Nat
-abbrev TVar := Nat
+
+structure TVar where
+  name : Nat
+deriving Repr, DecidableEq, BEq
+
+instance : ToString TVar where
+  toString t := reprStr t
 
 -- FIXME: Probably don't need zero or top
 inductive Types : Type where
@@ -43,9 +62,9 @@ instance : Bot Types := ⟨Types.bot⟩
 prefix:95 "??" => Types.quest
 prefix:95 "!!" => Types.bang
 
--- FIXME: Needs to bind tighter to the first type af ":" s.t. ∀X.A ⨂ A => (∀X.A) ⨂ A
-notation:max "∃" v ":" A => Types.exist_ v A
-notation:max "∀" v ":" A => Types.forall_ v A
+-- FIXME: Needs to bind tighter to the first type after "․" s.t. ∀X.A ⨂ A => (∀X.A) ⨂ A
+notation:max "∃" v "․" A => Types.exist_ v A
+notation:max "∀" v "․" A => Types.forall_ v A
 
 private def reprTypesAux : Types → Nat → String
   | .atom a, _ => s!"A{a}"
@@ -152,7 +171,7 @@ def Types.freeTypes : Types → Finset TVar
   | .forall_ v A  => A.freeTypes \ {v}
   | .exist_ v A   => A.freeTypes \ {v}
 
-@[simp]
+@[simp] -- FIXME: Should aviod capture
 def Types.subst (T R : Types) (X : TVar) : Types :=
   match T with
   | .atom a => .atom a
@@ -169,11 +188,10 @@ def Types.subst (T R : Types) (X : TVar) : Types :=
   | .amp A B => .amp (A.subst R X) (B.subst R X)
   | .bang A       => .bang (A.subst R X)
   | .quest A      => .quest (A.subst R X)
-  -- FIXME: This does not avoid capture if B includes v
   | .forall_ v A  => if v = X then .forall_ v A else .forall_ v (A.subst R X)
   | .exist_ v A  => if v = X then .exist_ v A else .exist_ v (A.subst R X)
 
-notation:max T "{" R " // " X "}" => Types.subst T R X
+@[simp] instance : HasSubst Types Types TVar where subst := Types.subst
 
 @[simp]
 theorem Types.subst_dual (A B : Types) (X : TVar) : Bᗮ{A // X} = B{A // X}ᗮ := by
@@ -194,7 +212,7 @@ inductive Proc : Type where
   | nil                                           -- 𝟘
   | selectL   (x : PName) (P : Proc)              -- x[L].P
   | selectR   (x : PName) (P : Proc)              -- x[R].P
-  | amp     (x : PName) (P Q : Proc)            -- x.case{L : P, R : Q}
+  | amp       (x : PName) (P Q : Proc)            -- x.case{L : P, R : Q}
   | output    (x : PName) (P : Proc) (A : Types)  -- x[A].P
   | input     (x : PName) (P : Proc) (X : TVar)   -- x(X).P
   | server    (x : PName) (P : Proc)              -- !x.{P}
@@ -204,25 +222,38 @@ inductive Proc : Type where
   | link      (x y : PName)                       -- x ⟷ y
 deriving DecidableEq
 
-notation:80 x "⟦" y "⟧." P:80 => Proc.tensor x y P
-notation:80 x "⟦⟧." P:80 => Proc.one x P
-notation:80 x "⸨" y "⸩." P:80 => Proc.parr x y P
-notation:80 x "⸨⸩." P:80 => Proc.bot x P
-notation:75 "𝑣" "⸨" x ", " y "⸩ " P => Proc.cut x y P
+notation:80 x"⟦⟧․" P => (HasBracket.brack x () : Proc → Proc) P
+notation:80 x"⟦"y"⟧․" P => (HasBracket.brack x y : Proc → Proc) P
 
-notation:80 x "⟦𝐋⟧." P:80 => Proc.selectL x P
-notation:80 x "⟦𝐑⟧." P:80 => Proc.selectR x P
-notation:80 x ":case{𝐋" " : " P:80 ", " "𝐑" " : " Q :80"}" => Proc.amp x P Q
-notation:80 x "⟦" A "⟧:" P => Proc.output x P A
-notation:80 x "⸨" X "⸩:" P => Proc.input x P X
-notation:80 "!" x ":{" P "}" => Proc.server x P
-notation:80 x "⟦USE⟧." P => Proc.consume x P
-notation:80 x "⟦DUP⟧⸨" y "⸩." P => Proc.duplicate x y P
-notation:80 x "⟦DISP⟧." P => Proc.dispose x P
+@[simp] instance : HasBracket PName Unit (Proc → Proc) where
+  brack x _ P := Proc.one x P
+@[simp] instance : HasBracket PName PName (Proc → Proc) where
+  brack x y := Proc.tensor x y
+@[simp] instance : HasBracket PName Types (Proc → Proc) where
+  brack x T P := Proc.output x P T
+
+notation:80 x"⸨⸩․" P => (HasParen.paren x () : Proc → Proc) P
+notation:80 x"⸨"y"⸩․" P => (HasParen.paren x y : Proc → Proc) P
+
+@[simp] instance : HasParen PName Unit (Proc → Proc) where
+  paren x _ P := Proc.bot x P
+@[simp] instance : HasParen PName PName (Proc → Proc) where
+  paren := Proc.parr
+@[simp] instance : HasParen PName TVar (Proc → Proc) where
+  paren x T P := Proc.input x P T
+
+notation:75 "𝑣" "⸨" x ", " y "⸩ " P:80 => Proc.cut x y P
+notation:80 x "⟦𝐋⟧․" P:80 => Proc.selectL x P
+notation:80 x "⟦𝐑⟧․" P:80 => Proc.selectR x P
+notation:80 x "⟦USE⟧․" P:80 => Proc.consume x P
+notation:80 x "⟦DUP⟧⸨" y "⸩․" P:80 => Proc.duplicate x y P
+notation:80 x "⟦DISP⟧․" P:80 => Proc.dispose x P
+notation:80 "!" x "․{" P:80 "}" => Proc.server x P
+notation:80 x "․case{𝐋" " : " P:80 ", " "𝐑" " : " Q :80"}" => Proc.amp x P Q
+
 notation:80 x "⟷ₚ" y => Proc.link x y
-
-notation "𝟘" => Proc.nil
 infixr:70 " |ₚ " => Proc.par
+notation "𝟘" => Proc.nil
 
 private def reprProcAux : Proc → Nat → String
   | .nil, _ => "𝟘"
@@ -610,27 +641,27 @@ theorem AlphaEq.trans (P Q R : Proc) (hPQ : P =ₐ Q) (hQR : Q =ₐ R) : P =ₐ 
 --     · sorry
 
 @[simp]
-def Proc.substType (P : Proc) (A : Types) (X : TVar) : Proc :=
+def Proc.substTypes (P : Proc) (A : Types) (X : TVar) : Proc :=
   match P with
   | .nil => .nil
-  | .one x P => .one x (P.substType A X)
-  | .bot x P => .bot x (P.substType A X)
-  | .tensor x y P => .tensor x y (P.substType A X)
-  | .parr x y P => .parr x y (P.substType A X)
-  | .cut x y P => .cut x y (P.substType A X)
-  | .par P Q => .par (P.substType A X) (Q.substType A X)
-  | .selectL x P => .selectL x (P.substType A X)
-  | .selectR x P => .selectR x (P.substType A X)
-  | .amp x P Q => .amp x (P.substType A X) (Q.substType A X)
-  | .server x P => .server x (P.substType A X)
-  | .dispose x P => .dispose x (P.substType A X)
-  | .duplicate x y P => .duplicate x y (P.substType A X)
-  | .consume x P => .consume x (P.substType A X)
+  | .one x P => .one x (P.substTypes A X)
+  | .bot x P => .bot x (P.substTypes A X)
+  | .tensor x y P => .tensor x y (P.substTypes A X)
+  | .parr x y P => .parr x y (P.substTypes A X)
+  | .cut x y P => .cut x y (P.substTypes A X)
+  | .par P Q => .par (P.substTypes A X) (Q.substTypes A X)
+  | .selectL x P => .selectL x (P.substTypes A X)
+  | .selectR x P => .selectR x (P.substTypes A X)
+  | .amp x P Q => .amp x (P.substTypes A X) (Q.substTypes A X)
+  | .server x P => .server x (P.substTypes A X)
+  | .dispose x P => .dispose x (P.substTypes A X)
+  | .duplicate x y P => .duplicate x y (P.substTypes A X)
+  | .consume x P => .consume x (P.substTypes A X)
   | .link x y => .link x y
-  | .output x P B => .output x (P.substType A X) (B.subst A X)
-  | .input x P Y => if Y = X then .input x P Y else .input x (P.substType A X) Y
+  | .output x P B => .output x (P.substTypes A X) (B.subst A X)
+  | .input x P Y => if Y = X then .input x P Y else .input x (P.substTypes A X) Y
 
-notation:65 P"⦃" A " // " X "⦄ₜ" => Proc.substType P A X
+@[simp] instance : HasSubst Proc Types TVar where subst := Proc.substTypes
 
 @[simp]
 def Proc.substName (P : Proc) (x z : PName) : Proc :=
@@ -662,18 +693,18 @@ def Proc.substName (P : Proc) (x z : PName) : Proc :=
   | .output a P A => .output (sub a) (P.substName x z) A
   | .input a P X => .input (sub a) (P.substName x z) X
 
-notation:65 P"⦃" x " // " z "⦄ₙ" => Proc.substName P x z
+@[simp] instance : HasSubst Proc PName PName where subst := Proc.substName
 
 @[simp]
 def Proc.close (P : Proc) (names : List PName) : Proc :=
   match P with
-  | .server x _ => names.foldr (fun n acc => Proc.dispose n acc) (x⟦⟧.𝟘)
+  | .server x _ => names.foldr (fun n acc => Proc.dispose n acc) (x⟦⟧․𝟘)
   | _ => P
 
 @[simp]
 def Proc.open (P : Proc) (names : List PName) (σ : Renaming) : Proc :=
   match P with
-  | .server _ _  => names.foldr (fun n acc => Proc.duplicate n (σ n) acc) (Proc.par (rename σ P) P)
+  | .server _ _  => names.foldr (fun n acc => Proc.duplicate n (σ n) acc) ((rename σ P) |ₚ P)
   | _ => P
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
@@ -799,10 +830,15 @@ notation "ft(" Γ ")" => Env.freeTypes Γ
 
 @[simp]
 def Env.substName (Γ : Env) (x z : PName) : Env :=
-  Γ.image (fun (n, (type : Types)) =>
-    if n = z then (x, type)
-    else (n, type)
-  )
+  Γ.image (fun (n, T) => if n = z then (x, T) else (n, T))
+
+@[simp] instance : HasSubst Env PName PName where subst := Env.substName
+
+@[simp]
+def Env.substTypes (Γ : Env) (A : Types) (X : TVar) : Env :=
+  Γ.image (fun (n, T) => (n, T.subst A X))
+
+@[simp] instance : HasSubst Env Types TVar where subst := Env.substTypes
 
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
@@ -899,12 +935,10 @@ infixl:55 " |ₕ " => HyperEnv.merge
 
 -- Merge identity
 @[simp]
-theorem HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by
-  simp
+theorem HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by simp
 
 @[simp]
-theorem HyperEnv.merge_unitR (𝒢 : HyperEnv) : 𝒢 |ₕ ∅ = 𝒢 := by
-  simp
+theorem HyperEnv.merge_unitR (𝒢 : HyperEnv) : 𝒢 |ₕ ∅ = 𝒢 := by simp
 
 -- Merge commutative
 @[simp]
@@ -913,13 +947,20 @@ theorem HyperEnv.merge_comm (𝒢 ℋ : HyperEnv) : 𝒢 |ₕ ℋ = ℋ |ₕ �
 
 -- Merge associativity
 @[simp]
-theorem HyperEnv.merge_assoc (𝒢 ℋ 𝒦 : HyperEnv) :
-  (𝒢 |ₕ ℋ) |ₕ 𝒦 = 𝒢 |ₕ (ℋ |ₕ 𝒦) := by
+theorem HyperEnv.merge_assoc (𝒢 ℋ 𝒦 : HyperEnv) : (𝒢 |ₕ ℋ) |ₕ 𝒦 = 𝒢 |ₕ (ℋ |ₕ 𝒦) := by
   simp
 
 @[simp]
-def HyperEnv.substName (𝒢 : HyperEnv) (x z : PName) :=
+def HyperEnv.substName (𝒢 : HyperEnv) (x z : PName) : HyperEnv :=
   𝒢.image (fun Γ => Γ.substName x z)
+
+@[simp] instance : HasSubst HyperEnv PName PName where subst := HyperEnv.substName
+
+@[simp]
+def HyperEnv.substTypes (𝒢 : HyperEnv) (A : Types) (X : TVar) : HyperEnv :=
+  𝒢.image (fun Γ => Γ.substTypes A X)
+
+@[simp] instance : HasSubst HyperEnv Types TVar where subst := HyperEnv.substTypes
 
 --------------------------------------- TYPING RULES ---------------------------------------
 
@@ -941,76 +982,76 @@ inductive Typing : HyperEnv → Proc → Prop where
   | tensor {Γ Δ : Env} {P : Proc} {x y : PName} {B A : Types} :
       Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
       ------------------------------------
-      Typing (Γ‚ Δ‚ x ∶ A ⨂ B) (x⟦y⟧.P)
+      Typing (Γ‚ Δ‚ x ∶ A ⨂ B) (x⟦y⟧․P)
 
   | one {P : Proc} {x : PName} :
       Typing ∅ P →
       ----------------------
-      Typing (x ∶ 1) (x⟦⟧.P)
+      Typing (x ∶ 1) (x⟦⟧․P)
 
   | parr {Γ : Env} {P : Proc} {x y : PName} {A B : Types} :
       Typing (Γ‚ y ∶ A‚ x ∶ B) P →
       --------------------------------
-      Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩.P)
+      Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩․P)
 
   | bot {Γ : Env} {P : Proc} {x : PName} :
       Typing Γ P →
       --------------------------
-      Typing (Γ‚ x ∶ ⊥) (x⸨⸩.P)
+      Typing (Γ‚ x ∶ ⊥) (x⸨⸩․P)
 
   | oplus₁
       {Γ : Env} {P : Proc} {x : PName} {A B : Types} :
       Typing (Γ‚ x ∶ A) P →
       ------------------------------
-      Typing (Γ‚ x ∶ A ⊕ B) (x⟦𝐋⟧.P)
+      Typing (Γ‚ x ∶ A ⊕ B) (x⟦𝐋⟧․P)
 
   | oplus₂
       {Γ : Env} {P : Proc} {x : PName} {A B : Types} :
       Typing (Γ‚ x ∶ B) P →
       ------------------------------
-      Typing (Γ‚ x ∶ A ⊕ B) (x⟦𝐑⟧.P)
+      Typing (Γ‚ x ∶ A ⊕ B) (x⟦𝐑⟧․P)
 
   | amp
       {Γ : Env} {P Q : Proc} {x : PName} {A B : Types} :
       Typing (Γ‚ x ∶ A) P → Typing (Γ‚ x ∶ B) Q →
       ---------------------------------------------
-      Typing (Γ‚ x ∶ A & B) (x:case{𝐋 : P, 𝐑 : Q})
+      Typing (Γ‚ x ∶ A & B) (x․case{𝐋 : P, 𝐑 : Q})
 
   | quest
       {Γ : Env} {P : Proc} {x : PName} {A : Types} :
       Typing (Γ‚ x ∶ A) P →
       -----------------------------
-      Typing (Γ‚ x ∶ ??A) (x⟦USE⟧.P)
+      Typing (Γ‚ x ∶ ??A) (x⟦USE⟧․P)
 
   | w
       {Γ : Env} {P : Proc} {x : PName} {A : Types} :
       Typing Γ P →
       -----------------------------
-      Typing (Γ‚ x ∶ ??A) (x⟦DISP⟧.P)
+      Typing (Γ‚ x ∶ ??A) (x⟦DISP⟧․P)
 
   | c
       {Γ : Env} {P : Proc} {x x' : PName} {A : Types} :
       Typing (Γ‚ x ∶ ??A‚ x' ∶ ??A) P →
       --------------------------------
-      Typing (Γ‚ x ∶ ??A) (x⟦DUP⟧⸨x'⸩.P)
+      Typing (Γ‚ x ∶ ??A) (x⟦DUP⟧⸨x'⸩․P)
 
   | bang
       {Γ : Env} {P : Proc} {x : PName} {A : Types} :
       Typing (Γ‚ x ∶ A) P → ?ₑΓ →
       ------------------------------
-      Typing (Γ‚ x ∶ !!A) (!x:{P})
+      Typing (Γ‚ x ∶ !!A) (!x․{P})
 
   | exists_
       {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar} :
       Typing (Γ‚ x ∶ B{A // X}) P →
       -----------------------------
-      Typing (Γ‚ x ∶ ∃X:B) (x⟦A⟧:P)
+      Typing (Γ‚ x ∶ ∃X․B) (x⟦A⟧․P)
 
   | forall_
       {Γ : Env} {P : Proc} {x : PName} {B : Types} {X : TVar} :
       Typing (Γ‚ x ∶ B) P → X ∉ ft(Γ) →
       ---------------------------------
-      Typing (Γ‚ x ∶ ∀X:B) (x⸨X⸩:P)
+      Typing (Γ‚ x ∶ ∀X․B) (x⸨X⸩․P)
 
   | ax
       {x y : PName} {A : Types} :
@@ -1020,6 +1061,10 @@ notation:50 "⊢ " P " ∷ " T => Typing T P
 
 theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (x z : PName)
   (hFresh : x ∉ 𝒢.names) : ⊢ (P.substName x z) ∷ (𝒢.substName x z) := by sorry
+
+
+theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
+  {A : Types} {X : TVar} : ⊢ (P.substTypes A X) ∷ (𝒢.substTypes A X) := by sorry
 
 ------------------------------------------ LABELS ------------------------------------------
 
@@ -1092,29 +1137,38 @@ def Lbl.i : Lbl → Finset PName
 def Lbl.fresh (xs : List PName) (l : Lbl) :=
   ∀ n ∈ xs, n ∉ l.f ∪ l.i
 
-notation:80 x "⟦" y "⟧" => Act.tensor x y
-notation:80 x "⟦⟧" => Act.one x
-notation:80 x "⸨" y "⸩" => Act.parr x y
-notation:80 x "⸨⸩" => Act.bot x
-notation:80 "τ" => Lbl.tau
+notation "𝐋"    => Mu.L
+notation "𝐑"    => Mu.R
+notation "USE"  => Mu.USE
+notation "DUP"  => Mu.DUP
+notation "DISP" => Mu.DISP
+
+notation:80 x"⟦⟧" => HasBracket.brack x ()
+notation:80 x"⟦"y"⟧" => HasBracket.brack x y
+
+@[simp] instance : HasBracket PName Unit Act where brack x _ := Act.one x
+@[simp] instance : HasBracket PName PName Act where brack x y := Act.tensor x y
+@[simp] instance : HasBracket PName Types Act where brack x A := Act.output x A
+@[simp] instance : HasBracket PName Mu Act where brack x μ := Act.muBrack x μ
+
+notation:80 x"⸨⸩" => HasParen.paren x ()
+notation:80 x"⸨"y"⸩" => HasParen.paren x y
+
+@[simp] instance : HasParen PName Unit Act where paren x _ := Act.bot x
+@[simp] instance : HasParen PName PName Act where paren x y := Act.parr x y
+@[simp] instance : HasParen PName Types Act where paren x A := Act.input x A
+@[simp] instance : HasParen PName Mu Act where paren x μ := Act.muParen x μ
+
+-- Tells Lean to use (HasBracket / HasParen) Act when asked for the Lbl variant
+@[simp] instance {S C : Type} [HasBracket S C Act] : HasBracket S C Lbl where
+  brack s c := Lbl.act (HasBracket.brack s c)
+
+@[simp] instance {S C : Type} [HasParen S C Act] : HasParen S C Lbl where
+  paren s c := Lbl.act (HasParen.paren s c)
+
 notation:80 x "⟷ₗ" y => Lbl.link x y
 notation:70 l " |ₗ " l' => Lbl.par l l'
-notation:80 x "⟦" A "⟧:" => Act.output x A
-notation:80 x "⸨" A "⸩:" => Act.input x A
-
-notation:80 x "⟦𝐋⟧" => Act.muBrack x Mu.L
-notation:80 x "⸨𝐋⸩" => Act.muParen x Mu.L
-notation:80 x "⟦𝐑⟧" => Act.muBrack x Mu.R
-notation:80 x "⸨𝐑⸩" => Act.muParen x Mu.R
-notation:80 x "⟦USE⟧" => Act.muBrack x Mu.USE
-notation:80 x "⸨USE⸩" => Act.muParen x Mu.USE
-notation:80 x "⟦DUP⟧" => Act.muBrack x Mu.DUP
-notation:80 x "⸨DUP⸩" => Act.muParen x Mu.DUP
-notation:80 x "⟦DISP⟧" => Act.muBrack x Mu.DISP
-notation:80 x "⸨DISP⸩" => Act.muParen x Mu.DISP
-
-notation:80 x "⟦" μ "⟧ₘ" => Act.muBrack x μ
-notation:80 x "⸨" μ "⸩ₘ" => Act.muParen x μ
+notation:80 "τ" => Lbl.tau
 
 @[app_unexpander Lbl.act]
 def unexpandLblAct : Lean.PrettyPrinter.Unexpander
@@ -1252,28 +1306,28 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
   | output
       {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar}
       {𝒟 : ⊢ P ∷ Γ‚ x ∶ B{A // X}} :
-      TypingStep (Typing.exists_ 𝒟) (x⟦A⟧:) 𝒟
+      TypingStep (Typing.exists_ 𝒟) (x⟦A⟧) 𝒟
 
   | input -- FIXME: Might need typing subst for judgements, test if current is ok
       {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar}
       {𝒟 : ⊢ P ∷ Γ‚ x ∶ B} {h : X ∉ ft(Γ)}
       -- TypingStep (Typing.forall_ (X := X) 𝒟 h) (x⸨A⸩:) (𝒟{A // X}) --------------------------------------------------------------------------
-      {𝒟' : ⊢ P⦃A // X⦄ₜ ∷ Γ‚ x ∶ B{A // X}} :
-      TypingStep (Typing.forall_ (X := X) 𝒟 h) (x⸨A⸩:) 𝒟'
+      {𝒟' : ⊢ P{A // X} ∷ Γ‚ x ∶ B{A // X}} :
+      TypingStep (Typing.forall_ (X := X) 𝒟 h) (x⸨A⸩) 𝒟'
 
   | input_output
       {𝒢 : HyperEnv} {Γ Δ : Env} {P P' : Proc} {x y : PName} {A B : Types} {X : TVar}
-      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ (∃X:B) |ₕ Δ‚ y ∶ ∀X:Bᗮ}
+      {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ (∃X․B) |ₕ Δ‚ y ∶ ∀X․Bᗮ}
       {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ B{A // X} |ₕ Δ‚ y ∶ Bᗮ{A // X}} :
 
-      TypingStep 𝒟 (x⟦A⟧: |ₗ y⸨A⸩:) 𝒟' →
+      TypingStep 𝒟 (x⟦A⟧ |ₗ y⸨A⸩) 𝒟' →
       -----------------------------------------------
       TypingStep
-        (Typing.cut 𝒢 Γ Δ P x y (∃X:B) 𝒟)
+        (Typing.cut 𝒢 Γ Δ P x y (∃X․B) 𝒟)
         (τ)
         (by
-        rw [Types.subst_dual] at 𝒟'
-        exact Typing.cut 𝒢 Γ Δ P' x y (B{A // X}) 𝒟'
+          rw [Types.subst_dual] at 𝒟'
+          exact Typing.cut 𝒢 Γ Δ P' x y (B{A // X}) 𝒟'
         )
 
   | link₁
@@ -1290,7 +1344,7 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       {𝒢 : HyperEnv} {Γ : Env} {P P' : Proc} {x y z : PName} {A : Types}
       {𝒟 : ⊢ P ∷ 𝒢 |ₕ x ∶ Aᗮ‚ y ∶ A |ₕ Γ‚ z ∶ Aᗮ}
       {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ z ∶ Aᗮ}
-      {𝒟'σ : ⊢ P'⦃x // z⦄ₙ ∷ 𝒢 |ₕ Γ‚ x ∶ Aᗮ} :
+      {𝒟'σ : ⊢ P'{x // z} ∷ 𝒢 |ₕ Γ‚ x ∶ Aᗮ} :
       TypingStep 𝒟 (x ⟷ₗ y) 𝒟' →
       -----------------------------------
       TypingStep
@@ -1336,7 +1390,7 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
       -- NOTE: Maybe don't need ?Γσ since it only contains a name for each dependency in Γ
       -- which all get paired of (z, zσ), so ?Γσ is consumed during the repeated application
       -- of the c-rule but there might still be some non-dependencies in Γ, so we keep it?
-      {𝒟σ' : ⊢ (x⟦xσ⟧.(!xσ:{Pσ} |ₚ !x:{P})).open namesσ σ ∷ Γ‚ x ∶ !!Aᗮ ⨂ !!Aᗮ} :
+      {𝒟σ' : ⊢ (x⟦xσ⟧․(!xσ․{Pσ} |ₚ !x․{P})).open namesσ σ ∷ Γ‚ x ∶ !!Aᗮ ⨂ !!Aᗮ} :
       P.f ∩ (P.f.image σ) = ∅ →
       names = (P.f \ {x}).toList.mergeSort (· ≤ ·) →
       -------------------------------------------------------------------------
@@ -1365,10 +1419,10 @@ inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
         (x⟦DISP⟧)
         (Typing.bot (x := x) 𝒟)
 
-  | dispose₂
+  | dispose₂ -- FIXME
       {Γ : Env} {P : Proc} {x x' : PName} {A : Types} {names : List PName}
       {𝒟 : ⊢ P ∷ Γ‚ x ∶ A} (h : ?ₑΓ)
-      {𝒟' : ⊢ (x⟦⟧.𝟘).close names ∷ Γ‚ x ∶ 1} :
+      {𝒟' : ⊢ (x⟦⟧․𝟘).close names ∷ Γ‚ x ∶ 1} :
       (P.f \ {x}).toList.mergeSort (· ≤ ·) = names →
       -----------------------------------------------
       TypingStep
@@ -1436,19 +1490,19 @@ def proc {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : Proc := P
 inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | one
       {P : Proc} {x : PName} :
-      ProcStep (x⟦⟧.P) (x⟦⟧) P
+      ProcStep (x⟦⟧․P) (x⟦⟧) P
 
   | tensor
       {P : Proc} {x x' : PName} :
-      ProcStep (x⟦x'⟧.P) (x⟦x'⟧) P
+      ProcStep (x⟦x'⟧․P) (x⟦x'⟧) P
 
   | bot
       {P : Proc} {x : PName} :
-      ProcStep (x⸨⸩.P) (x⸨⸩) P
+      ProcStep (x⸨⸩․P) (x⸨⸩) P
 
   | parr
       {P : Proc} {x x' : PName} :
-      ProcStep (x⸨x'⸩.P) (x⸨x'⸩) P
+      ProcStep (x⸨x'⸩․P) (x⸨x'⸩) P
 
   | par₁
       {P P' Q : Proc} {l : Lbl} :
@@ -1495,55 +1549,55 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 
   | disp₁
       {P : Proc} {x : PName} :
-      ProcStep (x⟦DISP⟧.P) (x⟦DISP⟧) (x⸨⸩.P)
+      ProcStep (x⟦DISP⟧․P) (x⟦DISP⟧) (x⸨⸩․P)
 
   | disp₂
       {P : Proc} {x : PName} {names : List PName} :
       (P.f \ {x}).toList.mergeSort (· ≤ ·) = names →
       --------------------------------------------------
-      ProcStep (!x:{P}) (x⸨DISP⸩) ((!x:{P}).close names)
+      ProcStep (!x․{P}) (x⸨DISP⸩) ((!x․{P}).close names)
 
   | dup₁
       {P : Proc} {x x' : PName} :
-      ProcStep (x⟦DUP⟧⸨x'⸩.P) (x⟦DUP⟧) (x⸨x'⸩.P)
+      ProcStep (x⟦DUP⟧⸨x'⸩․P) (x⟦DUP⟧) (x⸨x'⸩․P)
 
   | dup₂
       {P : Proc} {x x' : PName} {names : List PName} {σ : Renaming} :
       P.f ∩ (P.f.image σ) = ∅ → names = (P.f \ {x}).toList.mergeSort (· ≤ ·) →
       -------------------------------------------------------------------------
-      ProcStep (!x:{P}) (x⸨DUP⸩) ((!x:{P}).open names σ)
+      ProcStep (!x․{P}) (x⸨DUP⸩) ((!x․{P}).open names σ)
 
   | use₁
       {P : Proc} {x : PName} :
-      ProcStep (x⟦USE⟧.P) (x⟦USE⟧) P
+      ProcStep (x⟦USE⟧․P) (x⟦USE⟧) P
 
   | use₂
       {P : Proc} {x : PName} :
-      ProcStep (!x:{P}) (x⸨USE⸩) P
+      ProcStep (!x․{P}) (x⸨USE⸩) P
 
   | output
       {P : Proc} {x : PName} {A : Types} :
-      ProcStep (x⟦A⟧:P) (x⟦A⟧:) P
+      ProcStep (x⟦A⟧․P) (x⟦A⟧) P
 
   | input
       {P : Proc} {x : PName} {A : Types} {X : TVar}:
-      ProcStep (x⸨X⸩:P) (x⸨A⸩:) (P⦃A // X⦄ₜ)
+      ProcStep (x⸨X⸩․P) (x⸨A⸩) (P{A // X})
 
   | selectL
       {P : Proc} {x : PName} :
-      ProcStep (x⟦𝐋⟧.P) (x⟦𝐋⟧) P
+      ProcStep (x⟦𝐋⟧․P) (x⟦𝐋⟧) P
 
   | ampL
       {P Q : Proc} {x : PName} :
-      ProcStep (x:case{𝐋 : P, 𝐑 : Q}) (x⸨𝐋⸩) P
+      ProcStep (x․case{𝐋 : P, 𝐑 : Q}) (x⸨𝐋⸩) P
 
   | selectR
       {P : Proc} {x : PName} :
-      ProcStep (x⟦𝐑⟧.P) (x⟦𝐑⟧) P
+      ProcStep (x⟦𝐑⟧․P) (x⟦𝐑⟧) P
 
   | ampR
       {P Q : Proc} {x : PName} :
-      ProcStep (x:case{𝐋 : P, 𝐑 : Q}) (x⸨𝐑⸩) Q
+      ProcStep (x․case{𝐋 : P, 𝐑 : Q}) (x⸨𝐑⸩) Q
 
   | link₁
       {x y : PName} :
@@ -1554,7 +1608,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep (x ⟷ₚ y) (y ⟷ₗ x) 𝟘
 
   | com {P P' : Proc} {x y : PName} {μ : Mu} :
-      ProcStep P (x⟦μ⟧ₘ |ₗ y⟦μ⟧ₘ) P' →
+      ProcStep P (x⟦μ⟧ |ₗ y⟦μ⟧) P' →
       -------------------------------------
       ProcStep (𝑣⸨x, y⸩ P) (τ) (𝑣⸨x, y⸩ P')
 
@@ -1562,7 +1616,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P P' : Proc} {x y z : PName} :
       ProcStep P (x ⟷ₗ y) P' →
       --------------------------------------
-      ProcStep (𝑣⸨y, z⸩ P) (τ) (P'⦃x // z⦄ₙ)
+      ProcStep (𝑣⸨y, z⸩ P) (τ) (P'{x // z})
 
 notation:50 P " -[" l "]->ₚ " P' => ProcStep P l P'
 
@@ -1698,11 +1752,11 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
 
   | output
       {Γ : Env} {x : PName} {A B : Types} {X : TVar} :
-      EnvStep (Γ‚ x ∶ ∃X:B) (x⟦A⟧:) (Γ‚ x ∶ B{A // X})
+      EnvStep (Γ‚ x ∶ ∃X․B) (x⟦A⟧) (Γ‚ x ∶ B{A // X})
 
   | input
       {Γ : Env} {x : PName} {A B : Types} {X : TVar} :
-      EnvStep (Γ‚ x ∶ ∀X:B) (x⸨A⸩:) (Γ‚ x ∶ B{A // X})
+      EnvStep (Γ‚ x ∶ ∀X․B) (x⸨A⸩) (Γ‚ x ∶ B{A // X})
 
 notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
 
