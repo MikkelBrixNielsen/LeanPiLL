@@ -268,3 +268,10 @@ from the label set as well -/
   · \tau transitions generally do not alter the environment 
   · transitions with observable actions generally alter the environment 
 -/
+
+/- 
+  · When doing substitution e.g. in Proc.substName for cut and duplicate DON'T do
+    substitution on any of the bound variables if they are equal to the substitution 
+    target. Doing substitution would break the link between them and how they are used 
+    in the continuation (i.e. P).
+-/

@@ -50,6 +50,7 @@
 /- TOOD:
   · Make notation check section in Examples.lean for Proc, Types, Labels and check
     if it works as expected
+  · Ensure precedence works as intended
 -/
 
 -- TOOD: Find out whether to replace occurrence of TVar with generic Types.var
@@ -59,6 +60,9 @@
   · Alternatively require freshness for new name
   · Could also implicitly pick freshname if there is a clash and use that instead of the
     supplied name. Seems a little dishonest idk.
+  · Probably also make a proof that replacement avoids capture
+  · NOTE: Decide whether or not to have the capture avoiding behaviour backed into
+    Typing rules or do something with the methods instead?
 -/
 
 -- TODO: Check if the generic µ label thing works

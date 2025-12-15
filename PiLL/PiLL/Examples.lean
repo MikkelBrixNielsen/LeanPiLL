@@ -3,26 +3,26 @@ import PiLL.Definitions
 ---------------------------------------- NOTATION -----------------------------------------
 
 section Notation
-variable (𝒢 : HyperEnv) (Γ : Env) (P Q : Proc) (x z : PName) (A B : Types) (X : TVar)
+variable (𝒢 : HyperEnv) (Γ : Env) (P Q : Proc) (x y z : PName) (A B : Types) (X : TVar)
 
 -- set_option pp.notation false
 
 /- Proc Construction Syntax -/
-#check x⟦⟧.P
-#check x⸨⸩.P
-#check x⟦y⟧.P
-#check x⸨y⸩.P
+#check x⟦⟧․P
+#check x⸨⸩․P
+#check x⟦y⟧․P
+#check x⸨y⸩․P
 #check 𝑣⸨x, y⸩ P
 
-#check x⟦𝐋⟧.P
-#check x⟦𝐑⟧.P
-#check ⸨x⸩.case⦃𝐋 : P, 𝐑 : Q⦄
-#check x⟦A⟧:P
-#check x⸨X⸩:P
-#check !x.⦃P⦄
-#check x⟦USE⟧.P
-#check x⟦DUP⟧⸨y⸩.P
-#check x⟦DISP⟧.P
+#check x⟦𝐋⟧․P
+#check x⟦𝐑⟧․P
+#check x․case{𝐋 : P, 𝐑 : Q}
+#check x⟦A⟧․P
+#check x⸨X⸩․P
+#check !x․{P}
+#check x⟦USE⟧․P
+#check x⟦DUP⟧⸨y⸩․P
+#check x⟦DISP⟧․P
 #check x ⟷ₚ y
 
 /- Replacement Syntax (Types, Proc, Env, HyperEnv) -/
@@ -44,7 +44,7 @@ section Latch
 -- TODO: Try and use simp more, try and omit giving explicit types to cut,
 --       in general try minimizing things given to cut
 example (x x₁ x₂ y y₁ y₂ z : PName) :
-  ⊢ 𝑣⸨x₁, x₂⸩ 𝑣⸨y₁, y₂⸩ x⸨⸩.x₁⟦⟧.𝟘 |ₚ y⸨⸩.y₁⟦⟧.𝟘 |ₚ x₂⸨⸩.y₂⸨⸩.z⟦⟧.𝟘 ∷
+  ⊢ 𝑣⸨x₁, x₂⸩ (𝑣⸨y₁, y₂⸩ ((x⸨⸩․x₁⟦⟧․𝟘) |ₚ (y⸨⸩․y₁⟦⟧․𝟘) |ₚ (x₂⸨⸩․y₂⸨⸩․z⟦⟧․𝟘))) ∷
     {x ∶ ⊥‚ y ∶ ⊥‚ z ∶ 1} := by
   rw [Env.merge_assoc]
   apply Typing.cut ∅ _ _ _ _ _ (1)
