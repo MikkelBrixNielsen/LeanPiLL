@@ -65,6 +65,8 @@
     Typing rules or do something with the methods instead?
 -/
 
+-- TODO: Find out why Types substitution causes simp to do infinite recursion
+
 -- TODO: Check if the generic µ label thing works
 
 -- TODO: Check if ft(Γ) works as inteded (create some examples as well)
