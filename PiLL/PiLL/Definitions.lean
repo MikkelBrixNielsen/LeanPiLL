@@ -353,6 +353,10 @@ def Proc.names : Proc → Finset PName
   | .dispose x P          => {x} ∪ P.names
   | .link x y             => {x, y}
 
+@[simp]
+def Proc.boundNames (P : Proc) : Finset PName :=
+  P.names \ P.f
+
 abbrev Renaming := PName → PName
 
 def rename (ρ : Renaming) : Proc → Proc
@@ -744,6 +748,38 @@ def Proc.open (P : Proc) (names : List PName) (σ : Renaming) : Proc :=
 lemma Proc.substName_par (P Q : Proc) (x z : PName) :
   P.substName x z |ₚ Q.substName x z = (P |ₚ Q).substName x z := by simp
 
+-- FIXME: Not sure how many of these are still used for anything
+lemma Proc.boundNames_par_subset_left (P Q : Proc) (x : PName)
+  (hxBP : x ∈ P.boundNames) (hNotQf : x ∉ Q.f) :
+  x ∈ (P |ₚ Q).boundNames := by
+  simp only [Proc.boundNames, Proc.names, Proc.f] at *
+  simp at hxBP
+  rcases hxBP with ⟨hxP, hxNotPf⟩
+  simp
+  apply And.intro
+  · left ; exact hxP
+  · simp [hxNotPf, hNotQf]
+
+lemma Proc.not_bound_par_left {P Q : Proc} {x : PName}
+  (hSafe : x ∉ (P |ₚ Q).boundNames) (hNotQf : x ∉ Q.f) :
+  x ∉ P.boundNames := by
+  intro h_contra
+  apply hSafe
+  exact Proc.boundNames_par_subset_left P Q x h_contra hNotQf
+
+lemma Proc.not_bound_par_right {P Q : Proc} {x : PName}
+  (hSafe : x ∉ (P |ₚ Q).boundNames) (hxNotPf : x ∉ P.f) :
+  x ∉ Q.boundNames := by
+  intro h_contra
+  apply hSafe
+  simp only [Proc.boundNames, Proc.names, Proc.f] at *
+  simp at h_contra
+  rcases h_contra with ⟨hxQ, hxNotQf⟩
+  simp
+  apply And.intro
+  · right ; exact hxQ
+  · simp [hxNotPf, hxNotQf]
+
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 
 abbrev Env := Finset (PName × Types)
@@ -767,8 +803,9 @@ def Env.mk (x : PName) (A : Types) : Env :=
 
 infixr:86 " ∶ " => Env.mk
 
-def Env.linear (Δ : Env) : Prop :=
-  (Δ.image Prod.fst).card = Δ.card
+-- NOTE: It's a set so linear by definition
+-- def Env.linear (Δ : Env) : Prop :=
+  -- (Δ.image Prod.fst).card = Δ.card
 
 @[simp]
 def Env.names (Δ : Env) : Finset (PName) :=
@@ -913,9 +950,10 @@ instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
 def pairwise {α : Type} (r : α → α → Prop) (s : Finset α) : Prop :=
   ∀ x ∈ s, ∀ y ∈ s, y ≠ x → r x y
 
-def HyperEnv.linear (𝒢 : HyperEnv) : Prop :=
-  ∀ Δ ∈ 𝒢, Δ.linear ∧                               -- ensure each env is linear
-  pairwise (fun Δ Γ => Δ.disjoint Γ) 𝒢              -- ensure pairwise env disjointness
+-- FIXME: Relevance?
+-- def HyperEnv.linear (𝒢 : HyperEnv) : Prop :=
+  -- ∀ Δ ∈ 𝒢, Δ.linear ∧                            -- ensure each env is linear
+  -- pairwise (fun Δ Γ => Δ.disjoint Γ) 𝒢              -- ensure pairwise env disjointness
 
 @[simp]
 def HyperEnv.names (𝒢 : HyperEnv) : Finset PName :=
@@ -1186,11 +1224,117 @@ inductive Typing : HyperEnv → Proc → Prop where
 
 notation:50 "⊢ " P " ∷ " T => Typing T P
 
+lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
+  P.f ⊆ 𝒢.names := by
+  induction h <;> simp [Proc.f, HyperEnv.names]
+
+  case mix ihP ihQ =>
+    apply Finset.union_subset_union ihP ihQ
+
+  case one | bot => simp_all
+
+  case oplus₁ ih | oplus₂ ih | quest ih | bang ih | exists_ ih | forall_ ih =>
+    simp at ih
+    apply Finset.insert_subset
+    · simp
+    · exact ih
+
+  case amp ihP ihQ =>
+    simp at ihP ihQ
+    apply Finset.insert_subset
+    · simp
+    · apply Finset.union_subset ihP ihQ
+
+  case w ih =>
+    simp at ih
+    apply Finset.insert_subset
+    · simp
+    · intro _ ha
+      apply Finset.mem_insert_of_mem
+      apply ih
+      exact ha
+
+  case c ih =>
+    simp at ih
+    apply Finset.insert_subset
+    · simp
+    · intro _ ha
+      simp at ha
+      rcases ha with ⟨haP, _⟩
+      specialize ih haP
+      simp at ih
+      rcases ih with rfl | rfl | hΓ
+      · contradiction
+      · simp
+      · simp
+        right
+        exact hΓ
+
+  case ax ih =>
+    intro a ha
+    simp at ⊢ ha
+    tauto
+
+  case cut ih =>
+    simp at ⊢ ih
+    intro a ha
+    simp at ha
+    rcases ha with ⟨haP, hney, hnex⟩
+    specialize ih haP
+    simp at ⊢ ih
+    rcases ih
+    · simp_all
+    · rename_i h
+      rcases h with rfl | ⟨t, hΔ⟩ | ⟨t, hΓ⟩ | hG
+      · contradiction
+      · left ; use t ; right ;
+        exact hΔ
+      · left ; use t ; left
+        exact hΓ
+      · right
+        exact hG
+
+  case tensor ih =>
+    simp at ih
+    apply Finset.insert_subset
+    · simp
+    · intro a ha
+      simp at ha
+      rcases ha with ⟨haP, hney⟩
+      specialize ih haP
+      simp at ih
+      rcases ih with rfl | rfl | hr
+      · contradiction
+      · simp
+      · rcases hr with ⟨t, hΔ⟩ | ⟨t, hΓ⟩
+        · simp ; right ; use t ; right
+          exact hΔ
+        · simp ; right ; use t ; left
+          exact hΓ
+
+  case parr ih =>
+    simp at ih
+    apply Finset.insert_subset
+    · simp
+    · intro a ha
+      simp at ha
+      rcases ha with ⟨haP, hney⟩
+      specialize ih haP
+      simp at ih
+      rcases ih with rfl | rfl | hr
+      · simp
+      · contradiction
+      · simp ; right
+        exact hr
+
 theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (x z : PName)
-  (hFresh : x ∉ 𝒢.names) : ⊢ (P.substName x z) ∷ (𝒢.substName x z) := by
+  (hFresh : x ∉ 𝒢.names) (hSafe : x ∉ P.boundNames) :
+  ⊢ (P.substName x z) ∷ (𝒢.substName x z) := by
   induction 𝒟
+
   case mix₀ => simp ; apply Typing.mix₀
-  case mix 𝒢' ℋ' _ _ hDisj _ _ ihP ihQ =>
+
+  case mix 𝒢' ℋ' _ _ hDisj 𝒟 ℰ ihP ihQ =>
     rw [HyperEnv.names_union, Finset.notMem_union] at hFresh
     simp only [← HyperEnv.substName_merge, ← Proc.substName_par]
     have this :  (𝒢'.substName x z).disjoint (ℋ'.substName x z) := by
@@ -1198,7 +1342,20 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       apply hDisj
       simp at ⊢ hFresh
       exact hFresh
-    exact Typing.mix (hDisj := this) (ihP hFresh.1) (ihQ hFresh.2)
+    apply Typing.mix
+    · exact this
+    · apply ihP
+      · exact hFresh.1
+      · apply Proc.not_bound_par_left hSafe
+        intro hxQf
+        have hℋ' : x ∈ ℋ'.names := Typing.Pf_subset_HyperEnvNames ℰ hxQf
+        exact hFresh.2 hℋ'
+    · apply ihQ
+      · exact hFresh.2
+      · apply Proc.not_bound_par_right hSafe
+        intro hxPf
+        have h𝒢' : x ∈ 𝒢'.names := Typing.Pf_subset_HyperEnvNames 𝒟 hxPf
+        exact hFresh.1 h𝒢'
 
   case ax =>
     simp
@@ -1208,7 +1365,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       apply Typing.ax <;> simp_all
     tauto
 
-  case one ih => simp_all <;> split <;> constructor <;> apply ih
+  case one ih => simp <;> split <;> constructor <;> apply ih <;> simp_all
 
   -- case bot | oplus₁ | oplus₂ | amp | quest | w =>
   --   simp
@@ -1237,7 +1394,11 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     repeat split <;> try split
     · rw [Finset.insert_eq, Finset.union_comm]
       apply Typing.c <;> simp_all
-    · sorry
+    · rw [Finset.insert_eq, Finset.union_comm]
+      apply Typing.c
+      ·
+
+
     · sorry
     · sorry
 
