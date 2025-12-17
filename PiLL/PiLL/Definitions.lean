@@ -22,7 +22,6 @@ class HasParen (Subject Content Result : Type) where
 
 ------------------------------- ADDITIONAL FINSET THEOREMS --------------------------------
 
-@[simp]
 theorem Finset.biUnion_union {α β : Type _} [DecidableEq α] [DecidableEq β]
   (s t : Finset α) (f : α → Finset β) :
   (s ∪ t).biUnion f = s.biUnion f ∪ t.biUnion f := by
@@ -166,23 +165,19 @@ def Types.dual : Types → Types
 
 postfix:max "ᗮ" => Types.dual
 
--- @[simp]
 theorem Types.dual_neq (A : Types) : A ≠ Aᗮ := by
   cases A <;> simp [dual]
 
--- @[simp]
 theorem Types.dual_inj (A B : Types) : Aᗮ = Bᗮ ↔ A = B := by
   induction A generalizing B <;> cases B <;> simp [Types.dual, *]
 
--- @[simp]
+@[simp]
 theorem Types.dual_involution (A : Types) : Aᗮᗮ = A := by
   induction A <;> simp [Types.dual, *]
 
--- @[simp]
 def Types.linImpl (A B : Types) : Types := Aᗮ ⅋ B
 infix:90 " ⊸ " => Types.linImpl
 
--- @[simp]
 def Types.freeTypes : Types → Finset TVar
   | .atom _ | .atomDual _ | .one | .bot | .zero | .top => ∅
   | .var v        => {v}
@@ -218,12 +213,11 @@ def Types.subst (T R : Types) (X : TVar) : Types :=
 
 instance : HasSubst Types Types TVar where subst := Types.subst
 
--- @[simp]
+@[simp]
 lemma Types.subst_dual (A B : Types) (X : TVar) : Bᗮ{A // X} = B{A // X}ᗮ := by
   induction B <;> simp [dual, HasSubst.subst, subst] <;> try split
   all_goals try simp_all [dual, HasSubst.subst, dual_involution]
 
--- @[simp]
 def Types.isServerUsable : Types → Prop
   | .quest _  => True
   | .bang _   => True
@@ -253,24 +247,24 @@ inductive Proc : Type where
   | link      (x y : PName)                       -- x ⟷ y
 deriving DecidableEq
 
-notation:80 x"⟦⟧․" P => (HasBracket.brack x () : Proc → Proc) P
-notation:80 x"⟦"y"⟧․" P => (HasBracket.brack x y : Proc → Proc) P
+notation:80 x "⟦⟧․" P => (HasBracket.brack x () : Proc → Proc) P
+notation:80 x "⟦"y"⟧․" P => (HasBracket.brack x y : Proc → Proc) P
 
-@[simp] instance : HasBracket PName Unit (Proc → Proc) where
+instance : HasBracket PName Unit (Proc → Proc) where
   brack x _ P := Proc.one x P
-@[simp] instance : HasBracket PName PName (Proc → Proc) where
+instance : HasBracket PName PName (Proc → Proc) where
   brack x y := Proc.tensor x y
-@[simp] instance : HasBracket PName Types (Proc → Proc) where
+instance : HasBracket PName Types (Proc → Proc) where
   brack x T P := Proc.output x P T
 
-notation:80 x"⸨⸩․" P => (HasParen.paren x () : Proc → Proc) P
-notation:80 x"⸨"y"⸩․" P => (HasParen.paren x y : Proc → Proc) P
+notation:80 x "⸨⸩․" P => (HasParen.paren x () : Proc → Proc) P
+notation:80 x "⸨"y"⸩․" P => (HasParen.paren x y : Proc → Proc) P
 
-@[simp] instance : HasParen PName Unit (Proc → Proc) where
+instance : HasParen PName Unit (Proc → Proc) where
   paren x _ P := Proc.bot x P
-@[simp] instance : HasParen PName PName (Proc → Proc) where
+instance : HasParen PName PName (Proc → Proc) where
   paren := Proc.parr
-@[simp] instance : HasParen PName TVar (Proc → Proc) where
+instance : HasParen PName TVar (Proc → Proc) where
   paren x T P := Proc.input x P T
 
 notation:75 "𝑣" "⸨" x ", " y "⸩ " P:80 => Proc.cut x y P
@@ -352,7 +346,6 @@ def Proc.names : Proc → Finset PName
   | .dispose x P          => {x} ∪ P.names
   | .link x y             => {x, y}
 
-@[simp]
 def Proc.boundNames (P : Proc) : Finset PName :=
   P.names \ P.f
 
@@ -676,7 +669,6 @@ theorem AlphaEq.trans (P Q R : Proc) (hPQ : P =ₐ Q) (hQR : Q =ₐ R) : P =ₐ 
 --     apply AlphaEq.par
 --     · sorry
 
-@[simp]
 def Proc.substTypes (P : Proc) (A : Types) (X : TVar) : Proc :=
   match P with
   | .nil => .nil
@@ -697,9 +689,8 @@ def Proc.substTypes (P : Proc) (A : Types) (X : TVar) : Proc :=
   | .output x P B => .output x (P.substTypes A X) (B.subst A X)
   | .input x P Y => if Y = X then .input x P Y else .input x (P.substTypes A X) Y
 
-@[simp] instance : HasSubst Proc Types TVar where subst := Proc.substTypes
+instance : HasSubst Proc Types TVar where subst := Proc.substTypes
 
-@[simp]
 def Proc.substName (P : Proc) (x z : PName) : Proc :=
   let sub := fun (c : PName) => if c = z then x else c
   match P with
@@ -729,15 +720,13 @@ def Proc.substName (P : Proc) (x z : PName) : Proc :=
   | .output a P A => .output (sub a) (P.substName x z) A
   | .input a P X => .input (sub a) (P.substName x z) X
 
-@[simp] instance : HasSubst Proc PName PName where subst := Proc.substName
+instance : HasSubst Proc PName PName where subst := Proc.substName
 
-@[simp]
 def Proc.close (P : Proc) (names : List PName) : Proc :=
   match P with
   | .server x _ => names.foldr (fun n acc => Proc.dispose n acc) (x⟦⟧․𝟘)
   | _ => P
 
-@[simp]
 def Proc.open (P : Proc) (names : List PName) (σ : Renaming) : Proc :=
   match P with
   | .server _ _  => names.foldr (fun n acc => Proc.duplicate n (σ n) acc) ((rename σ P) |ₚ P)
@@ -745,7 +734,8 @@ def Proc.open (P : Proc) (names : List PName) (σ : Renaming) : Proc :=
 
 @[simp]
 lemma Proc.substName_par (P Q : Proc) (x z : PName) :
-  P{x // z} |ₚ Q{x // z} = (P |ₚ Q){x // z} := by simp
+  P{x // z} |ₚ Q{x // z} = (P |ₚ Q){x // z} := by
+  dsimp [HasSubst.subst, Proc.substName]
 
 -- FIXME: Not sure how many of these are still used for anything
 lemma Proc.boundNames_par_subset_left (P Q : Proc) (x : PName)
@@ -796,10 +786,7 @@ abbrev EmptyEnv : Env := ∅
 -- noncomputable instance : ToString Env where
 --   toString e := reprStr e
 
-@[simp]
-def Env.mk (x : PName) (A : Types) : Env :=
-  {(x, A)}
-
+def Env.mk (x : PName) (A : Types) : Env := {(x, A)}
 infixr:86 " ∶ " => Env.mk
 
 -- NOTE: It's a set so linear by definition
@@ -833,19 +820,16 @@ theorem Env.Eq_refl (Δ : Env) : Δ =ₑ Δ :=
   fun _ => rfl
 
 -- Eq symmetry
-@[simp]
 theorem Env.Eq_symm (Δ Γ : Env) (h : Δ =ₑ Γ) : Γ =ₑ Δ :=
   fun x => (h x).symm
 
 -- Eq transitivity
-@[simp]
 theorem Env.Eq_trans (Δ Γ Ε : Env) (h₁ : Δ =ₑ Γ) (h₂ : Γ =ₑ Ε) : Δ =ₑ Ε :=
   fun x => Eq.trans (h₁ x) (h₂ x)
 
 instance : Equivalence Env.Eq :=
 ⟨Env.Eq_refl, @Env.Eq_symm, @Env.Eq_trans⟩
 
-@[simp]
 def Env.merge (Δ Γ : Env) : Env := Δ ∪ Γ
 
 infixl:85 "‚ " => Env.merge
@@ -853,35 +837,30 @@ infixl:85 "‚ " => Env.merge
 -- Merge identity
 @[simp]
 theorem Env.merge_unitR (Δ : Env) : Δ‚ ∅ = Δ := by
-  simp
+  simp [Env.merge]
 
 @[simp]
 theorem Env.merge_unitL (Δ : Env) : ∅‚ Δ = Δ := by
-  simp
+  simp [Env.merge]
+
 
 -- Merge commutivity
--- theorem mergeEnv.comm (Δ Γ : Env) : disjointEnv Δ Γ → mergeEnv Δ Γ = mergeEnv Γ Δ := by
-@[simp]
 theorem Env.merge_comm (Δ Γ : Env) : Δ‚ Γ = Γ‚ Δ := by
-  simp [Finset.union_comm]
+  simp [Env.merge, Finset.union_comm]
 
 -- Merge associativity
-@[simp]
 theorem Env.merge_assoc (Δ Γ Ε : Env) : Δ‚ Γ‚ Ε = Δ‚ (Γ‚ Ε) := by
-  simp
+  simp [Env.merge]
 
-@[simp]
 lemma Env.merge_swap_last (Γ Δ Ξ : Env) :
   (Γ‚ Δ)‚ Ξ = (Γ‚ Ξ)‚ Δ := by
   rw [Env.merge_comm, ←Env.merge_assoc]
   conv => lhs ; lhs ; rw [Env.merge_comm]
 
-@[simp]
 lemma Env.merge_move_last_two_left (Γ Δ Ξ Ε : Env) :
   Γ‚ Δ‚ Ξ‚ Ε = Γ‚ Ε‚ Δ‚ Ξ := by
   rw [Env.merge_swap_last, Env.merge_swap_last Γ Δ Ε]
 
-@[simp]
 lemma Env.merge_move_second_two_right (Γ Δ Ξ Ε : Env) :
   Γ‚ Δ‚ Ξ‚ Ε = Γ‚ Ξ‚ Ε‚ Δ := by
   rw [Env.merge_swap_last Γ Δ Ξ, Env.merge_swap_last]
@@ -898,17 +877,15 @@ def Env.freeTypes (Γ : Env) : Finset TVar :=
 
 notation "ft(" Γ ")" => Env.freeTypes Γ
 
-@[simp]
 def Env.substName (Γ : Env) (x z : PName) : Env :=
   Γ.image (fun (n, T) => if n = z then (x, T) else (n, T))
 
-@[simp] instance : HasSubst Env PName PName where subst := Env.substName
+instance : HasSubst Env PName PName where subst := Env.substName
 
-@[simp]
 def Env.substTypes (Γ : Env) (A : Types) (X : TVar) : Env :=
   Γ.image (fun (n, T) => (n, T.subst A X))
 
-@[simp] instance : HasSubst Env Types TVar where subst := Env.substTypes
+instance : HasSubst Env Types TVar where subst := Env.substTypes
 
 @[simp]
 lemma Env.serverUsable_subst (Γ : Env) (x z : PName) (h : ?ₑΓ) :
@@ -937,6 +914,13 @@ lemma Env.substName_eq_self_of_not_mem (Γ : Env) (x z : PName)
   intro a
   subst a
   simp_all
+
+@[simp] lemma Env.names_mk (x : PName) (A : Types) :
+  (x ∶ A).names = {x} := by
+  simp [Env.names, Env.mk]
+
+@[simp] lemma Env.merge_mk_left (x : PName) (A : Types) (Γ : Env) :
+  (x ∶ A)‚ Γ = {(x, A)} ∪ Γ := rfl
 
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
@@ -1004,7 +988,6 @@ theorem HyperEnv.Eq_refl (𝒢 : HyperEnv) : 𝒢 =ₕ 𝒢 := by
   simp
 
 -- Eq symmetry
-@[simp]
 theorem HyperEnv.Eq_symm (𝒢 ℋ : HyperEnv) (h : 𝒢 =ₕ ℋ) : ℋ =ₕ 𝒢 := by
   rcases h with ⟨h_names, h_vals⟩
   refine ⟨h_names.symm, ?vals⟩
@@ -1013,7 +996,6 @@ theorem HyperEnv.Eq_symm (𝒢 ℋ : HyperEnv) (h : 𝒢 =ₕ ℋ) : ℋ =ₕ �
   apply (h_vals x hx).symm
 
 -- Eq transitivity
-@[simp]
 theorem HyperEnv.Eq_trans (𝒢 ℋ 𝒦 : HyperEnv) (h₁ : 𝒢 =ₕ ℋ) (h₂ : ℋ =ₕ 𝒦) :
   𝒢 =ₕ 𝒦 := by
   rcases h₁ with ⟨h₁_names, h₁_vals⟩
@@ -1042,34 +1024,30 @@ theorem HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by simp
 theorem HyperEnv.merge_unitR (𝒢 : HyperEnv) : 𝒢 |ₕ ∅ = 𝒢 := by simp
 
 -- Merge commutative
-@[simp]
 theorem HyperEnv.merge_comm (𝒢 ℋ : HyperEnv) : 𝒢 |ₕ ℋ = ℋ |ₕ 𝒢 := by
   simp [Finset.union_comm]
 
 -- Merge associativity
-@[simp]
 theorem HyperEnv.merge_assoc (𝒢 ℋ 𝒦 : HyperEnv) : (𝒢 |ₕ ℋ) |ₕ 𝒦 = 𝒢 |ₕ (ℋ |ₕ 𝒦) := by
   simp
 
-@[simp]
 def HyperEnv.substName (𝒢 : HyperEnv) (x z : PName) : HyperEnv :=
   𝒢.image (fun Γ => Γ{x // z})
 
-@[simp] instance : HasSubst HyperEnv PName PName where subst := HyperEnv.substName
+instance : HasSubst HyperEnv PName PName where subst := HyperEnv.substName
 
-@[simp]
 def HyperEnv.substTypes (𝒢 : HyperEnv) (A : Types) (X : TVar) : HyperEnv :=
   𝒢.image (fun Γ => Γ.substTypes A X)
 
-@[simp] instance : HasSubst HyperEnv Types TVar where subst := HyperEnv.substTypes
+instance : HasSubst HyperEnv Types TVar where subst := HyperEnv.substTypes
 
 @[simp]
 lemma HyperEnv.names_union (𝒢 ℋ : HyperEnv) : (𝒢 |ₕ ℋ).names = 𝒢.names ∪ ℋ.names := by
-  simp
+  simp [Finset.biUnion_union]
 
 lemma HyperEnv.substName_merge (𝒢 ℋ : HyperEnv) (x z : PName) :
   𝒢{x // z} |ₕ ℋ{x // z} = (𝒢 |ₕ ℋ){x // z} := by
-  simp [HyperEnv.substName, HyperEnv.merge, Finset.image_union]
+  simp [HasSubst.subst, HyperEnv.substName, HyperEnv.merge, Finset.image_union]
 
 lemma Finset.disjoint_image_substName {α : Type*} [DecidableEq α]
   (s t : Finset α) (x z : α) :
@@ -1141,6 +1119,7 @@ lemma HyperEnv.substName_eq_self_of_not_mem (𝒢 : HyperEnv) (x z : PName)
 
 -- FIXME: Added a lot of extra contranints so facilitate Env / HyperEnv disjointness
 -- as well as no pathological process appearing e.g. x(x).P, x[DUP](x).P etc.
+
 inductive Typing : HyperEnv → Proc → Prop where
   | mix₀ :
       ----------
@@ -1245,108 +1224,162 @@ inductive Typing : HyperEnv → Proc → Prop where
 
 notation:50 "⊢ " P " ∷ " T => Typing T P
 
+
+
+-- FIXME: Move to Env section
+@[simp]
+lemma Env.names_singleton (x : PName) (A : Types) :
+  (x ∶ A).names = {x} := by
+  simp only [Env.names]
+  rfl
+
+@[simp]
+lemma Env.names_empty : (∅ : Env).names = ∅ := by simp
+
+@[simp] lemma Env.names_distributes (Γ : Env) (x : PName) (A : Types) :
+  (Γ‚ x ∶ A).names = Γ.names ∪ (x ∶ A).names := by
+    simp only [Env.names, ← Finset.image_union]
+    rfl
+
+-- FIXME: Move to HyperEnv section
+@[simp]
+lemma HyperEnv.names_singleton (x : PName) (A : Types) :
+  ({(x ∶ A)} : HyperEnv).names = {x} := by
+  simp only [HyperEnv.names, Finset.singleton_biUnion]
+  rfl
+
+@[simp]
+lemma HyperEnv.names_distributes (Γ : Env) :
+  ({Γ} : HyperEnv).names = Γ.names := by
+  simp [HyperEnv.names, Env.names, Finset.singleton_biUnion]
+
+@[simp]
+lemma HyperEnv.names_empty : (∅ : HyperEnv).names = ∅ := by simp
+
+
+
+
+
 lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
   P.f ⊆ 𝒢.names := by
-  induction h <;> simp [Proc.f, HyperEnv.names]
+  induction h
 
   case mix ihP ihQ =>
+    simp [Finset.biUnion_union]
     apply Finset.union_subset_union ihP ihQ
 
-  case one | bot => simp_all
+  case one ih =>
+    simp only [Proc.f, HyperEnv.names_singleton]
+    simp_all
+
+  case bot ih =>
+    simp only [Proc.f, HyperEnv.names_distributes,
+      Env.names_distributes, Env.names_singleton]
+    simp_all
 
   case oplus₁ ih | oplus₂ ih | quest ih | bang ih | exists_ ih | forall_ ih =>
-    simp at ih
+    simp only [Proc.f, HyperEnv.names_distributes, Env.names_distributes,
+      Env.names_singleton] at *
     apply Finset.insert_subset
     · simp
     · exact ih
 
-  case amp ihP ihQ =>
-    simp at ihP ihQ
-    apply Finset.insert_subset
-    · simp
-    · apply Finset.union_subset ihP ihQ
 
-  case w ih =>
-    simp at ih
-    apply Finset.insert_subset
-    · simp
-    · intro _ ha
-      apply Finset.mem_insert_of_mem
-      apply ih
-      exact ha
 
-  case c ih =>
-    simp at ih
-    apply Finset.insert_subset
-    · simp
-    · intro _ ha
-      simp at ha
-      rcases ha with ⟨haP, _⟩
-      specialize ih haP
-      simp at ih
-      rcases ih with rfl | rfl | hΓ
-      · contradiction
-      · simp
-      · simp
-        right
-        exact hΓ
 
-  case ax ih =>
-    intro a ha
-    simp at ⊢ ha
-    tauto
 
-  case cut ih =>
-    simp at ⊢ ih
-    intro a ha
-    simp at ha
-    rcases ha with ⟨haP, hney, hnex⟩
-    specialize ih haP
-    simp at ⊢ ih
-    rcases ih
-    · simp_all
-    · rename_i h
-      rcases h with rfl | ⟨t, hΔ⟩ | ⟨t, hΓ⟩ | hG
-      · contradiction
-      · left ; use t ; right ;
-        exact hΔ
-      · left ; use t ; left
-        exact hΓ
-      · right
-        exact hG
 
-  case tensor ih =>
-    simp at ih
-    apply Finset.insert_subset
-    · simp
-    · intro a ha
-      simp at ha
-      rcases ha with ⟨haP, hney⟩
-      specialize ih haP
-      simp at ih
-      rcases ih with rfl | rfl | hr
-      · contradiction
-      · simp
-      · rcases hr with ⟨t, hΔ⟩ | ⟨t, hΓ⟩
-        · simp ; right ; use t ; right
-          exact hΔ
-        · simp ; right ; use t ; left
-          exact hΓ
+  -- case amp ihP ihQ =>
+  --   simp at ihP ihQ
+  --   apply Finset.insert_subset
+  --   · simp
+  --   · apply Finset.union_subset ihP ihQ
 
-  case parr ih =>
-    simp at ih
-    apply Finset.insert_subset
-    · simp
-    · intro a ha
-      simp at ha
-      rcases ha with ⟨haP, hney⟩
-      specialize ih haP
-      simp at ih
-      rcases ih with rfl | rfl | hr
-      · simp
-      · contradiction
-      · simp ; right
-        exact hr
+  -- case w ih =>
+  --   simp at ih
+  --   apply Finset.insert_subset
+  --   · simp
+  --   · intro _ ha
+  --     apply Finset.mem_insert_of_mem
+  --     apply ih
+  --     exact ha
+
+  -- case c ih =>
+  --   simp at ih
+  --   apply Finset.insert_subset
+  --   · simp
+  --   · intro _ ha
+  --     simp at ha
+  --     rcases ha with ⟨haP, _⟩
+  --     specialize ih haP
+  --     simp at ih
+  --     rcases ih with rfl | rfl | hΓ
+  --     · contradiction
+  --     · simp
+  --     · simp
+  --       right
+  --       exact hΓ
+
+  -- case ax ih =>
+  --   intro a ha
+  --   simp at ⊢ ha
+  --   tauto
+
+  -- case cut ih =>
+  --   simp at ⊢ ih
+  --   intro a ha
+  --   simp at ha
+  --   rcases ha with ⟨haP, hney, hnex⟩
+  --   specialize ih haP
+  --   simp at ⊢ ih
+  --   rcases ih
+  --   · simp_all
+  --   · rename_i h
+  --     rcases h with rfl | ⟨t, hΔ⟩ | ⟨t, hΓ⟩ | hG
+  --     · contradiction
+  --     · left ; use t ; right ;
+  --       exact hΔ
+  --     · left ; use t ; left
+  --       exact hΓ
+  --     · right
+  --       exact hG
+
+  -- case tensor ih =>
+  --   simp at ih
+  --   apply Finset.insert_subset
+  --   · simp
+  --   · intro a ha
+  --     simp at ha
+  --     rcases ha with ⟨haP, hney⟩
+  --     specialize ih haP
+  --     simp at ih
+  --     rcases ih with rfl | rfl | hr
+  --     · contradiction
+  --     · simp
+  --     · rcases hr with ⟨t, hΔ⟩ | ⟨t, hΓ⟩
+  --       · simp ; right ; use t ; right
+  --         exact hΔ
+  --       · simp ; right ; use t ; left
+  --         exact hΓ
+
+  -- case parr ih =>
+  --   simp at ih
+  --   apply Finset.insert_subset
+  --   · simp
+  --   · intro a ha
+  --     simp at ha
+  --     rcases ha with ⟨haP, hney⟩
+  --     specialize ih haP
+  --     simp at ih
+  --     rcases ih with rfl | rfl | hr
+  --     · simp
+  --     · contradiction
+  --     · simp ; right
+  --       exact hr
+sorry
+
+lemma tata (P : Proc) (x : PName) (h : x ∈ P.boundNames) :
+  x ∈ P.names → x ∈ P.f := sorry
 
 theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (x z : PName)
   (hFresh : x ∉ 𝒢.names) (hSafe : x ∉ P.boundNames) :
@@ -1361,7 +1394,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     have this :  (𝒢'.substName x z).disjoint (ℋ'.substName x z) := by
       apply HyperEnv.substName_preserve_disjoint
       apply hDisj
-      simp at ⊢ hFresh
+      simp [Finset.biUnion_union] at ⊢ hFresh
       exact hFresh
     apply Typing.mix
     · exact this
@@ -1502,7 +1535,39 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       convert ih
       simp [Env.substName, hxpz]
 
-  case forall_ => sorry
+  case forall_ ih =>
+    simp only [HasSubst.subst, Proc.substName, HyperEnv.substName,
+      Env.substName, Finset.image_singleton, Env.merge, Finset.image_union]
+    split
+    · rename_i Γ' P x' B X D p₂ hxz
+      subst hxz
+      have hneq : x ≠ x' := by
+        intro rfl
+        simp only [HyperEnv.names, Env.merge, Env.mk, Finset.union_singleton,
+          Finset.singleton_biUnion, Finset.insert_eq, Env.names, Finset.image_union,
+          Finset.image_singleton] at hFresh
+        apply hFresh
+        simp only [Finset.mem_union, Finset.mem_singleton]
+        left
+        exact True.intro
+
+      simp only [← Finset.image_union]
+      rw [Finset.insert_eq, Finset.union_comm]
+      apply Typing.forall_
+      simp at ih hFresh
+
+      have this1 : (x ∈ P.names → x ∈ P.f) := by
+        intro hxP
+
+
+
+
+
+
+
+
+
+
   case cut ih => sorry
   case tensor => sorry
   case parr => sorry
