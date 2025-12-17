@@ -1042,7 +1042,7 @@ def HyperEnv.substTypes (𝒢 : HyperEnv) (A : Types) (X : TVar) : HyperEnv :=
 instance : HasSubst HyperEnv Types TVar where subst := HyperEnv.substTypes
 
 @[simp]
-lemma HyperEnv.names_union (𝒢 ℋ : HyperEnv) : (𝒢 |ₕ ℋ).names = 𝒢.names ∪ ℋ.names := by
+lemma HyperEnv.names_merge (𝒢 ℋ : HyperEnv) : (𝒢 |ₕ ℋ).names = 𝒢.names ∪ ℋ.names := by
   simp [Finset.biUnion_union]
 
 lemma HyperEnv.substName_merge (𝒢 ℋ : HyperEnv) (x z : PName) :
@@ -1094,7 +1094,7 @@ lemma HyperEnv.substName_preserve_disjoint (𝒢 ℋ : HyperEnv) (x z : PName)
   (hDisj : 𝒢.disjoint ℋ) (hFresh : x ∉ (𝒢 |ₕ ℋ).names) :
   𝒢{x // z}.disjoint ℋ{x // z} := by
   dsimp only [HyperEnv.disjoint]
-  rw [HyperEnv.names_union] at hFresh
+  rw [HyperEnv.names_merge] at hFresh
   have h_fresh_G : x ∉ 𝒢.names :=
     fun h => hFresh (Finset.mem_union_left _ h)
   have h_fresh_H : x ∉ ℋ.names :=
@@ -1236,8 +1236,8 @@ lemma Env.names_singleton (x : PName) (A : Types) :
 @[simp]
 lemma Env.names_empty : (∅ : Env).names = ∅ := by simp
 
-@[simp] lemma Env.names_distributes (Γ : Env) (x : PName) (A : Types) :
-  (Γ‚ x ∶ A).names = Γ.names ∪ (x ∶ A).names := by
+@[simp] lemma Env.names_distributes (Γ Δ : Env) :
+  (Γ‚ Δ).names = Γ.names ∪ Δ.names := by
     simp only [Env.names, ← Finset.image_union]
     rfl
 
@@ -1258,21 +1258,18 @@ lemma HyperEnv.names_empty : (∅ : HyperEnv).names = ∅ := by simp
 
 
 
-
-
 lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
   P.f ⊆ 𝒢.names := by
   induction h
 
+  case mix₀ =>
+    simp only [Proc.f, HyperEnv.names_empty, subset_refl]
+
   case mix ihP ihQ =>
     simp [Finset.biUnion_union]
-    apply Finset.union_subset_union ihP ihQ
+    exact Finset.union_subset_union ihP ihQ
 
-  case one ih =>
-    simp only [Proc.f, HyperEnv.names_singleton]
-    simp_all
-
-  case bot ih =>
+  case one | bot | w =>
     simp only [Proc.f, HyperEnv.names_distributes,
       Env.names_distributes, Env.names_singleton]
     simp_all
@@ -1284,99 +1281,47 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
     · simp
     · exact ih
 
+  case amp ihP ihQ =>
+    simp only [Proc.f, HyperEnv.names_distributes, Env.names_distributes,
+      Env.names_singleton] at *
+    · apply Finset.insert_subset
+      · simp
+      · exact Finset.union_subset ihP ihQ
+
+  case c ih =>
+    simp only [Proc.f, HyperEnv.names_distributes, Env.names_distributes,
+      Env.names_singleton] at *
+    apply Finset.insert_subset
+    · simp
+    · intro a ha
+      simp only [Finset.mem_sdiff, Finset.mem_singleton] at ha
+      specialize ih ha.1
+      simp_all
+
+  case ax =>
+    simp only [Proc.f, HyperEnv.names_distributes, Env.names_distributes,
+      Env.names_singleton, Finset.union_singleton]
+    simp [Finset.pair_comm]
+
+  case cut ih =>
+    simp only [Proc.f, HyperEnv.names_merge, HyperEnv.names_distributes,
+      Env.names_distributes, Env.names_singleton] at *
+    intro a ha
+    rw [Finset.mem_sdiff] at ha
+    specialize ih ha.1
+    simp_all
+
+  case tensor ih | parr ih =>
+    simp only [Proc.f, HyperEnv.names_merge, HyperEnv.names_distributes,
+      Env.names_distributes, Env.names_singleton] at *
+    intro a ha
+    simp at ⊢ ha ih
+    rcases ha with rfl | ⟨hP, hny⟩
+    · left ; rfl
+    · specialize ih hP ; simp at ih ; tauto
 
 
 
-
-
-  -- case amp ihP ihQ =>
-  --   simp at ihP ihQ
-  --   apply Finset.insert_subset
-  --   · simp
-  --   · apply Finset.union_subset ihP ihQ
-
-  -- case w ih =>
-  --   simp at ih
-  --   apply Finset.insert_subset
-  --   · simp
-  --   · intro _ ha
-  --     apply Finset.mem_insert_of_mem
-  --     apply ih
-  --     exact ha
-
-  -- case c ih =>
-  --   simp at ih
-  --   apply Finset.insert_subset
-  --   · simp
-  --   · intro _ ha
-  --     simp at ha
-  --     rcases ha with ⟨haP, _⟩
-  --     specialize ih haP
-  --     simp at ih
-  --     rcases ih with rfl | rfl | hΓ
-  --     · contradiction
-  --     · simp
-  --     · simp
-  --       right
-  --       exact hΓ
-
-  -- case ax ih =>
-  --   intro a ha
-  --   simp at ⊢ ha
-  --   tauto
-
-  -- case cut ih =>
-  --   simp at ⊢ ih
-  --   intro a ha
-  --   simp at ha
-  --   rcases ha with ⟨haP, hney, hnex⟩
-  --   specialize ih haP
-  --   simp at ⊢ ih
-  --   rcases ih
-  --   · simp_all
-  --   · rename_i h
-  --     rcases h with rfl | ⟨t, hΔ⟩ | ⟨t, hΓ⟩ | hG
-  --     · contradiction
-  --     · left ; use t ; right ;
-  --       exact hΔ
-  --     · left ; use t ; left
-  --       exact hΓ
-  --     · right
-  --       exact hG
-
-  -- case tensor ih =>
-  --   simp at ih
-  --   apply Finset.insert_subset
-  --   · simp
-  --   · intro a ha
-  --     simp at ha
-  --     rcases ha with ⟨haP, hney⟩
-  --     specialize ih haP
-  --     simp at ih
-  --     rcases ih with rfl | rfl | hr
-  --     · contradiction
-  --     · simp
-  --     · rcases hr with ⟨t, hΔ⟩ | ⟨t, hΓ⟩
-  --       · simp ; right ; use t ; right
-  --         exact hΔ
-  --       · simp ; right ; use t ; left
-  --         exact hΓ
-
-  -- case parr ih =>
-  --   simp at ih
-  --   apply Finset.insert_subset
-  --   · simp
-  --   · intro a ha
-  --     simp at ha
-  --     rcases ha with ⟨haP, hney⟩
-  --     specialize ih haP
-  --     simp at ih
-  --     rcases ih with rfl | rfl | hr
-  --     · simp
-  --     · contradiction
-  --     · simp ; right
-  --       exact hr
-sorry
 
 lemma tata (P : Proc) (x : PName) (h : x ∈ P.boundNames) :
   x ∈ P.names → x ∈ P.f := sorry
@@ -1389,7 +1334,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
   case mix₀ => simp ; apply Typing.mix₀
 
   case mix 𝒢' ℋ' _ _ hDisj 𝒟 ℰ ihP ihQ =>
-    rw [HyperEnv.names_union, Finset.notMem_union] at hFresh
+    rw [HyperEnv.names_merge, Finset.notMem_union] at hFresh
     simp only [← HyperEnv.substName_merge, ← Proc.substName_par]
     have this :  (𝒢'.substName x z).disjoint (ℋ'.substName x z) := by
       apply HyperEnv.substName_preserve_disjoint
