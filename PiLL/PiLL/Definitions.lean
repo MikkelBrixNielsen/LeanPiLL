@@ -43,6 +43,11 @@ theorem Finset.biUnion_union {α β : Type _} [DecidableEq α] [DecidableEq β]
       rcases h' with ⟨a, ha, hb⟩
       exact ⟨a, Or.inr ha, hb⟩
 
+lemma Finset.not_mem_of_not_mem_sdiff {α : Type*} [DecidableEq α]
+  {s : Finset α} {x y : α} (h_diff : x ∉ s \ {y}) (h_neq : x ≠ y) : x ∉ s := by
+  simp at h_diff
+  tauto
+
 ------------------------------------------ TYPES ------------------------------------------
 
 abbrev Atom := Nat
@@ -317,7 +322,7 @@ def Proc.f : Proc → Finset PName
   | .nil                  => {}
   | .selectL x P          => {x} ∪ P.f
   | .selectR x P          => {x} ∪ P.f
-  | .amp x P Q          => {x} ∪ (P.f ∪ Q.f)
+  | .amp x P Q            => {x} ∪ (P.f ∪ Q.f)
   | .output x P _         => {x} ∪ P.f
   | .input  x P _         => {x} ∪ P.f
   | .server x P           => {x} ∪ P.f
@@ -337,7 +342,7 @@ def Proc.names : Proc → Finset PName
   | .nil                  => {}
   | .selectL x P          => {x} ∪ P.names
   | .selectR x P          => {x} ∪ P.names
-  | .amp x P Q          => {x} ∪ (P.names ∪ Q.names)
+  | .amp x P Q            => {x} ∪ (P.names ∪ Q.names)
   | .output x P _         => {x} ∪ P.names
   | .input  x P _         => {x} ∪ P.names
   | .server x P           => {x} ∪ P.names
@@ -1195,7 +1200,8 @@ inductive Typing : HyperEnv → Proc → Prop where
 
   | c -- FIXME: hneq is not in paper rule but here to avoid e.g. x[DUP](x).P, which
       -- breaks resource counting since Finset doesn't allow duplicates
-      {Γ : Env} {P : Proc} {x x' : PName} {A : Types} {hneq : x ≠ x'} :
+      {Γ : Env} {P : Proc} {x x' : PName} {A : Types}
+      {hneq : x ≠ x'} {hf : x ∉ Γ.names ∧ x' ∉ Γ.names} :
       Typing (Γ‚ x ∶ ??A‚ x' ∶ ??A) P →
       ---------------------------------
       Typing (Γ‚ x ∶ ??A) (x⟦DUP⟧⸨x'⸩․P)
@@ -1336,6 +1342,22 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
   simp only [HasSubst.subst, Env.substName, Env.mk, Finset.image_singleton]
   split <;> rfl
 
+@[simp] lemma Env.not_mem_substName_intro {Γ : Env} {x y z : PName}
+  (hnΓ : y ∉ Γ.names) (hneq : y ≠ x) : y ∉ (Γ{x // z}).names := by
+  intro h_contra
+  simp [HasSubst.subst, Env.substName, Env.names] at h_contra
+  rcases h_contra with ⟨T, pn, h⟩
+  split_ifs at h
+  · simp_all
+  · rcases h with ⟨b, hΓ, heq⟩
+    simp_all
+
+@[simp] lemma Env.ft_substName_eq (Γ : Env) (x z : PName) :
+  ft(Γ.substName x z) = ft(Γ) := by
+  simp only [Env.freeTypes, Env.substName]
+  apply Finset.biUnion_congr
+  g
+
 
 
 @[simp] lemma HyperEnv.substName_empty (x z : PName) :
@@ -1350,6 +1372,19 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
   (𝒢 |ₕ ℋ){x // z} = 𝒢{x // z} |ₕ ℋ{x // z} := by
   simp only [HasSubst.subst, HyperEnv.substName, HyperEnv.merge, Finset.image_union]
 
+@[simp] lemma HyperEnv.not_mem_substName_intro {𝒢 : HyperEnv} {x y z : PName}
+  (hnΓ : y ∉ 𝒢.names) (hneq : x ≠ y) : y ∉ (𝒢{x // z}).names := by
+  intro h_contra
+  simp [HasSubst.subst, HyperEnv.substName, HyperEnv.names,
+    Env.substName, Env.names] at h_contra
+  rcases h_contra with ⟨Γ, h1⟩
+  rcases h1 with ⟨hΓ𝒢, T, on, oT, hΓ, heq⟩
+  split_ifs at heq with hz
+  · simp at heq
+    rw [heq.1] at hneq
+    contradiction
+  · simp at heq
+    simp_all
 
 
 
@@ -1360,20 +1395,89 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
   (a⟷ₚb){x // z} = (if a = z then x else a)⟷ₚ(if b = z then x else b) := by
   simp only [HasSubst.subst, Proc.substName]
 
-@[simp] lemma Proc.boundNames_one (x : PName) (P : Proc) (h : x ∉ P.boundNames) :
-  ((x⟦⟧․P).boundNames) = ((x⟦⟧․𝟘).boundNames ∪ P.boundNames) := by
-  simp [Proc.boundNames, Proc.names, Proc.f, Finset.empty_union] at *
+
+
+@[simp] lemma Proc.boundNames_one (x : PName) (P : Proc) :
+  ((x⟦⟧․P).boundNames) = P.boundNames \ {x} := by
+  simp only [Proc.boundNames, Proc.names, Proc.f]
   ext a
   simp
-  by_cases h_ax : a = x
-  · subst h_ax
-    tauto
-  · tauto
+  tauto
 
-@[simp] lemma Proc.boundNames_bot (x y : PName) (P : Proc) (h : x ≠ y) :
-  (x ∉ (y⸨⸩․P).boundNames) = (x ∉ (y⸨⸩․𝟘).boundNames ∪ P.boundNames) := by
-  simp only [Proc.boundNames, Proc.names, Proc.f, Finset.union_empty] at *
-  simp_all
+@[simp] lemma Proc.boundNames_bot (x : PName) (P : Proc) :
+  ((x⸨⸩․P).boundNames) = P.boundNames \ {x} := by
+  simp only [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_selectL (x : PName) (P : Proc) :
+  (x⟦𝐋⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_selectR (x : PName) (P : Proc) :
+  (x⟦𝐑⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_amp (x : PName) (P Q : Proc) :
+  (x․case{𝐋 : P, 𝐑 : Q}).boundNames =
+  ((P.boundNames ∪ Q.boundNames) \ (P.f ∪ Q.f)) \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_use (x : PName) (P : Proc) :
+  (x⟦USE⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_bang (x : PName) (P : Proc) :
+  (!x․{P}).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_disp (x : PName) (P : Proc) :
+  (x⟦DISP⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+
+@[simp] lemma Proc.boundNames_dup (x y : PName) (P : Proc) :
+  (x⟦DUP⟧⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+
+@[simp] lemma Proc.boundNames_output (x : PName) (A : Types) (P : Proc) :
+  (x⟦A⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_input (x : PName) (A : TVar) (P : Proc) :
+  (x⸨A⸩․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+
 
 
 
@@ -1405,6 +1509,11 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
     apply h
     apply Proc.f_subset_names
     exact hf
+
+
+
+
+
 
 
 
@@ -1488,9 +1597,9 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
         subst hxpz
         change x ∉ Γ{x // xp}.names
         rw [Env.substName_eq_self_of_not_mem]
-        simp only [HyperEnv.names_distributes, Env.names_distributes,
-          Env.names_singleton, Finset.notMem_union] at hFresh
-        · exact hFresh.1
+        · simp only [HyperEnv.names_distributes, Env.names_distributes,
+            Env.names_singleton, Finset.notMem_union] at hFresh
+          · exact hFresh.1
         · exact hf1
       · rename_i Γ P' xp hf1 hf2 _ hxpz
         subst hxpz
@@ -1504,175 +1613,204 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
         subst hxpz
         simp only [HyperEnv.names_distributes, Env.names_distributes,
           Env.names_singleton, Finset.notMem_union, Finset.mem_singleton] at hFresh
-        rw [Proc.boundNames_bot _ _ _ hFresh.2, Finset.notMem_union] at hSafe
         · apply ih
-          · simp only [HyperEnv.names_distributes] ; exact hFresh.1
-          · exact hSafe.2
-
-
-
-
-
+          · simp only [HyperEnv.names_distributes]
+            exact hFresh.1
+          · simp_all
     · apply Typing.bot
-      rename_i Γ P' xp hf1 hf2 _ h1
-      · change xp ∉ Γ{x // z}.names
-        simp only [HyperEnv.names_distributes, Env.names_distributes,
-          Env.names_singleton, Finset.notMem_union, Finset.mem_singleton] at hFresh
-        sorry -- FIXME: Need lemma stating that if x ∉ Γ.names → x = x' → x ∉ Γ{x' // z}
-      · sorry
+      · rename_i Γ P' xp hf1 hf2 _ h1
+        simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+          Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh
+        exact Env.not_mem_substName_intro hf1 hFresh.2.symm
+      · rename_i Γ P' xp hf1 hf2 _ h1
+        simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+          Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh
+        exact Env.not_mem_substName_intro hf1 hFresh.2.symm
+      · rename_i Γ' P' xp hf1 hf2 _ hxpnz
+        simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+          Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh
+        apply ih
+        · simp only [HyperEnv.names_distributes]
+          exact hFresh.1
+        · simp_all [Proc.boundNames]
 
-
-
-
-
-    -- · simp at ih ; apply ih
-    -- rw [HyperEnv.names_singleton, Finset.mem_singleton] at hFresh
-    -- simp_all [Proc.boundNames]
-
-
-
-
-
-
-
-
-  case bang h ih =>
-    simp
+  case oplus₁ ih | oplus₂ ih | quest ih =>
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
+    simp [hFresh] at hSafe
     split
     all_goals
-      rw [Finset.insert_eq, Finset.union_comm]
-      apply Typing.bang
-      simp
-      simp at hFresh ih
-      specialize ih hFresh.1 hFresh.2
-      split at ih
+    · constructor
       · simp_all
+        exact ih
+
+  case amp ihP ihQ =>
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ihP ihQ
+    simp [hFresh] at hSafe
+    rename_i Γ P' Q' xp A B D E
+    have hsubP := Typing.Pf_subset_HyperEnvNames D
+    have hsubQ := Typing.Pf_subset_HyperEnvNames E
+    simp only [HyperEnv.names_distributes, Env.names_distributes,
+      Env.names_singleton] at hsubP hsubQ
+    have this : x ∉ P'.boundNames ∧ x ∉ Q'.boundNames := by grind
+    specialize ihP hFresh this.1
+    specialize ihQ hFresh this.2
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton] at ihP ihQ
+    split
+    · apply Typing.amp <;> simp_all
+      · exact ihP
+      · exact ihQ
+    · apply Typing.amp <;> simp_all
+      · exact ihP
+      · exact ihQ
+
+  case bang h ih =>
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
+    simp [hFresh] at hSafe
+    split
+    all_goals
+    · apply Typing.bang
       · simp_all
+        exact ih
       · apply Env.serverUsable_subst
         exact h
 
-  case c xp yp _ hneq h ih =>
-    simp
-    repeat split <;> try split
-    · rw [Finset.insert_eq, Finset.union_comm]
-      apply Typing.c <;> simp_all
-    · rw [Finset.insert_eq, Finset.union_comm]
-      apply Typing.c
-      · intro h_contra
-        subst h_contra
-        simp at hSafe
-        apply hneq.symm hSafe
-      · rename_i hxpz hnypz
-        subst hxpz
-        simp_all
-        apply ih
-        intro h_contra
-        subst h_contra
-        simp at hSafe
-    · rw [Finset.insert_eq, Finset.union_comm]
-      apply Typing.c
-      · simp_all
-      · rename_i Γ' P' A hnxpz hypz
-        subst hypz
-        -- FIXME: Need statement about Proc bound names
-        -- not being in the HyperEnv Typing them
-        have hzNotΓ : yp ∉ Γ'.names := by sorry
-        change ⊢ P' ∷ {Γ'{x // yp}‚ xp ∶ ??A‚ yp ∶ ??A}
-        rw [Env.substName_eq_self_of_not_mem Γ' x yp hzNotΓ]
-        exact h
-    · rw [Finset.insert_eq, Finset.union_comm]
-      apply Typing.c
-      · simp_all
-      · rename_i P' _ hnxpz hnypz
-        simp at hFresh ih
-        have hnxyp : x ≠ yp := by
-          intro rfl
-          apply hSafe
-          simp [hneq.symm]
-        have hxnP : (x ∈ P'.names → x ∈ P'.f) := by
-          intro hxPp
-          by_contra hnf
-          apply hSafe
-          simp
-          constructor
-          · right ;
-            exact hxPp
-          · constructor
-            · exact hFresh.1
-            · intro a
-              contradiction
-        specialize ih hnxyp hFresh.1 hFresh.2 hxnP
-        simp [hnxpz, hnypz] at ⊢ ih
+  case w ih =>
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
+    simp [hFresh] at hSafe
+    split
+    · apply Typing.w
+      · rename_i Γ P _ _ hf1 _ h
+        change x ∉ Γ{x // z}.names
+        rw [Env.substName_eq_self_of_not_mem]
+        · exact hFresh.1
+        · subst h
+          exact hf1
+      · exact ih hFresh.1 hSafe
+    · apply Typing.w
+      · rename_i Γ P xp _ hf1 _ h
+        change xp ∉ Γ{x // z}.names
+        exact Env.not_mem_substName_intro hf1 hFresh.2.symm
+      · exact ih hFresh.1 hSafe
+
+  case c Γ P' xp yp A hneq hf D ih =>
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
+    simp [hFresh, ← ne_eq] at hSafe
+    split_ifs
+    · simp_all
+    · apply Typing.c
+      · exact hSafe.1
+      · apply And.intro
+        · change x ∉ Γ{x // z}.names
+          rw [Env.substName_eq_self_of_not_mem]
+          · exact hFresh.1
+          · rename_i h1 h2
+            subst h1
+            exact hf.1
+        · change yp ∉ Γ{x // z}.names
+          rw [Env.substName_eq_self_of_not_mem]
+          · exact hf.2
+          · rename_i h1 h2
+            subst h1
+            exact hf.1
+      · change ⊢ P'{x // z} ∷ {Γ{x // z}‚ x ∶ ??A‚ yp ∶ ??A}
+        rw [Env.substName_eq_self_of_not_mem]
+        · rename_i h1 h2
+          specialize ih ⟨hFresh, hSafe.1⟩ hSafe.2
+          simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+            Env.substName_singleton, h1, h2, if_true, if_false] at ih
+          rw [Env.substName_eq_self_of_not_mem] at ih
+          · exact ih
+          · subst h1
+            exact hf.1
+        · rename_i h1 h2
+          subst h1
+          exact hf.1
+    · apply Typing.c
+      · exact hneq
+      · apply And.intro
+        · change xp ∉ (Γ{x // z}).names
+          rw [Env.substName_eq_self_of_not_mem]
+          · exact hf.1
+          · rename_i h1 h2
+            subst h2
+            exact hf.2
+        · change yp ∉ Γ{x // z}.names
+          rw [Env.substName_eq_self_of_not_mem]
+          · exact hf.2
+          · rename_i h1 h2
+            subst h2
+            exact hf.2
+      · rename_i h1 h2
+        change  ⊢ P' ∷ {Γ{x // z}‚ xp ∶ ??A‚ yp ∶ ??A}
+        rw [Env.substName_eq_self_of_not_mem]
+        · exact D
+        · subst h2
+          exact hf.2
+    · apply Typing.c
+      · exact hneq
+      · apply And.intro
+        · exact Env.not_mem_substName_intro hf.1 hFresh.2.symm
+        · exact Env.not_mem_substName_intro hf.2 hSafe.1.symm
+      · rename_i h1 h2
+        specialize ih ⟨hFresh, hSafe.1⟩ hSafe.2
+        simp [h1, h2]at ih
         exact ih
 
-  case exists_ ih =>
-    simp
+  case exists_ Γ P' xp A B X D ih =>
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
+    simp [hFresh] at hSafe
     split
-    · rw [Finset.insert_eq, Finset.union_comm]
-      apply Typing.exists_
-      rename_i Γ P' x' A B X D hxpz
-      subst hxpz
+    · apply Typing.exists_
+      rename_i h
+      subst h
       simp at ⊢ ih hFresh
-      apply ih hFresh.1 hFresh.2 (by
-        intro hxP ; simp at hSafe ; exact hSafe hxP hFresh.1)
-    · rw [Finset.insert_eq, Finset.union_comm]
-      apply Typing.exists_
-      rename_i Γ P' x' A B X D hxpz
-
-      have this1 : x ∉ HyperEnv.names (Γ‚ x' ∶ B{A // X}) := by
-        intro hxinn
-        simp at hFresh
-        simp only [HyperEnv.names] at hxinn
-        rw [Finset.mem_biUnion] at hxinn
-        rcases hxinn with ⟨E, hEset, hxE⟩
-        simp only [Finset.mem_singleton] at hEset
-        subst hEset
-        rw [Env.names, Env.merge, Env.mk, Finset.image_union, Finset.image_singleton,
-          Finset.mem_union, Finset.mem_singleton] at hxE
-        rcases hxE with hΓ | rfl
-        · rw [Finset.mem_image] at hΓ
-          rcases hΓ with ⟨p, hpin, rfl⟩
-          exact hFresh.2 _ hpin
-        · exact hFresh.1 rfl
-
-      have this2 : x ∉ P'.boundNames := by
-        intro hxPpB
-        simp at hSafe hxPpB
-        rcases hxPpB with ⟨hinn, hnf⟩
-        have hne : x ≠ x' := by
-          intro rfl
-          simp at this1
-        have h_is_free : x ∈ P'.f := by
-          exact hSafe hinn hne
-        contradiction
-
-      specialize ih this1 this2
-      convert ih
-      simp [Env.substName, hxpz]
+      apply ih hFresh.1 hFresh.2
+      exact hSafe
+    · apply Typing.exists_
+      rename_i h
+      specialize ih hFresh hSafe
+      simp [h] at ih
+      exact ih
 
   case forall_ ih =>
-    simp only [HasSubst.subst, Proc.substName, HyperEnv.substName,
-      Env.substName, Finset.image_singleton, Env.merge, Finset.image_union]
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
+    simp [hFresh] at hSafe
+
     split
-    · rename_i Γ' P x' B X D p₂ hxz
-      subst hxz
-      have hneq : x ≠ x' := by
-        intro rfl
-        simp only [HyperEnv.names, Env.merge, Env.mk, Finset.union_singleton,
-          Finset.singleton_biUnion, Finset.insert_eq, Env.names, Finset.image_union,
-          Finset.image_singleton] at hFresh
-        apply hFresh
-        simp only [Finset.mem_union, Finset.mem_singleton]
-        left
-        exact True.intro
+    · apply Typing.forall_
+      · simp_all
+        apply ih
+      · sorry
 
-      simp only [← Finset.image_union]
-      rw [Finset.insert_eq, Finset.union_comm]
-      apply Typing.forall_
-      simp at ih hFresh
-
-      have this1 : (x ∈ P.names → x ∈ P.f) := by
-        intro hxP
 
 
 
@@ -1686,19 +1824,6 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
   case cut ih => sorry
   case tensor => sorry
   case parr => sorry
-
-
-  -- FIXME: Remove just placeholder
-  case bot | oplus₁ | oplus₂ | amp | quest | w => sorry
-
-  -- FIXME: Broke after adding additional typing contraints
-  -- case bot | oplus₁ | oplus₂ | amp | quest | w =>
-  --   simp
-  --   split
-  --   all_goals
-  --   · rw [Finset.insert_eq, Finset.union_comm]
-  --     constructor <;> simp_all
-
 
 
 

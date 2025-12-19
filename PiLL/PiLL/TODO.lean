@@ -19,6 +19,8 @@
 
 -- TODO: Give typing judgements replacement syntax
 
+-- TODO: Look over the proof for judgement replacement syntax and try and shorten it
+
 /- TODO:
   · Depending on Marcos response define alternate version of c- and w- rule which
     also work on thier dependencies.
