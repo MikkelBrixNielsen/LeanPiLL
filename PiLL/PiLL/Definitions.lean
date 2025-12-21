@@ -1352,11 +1352,11 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
   · rcases h with ⟨b, hΓ, heq⟩
     simp_all
 
-@[simp] lemma Env.ft_substName_eq (Γ : Env) (x z : PName) :
+@[simp] lemma Env.ft_substName_eq_self (Γ : Env) (x z : PName) :
   ft(Γ.substName x z) = ft(Γ) := by
   simp only [Env.freeTypes, Env.substName]
-  apply Finset.biUnion_congr
-  g
+  rw [Finset.image_biUnion]
+  exact Finset.biUnion_congr rfl (by intro p hin ; split <;> rfl)
 
 
 
@@ -1534,9 +1534,9 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     simp only [← HyperEnv.substName_merge, ← Proc.substName_par]
     have this :  (𝒢'.substName x z).disjoint (ℋ'.substName x z) := by
       apply HyperEnv.substName_preserve_disjoint
-      apply hDisj
-      simp [Finset.biUnion_union] at ⊢ hFresh
-      exact hFresh
+      · apply hDisj
+      · simp [Finset.biUnion_union] at ⊢ hFresh
+        exact hFresh
     apply Typing.mix
     · exact this
     · apply ihP
@@ -1579,7 +1579,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
 
   case one ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_singleton]
-    simp [HasSubst.subst, Proc.substName]
+    conv_rhs => simp [HasSubst.subst, Proc.substName]
     split
     all_goals
       apply Typing.one
@@ -1590,49 +1590,28 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
   case bot ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
-    simp only [HasSubst.subst, Proc.substName]
+    conv_rhs => simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
+    simp [hFresh] at hSafe
     split
-    . apply Typing.bot
-      · rename_i Γ P' xp hf1 hf2 _ hxpz
-        subst hxpz
-        change x ∉ Γ{x // xp}.names
-        rw [Env.substName_eq_self_of_not_mem]
-        · simp only [HyperEnv.names_distributes, Env.names_distributes,
-            Env.names_singleton, Finset.notMem_union] at hFresh
-          · exact hFresh.1
-        · exact hf1
-      · rename_i Γ P' xp hf1 hf2 _ hxpz
-        subst hxpz
-        change x ∉ Γ{x // xp}.names
-        rw [Env.substName_eq_self_of_not_mem]
-        · simp only [HyperEnv.names_distributes, Env.names_distributes,
-            Env.names_singleton, Finset.notMem_union] at hFresh
-          exact hFresh.1
-        · exact hf1
-      · rename_i Γ P' xp hf1 hf2 _ hxpz
-        subst hxpz
-        simp only [HyperEnv.names_distributes, Env.names_distributes,
-          Env.names_singleton, Finset.notMem_union, Finset.mem_singleton] at hFresh
-        · apply ih
-          · simp only [HyperEnv.names_distributes]
-            exact hFresh.1
-          · simp_all
     · apply Typing.bot
-      · rename_i Γ P' xp hf1 hf2 _ h1
-        simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
-          Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh
-        exact Env.not_mem_substName_intro hf1 hFresh.2.symm
-      · rename_i Γ P' xp hf1 hf2 _ h1
-        simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
-          Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh
-        exact Env.not_mem_substName_intro hf1 hFresh.2.symm
-      · rename_i Γ' P' xp hf1 hf2 _ hxpnz
-        simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
-          Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh
-        apply ih
-        · simp only [HyperEnv.names_distributes]
-          exact hFresh.1
-        · simp_all [Proc.boundNames]
+      all_goals (try
+        rename_i hf _ hxpz
+        subst hxpz
+        rw [Env.substName_eq_self_of_not_mem]
+        · exact hFresh.1
+        · exact hf)
+      · apply ih
+        · exact hFresh.1
+        · exact hSafe
+    · apply Typing.bot
+      all_goals (try
+        rename_i hf _ _
+        exact Env.not_mem_substName_intro hf hFresh.2.symm)
+      · apply ih
+        · exact hFresh.1
+        · exact hSafe
 
   case oplus₁ ih | oplus₂ ih | quest ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
@@ -1690,29 +1669,27 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
   case w ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
-    simp [HasSubst.subst, Proc.substName]
+    conv_rhs => simp [HasSubst.subst, Proc.substName]
     simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh] at hSafe
     split
     · apply Typing.w
-      · rename_i Γ P _ _ hf1 _ h
-        change x ∉ Γ{x // z}.names
+      · rename_i hf _ h
         rw [Env.substName_eq_self_of_not_mem]
         · exact hFresh.1
         · subst h
-          exact hf1
+          exact hf
       · exact ih hFresh.1 hSafe
     · apply Typing.w
-      · rename_i Γ P xp _ hf1 _ h
-        change xp ∉ Γ{x // z}.names
-        exact Env.not_mem_substName_intro hf1 hFresh.2.symm
+      · rename_i hf _ h
+        exact Env.not_mem_substName_intro hf hFresh.2.symm
       · exact ih hFresh.1 hSafe
 
   case c Γ P' xp yp A hneq hf D ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
-    simp [HasSubst.subst, Proc.substName]
+    conv_rhs => simp [HasSubst.subst, Proc.substName]
     simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh, ← ne_eq] at hSafe
@@ -1721,20 +1698,17 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     · apply Typing.c
       · exact hSafe.1
       · apply And.intro
-        · change x ∉ Γ{x // z}.names
-          rw [Env.substName_eq_self_of_not_mem]
+        · rw [Env.substName_eq_self_of_not_mem]
           · exact hFresh.1
           · rename_i h1 h2
             subst h1
             exact hf.1
-        · change yp ∉ Γ{x // z}.names
-          rw [Env.substName_eq_self_of_not_mem]
+        · rw [Env.substName_eq_self_of_not_mem]
           · exact hf.2
           · rename_i h1 h2
             subst h1
             exact hf.1
-      · change ⊢ P'{x // z} ∷ {Γ{x // z}‚ x ∶ ??A‚ yp ∶ ??A}
-        rw [Env.substName_eq_self_of_not_mem]
+      · rw [Env.substName_eq_self_of_not_mem]
         · rename_i h1 h2
           specialize ih ⟨hFresh, hSafe.1⟩ hSafe.2
           simp only [HyperEnv.substName_singleton, Env.substName_distributes,
@@ -1749,20 +1723,17 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     · apply Typing.c
       · exact hneq
       · apply And.intro
-        · change xp ∉ (Γ{x // z}).names
-          rw [Env.substName_eq_self_of_not_mem]
+        · rw [Env.substName_eq_self_of_not_mem]
           · exact hf.1
           · rename_i h1 h2
             subst h2
             exact hf.2
-        · change yp ∉ Γ{x // z}.names
-          rw [Env.substName_eq_self_of_not_mem]
+        · rw [Env.substName_eq_self_of_not_mem]
           · exact hf.2
           · rename_i h1 h2
             subst h2
             exact hf.2
       · rename_i h1 h2
-        change  ⊢ P' ∷ {Γ{x // z}‚ xp ∶ ??A‚ yp ∶ ??A}
         rw [Env.substName_eq_self_of_not_mem]
         · exact D
         · subst h2
@@ -1797,19 +1768,20 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       simp [h] at ih
       exact ih
 
-  case forall_ ih =>
+  case forall_ h ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
     simp [HasSubst.subst, Proc.substName]
     simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh] at hSafe
-
     split
+    all_goals
     · apply Typing.forall_
       · simp_all
         apply ih
-      · sorry
+      · rw [Env.ft_substName_eq_self]
+        exact h
 
 
 
