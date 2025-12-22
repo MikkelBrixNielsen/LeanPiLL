@@ -22,7 +22,7 @@ class HasParen (Subject Content Result : Type) where
 
 ------------------------------- ADDITIONAL FINSET THEOREMS --------------------------------
 
-theorem Finset.biUnion_union {α β : Type _} [DecidableEq α] [DecidableEq β]
+lemma Finset.biUnion_union {α β : Type _} [DecidableEq α] [DecidableEq β]
   (s t : Finset α) (f : α → Finset β) :
   (s ∪ t).biUnion f = s.biUnion f ∪ t.biUnion f := by
   ext b
@@ -47,6 +47,36 @@ lemma Finset.not_mem_of_not_mem_sdiff {α : Type*} [DecidableEq α]
   {s : Finset α} {x y : α} (h_diff : x ∉ s \ {y}) (h_neq : x ≠ y) : x ∉ s := by
   simp at h_diff
   tauto
+
+lemma Finset.disjoint_image_substName {α : Type*} [DecidableEq α]
+  (s t : Finset α) (x z : α) :
+  Disjoint s t → x ∉ s → x ∉ t →
+  Disjoint (s.image (fun n => if n = z then x else n))
+           (t.image (fun n => if n = z then x else n)) := by
+  intro h_disj h_sx h_tx
+  rw [Finset.disjoint_iff_ne]
+  intro a ha b hb
+  rw [Finset.mem_image] at ha hb
+  rcases ha with ⟨a_pre, ha_pre, rfl⟩
+  rcases hb with ⟨b_pre, hb_pre, h_eq⟩
+  rw [←h_eq]
+
+  split_ifs at * with h_az h_bz
+  · rw [h_az] at ha_pre
+    rw [h_bz] at hb_pre
+    rw [Finset.disjoint_iff_ne] at h_disj
+    exfalso
+    exact h_disj z ha_pre z hb_pre rfl
+  · intro h_contra
+    rw [← h_contra] at hb_pre
+    contradiction
+  · intro h_contra
+    rw [h_contra] at ha_pre
+    contradiction
+  · intro h_contra
+    rw [← h_contra] at hb_pre
+    rw [Finset.disjoint_iff_ne] at h_disj
+    exact h_disj a_pre ha_pre a_pre hb_pre rfl
 
 ------------------------------------------ TYPES ------------------------------------------
 
@@ -804,7 +834,7 @@ def Env.names (Δ : Env) : Finset (PName) :=
 
 @[simp]
 def Env.disjoint (Δ Γ : Env) : Prop :=
-  Δ.names ∩ Γ.names = ∅
+  Disjoint Δ.names Γ.names
 
 noncomputable def Env.lookup (Δ : Env) (x : PName) : Option Types :=
   -- Finset.fold (· ∪ ·) none (fun p => if p.fst = x then p.snd else none) Δ
@@ -909,7 +939,7 @@ lemma Env.names_substName (Γ : Env) (x z : PName) :
   split_ifs <;> rfl
 
 @[simp]
-lemma Env.substName_eq_self_of_not_mem (Γ : Env) (x z : PName)
+lemma Env.substName_eq_self_of_not_mem {Γ : Env} {x z : PName}
   (h : z ∉ Γ.names) : Γ{x // z} = Γ := by
   simp only [HasSubst.subst, Env.substName]
   conv_rhs => rw [← Finset.image_id (s := Γ)]
@@ -1047,42 +1077,22 @@ def HyperEnv.substTypes (𝒢 : HyperEnv) (A : Types) (X : TVar) : HyperEnv :=
 instance : HasSubst HyperEnv Types TVar where subst := HyperEnv.substTypes
 
 @[simp]
-lemma HyperEnv.names_merge (𝒢 ℋ : HyperEnv) : (𝒢 |ₕ ℋ).names = 𝒢.names ∪ ℋ.names := by
-  simp [Finset.biUnion_union]
+lemma HyperEnv.names_singleton (Γ : Env) :
+  ({Γ} : HyperEnv).names = Γ.names := by
+  simp [HyperEnv.names, Env.names, Finset.singleton_biUnion]
+
+@[simp] lemma HyperEnv.names_distributes (𝒢 ℋ : HyperEnv) :
+  (𝒢 |ₕ ℋ).names = 𝒢.names ∪ ℋ.names := by
+  simp only [HyperEnv.names, Finset.biUnion_union]
+
+@[simp]
+lemma HyperEnv.names_empty : (∅ : HyperEnv).names = ∅ := by simp
 
 lemma HyperEnv.substName_merge (𝒢 ℋ : HyperEnv) (x z : PName) :
   𝒢{x // z} |ₕ ℋ{x // z} = (𝒢 |ₕ ℋ){x // z} := by
   simp [HasSubst.subst, HyperEnv.substName, HyperEnv.merge, Finset.image_union]
 
-lemma Finset.disjoint_image_substName {α : Type*} [DecidableEq α]
-  (s t : Finset α) (x z : α) :
-  Disjoint s t → x ∉ s → x ∉ t →
-  Disjoint (s.image (fun n => if n = z then x else n))
-           (t.image (fun n => if n = z then x else n)) := by
-  intro h_disj h_sx h_tx
-  rw [Finset.disjoint_iff_ne]
-  intro a ha b hb
-  rw [Finset.mem_image] at ha hb
-  rcases ha with ⟨a_pre, ha_pre, rfl⟩
-  rcases hb with ⟨b_pre, hb_pre, h_eq⟩
-  rw [←h_eq]
 
-  split_ifs at * with h_az h_bz
-  · rw [h_az] at ha_pre
-    rw [h_bz] at hb_pre
-    rw [Finset.disjoint_iff_ne] at h_disj
-    exfalso
-    exact h_disj z ha_pre z hb_pre rfl
-  · intro h_contra
-    rw [← h_contra] at hb_pre
-    contradiction
-  · intro h_contra
-    rw [h_contra] at ha_pre
-    contradiction
-  · intro h_contra
-    rw [← h_contra] at hb_pre
-    rw [Finset.disjoint_iff_ne] at h_disj
-    exact h_disj a_pre ha_pre a_pre hb_pre rfl
 
 lemma HyperEnv.names_substName (𝒢 : HyperEnv) (x z : PName) :
   𝒢{x // z}.names = 𝒢.names.image (fun n => if n = z then x else n) := by
@@ -1095,20 +1105,15 @@ lemma HyperEnv.names_substName (𝒢 : HyperEnv) (x z : PName) :
     apply Env.names_substName
 
 @[simp]
-lemma HyperEnv.substName_preserve_disjoint (𝒢 ℋ : HyperEnv) (x z : PName)
-  (hDisj : 𝒢.disjoint ℋ) (hFresh : x ∉ (𝒢 |ₕ ℋ).names) :
+lemma HyperEnv.substName_preserves_disjoint (𝒢 ℋ : HyperEnv) (x z : PName)
+  (hDisj : 𝒢.disjoint ℋ) (hFresh : x ∉ 𝒢.names ∧ x ∉ ℋ.names) :
   𝒢{x // z}.disjoint ℋ{x // z} := by
   dsimp only [HyperEnv.disjoint]
-  rw [HyperEnv.names_merge] at hFresh
-  have h_fresh_G : x ∉ 𝒢.names :=
-    fun h => hFresh (Finset.mem_union_left _ h)
-  have h_fresh_H : x ∉ ℋ.names :=
-    fun h => hFresh (Finset.mem_union_right _ h)
   simp only [HyperEnv.names_substName]
   apply Finset.disjoint_image_substName
   · exact hDisj
-  · exact h_fresh_G
-  · exact h_fresh_H
+  · exact hFresh.1
+  · exact hFresh.2
 
 lemma HyperEnv.substName_eq_self_of_not_mem (𝒢 : HyperEnv) (x z : PName)
   (h : z ∉ 𝒢.names) : 𝒢{x // z} = 𝒢 := by
@@ -1135,17 +1140,18 @@ inductive Typing : HyperEnv → Proc → Prop where
       --------------------------
       Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
 
+  -- FIXME: Check if hFresh is correct and sufficient
   | cut (𝒢 : HyperEnv) (Γ Δ : Env) (P : Proc) (x y : PName) (A : Types)
-      {hFrehs : ∀ s ∈ [x, y], s ∉ (𝒢.names ∪ Γ.names ∪ Δ.names)} -- FIXME: Check if this is correct and sufficient
+      {hFresh: x ∉ 𝒢.names ∧ x ∉ Γ.names ∧ x ∉ Δ.names ∧
+        y ∉ 𝒢.names ∧ y ∉ Γ.names ∧ y ∉ Δ.names}
       {hneq : x ≠ y} {hDisj: Γ.disjoint Δ} :
       Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P →
       -------------------------------------
       Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩ P)
 
   | tensor {Γ Δ : Env} {P : Proc} {x y : PName} {B A : Types}
-      {hFresh : x ∉ Γ.names ∧ y ∉ Δ.names}
+      {hFresh : x ∉ Γ.names ∧ x ∉ Δ.names ∧ y ∉ Γ.names ∧ y ∉ Δ.names}
       {hneq : x ≠ y} {hDisj: Γ.disjoint Δ} :
-      -- FIXME: Should it also be check that x ∉ Δ ∧ y ∉ Γ ??
       Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
       ---------------------------------
       Typing (Γ‚ Δ‚ x ∶ A ⨂ B) (x⟦y⟧․P)
@@ -1248,19 +1254,8 @@ lemma Env.names_empty : (∅ : Env).names = ∅ := by simp
     rfl
 
 -- FIXME: Move to HyperEnv section
-@[simp]
-lemma HyperEnv.names_singleton (x : PName) (A : Types) :
-  ({(x ∶ A)} : HyperEnv).names = {x} := by
-  simp only [HyperEnv.names, Finset.singleton_biUnion]
-  rfl
 
-@[simp]
-lemma HyperEnv.names_distributes (Γ : Env) :
-  ({Γ} : HyperEnv).names = Γ.names := by
-  simp [HyperEnv.names, Env.names, Finset.singleton_biUnion]
 
-@[simp]
-lemma HyperEnv.names_empty : (∅ : HyperEnv).names = ∅ := by simp
 
 
 
@@ -1276,26 +1271,26 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
     exact Finset.union_subset_union ihP ihQ
 
   case one | bot | w =>
-    simp only [Proc.f, HyperEnv.names_distributes,
+    simp only [Proc.f, HyperEnv.names_singleton,
       Env.names_distributes, Env.names_singleton]
     simp_all
 
   case oplus₁ ih | oplus₂ ih | quest ih | bang ih | exists_ ih | forall_ ih =>
-    simp only [Proc.f, HyperEnv.names_distributes, Env.names_distributes,
+    simp only [Proc.f, HyperEnv.names_singleton, Env.names_distributes,
       Env.names_singleton] at *
     apply Finset.insert_subset
     · simp
     · exact ih
 
   case amp ihP ihQ =>
-    simp only [Proc.f, HyperEnv.names_distributes, Env.names_distributes,
+    simp only [Proc.f, HyperEnv.names_singleton, Env.names_distributes,
       Env.names_singleton] at *
     · apply Finset.insert_subset
       · simp
       · exact Finset.union_subset ihP ihQ
 
   case c ih =>
-    simp only [Proc.f, HyperEnv.names_distributes, Env.names_distributes,
+    simp only [Proc.f, HyperEnv.names_singleton, Env.names_distributes,
       Env.names_singleton] at *
     apply Finset.insert_subset
     · simp
@@ -1305,12 +1300,12 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
       simp_all
 
   case ax =>
-    simp only [Proc.f, HyperEnv.names_distributes, Env.names_distributes,
+    simp only [Proc.f, HyperEnv.names_singleton, Env.names_distributes,
       Env.names_singleton, Finset.union_singleton]
     simp [Finset.pair_comm]
 
   case cut ih =>
-    simp only [Proc.f, HyperEnv.names_merge, HyperEnv.names_distributes,
+    simp only [Proc.f, HyperEnv.names_distributes, HyperEnv.names_singleton,
       Env.names_distributes, Env.names_singleton] at *
     intro a ha
     rw [Finset.mem_sdiff] at ha
@@ -1318,7 +1313,7 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
     simp_all
 
   case tensor ih | parr ih =>
-    simp only [Proc.f, HyperEnv.names_merge, HyperEnv.names_distributes,
+    simp only [Proc.f, HyperEnv.names_distributes, HyperEnv.names_singleton,
       Env.names_distributes, Env.names_singleton] at *
     intro a ha
     simp at ⊢ ha ih
@@ -1353,10 +1348,21 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
     simp_all
 
 @[simp] lemma Env.ft_substName_eq_self (Γ : Env) (x z : PName) :
-  ft(Γ.substName x z) = ft(Γ) := by
-  simp only [Env.freeTypes, Env.substName]
+  ft(Γ{x // z}) = ft(Γ) := by
+  simp only [HasSubst.subst, Env.freeTypes, Env.substName]
   rw [Finset.image_biUnion]
   exact Finset.biUnion_congr rfl (by intro p hin ; split <;> rfl)
+
+@[simp] lemma Env.substName_preserves_disjoint {Γ Δ : Env} {x z : PName}
+  (hDisj : Γ.disjoint Δ) (hFresh : x ∉ Γ.names ∧ x ∉ Δ.names) :
+  Γ{x // z}.disjoint Δ{x // z} := by
+  dsimp only [Env.disjoint]
+  simp only [Env.names_substName]
+  apply Finset.disjoint_image_substName
+  · exact hDisj
+  · exact hFresh.1
+  · exact hFresh.2
+
 
 
 
@@ -1386,16 +1392,12 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
   · simp at heq
     simp_all
 
-
-
 @[simp] lemma Proc.substname_nil (x z : PName) :
   𝟘{x // z} = 𝟘 := by simp only [HasSubst.subst, Proc.substName]
 
 @[simp] lemma Proc.substName_link (a b x z : PName) :
   (a⟷ₚb){x // z} = (if a = z then x else a)⟷ₚ(if b = z then x else b) := by
   simp only [HasSubst.subst, Proc.substName]
-
-
 
 @[simp] lemma Proc.boundNames_one (x : PName) (P : Proc) :
   ((x⟦⟧․P).boundNames) = P.boundNames \ {x} := by
@@ -1477,10 +1479,26 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
   simp
   tauto
 
+@[simp] lemma Proc.boundNames_tensor (x y : PName) (P : Proc) :
+  (x⟦y⟧․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
 
+@[simp] lemma Proc.boundNames_parr (x y : PName) (P : Proc) :
+  (x⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
 
-
-
+@[simp] lemma Proc.boundNames_cut (x y : PName) (P : Proc) :
+  (𝑣⸨x, y⸩ P).boundNames = (P.boundNames ∪ {y, x}) := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
 
 @[simp] lemma Proc.f_subset_names (P : Proc) : P.f ⊆ P.names := by
   induction P <;> simp only [Proc.f, Proc.names]
@@ -1510,16 +1528,6 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
     apply Proc.f_subset_names
     exact hf
 
-
-
-
-
-
-
-
-
-
-
 theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (x z : PName)
   (hFresh : x ∉ 𝒢.names) (hSafe : x ∉ P.boundNames) :
   ⊢ (P{x // z}) ∷ (𝒢{x // z}) := by
@@ -1530,12 +1538,12 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     apply Typing.mix₀
 
   case mix 𝒢' ℋ' _ _ hDisj 𝒟 ℰ ihP ihQ =>
-    rw [HyperEnv.names_merge, Finset.notMem_union] at hFresh
+    rw [HyperEnv.names_distributes, Finset.notMem_union] at hFresh
     simp only [← HyperEnv.substName_merge, ← Proc.substName_par]
     have this :  (𝒢'.substName x z).disjoint (ℋ'.substName x z) := by
-      apply HyperEnv.substName_preserve_disjoint
+      apply HyperEnv.substName_preserves_disjoint
       · apply hDisj
-      · simp [Finset.biUnion_union] at ⊢ hFresh
+      · simp at ⊢ hFresh
         exact hFresh
     apply Typing.mix
     · exact this
@@ -1562,13 +1570,13 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       simp
       apply And.intro
       · exact hneq.symm
-      · simp only [HyperEnv.names_distributes, Env.names_distributes,
+      · simp only [HyperEnv.names_singleton, Env.names_distributes,
           Env.names_singleton] at hFresh
         simp at hFresh
         exact hFresh.1
     · rename_i xp yp A hneq hxpnz
       apply Typing.ax
-      simp only [HyperEnv.names_distributes, Env.names_distributes,
+      simp only [HyperEnv.names_singleton, Env.names_distributes,
           Env.names_singleton] at hFresh
       split
       · simp at ⊢ hFresh
@@ -1584,14 +1592,14 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     all_goals
       apply Typing.one
       simp at ih ; apply ih
-      rw [HyperEnv.names_singleton, Finset.mem_singleton] at hFresh
+      rw [HyperEnv.names_singleton, Env.names_singleton, Finset.mem_singleton] at hFresh
       simp_all [Proc.boundNames]
 
   case bot ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
     conv_rhs => simp [HasSubst.subst, Proc.substName]
-    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh] at hSafe
     split
@@ -1617,7 +1625,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
     simp [HasSubst.subst, Proc.substName]
-    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh] at hSafe
     split
@@ -1630,13 +1638,13 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
     simp [HasSubst.subst, Proc.substName]
-    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ihP ihQ
     simp [hFresh] at hSafe
     rename_i Γ P' Q' xp A B D E
     have hsubP := Typing.Pf_subset_HyperEnvNames D
     have hsubQ := Typing.Pf_subset_HyperEnvNames E
-    simp only [HyperEnv.names_distributes, Env.names_distributes,
+    simp only [HyperEnv.names_singleton, Env.names_distributes,
       Env.names_singleton] at hsubP hsubQ
     have this : x ∉ P'.boundNames ∧ x ∉ Q'.boundNames := by grind
     specialize ihP hFresh this.1
@@ -1655,7 +1663,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
     simp [HasSubst.subst, Proc.substName]
-    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh] at hSafe
     split
@@ -1670,7 +1678,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
     conv_rhs => simp [HasSubst.subst, Proc.substName]
-    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh] at hSafe
     split
@@ -1690,7 +1698,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
     conv_rhs => simp [HasSubst.subst, Proc.substName]
-    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh, ← ne_eq] at hSafe
     split_ifs
@@ -1752,7 +1760,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
     simp [HasSubst.subst, Proc.substName]
-    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh] at hSafe
     split
@@ -1771,8 +1779,8 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
   case forall_ h ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
       Env.substName_singleton]
-    simp [HasSubst.subst, Proc.substName]
-    simp only [HyperEnv.names_distributes, Env.names_distributes, Env.names_singleton,
+    conv_rhs => simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ih
     simp [hFresh] at hSafe
     split
@@ -1783,28 +1791,251 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       · rw [Env.ft_substName_eq_self]
         exact h
 
+  case tensor hf hneq hDisj h ih =>
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    conv_rhs => simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh
+    simp [hFresh, ← ne_eq] at hSafe
+    split_ifs with h1 h2 h3
+    · rw [h1, h2] at hneq
+      contradiction
+    · apply Typing.tensor
+      · apply And.intro
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hFresh.1.1
+          · subst h1 ; exact hf.1
+        · apply And.intro
+          · rw [Env.substName_eq_self_of_not_mem]
+            · exact hFresh.1.2
+            · subst h1 ; exact hf.2.1
+          · apply And.intro
+            · rw [Env.substName_eq_self_of_not_mem]
+              · exact hf.2.2.1
+              · subst h1 ; exact hf.1
+            · rw [Env.substName_eq_self_of_not_mem]
+              · exact hf.2.2.2
+              · subst h1 ; exact hf.2.1
+      · exact hSafe.1
+      · apply Env.substName_preserves_disjoint
+        · exact hDisj
+        · exact hFresh.1
+      · simp only [← HyperEnv.substName_merge, HyperEnv.substName_singleton,
+          Env.substName_distributes, Env.substName_singleton, h1, h2, if_false,
+          if_true] at ih
+        apply ih
+        · simp only [HyperEnv.names_distributes, HyperEnv.names_singleton,
+            Env.names_distributes, Env.names_singleton, Finset.notMem_union,
+            Finset.mem_singleton, ← ne_eq]
+          apply And.intro
+          · exact And.intro hFresh.1.1 hSafe.1
+          · exact And.intro hFresh.1.2 (by subst h1 ; exact hFresh.2)
+        · exact hSafe.2
+    · apply Typing.tensor
+      · apply And.intro
+        · exact Env.not_mem_substName_intro hf.1 hFresh.2.symm
+        · apply And.intro
+          · rw [Env.substName_eq_self_of_not_mem]
+            · exact hf.2.1
+            · subst h3 ; exact hf.2.2.2
+          · apply And.intro
+            · rw [Env.substName_eq_self_of_not_mem]
+              · exact hf.2.2.1
+              · subst h3 ; exact hf.2.2.1
+            · rw [Env.substName_eq_self_of_not_mem]
+              · exact hf.2.2.2
+              · subst h3 ; exact hf.2.2.2
+      · exact hneq
+      · apply Env.substName_preserves_disjoint
+        · exact hDisj
+        · exact hFresh.1
+      · repeat rw [Env.substName_eq_self_of_not_mem]
+        · exact h
+        · subst h3 ; exact hf.2.2.2
+        · subst h3 ; exact hf.2.2.1
+    · apply Typing.tensor
+      · apply And.intro
+        · exact Env.not_mem_substName_intro hf.1 hFresh.2.symm
+        · apply And.intro
+          · exact Env.not_mem_substName_intro hf.2.1 hFresh.2.symm
+          · apply And.intro
+            · exact Env.not_mem_substName_intro hf.2.2.1 hSafe.1.symm
+            · exact Env.not_mem_substName_intro hf.2.2.2 hSafe.1.symm
+      · exact hneq
+      · apply Env.substName_preserves_disjoint
+        · exact hDisj
+        · exact hFresh.1
+      · simp only [← HyperEnv.substName_merge, HyperEnv.substName_singleton,
+          Env.substName_distributes, Env.substName_singleton, h1, h3, if_false] at ih
+        apply ih
+        · simp only [HyperEnv.names_distributes, HyperEnv.names_singleton,
+            Env.names_distributes, Env.names_singleton, Finset.notMem_union,
+            Finset.mem_singleton, ← ne_eq]
+          apply And.intro
+          · exact ⟨hFresh.1.1, hSafe.1⟩
+          · exact ⟨hFresh.1.2, hFresh.2⟩
+        · exact hSafe.2
 
+  case parr hf hneq h ih =>
+    simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+      Env.substName_singleton]
+    conv_rhs => simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh
+    simp [hFresh, ← ne_eq] at hSafe
+    split_ifs with h1 h2 h3
+    · apply Typing.parr
+      · apply And.intro
+        · rw [h1, h2] at hneq
+          contradiction
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hf.2
+          · subst h2 ; exact hf.2
+      · exact hSafe.1
+      · rw [h1, h2] at hneq
+        contradiction
+    · apply Typing.parr
+      · apply And.intro
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hFresh.1
+          · subst h1 ; exact hf.1
+        · apply Env.not_mem_substName_intro hf.2 hSafe.1.symm
+      · exact hSafe.1
+      · simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+          Env.substName_singleton, h1, h2, if_true, if_false] at ih
+        apply ih
+        · simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
+            Finset.notMem_union, Finset.mem_singleton]
+          exact ⟨⟨hFresh.1, hSafe.1,⟩, (by subst h1 ; exact hFresh.2)⟩
+        · exact hSafe.2
+    · apply Typing.parr
+      · apply And.intro
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hf.1
+          · subst h3 ; exact hf.2
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hf.2
+          · subst h3 ; exact hf.2
+      · exact hneq
+      · rw [Env.substName_eq_self_of_not_mem]
+        · exact h
+        · subst h3 ; exact hf.2
+    · apply Typing.parr
+      · apply And.intro
+        · exact Env.not_mem_substName_intro hf.1 hFresh.2.symm
+        · exact Env.not_mem_substName_intro hf.2 hSafe.1.symm
+      · exact hneq
+      · simp only [HyperEnv.substName_singleton, Env.substName_distributes,
+          Env.substName_singleton, h1, h3, if_false] at ih
+        apply ih
+        · simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
+            Finset.notMem_union, Finset.mem_singleton, ← ne_eq]
+          exact ⟨⟨hFresh.1, hSafe.1⟩, hFresh.2⟩
+        · exact hSafe.2
 
+  case cut 𝒢' Γ' Δ' P' xp yp A hf hneq hDisj h ih =>
+    simp only [HyperEnv.substName_distributes, HyperEnv.substName_singleton,
+      Env.substName_distributes]
+    conv_rhs => simp [HasSubst.subst, Proc.substName]
+    simp only [HyperEnv.names_distributes, HyperEnv.names_singleton, Env.names_distributes,
+      Finset.notMem_union] at hFresh
+    simp [← ne_eq] at hSafe
+    simp only [HyperEnv.substName_distributes, HyperEnv.substName_singleton,
+      Env.substName_distributes, Env.substName_singleton, HyperEnv.names_distributes,
+      HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
+      Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at ih
+    split_ifs with h1 h2 h3 h4
+    · apply Typing.cut
+      · split_ands
+        · exact HyperEnv.not_mem_substName_intro hf.1 hSafe.2.1
+        · exact Env.not_mem_substName_intro hf.2.1  hSafe.2.1.symm
+        · exact Env.not_mem_substName_intro hf.2.2.1 hSafe.2.1.symm
+        · exact HyperEnv.not_mem_substName_intro hf.2.2.2.1 hSafe.1
+        · exact Env.not_mem_substName_intro hf.2.2.2.2.1 hSafe.1.symm
+        · exact Env.not_mem_substName_intro hf.2.2.2.2.2 hSafe.1.symm
+      · exact hneq
+      · exact Env.substName_preserves_disjoint hDisj ⟨hFresh.2.1, hFresh.2.2⟩
+      · rcases h1 with rfl | rfl
+        all_goals
+        · rw [HyperEnv.substName_eq_self_of_not_mem]
+          · rw [Env.substName_eq_self_of_not_mem]
+            · rw [Env.substName_eq_self_of_not_mem]
+              · exact h
+              · try exact hf.2.2.1
+                try exact hf.2.2.2.2.2
+            · try exact hf.2.1
+              try exact hf.2.2.2.2.1
+          · try exact hf.1
+            try exact hf.2.2.2.1
+    · simp [← ne_eq] at h1
+      subst h2 h3
+      contradiction
+    · apply Typing.cut
+      · split_ands
+        · rw [HyperEnv.substName_eq_self_of_not_mem]
+          · exact hFresh.1
+          · subst h2 ; exact hf.1
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hFresh.2.1
+          · subst h2 ; exact hf.2.1
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hFresh.2.2
+          · subst h2 ; exact hf.2.2.1
+        · exact HyperEnv.not_mem_substName_intro hf.2.2.2.1 hSafe.1
+        · exact Env.not_mem_substName_intro hf.2.2.2.2.1 hSafe.1.symm
+        · exact Env.not_mem_substName_intro hf.2.2.2.2.2 hSafe.1.symm
+      · exact hSafe.1
+      · exact Env.substName_preserves_disjoint hDisj ⟨hFresh.2.1, hFresh.2.2⟩
+      · simp only [h2, h3, if_true, if_false] at ih
+        apply ih
+        · subst h2
+          exact ⟨⟨hFresh.1, ⟨hFresh.2.1, hSafe.2.1⟩⟩, ⟨hFresh.2.2, hSafe.1⟩⟩
+        · exact hSafe.2.2
 
-
-
-
-
-
-
-
-  case cut ih => sorry
-  case tensor => sorry
-  case parr => sorry
-
-
-
-
-
+    · apply Typing.cut
+      · split_ands
+        · rw [HyperEnv.substName_eq_self_of_not_mem]
+          · exact hf.1
+          · subst h4 ; exact hf.2.2.2.1
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hf.2.1
+          · subst h4 ; exact hf.2.2.2.2.1
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hf.2.2.1
+          · subst h4 ; exact hf.2.2.2.2.2
+        · rw [HyperEnv.substName_eq_self_of_not_mem]
+          · exact hFresh.1
+          · subst h4 ; exact hf.2.2.2.1
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hFresh.2.1
+          · subst h4 ; exact hf.2.2.2.2.1
+        · rw [Env.substName_eq_self_of_not_mem]
+          · exact hFresh.2.2
+          · subst h4 ; exact hf.2.2.2.2.2
+      · exact hSafe.2.1.symm
+      · exact Env.substName_preserves_disjoint hDisj ⟨hFresh.2.1, hFresh.2.2⟩
+      · simp only [h2, h4, if_true, if_false] at ih
+        apply ih
+        · subst h4
+          exact ⟨⟨hFresh.1, ⟨hFresh.2.1, hSafe.2.1⟩⟩, ⟨hFresh.2.2, hSafe.1⟩⟩
+        · exact hSafe.2.2
+    · apply Typing.cut
+      · split_ands
+        · exact HyperEnv.not_mem_substName_intro hf.1 hSafe.2.1
+        · exact  Env.not_mem_substName_intro hf.2.1 hSafe.2.1.symm
+        · exact Env.not_mem_substName_intro hf.2.2.1 hSafe.2.1.symm
+        · apply HyperEnv.not_mem_substName_intro hf.2.2.2.1 hSafe.1
+        · exact Env.not_mem_substName_intro hf.2.2.2.2.1 hSafe.1.symm
+        · exact Env.not_mem_substName_intro hf.2.2.2.2.2 hSafe.1.symm
+      · exact hneq
+      · exact Env.substName_preserves_disjoint hDisj ⟨hFresh.2.1, hFresh.2.2⟩
+      · simp only [h2, h4, if_false] at ih
+        apply ih ⟨⟨hFresh.1, ⟨hFresh.2.1, hSafe.2.1⟩⟩, ⟨hFresh.2.2, hSafe.1⟩⟩ hSafe.2.2
 
 
 theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
-  {A : Types} {X : TVar} : ⊢ (P.substTypes A X) ∷ (𝒢.substTypes A X) := by sorry
+  {A : Types} {X : TVar} : ⊢ (P{A // X}) ∷ (𝒢{A // X}) := by sorry
 
 -- ------------------------------------------ LABELS ------------------------------------------
 

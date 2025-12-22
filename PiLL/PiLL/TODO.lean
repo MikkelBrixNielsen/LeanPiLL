@@ -19,7 +19,12 @@
 
 -- TODO: Give typing judgements replacement syntax
 
--- TODO: Look over the proof for judgement replacement syntax and try and shorten it
+/- TODO: Look over the proof for judgement name replacement
+  · Shorten it
+  · Check whether hFresh is needed the in definiton or if the ones from the Typing
+    rule are enough
+  · Probably ask about whether the current version is fine or if it is too cluttered
+-/
 
 /- TODO:
   · Depending on Marcos response define alternate version of c- and w- rule which
