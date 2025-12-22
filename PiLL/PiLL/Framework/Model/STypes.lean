@@ -1,6 +1,4 @@
-import PiLL.Framework.Base
-
------------------------------------------- TYPES ------------------------------------------
+import PiLL.Framework.Model.Base
 
 abbrev Atom := Nat
 

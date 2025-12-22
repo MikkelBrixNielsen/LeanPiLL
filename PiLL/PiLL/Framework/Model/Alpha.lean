@@ -1,4 +1,4 @@
-import PiLL.Framework.Process
+import PiLL.Framework.Model.Process
 
 abbrev Renaming := PName → PName
 
@@ -310,7 +310,7 @@ theorem AlphaEq.comm (P Q : Proc) : (P =ₐ Q) = (Q =ₐ P) := by
 --   (h : renameBound y w1 P =ₐ renameBound y' w1 Q) :
 --   (renameBound y w2 P =ₐ renameBound y' w2 Q) := by sorry
 
-theorem AlphaEq.trans (P Q R : Proc) (hPQ : P =ₐ Q) (hQR : Q =ₐ R) : P =ₐ R := by sorry
+-- theorem AlphaEq.trans (P Q R : Proc) (hPQ : P =ₐ Q) (hQR : Q =ₐ R) : P =ₐ R := by sorry
 --   induction P.size + Q.size using Nat.strong_induction_on generalizing P Q R
 --   rename_i n ih
 --   cases hPQ <;> cases hQR

@@ -1,9 +1,5 @@
-import PiLL.Framework.Judgement
-import PiLL.Framwork.Labels
-
-------------------------- ENV-FUCNTION & TRANSITION RULES --------------------------
-
-def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
+import PiLL.Framework.Model.Judgement
+import PiLL.Framework.Semantics.Labels
 
 inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
   | one
@@ -139,4 +135,4 @@ inductive MEST : (𝒢 : HyperEnv) → Lbls → (𝒢' : HyperEnv) → Prop wher
     ------------------------------------
           MEST 𝒢 (ls ∷ₗ l) 𝒢'
 
-notation:50 𝒢 " -[" ls "]->>ₑ " 𝒢' => MPST 𝒢 ls 𝒢'
+notation:50 𝒢 " -[" ls "]->>ₑ " 𝒢' => MEST 𝒢 ls 𝒢'

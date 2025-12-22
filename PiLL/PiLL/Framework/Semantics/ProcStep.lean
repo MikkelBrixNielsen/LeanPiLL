@@ -1,6 +1,6 @@
-import PiLL.Framework.Process
-import PiLL.Framework.Labels
-import PiLL.Framwork.Alpha
+import PiLL.Framework.Model.Process
+import PiLL.Framework.Model.Alpha
+import PiLL.Framework.Semantics.Labels
 
 def Proc.close (P : Proc) (names : List PName) : Proc :=
   match P with
@@ -11,10 +11,6 @@ def Proc.open (P : Proc) (names : List PName) (σ : Renaming) : Proc :=
   match P with
   | .server _ _  => names.foldr (fun n acc => Proc.duplicate n (σ n) acc) ((rename σ P) |ₚ P)
   | _ => P
-
---------------------------- PROC-FUCNTION & TRANSITION RULES -------------------------
-
-def proc {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : Proc := P
 
 inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | one

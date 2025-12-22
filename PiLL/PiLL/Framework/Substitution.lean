@@ -1,43 +1,4 @@
-import PiLL.Framework.Judgement
-
--- FIXME: Not sure how many of these are still used for anything
-lemma Proc.boundNames_par_subset_left (P Q : Proc) (x : PName)
-  (hxBP : x ∈ P.boundNames) (hNotQf : x ∉ Q.f) :
-  x ∈ (P |ₚ Q).boundNames := by
-  simp only [Proc.boundNames, Proc.names, Proc.f] at *
-  simp at hxBP
-  rcases hxBP with ⟨hxP, hxNotPf⟩
-  simp
-  apply And.intro
-  · left ; exact hxP
-  · simp [hxNotPf, hNotQf]
-
-lemma Proc.not_bound_par_left {P Q : Proc} {x : PName}
-  (hSafe : x ∉ (P |ₚ Q).boundNames) (hNotQf : x ∉ Q.f) :
-  x ∉ P.boundNames := by
-  intro h_contra
-  apply hSafe
-  exact Proc.boundNames_par_subset_left P Q x h_contra hNotQf
-
-lemma Proc.not_bound_par_right {P Q : Proc} {x : PName}
-  (hSafe : x ∉ (P |ₚ Q).boundNames) (hxNotPf : x ∉ P.f) :
-  x ∉ Q.boundNames := by
-  intro h_contra
-  apply hSafe
-  simp only [Proc.boundNames, Proc.names, Proc.f] at *
-  simp at h_contra
-  rcases h_contra with ⟨hxQ, hxNotQf⟩
-  simp
-  apply And.intro
-  · right ; exact hxQ
-  · simp [hxNotPf, hxNotQf]
-
--------------------------------------------------------------------------------------------
-
-
-
-
-
+import PiLL.Framework.Model.Judgement
 
 lemma Typing.f_subset_names {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
   P.f ⊆ 𝒢.names := by

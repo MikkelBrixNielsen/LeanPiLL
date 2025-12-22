@@ -1,7 +1,5 @@
-import PiLL.Framework.Environment
-import PiLL.Framework.Alpha
-
---------------------------------------- TYPING RULES ---------------------------------------
+import PiLL.Framework.Model.Environment
+import PiLL.Framework.Model.Alpha
 
 -- FIXME: Added a lot of extra contranints so facilitate Env / HyperEnv disjointness
 -- as well as no pathological process appearing e.g. x(x).P, x[DUP](x).P etc.
@@ -111,3 +109,9 @@ inductive Typing : HyperEnv → Proc → Prop where
       Typing (x ∶ Aᗮ‚ y ∶ A) (x ⟷ₚ y)
 
 notation:50 "⊢ " P " ∷ " T => Typing T P
+
+-- Projection of a Judgement to its process
+def proc {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : Proc := P
+
+-- Projection of a Judgement to its environment
+def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢

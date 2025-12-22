@@ -1,4 +1,4 @@
-import PiLL.Framework.Process
+import PiLL.Framework.Model.Process
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 
@@ -340,8 +340,6 @@ lemma HyperEnv.names_empty : (∅ : HyperEnv).names = ∅ := by simp
 lemma HyperEnv.substName_merge (𝒢 ℋ : HyperEnv) (x z : PName) :
   𝒢{x // z} |ₕ ℋ{x // z} = (𝒢 |ₕ ℋ){x // z} := by
   simp [HasSubst.subst, HyperEnv.substName, HyperEnv.merge, Finset.image_union]
-
-
 
 lemma HyperEnv.names_substName (𝒢 : HyperEnv) (x z : PName) :
   𝒢{x // z}.names = 𝒢.names.image (fun n => if n = z then x else n) := by

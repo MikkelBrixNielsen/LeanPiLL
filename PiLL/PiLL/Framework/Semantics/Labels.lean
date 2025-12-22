@@ -1,6 +1,4 @@
-import PiLL.Framework.Process
-
------------------------------------------- LABELS ------------------------------------------
+import PiLL.Framework.Model.Process
 
 inductive Mu : Type
   | L
@@ -108,3 +106,18 @@ notation:80 "τ" => Lbl.tau
 def unexpandLblAct : Lean.PrettyPrinter.Unexpander
   | `($_ $a) => pure a
   | _ => throw ()
+
+notation:80 "ε" => (List.nil : Lbls)
+notation:60 xs " ∷ₗ " x => List.concat (xs : Lbls) (x : Lbl)
+
+lemma eq_concat_nil {l} :
+  [l] = (ε ∷ₗ l) := by rfl
+
+lemma cons_concat_eq {x xs y} :
+  x :: (xs ∷ₗ y) = x :: (xs ∷ₗ y) := by simp
+
+lemma append_concat_eq {xs ys y} :
+  xs ++ (ys ∷ₗ y) = (xs ++ ys) ∷ₗ y := by simp
+
+lemma cons_append_assoc {x : Lbl} {xs ys : Lbls} :
+  x :: (xs ++ ys) = (x :: xs) ++ ys := by rfl

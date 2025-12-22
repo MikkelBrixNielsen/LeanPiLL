@@ -1,6 +1,4 @@
-import PiLL.Framework.STypes
-
------------------------------------------- Proc  ------------------------------------------
+import PiLL.Framework.Model.STypes
 
 abbrev PName := Nat -- Process names are just numbers (ensures not empty)
 
@@ -181,115 +179,60 @@ instance : HasSubst Proc PName PName where subst := Proc.substName
 
 @[simp]
 lemma Proc.substName_par (P Q : Proc) (x z : PName) :
-  P{x // z} |ₚ Q{x // z} = (P |ₚ Q){x // z} := by
-  dsimp [HasSubst.subst, Proc.substName]
+  P{x // z} |ₚ Q{x // z} = (P |ₚ Q){x // z} := by rfl
 
-@[simp] lemma Proc.substname_nil (x z : PName) :
-  𝟘{x // z} = 𝟘 := by simp only [HasSubst.subst, Proc.substName]
+@[simp] lemma Proc.substname_nil (x z : PName) : 𝟘{x // z} = 𝟘 := by
+  rfl
 
 @[simp] lemma Proc.substName_link (a b x z : PName) :
   (a⟷ₚb){x // z} = (if a = z then x else a)⟷ₚ(if b = z then x else b) := by
-  simp only [HasSubst.subst, Proc.substName]
+  rfl
+
+macro "solve_bound" : tactic =>
+  `(tactic| { simp [Proc.boundNames, Proc.names, Proc.f]; ext; simp; tauto })
 
 @[simp] lemma Proc.boundNames_one (x : PName) (P : Proc) :
-  ((x⟦⟧․P).boundNames) = P.boundNames \ {x} := by
-  simp only [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  ((x⟦⟧․P).boundNames) = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_bot (x : PName) (P : Proc) :
-  ((x⸨⸩․P).boundNames) = P.boundNames \ {x} := by
-  simp only [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  ((x⸨⸩․P).boundNames) = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_selectL (x : PName) (P : Proc) :
-  (x⟦𝐋⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (x⟦𝐋⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_selectR (x : PName) (P : Proc) :
-  (x⟦𝐑⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (x⟦𝐑⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_amp (x : PName) (P Q : Proc) :
   (x․case{𝐋 : P, 𝐑 : Q}).boundNames =
-  ((P.boundNames ∪ Q.boundNames) \ (P.f ∪ Q.f)) \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (P.boundNames ∪ Q.boundNames) \ (P.f ∪ Q.f ∪ {x}) := by solve_bound
 
 @[simp] lemma Proc.boundNames_use (x : PName) (P : Proc) :
-  (x⟦USE⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (x⟦USE⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_bang (x : PName) (P : Proc) :
-  (!x․{P}).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (!x․{P}).boundNames = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_disp (x : PName) (P : Proc) :
-  (x⟦DISP⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
+  (x⟦DISP⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_dup (x y : PName) (P : Proc) :
-  (x⟦DUP⟧⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (x⟦DUP⟧⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_output (x : PName) (A : Types) (P : Proc) :
-  (x⟦A⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (x⟦A⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_input (x : PName) (A : TVar) (P : Proc) :
-  (x⸨A⸩․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (x⸨A⸩․P).boundNames = P.boundNames \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_tensor (x y : PName) (P : Proc) :
-  (x⟦y⟧․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (x⟦y⟧․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_parr (x y : PName) (P : Proc) :
-  (x⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (x⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by solve_bound
 
 @[simp] lemma Proc.boundNames_cut (x y : PName) (P : Proc) :
-  (𝑣⸨x, y⸩ P).boundNames = (P.boundNames ∪ {y, x}) := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
+  (𝑣⸨x, y⸩ P).boundNames = (P.boundNames ∪ {y, x}) := by solve_bound
 
 @[simp] lemma Proc.f_subset_names (P : Proc) : P.f ⊆ P.names := by
   induction P <;> simp only [Proc.f, Proc.names]
@@ -318,3 +261,34 @@ lemma Proc.substName_par (P Q : Proc) (x z : PName) :
     apply h
     apply Proc.f_subset_names
     exact hf
+
+lemma Proc.boundNames_par_subset_left (P Q : Proc) (x : PName)
+  (hxBP : x ∈ P.boundNames) (hNotQf : x ∉ Q.f) :
+  x ∈ (P |ₚ Q).boundNames := by
+  simp only [Proc.boundNames, Proc.names, Proc.f] at *
+  simp at hxBP
+  rcases hxBP with ⟨hxP, hxNotPf⟩
+  simp
+  apply And.intro
+  · left ; exact hxP
+  · simp [hxNotPf, hNotQf]
+
+lemma Proc.not_bound_par_left {P Q : Proc} {x : PName}
+  (hSafe : x ∉ (P |ₚ Q).boundNames) (hNotQf : x ∉ Q.f) :
+  x ∉ P.boundNames := by
+  intro h_contra
+  apply hSafe
+  exact Proc.boundNames_par_subset_left P Q x h_contra hNotQf
+
+lemma Proc.not_bound_par_right {P Q : Proc} {x : PName}
+  (hSafe : x ∉ (P |ₚ Q).boundNames) (hxNotPf : x ∉ P.f) :
+  x ∉ Q.boundNames := by
+  intro h_contra
+  apply hSafe
+  simp only [Proc.boundNames, Proc.names, Proc.f] at *
+  simp at h_contra
+  rcases h_contra with ⟨hxQ, hxNotQf⟩
+  simp
+  apply And.intro
+  · right ; exact hxQ
+  · simp [hxNotPf, hxNotQf]

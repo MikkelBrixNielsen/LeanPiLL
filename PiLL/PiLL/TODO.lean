@@ -14,10 +14,13 @@
 
 
 
+-- TOOD: Add implicit import in relevant files
 
-
-
--- TODO: Give typing judgements replacement syntax
+/- TODO:
+  · Ask about whether I should keep TypingStep as its own inductive definiton, or
+    if it should use ProcStep and EnvStep and just become a Theorem stating the
+    validity of derivation after having done a step.
+-/
 
 /- TODO: Look over the proof for judgement name replacement
   · Shorten it
@@ -42,6 +45,9 @@
   · axcut : PName subst for derivations (𝒟{x // z})
   · dup₂ : n-expansion rule + sigma substitution (𝒟σ)
   · dispose₂ : Make it an n expansion of the c rule (n >= 0)
+  · Reevaluate the constraints posed in the Typing inductive, is this
+    the right place to put them, or can I move them elsewhere to make
+    everything more streamlined
 -/
 
 /- TODO: Make polymorphic classes for notation s.t.
