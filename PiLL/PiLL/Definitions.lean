@@ -767,11 +767,6 @@ def Proc.open (P : Proc) (names : List PName) (σ : Renaming) : Proc :=
   | .server _ _  => names.foldr (fun n acc => Proc.duplicate n (σ n) acc) ((rename σ P) |ₚ P)
   | _ => P
 
-@[simp]
-lemma Proc.substName_par (P Q : Proc) (x z : PName) :
-  P{x // z} |ₚ Q{x // z} = (P |ₚ Q){x // z} := by
-  dsimp [HasSubst.subst, Proc.substName]
-
 -- FIXME: Not sure how many of these are still used for anything
 lemma Proc.boundNames_par_subset_left (P Q : Proc) (x : PName)
   (hxBP : x ∈ P.boundNames) (hNotQf : x ∉ Q.f) :
@@ -803,6 +798,148 @@ lemma Proc.not_bound_par_right {P Q : Proc} {x : PName}
   apply And.intro
   · right ; exact hxQ
   · simp [hxNotPf, hxNotQf]
+
+-------------------------------------------------------------------------------------------
+
+@[simp]
+lemma Proc.substName_par (P Q : Proc) (x z : PName) :
+  P{x // z} |ₚ Q{x // z} = (P |ₚ Q){x // z} := by
+  dsimp [HasSubst.subst, Proc.substName]
+
+@[simp] lemma Proc.substname_nil (x z : PName) :
+  𝟘{x // z} = 𝟘 := by simp only [HasSubst.subst, Proc.substName]
+
+@[simp] lemma Proc.substName_link (a b x z : PName) :
+  (a⟷ₚb){x // z} = (if a = z then x else a)⟷ₚ(if b = z then x else b) := by
+  simp only [HasSubst.subst, Proc.substName]
+
+@[simp] lemma Proc.boundNames_one (x : PName) (P : Proc) :
+  ((x⟦⟧․P).boundNames) = P.boundNames \ {x} := by
+  simp only [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_bot (x : PName) (P : Proc) :
+  ((x⸨⸩․P).boundNames) = P.boundNames \ {x} := by
+  simp only [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_selectL (x : PName) (P : Proc) :
+  (x⟦𝐋⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_selectR (x : PName) (P : Proc) :
+  (x⟦𝐑⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_amp (x : PName) (P Q : Proc) :
+  (x․case{𝐋 : P, 𝐑 : Q}).boundNames =
+  ((P.boundNames ∪ Q.boundNames) \ (P.f ∪ Q.f)) \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_use (x : PName) (P : Proc) :
+  (x⟦USE⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_bang (x : PName) (P : Proc) :
+  (!x․{P}).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_disp (x : PName) (P : Proc) :
+  (x⟦DISP⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+
+@[simp] lemma Proc.boundNames_dup (x y : PName) (P : Proc) :
+  (x⟦DUP⟧⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_output (x : PName) (A : Types) (P : Proc) :
+  (x⟦A⟧․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_input (x : PName) (A : TVar) (P : Proc) :
+  (x⸨A⸩․P).boundNames = P.boundNames \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_tensor (x y : PName) (P : Proc) :
+  (x⟦y⟧․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_parr (x y : PName) (P : Proc) :
+  (x⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.boundNames_cut (x y : PName) (P : Proc) :
+  (𝑣⸨x, y⸩ P).boundNames = (P.boundNames ∪ {y, x}) := by
+  simp [Proc.boundNames, Proc.names, Proc.f]
+  ext a
+  simp
+  tauto
+
+@[simp] lemma Proc.f_subset_names (P : Proc) : P.f ⊆ P.names := by
+  induction P <;> simp only [Proc.f, Proc.names]
+
+  case nil | link | par | one | bot | selectL | selectR | amp | output
+    | input | server | consume | dispose => gcongr
+
+  case tensor ih | parr ih | duplicate ih =>
+    intro a ha
+    simp at ha ⊢
+    rcases ha with rfl | ⟨hf, _⟩
+    · left ; rfl
+    · right ; right ; apply ih ; exact hf
+
+  case cut ih =>
+    intro a ha
+    simp_all
+    apply ih ; exact ha.1
+
+@[simp] lemma Proc.not_mem_names_not_bound_free (x : PName) (P : Proc) (h : x ∉ P.names) :
+  x ∉ P.boundNames ∪ P.f := by
+  simp only [Proc.boundNames, Finset.sdiff_union_self_eq_union, Finset.notMem_union]
+  apply And.intro
+  · exact h
+  · intro hf
+    apply h
+    apply Proc.f_subset_names
+    exact hf
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 
@@ -956,6 +1093,59 @@ lemma Env.substName_eq_self_of_not_mem {Γ : Env} {x z : PName}
 
 @[simp] lemma Env.merge_mk_left (x : PName) (A : Types) (Γ : Env) :
   (x ∶ A)‚ Γ = {(x, A)} ∪ Γ := rfl
+
+@[simp]
+lemma Env.names_singleton (x : PName) (A : Types) :
+  (x ∶ A).names = {x} := by
+  simp only [Env.names]
+  rfl
+
+@[simp]
+lemma Env.names_empty : (∅ : Env).names = ∅ := by simp
+
+@[simp] lemma Env.names_distributes (Γ Δ : Env) :
+  (Γ‚ Δ).names = Γ.names ∪ Δ.names := by
+    simp only [Env.names, ← Finset.image_union]
+    rfl
+
+@[simp] lemma Env.substName_empty (x z : PName) :
+  (∅ : Env){x // z} = ∅ := by
+  simp only [HasSubst.subst, Env.substName, Finset.image_empty]
+
+@[simp] lemma Env.substName_distributes (Γ Δ : Env) (x z : PName) :
+  (Γ‚ Δ){x // z} = Γ{x // z}‚ Δ{x // z} := by
+  simp [HasSubst.subst, Env.substName, Env.merge, Finset.image_union]
+
+@[simp] lemma Env.substName_singleton (x y z : PName) (A : Types) :
+  (y ∶ A){x // z} = (if y = z then x else y) ∶ A := by
+  simp only [HasSubst.subst, Env.substName, Env.mk, Finset.image_singleton]
+  split <;> rfl
+
+@[simp] lemma Env.not_mem_substName_intro {Γ : Env} {x y z : PName}
+  (hnΓ : y ∉ Γ.names) (hneq : y ≠ x) : y ∉ (Γ{x // z}).names := by
+  intro h_contra
+  simp [HasSubst.subst, Env.substName, Env.names] at h_contra
+  rcases h_contra with ⟨T, pn, h⟩
+  split_ifs at h
+  · simp_all
+  · rcases h with ⟨b, hΓ, heq⟩
+    simp_all
+
+@[simp] lemma Env.ft_substName_eq_self (Γ : Env) (x z : PName) :
+  ft(Γ{x // z}) = ft(Γ) := by
+  simp only [HasSubst.subst, Env.freeTypes, Env.substName]
+  rw [Finset.image_biUnion]
+  exact Finset.biUnion_congr rfl (by intro p hin ; split <;> rfl)
+
+@[simp] lemma Env.substName_preserves_disjoint {Γ Δ : Env} {x z : PName}
+  (hDisj : Γ.disjoint Δ) (hFresh : x ∉ Γ.names ∧ x ∉ Δ.names) :
+  Γ{x // z}.disjoint Δ{x // z} := by
+  dsimp only [Env.disjoint]
+  simp only [Env.names_substName]
+  apply Finset.disjoint_image_substName
+  · exact hDisj
+  · exact hFresh.1
+  · exact hFresh.2
 
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
@@ -1125,6 +1315,32 @@ lemma HyperEnv.substName_eq_self_of_not_mem (𝒢 : HyperEnv) (x z : PName)
   apply Env.substName_eq_self_of_not_mem
   simp_all
 
+@[simp] lemma HyperEnv.substName_empty (x z : PName) :
+  (∅ : HyperEnv){x // z} = ∅ := by
+  simp only [HasSubst.subst, HyperEnv.substName, Finset.image_empty]
+
+@[simp] lemma HyperEnv.substName_singleton (Γ : Env) (x z : PName) :
+  ({Γ} : HyperEnv){x // z} = Γ{x // z} := by
+  simp only [HasSubst.subst, HyperEnv.substName, Finset.image_singleton]
+
+@[simp] lemma HyperEnv.substName_distributes (𝒢 ℋ : HyperEnv) (x z : PName) :
+  (𝒢 |ₕ ℋ){x // z} = 𝒢{x // z} |ₕ ℋ{x // z} := by
+  simp only [HasSubst.subst, HyperEnv.substName, HyperEnv.merge, Finset.image_union]
+
+@[simp] lemma HyperEnv.not_mem_substName_intro {𝒢 : HyperEnv} {x y z : PName}
+  (hnΓ : y ∉ 𝒢.names) (hneq : x ≠ y) : y ∉ (𝒢{x // z}).names := by
+  intro h_contra
+  simp [HasSubst.subst, HyperEnv.substName, HyperEnv.names,
+    Env.substName, Env.names] at h_contra
+  rcases h_contra with ⟨Γ, h1⟩
+  rcases h1 with ⟨hΓ𝒢, T, on, oT, hΓ, heq⟩
+  split_ifs at heq with hz
+  · simp at heq
+    rw [heq.1] at hneq
+    contradiction
+  · simp at heq
+    simp_all
+
 --------------------------------------- TYPING RULES ---------------------------------------
 
 -- FIXME: Added a lot of extra contranints so facilitate Env / HyperEnv disjointness
@@ -1236,30 +1452,7 @@ inductive Typing : HyperEnv → Proc → Prop where
 
 notation:50 "⊢ " P " ∷ " T => Typing T P
 
-
-
--- FIXME: Move to Env section
-@[simp]
-lemma Env.names_singleton (x : PName) (A : Types) :
-  (x ∶ A).names = {x} := by
-  simp only [Env.names]
-  rfl
-
-@[simp]
-lemma Env.names_empty : (∅ : Env).names = ∅ := by simp
-
-@[simp] lemma Env.names_distributes (Γ Δ : Env) :
-  (Γ‚ Δ).names = Γ.names ∪ Δ.names := by
-    simp only [Env.names, ← Finset.image_union]
-    rfl
-
--- FIXME: Move to HyperEnv section
-
-
-
-
-
-lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
+lemma Typing.f_subset_names {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
   P.f ⊆ 𝒢.names := by
   induction h
 
@@ -1321,213 +1514,6 @@ lemma Typing.Pf_subset_HyperEnvNames {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷
     · left ; rfl
     · specialize ih hP ; simp at ih ; tauto
 
-
-
-
-@[simp] lemma Env.substName_empty (x z : PName) :
-  (∅ : Env){x // z} = ∅ := by
-  simp only [HasSubst.subst, Env.substName, Finset.image_empty]
-
-@[simp] lemma Env.substName_distributes (Γ Δ : Env) (x z : PName) :
-  (Γ‚ Δ){x // z} = Γ{x // z}‚ Δ{x // z} := by
-  simp [HasSubst.subst, Env.substName, Env.merge, Finset.image_union]
-
-@[simp] lemma Env.substName_singleton (x y z : PName) (A : Types) :
-  (y ∶ A){x // z} = (if y = z then x else y) ∶ A := by
-  simp only [HasSubst.subst, Env.substName, Env.mk, Finset.image_singleton]
-  split <;> rfl
-
-@[simp] lemma Env.not_mem_substName_intro {Γ : Env} {x y z : PName}
-  (hnΓ : y ∉ Γ.names) (hneq : y ≠ x) : y ∉ (Γ{x // z}).names := by
-  intro h_contra
-  simp [HasSubst.subst, Env.substName, Env.names] at h_contra
-  rcases h_contra with ⟨T, pn, h⟩
-  split_ifs at h
-  · simp_all
-  · rcases h with ⟨b, hΓ, heq⟩
-    simp_all
-
-@[simp] lemma Env.ft_substName_eq_self (Γ : Env) (x z : PName) :
-  ft(Γ{x // z}) = ft(Γ) := by
-  simp only [HasSubst.subst, Env.freeTypes, Env.substName]
-  rw [Finset.image_biUnion]
-  exact Finset.biUnion_congr rfl (by intro p hin ; split <;> rfl)
-
-@[simp] lemma Env.substName_preserves_disjoint {Γ Δ : Env} {x z : PName}
-  (hDisj : Γ.disjoint Δ) (hFresh : x ∉ Γ.names ∧ x ∉ Δ.names) :
-  Γ{x // z}.disjoint Δ{x // z} := by
-  dsimp only [Env.disjoint]
-  simp only [Env.names_substName]
-  apply Finset.disjoint_image_substName
-  · exact hDisj
-  · exact hFresh.1
-  · exact hFresh.2
-
-
-
-
-@[simp] lemma HyperEnv.substName_empty (x z : PName) :
-  (∅ : HyperEnv){x // z} = ∅ := by
-  simp only [HasSubst.subst, HyperEnv.substName, Finset.image_empty]
-
-@[simp] lemma HyperEnv.substName_singleton (Γ : Env) (x z : PName) :
-  ({Γ} : HyperEnv){x // z} = Γ{x // z} := by
-  simp only [HasSubst.subst, HyperEnv.substName, Finset.image_singleton]
-
-@[simp] lemma HyperEnv.substName_distributes (𝒢 ℋ : HyperEnv) (x z : PName) :
-  (𝒢 |ₕ ℋ){x // z} = 𝒢{x // z} |ₕ ℋ{x // z} := by
-  simp only [HasSubst.subst, HyperEnv.substName, HyperEnv.merge, Finset.image_union]
-
-@[simp] lemma HyperEnv.not_mem_substName_intro {𝒢 : HyperEnv} {x y z : PName}
-  (hnΓ : y ∉ 𝒢.names) (hneq : x ≠ y) : y ∉ (𝒢{x // z}).names := by
-  intro h_contra
-  simp [HasSubst.subst, HyperEnv.substName, HyperEnv.names,
-    Env.substName, Env.names] at h_contra
-  rcases h_contra with ⟨Γ, h1⟩
-  rcases h1 with ⟨hΓ𝒢, T, on, oT, hΓ, heq⟩
-  split_ifs at heq with hz
-  · simp at heq
-    rw [heq.1] at hneq
-    contradiction
-  · simp at heq
-    simp_all
-
-@[simp] lemma Proc.substname_nil (x z : PName) :
-  𝟘{x // z} = 𝟘 := by simp only [HasSubst.subst, Proc.substName]
-
-@[simp] lemma Proc.substName_link (a b x z : PName) :
-  (a⟷ₚb){x // z} = (if a = z then x else a)⟷ₚ(if b = z then x else b) := by
-  simp only [HasSubst.subst, Proc.substName]
-
-@[simp] lemma Proc.boundNames_one (x : PName) (P : Proc) :
-  ((x⟦⟧․P).boundNames) = P.boundNames \ {x} := by
-  simp only [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_bot (x : PName) (P : Proc) :
-  ((x⸨⸩․P).boundNames) = P.boundNames \ {x} := by
-  simp only [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_selectL (x : PName) (P : Proc) :
-  (x⟦𝐋⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_selectR (x : PName) (P : Proc) :
-  (x⟦𝐑⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_amp (x : PName) (P Q : Proc) :
-  (x․case{𝐋 : P, 𝐑 : Q}).boundNames =
-  ((P.boundNames ∪ Q.boundNames) \ (P.f ∪ Q.f)) \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_use (x : PName) (P : Proc) :
-  (x⟦USE⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_bang (x : PName) (P : Proc) :
-  (!x․{P}).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_disp (x : PName) (P : Proc) :
-  (x⟦DISP⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-
-@[simp] lemma Proc.boundNames_dup (x y : PName) (P : Proc) :
-  (x⟦DUP⟧⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-
-@[simp] lemma Proc.boundNames_output (x : PName) (A : Types) (P : Proc) :
-  (x⟦A⟧․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_input (x : PName) (A : TVar) (P : Proc) :
-  (x⸨A⸩․P).boundNames = P.boundNames \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_tensor (x y : PName) (P : Proc) :
-  (x⟦y⟧․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_parr (x y : PName) (P : Proc) :
-  (x⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.boundNames_cut (x y : PName) (P : Proc) :
-  (𝑣⸨x, y⸩ P).boundNames = (P.boundNames ∪ {y, x}) := by
-  simp [Proc.boundNames, Proc.names, Proc.f]
-  ext a
-  simp
-  tauto
-
-@[simp] lemma Proc.f_subset_names (P : Proc) : P.f ⊆ P.names := by
-  induction P <;> simp only [Proc.f, Proc.names]
-
-  case nil | link | par | one | bot | selectL | selectR | amp | output
-    | input | server | consume | dispose => gcongr
-
-  case tensor ih | parr ih | duplicate ih =>
-    intro a ha
-    simp at ha ⊢
-    rcases ha with rfl | ⟨hf, _⟩
-    · left ; rfl
-    · right ; right ; apply ih ; exact hf
-
-  case cut ih =>
-    intro a ha
-    simp_all
-    apply ih ; exact ha.1
-
-@[simp] lemma Proc.not_mem_names_not_bound_free (x : PName) (P : Proc) (h : x ∉ P.names) :
-  x ∉ P.boundNames ∪ P.f := by
-  simp only [Proc.boundNames, Finset.sdiff_union_self_eq_union, Finset.notMem_union]
-  apply And.intro
-  · exact h
-  · intro hf
-    apply h
-    apply Proc.f_subset_names
-    exact hf
-
 theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (x z : PName)
   (hFresh : x ∉ 𝒢.names) (hSafe : x ∉ P.boundNames) :
   ⊢ (P{x // z}) ∷ (𝒢{x // z}) := by
@@ -1551,13 +1537,13 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       · exact hFresh.1
       · apply Proc.not_bound_par_left hSafe
         intro hxQf
-        have hℋ' : x ∈ ℋ'.names := Typing.Pf_subset_HyperEnvNames ℰ hxQf
+        have hℋ' : x ∈ ℋ'.names := Typing.f_subset_names ℰ hxQf
         exact hFresh.2 hℋ'
     · apply ihQ
       · exact hFresh.2
       · apply Proc.not_bound_par_right hSafe
         intro hxPf
-        have h𝒢' : x ∈ 𝒢'.names := Typing.Pf_subset_HyperEnvNames 𝒟 hxPf
+        have h𝒢' : x ∈ 𝒢'.names := Typing.f_subset_names 𝒟 hxPf
         exact hFresh.1 h𝒢'
 
   case ax =>
@@ -1642,8 +1628,8 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       Finset.notMem_union, Finset.mem_singleton, ← ne_eq] at hFresh ihP ihQ
     simp [hFresh] at hSafe
     rename_i Γ P' Q' xp A B D E
-    have hsubP := Typing.Pf_subset_HyperEnvNames D
-    have hsubQ := Typing.Pf_subset_HyperEnvNames E
+    have hsubP := Typing.f_subset_names D
+    have hsubQ := Typing.f_subset_names E
     simp only [HyperEnv.names_singleton, Env.names_distributes,
       Env.names_singleton] at hsubP hsubQ
     have this : x ∉ P'.boundNames ∧ x ∉ Q'.boundNames := by grind
@@ -2036,6 +2022,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
 
 theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
   {A : Types} {X : TVar} : ⊢ (P{A // X}) ∷ (𝒢{A // X}) := by sorry
+
 
 -- ------------------------------------------ LABELS ------------------------------------------
 
