@@ -42,8 +42,7 @@ inductive Typing : HyperEnv → Proc → Prop where
       ------------------------------
       Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩․P)
 
-  | bot {Γ : Env} {P : Proc} {x : PName} {hFresh : x ∉ Γ.names}
-      {hFresh : x ∉ Γ.names} :
+  | bot {Γ : Env} {P : Proc} {x : PName} {hFresh : x ∉ Γ.names} :
       Typing Γ P →
       --------------------------
       Typing (Γ‚ x ∶ ⊥) (x⸨⸩․P)

@@ -81,7 +81,6 @@ instance : Repr Proc where
 instance : ToString Proc where
   toString p := reprStr p
 
-@[simp]
 def Proc.f : Proc → Finset PName
   | .tensor x y P         => {x} ∪ (P.f \ {y})
   | .parr x y P           => {x} ∪ (P.f \ {y})
@@ -101,7 +100,6 @@ def Proc.f : Proc → Finset PName
   | .dispose x P          => {x} ∪ P.f
   | .link x y             => {x, y}
 
-@[simp]
 def Proc.names : Proc → Finset PName
   | .tensor x y P         => {x, y} ∪ P.names
   | .parr x y P           => {x, y} ∪ P.names

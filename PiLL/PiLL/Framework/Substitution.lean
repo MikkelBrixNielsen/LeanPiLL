@@ -77,7 +77,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     have this :  (𝒢'.substName x z).disjoint (ℋ'.substName x z) := by
       apply HyperEnv.substName_preserves_disjoint
       · apply hDisj
-      · simp at ⊢ hFresh
+      · simp [HyperEnv.names] at ⊢ hFresh
         exact hFresh
     apply Typing.mix
     · exact this
@@ -127,7 +127,8 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
       apply Typing.one
       simp at ih ; apply ih
       rw [HyperEnv.names_singleton, Env.names_singleton, Finset.mem_singleton] at hFresh
-      simp_all [Proc.boundNames]
+      simp [hFresh] at hSafe
+      exact hSafe
 
   case bot ih =>
     simp only [HyperEnv.substName_singleton, Env.substName_distributes,
@@ -568,5 +569,138 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
         apply ih ⟨⟨hFresh.1, ⟨hFresh.2.1, hSafe.2.1⟩⟩, ⟨hFresh.2.2, hSafe.1⟩⟩ hSafe.2.2
 
 
+@[simp] lemma Proc.substTypes_nil {A : Types} {X : TVar} : 𝟘{A // X} = 𝟘 := by rfl
+
+@[simp] lemma Proc.substTypes_link {x y : PName} {A : Types} {X : TVar} :
+  (x⟷ₚy){A // X} = x⟷ₚy := by rfl
+
+@[simp] lemma Proc.substTypes_par {P Q : Proc} {A : Types} {X : TVar} :
+  (P |ₚ Q){A // X} = P{A // X} |ₚ Q{A // X} := by rfl
+
+@[simp] lemma Proc.substTypes_one {x : PName} {P : Proc} {A : Types} {X : TVar} :
+  (x⟦⟧․P){A // X} = x⟦⟧․(P{A // X}) := by rfl
+
+@[simp] lemma Proc.substTypes_bot {x : PName} {P : Proc} {A : Types} {X : TVar} :
+  (x⸨⸩․P){A // X} = x⸨⸩․(P{A // X}) := by rfl
+
+@[simp] lemma Proc.substTypes_output {x : PName} {P : Proc} {T A : Types} {X : TVar} :
+  (x⟦T⟧․P){A // X} = x⟦T{A // X}⟧․(P{A // X}) := by rfl
+
+
+
+
+@[simp] lemma Env.substTypes_empty {A : Types} {X : TVar} :
+  (∅ : Env){A // X} = (∅ : Env) := by rfl
+
+@[simp] lemma Env.substTypes_singleton {x : PName} {T A : Types} {X : TVar} :
+  (x ∶ T){A // X} = x ∶ T{A// X} := by
+  simp only [HasSubst.subst, Env.substTypes, Env.mk, Finset.image_singleton]
+
+@[simp] lemma Env.substTypes_distributes {Γ Δ : Env} {A : Types} {X : TVar} :
+  (Γ‚ Δ){A // X} = Γ{A // X}‚ Δ{A // X} := by
+  simp only [HasSubst.subst, Env.substTypes, Env.merge, Finset.image_union]
+
+@[simp]
+lemma Env.names_substTypes (Γ : Env) (A : Types) (X : TVar) :
+  (Γ{A // X}).names = Γ.names := by
+  simp only [Env.names, Env.substTypes, HasSubst.subst, Finset.image_image]
+  apply Finset.image_congr
+  intro ⟨n, T⟩ _
+  rfl
+
+@[simp] lemma Env.substTypes_preserves_disjoint {Γ Δ : Env} {A : Types} {X : TVar} :
+  Γ{A // X}.disjoint Δ{A // X} = Γ.disjoint Δ := by
+  simp only [Env.disjoint, Env.names_substTypes]
+
+@[simp] lemma Env.substTypes_preserves_serverUsae {Γ : Env} {A : Types} {X : TVar} :
+  ?ₑΓ{A // X} = ?ₑΓ := by
+    simp [Env.serverUsable, Types.isServerUsable]
+
+
+
+
+
+@[simp] lemma HyperEnv.substTypes_empty {A : Types} {X : TVar} :
+  (∅ : HyperEnv){A // X} = (∅ : HyperEnv) := by rfl
+
+@[simp] lemma HyperEnv.substTypes_singleton {Γ : Env} {A : Types} {X : TVar} :
+  ({Γ} : HyperEnv){A // X} = Γ{A // X} := by
+  simp only [HasSubst.subst, HyperEnv.substTypes, Finset.image_singleton]
+
+@[simp] lemma HyperEnv.substTypes_distributes {𝒢 ℋ : HyperEnv} {A : Types} {X : TVar} :
+  (𝒢 |ₕ ℋ){A // X} = 𝒢{A // X} |ₕ ℋ{A // X} := by
+  simp only [HasSubst.subst, HyperEnv.substTypes, HyperEnv.merge, Finset.image_union]
+
+@[simp]
+lemma HyperEnv.names_substTypes (𝒢 : HyperEnv) (A : Types) (X : TVar) :
+  (𝒢{A // X}).names = 𝒢.names := by
+  simp only [HyperEnv.names, HyperEnv.substTypes, HasSubst.subst]
+  rw [Finset.image_biUnion]
+  exact Finset.biUnion_congr rfl (by intro Γ _ ; apply Env.names_substTypes)
+
+@[simp] lemma HyperEnv.substTypes_preserves_disjoint {𝒢 ℋ : HyperEnv} {A : Types} {X : TVar} :
+  𝒢{A // X}.disjoint ℋ{A // X} = 𝒢.disjoint ℋ := by
+  simp only [HyperEnv.disjoint, HyperEnv.names_substTypes]
+
+
+
+
 theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
-  {A : Types} {X : TVar} : ⊢ (P{A // X}) ∷ (𝒢{A // X}) := by sorry
+  {A : Types} {X : TVar} : ⊢ (P{A // X}) ∷ (𝒢{A // X}) := by
+  induction 𝒟 <;> simp_all
+
+  case mix₀ => apply Typing.mix₀
+
+  case mix hDisj _ _ ihP ihQ =>
+    apply Typing.mix
+    · simp [HyperEnv.substTypes_preserves_disjoint]
+      exact hDisj
+    · exact ihP
+    · exact ihQ
+
+  case one ih =>
+    apply Typing.one
+    · exact ih
+
+  case bot hf _ ih | w hf _ ih=>
+    constructor
+    · simp ; exact hf
+    · exact ih
+
+  case oplus₁ ih | oplus₂ ih | quest ih =>
+    constructor
+    exact ih
+
+  case amp ihP ihQ =>
+    constructor
+    · exact ihP
+    · exact ihQ
+
+  case bang ih =>
+    all_goals
+      apply Typing.bang
+      · exact ih
+      · sorry -- Need something to show TypeSubst either preserves serverUsable or premise
+
+  case c hneq hf _ ih =>
+    apply Typing.c
+    · exact hneq
+    · simp ; exact hf
+    · exact ih
+
+  case exists_ ih =>
+    simp [HasSubst.subst, Types.subst] at ⊢ ih
+    split_ifs with h
+    · apply Typing.exists_
+      sorry
+    · apply Typing.exists_
+      sorry
+
+  -- case forall_ ft ih => -- FIXME: Remove @[simp] from ft
+  --   simp [HasSubst.subst, Types.subst] at ⊢ ih
+  --   split_ifs
+  --   · apply Typing.forall_ -- FIXME: Missing Proc.substTypes_forall
+
+  case ax hneq => sorry -- FIXME: Why is simp so aggresive in this case??
+
+  case cut | tensor | parr => sorry

@@ -2023,7 +2023,6 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
 theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
   {A : Types} {X : TVar} : ⊢ (P{A // X}) ∷ (𝒢{A // X}) := by sorry
 
-
 -- ------------------------------------------ LABELS ------------------------------------------
 
 -- inductive Mu : Type

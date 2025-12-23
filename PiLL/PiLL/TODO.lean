@@ -66,6 +66,8 @@
   · Ensure precedence works as intended
 -/
 
+-- TODO: Ensure consistency in using {} and for lemma and theorem arguments
+
 -- TOOD: Find out whether to replace occurrence of TVar with generic Types.var
 
 /- TODO:

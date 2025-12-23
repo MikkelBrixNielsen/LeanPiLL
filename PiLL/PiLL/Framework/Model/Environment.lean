@@ -24,7 +24,6 @@ infixr:86 " ∶ " => Env.mk
 -- def Env.linear (Δ : Env) : Prop :=
   -- (Δ.image Prod.fst).card = Δ.card
 
-@[simp]
 def Env.names (Δ : Env) : Finset (PName) :=
   (Δ.image Prod.fst)
 
@@ -96,7 +95,6 @@ lemma Env.merge_move_second_two_right (Γ Δ Ξ Ε : Env) :
   Γ‚ Δ‚ Ξ‚ Ε = Γ‚ Ξ‚ Ε‚ Δ := by
   rw [Env.merge_swap_last Γ Δ Ξ, Env.merge_swap_last]
 
-@[simp]
 def Env.serverUsable (Γ : Env) : Prop :=
   ∀p, p ∈ Γ → (p.snd).isServerUsable = True
 
@@ -141,7 +139,7 @@ lemma Env.substName_eq_self_of_not_mem {Γ : Env} {x z : PName}
   conv_rhs => rw [← Finset.image_id (s := Γ)]
   apply Finset.image_congr
   intro p hpΓ
-  simp_all
+  simp_all [Env.names]
   intro a
   subst a
   simp_all
@@ -160,7 +158,7 @@ lemma Env.names_singleton (x : PName) (A : Types) :
   rfl
 
 @[simp]
-lemma Env.names_empty : (∅ : Env).names = ∅ := by simp
+lemma Env.names_empty : (∅ : Env).names = ∅ := by simp [Env.names]
 
 @[simp] lemma Env.names_distributes (Γ Δ : Env) :
   (Γ‚ Δ).names = Γ.names ∪ Δ.names := by
@@ -188,7 +186,7 @@ lemma Env.names_empty : (∅ : Env).names = ∅ := by simp
   split_ifs at h
   · simp_all
   · rcases h with ⟨b, hΓ, heq⟩
-    simp_all
+    simp_all [Env.names]
 
 @[simp] lemma Env.ft_substName_eq_self (Γ : Env) (x z : PName) :
   ft(Γ{x // z}) = ft(Γ) := by
@@ -234,7 +232,6 @@ def pairwise {α : Type} (r : α → α → Prop) (s : Finset α) : Prop :=
   -- ∀ Δ ∈ 𝒢, Δ.linear ∧                            -- ensure each env is linear
   -- pairwise (fun Δ Γ => Δ.disjoint Γ) 𝒢              -- ensure pairwise env disjointness
 
-@[simp]
 def HyperEnv.names (𝒢 : HyperEnv) : Finset PName :=
   𝒢.biUnion Env.names
 
@@ -295,7 +292,6 @@ theorem HyperEnv.Eq_trans (𝒢 ℋ 𝒦 : HyperEnv) (h₁ : 𝒢 =ₕ ℋ) (h�
 instance : Equivalence HyperEnv.Eq :=
 ⟨HyperEnv.Eq_refl, @HyperEnv.Eq_symm, @HyperEnv.Eq_trans⟩
 
-@[simp]
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ∪ ℋ
 
 infixl:55 " |ₕ " => HyperEnv.merge
@@ -335,7 +331,7 @@ lemma HyperEnv.names_singleton (Γ : Env) :
   simp only [HyperEnv.names, Finset.biUnion_union]
 
 @[simp]
-lemma HyperEnv.names_empty : (∅ : HyperEnv).names = ∅ := by simp
+lemma HyperEnv.names_empty : (∅ : HyperEnv).names = ∅ := by simp [HyperEnv.names]
 
 lemma HyperEnv.substName_merge (𝒢 ℋ : HyperEnv) (x z : PName) :
   𝒢{x // z} |ₕ ℋ{x // z} = (𝒢 |ₕ ℋ){x // z} := by
@@ -370,7 +366,7 @@ lemma HyperEnv.substName_eq_self_of_not_mem (𝒢 : HyperEnv) (x z : PName)
   intro Γ hΓ𝒢
   simp
   apply Env.substName_eq_self_of_not_mem
-  simp_all
+  simp_all [HyperEnv.names]
 
 @[simp] lemma HyperEnv.substName_empty (x z : PName) :
   (∅ : HyperEnv){x // z} = ∅ := by
@@ -395,5 +391,4 @@ lemma HyperEnv.substName_eq_self_of_not_mem (𝒢 : HyperEnv) (x z : PName)
   · simp at heq
     rw [heq.1] at hneq
     contradiction
-  · simp at heq
-    simp_all
+  · simp_all [HyperEnv.names, Env.names]
