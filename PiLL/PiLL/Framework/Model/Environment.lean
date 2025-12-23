@@ -100,7 +100,6 @@ def Env.serverUsable (Γ : Env) : Prop :=
 
 prefix:max "?ₑ" => Env.serverUsable
 
-@[simp]
 def Env.freeTypes (Γ : Env) : Finset TVar :=
   Γ.biUnion (fun (_, A) => A.freeTypes)
 
@@ -148,8 +147,8 @@ lemma Env.substName_eq_self_of_not_mem {Γ : Env} {x z : PName}
   (x ∶ A).names = {x} := by
   simp [Env.names, Env.mk]
 
-@[simp] lemma Env.merge_mk_left (x : PName) (A : Types) (Γ : Env) :
-  (x ∶ A)‚ Γ = {(x, A)} ∪ Γ := rfl
+-- @[simp] lemma Env.merge_mk_left (x : PName) (A : Types) (Γ : Env) :
+--   (x ∶ A)‚ Γ = {(x, A)} ∪ Γ := rfl
 
 @[simp]
 lemma Env.names_singleton (x : PName) (A : Types) :

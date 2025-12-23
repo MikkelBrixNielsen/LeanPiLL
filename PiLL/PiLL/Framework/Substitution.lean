@@ -8,7 +8,7 @@ lemma Typing.f_subset_names {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
     simp only [Proc.f, HyperEnv.names_empty, subset_refl]
 
   case mix ihP ihQ =>
-    simp [Finset.biUnion_union]
+    simp
     exact Finset.union_subset_union ihP ihQ
 
   case one | bot | w =>
@@ -612,9 +612,9 @@ lemma Env.names_substTypes (Γ : Env) (A : Types) (X : TVar) :
   Γ{A // X}.disjoint Δ{A // X} = Γ.disjoint Δ := by
   simp only [Env.disjoint, Env.names_substTypes]
 
-@[simp] lemma Env.substTypes_preserves_serverUsae {Γ : Env} {A : Types} {X : TVar} :
-  ?ₑΓ{A // X} = ?ₑΓ := by
-    simp [Env.serverUsable, Types.isServerUsable]
+-- @[simp] lemma Env.substTypes_preserves_serverUsae {Γ : Env} {A : Types} {X : TVar} :
+--   ?ₑΓ{A // X} = ?ₑΓ := by
+--     simp [Env.serverUsable, Types.isServerUsable]
 
 
 
@@ -643,13 +643,24 @@ lemma HyperEnv.names_substTypes (𝒢 : HyperEnv) (A : Types) (X : TVar) :
   simp only [HyperEnv.disjoint, HyperEnv.names_substTypes]
 
 
+@[simp]
+lemma Env.substTypes_mk (x : PName) (T A : Types) (X : TVar) :
+  (x ∶ T){A // X} = x ∶ T.subst A X := by
+  simp only [HasSubst.subst, Env.substTypes, Env.mk, Finset.image_singleton]
+
+
+
 
 
 theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
   {A : Types} {X : TVar} : ⊢ (P{A // X}) ∷ (𝒢{A // X}) := by
-  induction 𝒟 <;> simp_all
+  induction 𝒟 <;> simp [-Finset.singleton_union, -Finset.union_singleton] at *
 
   case mix₀ => apply Typing.mix₀
+
+  case ax hneq =>
+    apply Typing.ax
+    exact hneq
 
   case mix hDisj _ _ ihP ihQ =>
     apply Typing.mix
@@ -701,6 +712,25 @@ theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
   --   split_ifs
   --   · apply Typing.forall_ -- FIXME: Missing Proc.substTypes_forall
 
-  case ax hneq => sorry -- FIXME: Why is simp so aggresive in this case??
+  case tensor hf hneq hDisj _ ih =>
+    apply Typing.tensor
+    · simp ; exact hf
+    · exact hneq
+    · rw [Env.substTypes_preserves_disjoint]
+      exact hDisj
+    · exact ih
 
-  case cut | tensor | parr => sorry
+  case parr hf hneq _ ih =>
+    apply Typing.parr
+    · simp ; exact hf
+    · exact hneq
+    · exact ih
+
+  case cut hf hneq hDisj _ ih =>
+    apply Typing.cut
+    · simp ; exact hf
+    · exact hneq
+    · rw [Env.substTypes_preserves_disjoint]
+      exact hDisj
+    · rw [HyperEnv.merge_assoc]
+      exact ih
