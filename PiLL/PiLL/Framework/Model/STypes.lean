@@ -147,6 +147,7 @@ def Types.freeTypes : Types → Finset TVar
   | .exist_ v A   => A.freeTypes \ {v}
 
 -- FIXME: Should aviod capture
+-- (Constriants on Typing rules handle this but maybe they shouldn't)
 def Types.subst (T R : Types) (X : TVar) : Types :=
   match T with
   | .atom a => .atom a
@@ -177,3 +178,7 @@ def Types.isServerUsable : Types → Prop
   | .quest _  => True
   | .bang _   => True
   | _         => False
+
+@[simp] lemma Types.isServerUsable_subst (T : Types) (A : Types) (X : TVar)
+  (h : T.isServerUsable) : (T{A // X}).isServerUsable := by
+  cases T <;> simp [HasSubst.subst, Types.subst, Types.isServerUsable] at h ⊢

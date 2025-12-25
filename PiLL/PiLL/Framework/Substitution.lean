@@ -206,7 +206,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
     · apply Typing.bang
       · simp_all
         exact ih
-      · apply Env.serverUsable_subst
+      · apply Env.serverUsable_substName
         exact h
 
   case w ih =>
@@ -586,6 +586,9 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
 @[simp] lemma Proc.substTypes_output {x : PName} {P : Proc} {T A : Types} {X : TVar} :
   (x⟦T⟧․P){A // X} = x⟦T{A // X}⟧․(P{A // X}) := by rfl
 
+-- @[simp] lemma Proc.substTypes_forall {x : PName} {P : Proc} {A : Types} {X : TVar} :
+--   (x⸨X⸩․P){A // X} = /- some expression -/ := by sorry
+
 
 
 
@@ -612,9 +615,6 @@ lemma Env.names_substTypes (Γ : Env) (A : Types) (X : TVar) :
   Γ{A // X}.disjoint Δ{A // X} = Γ.disjoint Δ := by
   simp only [Env.disjoint, Env.names_substTypes]
 
--- @[simp] lemma Env.substTypes_preserves_serverUsae {Γ : Env} {A : Types} {X : TVar} :
---   ?ₑΓ{A // X} = ?ₑΓ := by
---     simp [Env.serverUsable, Types.isServerUsable]
 
 
 
@@ -687,17 +687,18 @@ theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
     · exact ihP
     · exact ihQ
 
-  case bang ih =>
-    all_goals
-      apply Typing.bang
-      · exact ih
-      · sorry -- Need something to show TypeSubst either preserves serverUsable or premise
-
   case c hneq hf _ ih =>
     apply Typing.c
     · exact hneq
     · simp ; exact hf
     · exact ih
+
+  case bang hsu ih =>
+    all_goals
+      apply Typing.bang
+      · exact ih
+      · apply Env.serverUsable_substTypes
+        exact hsu
 
   case exists_ ih =>
     simp [HasSubst.subst, Types.subst] at ⊢ ih
@@ -707,10 +708,10 @@ theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
     · apply Typing.exists_
       sorry
 
-  -- case forall_ ft ih => -- FIXME: Remove @[simp] from ft
-  --   simp [HasSubst.subst, Types.subst] at ⊢ ih
-  --   split_ifs
-  --   · apply Typing.forall_ -- FIXME: Missing Proc.substTypes_forall
+  case forall_ ft ih =>
+    simp [HasSubst.subst, Types.subst] at ⊢ ih
+    split_ifs
+    · apply Typing.forall_ -- FIXME: Missing Proc.substTypes_forall
 
   case tensor hf hneq hDisj _ ih =>
     apply Typing.tensor
