@@ -99,7 +99,7 @@ inductive Typing : HyperEnv → Proc → Prop where
 
   | forall_
       {Γ : Env} {P : Proc} {x : PName} {B : Types} {X : TVar} :
-      Typing (Γ‚ x ∶ B) P → X ∉ ft(Γ) →
+      Typing (Γ‚ x ∶ B) P → X ∉ ft(Γ)ₑ →
       ---------------------------------
       Typing (Γ‚ x ∶ ∀X․B) (x⸨X⸩․P)
 

@@ -9,14 +9,28 @@
     · Take another look as all side conditions
 -/
 
--- TOOD: Get merging of Envs / HyperEnvs to include disjointness condition
+-- TODO: Get merging of Envs / HyperEnvs to include disjointness condition
 
 
 
 
--- TOOD: Add implicit import in relevant files
+
+
+
+
 
 /- TODO:
+  · Figure out if putting disjoint and freshness constraints on Typing rules is the
+    way to go, or if you should do something else
+  · Finish type substitution theorem on judgements
+    · Add frehsness conditions or something to solve the current impossible cases
+-/
+
+-- TODO: Maybe add implicit import in relevant files
+
+/- TODO:
+  · Figure out whether to do theorem instead of current TypingStep implementation, or
+    to make a theorem connecting TypingStep, ProcStep and EnvStep
   · Ask about whether I should keep TypingStep as its own inductive definiton, or
     if it should use ProcStep and EnvStep and just become a Theorem stating the
     validity of derivation after having done a step.
@@ -48,6 +62,7 @@
   · Reevaluate the constraints posed in the Typing inductive, is this
     the right place to put them, or can I move them elsewhere to make
     everything more streamlined
+  · Remove unnecessary @[simp] tags
 -/
 
 /- TODO: Make polymorphic classes for notation s.t.
@@ -60,7 +75,7 @@
   · Check if it is possible to get rid double brackets, parentheses and slashes
 -/
 
-/- TOOD:
+/- TODO:
   · Make notation check section in Examples.lean for Proc, Types, Labels and check
     if it works as expected
   · Ensure precedence works as intended
@@ -68,7 +83,7 @@
 
 -- TODO: Ensure consistency in using {} and for lemma and theorem arguments
 
--- TOOD: Find out whether to replace occurrence of TVar with generic Types.var
+-- TODO: Find out whether to replace occurrence of TVar with generic Types.var
 
 /- TODO:
   · Make substitution / replacement avoid capture (create fresh name function for TVar).

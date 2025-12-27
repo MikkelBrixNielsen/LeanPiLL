@@ -98,7 +98,7 @@ prefix:max "?ₑ" => Env.serverUsable
 def Env.freeTypes (Γ : Env) : Finset TVar :=
   Γ.biUnion (fun (_, A) => A.freeTypes)
 
-notation "ft(" Γ ")" => Env.freeTypes Γ
+notation "ft(" Γ ")ₑ" => Env.freeTypes Γ
 
 def Env.substName (Γ : Env) (x z : PName) : Env :=
   Γ.image (fun (n, T) => if n = z then (x, T) else (n, T))
@@ -186,7 +186,7 @@ lemma Env.names_substName (Γ : Env) (x z : PName) :
     simp_all [Env.names]
 
 @[simp] lemma Env.ft_substName_eq_self (Γ : Env) (x z : PName) :
-  ft(Γ{x // z}) = ft(Γ) := by
+  ft(Γ{x // z})ₑ = ft(Γ)ₑ := by
   simp only [HasSubst.subst, Env.freeTypes, Env.substName]
   rw [Finset.image_biUnion]
   exact Finset.biUnion_congr rfl (by intro p hin ; split <;> rfl)
@@ -303,6 +303,11 @@ theorem HyperEnv.merge_comm (𝒢 ℋ : HyperEnv) : 𝒢 |ₕ ℋ = ℋ |ₕ �
 -- Merge associativity
 theorem HyperEnv.merge_assoc (𝒢 ℋ 𝒦 : HyperEnv) : (𝒢 |ₕ ℋ) |ₕ 𝒦 = 𝒢 |ₕ (ℋ |ₕ 𝒦) := by
   simp
+
+def HyperEnv.freeTypes (𝒢 : HyperEnv) : Finset TVar :=
+  𝒢.biUnion (fun Γ => ft(Γ)ₑ)
+
+notation "ft(" 𝒢 ")ₕ" => HyperEnv.freeTypes 𝒢
 
 def HyperEnv.substName (𝒢 : HyperEnv) (x z : PName) : HyperEnv :=
   𝒢.image (fun Γ => Γ{x // z})
