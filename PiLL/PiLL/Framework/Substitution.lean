@@ -1,67 +1,5 @@
 import PiLL.Framework.Model.Judgement
 
-lemma Typing.f_subset_names {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
-  P.f ⊆ 𝒢.names := by
-  induction h
-
-  case mix₀ =>
-    simp only [Proc.f, HyperEnv.names_empty, subset_refl]
-
-  case mix ihP ihQ =>
-    simp
-    exact Finset.union_subset_union ihP ihQ
-
-  case one | bot | w =>
-    simp only [Proc.f, HyperEnv.names_singleton,
-      Env.names_distributes, Env.names_singleton]
-    simp_all
-
-  case oplus₁ ih | oplus₂ ih | quest ih | bang ih | exists_ ih | forall_ ih =>
-    simp only [Proc.f, HyperEnv.names_singleton, Env.names_distributes,
-      Env.names_singleton] at *
-    apply Finset.insert_subset
-    · simp
-    · exact ih
-
-  case amp ihP ihQ =>
-    simp only [Proc.f, HyperEnv.names_singleton, Env.names_distributes,
-      Env.names_singleton] at *
-    · apply Finset.insert_subset
-      · simp
-      · exact Finset.union_subset ihP ihQ
-
-  case c ih =>
-    simp only [Proc.f, HyperEnv.names_singleton, Env.names_distributes,
-      Env.names_singleton] at *
-    apply Finset.insert_subset
-    · simp
-    · intro a ha
-      simp only [Finset.mem_sdiff, Finset.mem_singleton] at ha
-      specialize ih ha.1
-      simp_all
-
-  case ax =>
-    simp only [Proc.f, HyperEnv.names_singleton, Env.names_distributes,
-      Env.names_singleton, Finset.union_singleton]
-    simp [Finset.pair_comm]
-
-  case cut ih =>
-    simp only [Proc.f, HyperEnv.names_distributes, HyperEnv.names_singleton,
-      Env.names_distributes, Env.names_singleton] at *
-    intro a ha
-    rw [Finset.mem_sdiff] at ha
-    specialize ih ha.1
-    simp_all
-
-  case tensor ih | parr ih =>
-    simp only [Proc.f, HyperEnv.names_distributes, HyperEnv.names_singleton,
-      Env.names_distributes, Env.names_singleton] at *
-    intro a ha
-    simp at ⊢ ha ih
-    rcases ha with rfl | ⟨hP, hny⟩
-    · left ; rfl
-    · specialize ih hP ; simp at ih ; tauto
-
 theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (x z : PName)
   (hFresh : x ∉ 𝒢.names) (hSafe : x ∉ P.boundNames) :
   ⊢ (P{x // z}) ∷ (𝒢{x // z}) := by
@@ -573,15 +511,15 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
 
 
 
-lemma Types.subst_commute (T A B : Types) (X Y : TVar) (hne : Y ≠ X) (hft : Y ∉ A.freeTypes) :
+lemma Types.subst_commute {T A B : Types} {X Y : TVar} {hne : Y ≠ X} {hft : Y ∉ A.freeTypes} :
   (T.subst B Y).subst A X = (T.subst A X).subst (B.subst A X) Y := by
   induction T generalizing A B X Y <;> simp_all [Types.subst]
 
   case var =>
-    split_ifs with h1 h2 h3 <;> simp_all [Types.subst]
+    split_ifs <;> simp_all [Types.subst]
 
   case varDual =>
-    split_ifs with h1 h2 h3
+    split_ifs
     · simp_all
     · simp_all [Types.subst]
       erw [← Types.subst_dual]
@@ -594,11 +532,11 @@ lemma Types.subst_commute (T A B : Types) (X Y : TVar) (hne : Y ≠ X) (hft : Y 
 
   case forall_ ih =>
     split_ifs with h1 h2 h3 <;> simp_all [Types.subst]
-    sorry -- FIXME: Currently assuming Barendregt (add frehsness contraint?)
+    sorry -- FIXME: Generally false, but true assuming Barendregt's variable convention
 
   case exist_ =>
     split_ifs with h1 h2 h3 <;> try simp_all [Types.subst]
-    sorry -- FIXME: Currently assuming Barendregt (add frehsness contraint?)
+    sorry -- FIXME: Generally false, but true assuming Barendregt's variable convention
 
 theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
   {A : Types} {X : TVar} : ⊢ (P{A // X}) ∷ (𝒢{A // X}) := by
@@ -670,7 +608,7 @@ theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
       rw [Types.subst_commute] at ih
       · exact ih
       · exact h
-      · sorry -- FIXME: Currently assuming Barendregt (add freshness condition?)
+      · sorry -- FIXME: Currently assuming Barendregt
 
   case forall_ D ft ih =>
     conv_lhs => rhs ; rhs ; simp [HasSubst.subst, Types.subst]
@@ -689,7 +627,7 @@ theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
         · apply ih
         · apply Env.not_mem_ft_substTypes
           · exact ft
-          · sorry -- FIXME: Currently assuming Barendregt (could also add h : A.freeTypes = ∅)
+          · sorry -- FIXME: Currently assuming Barendregt
           · exact h
       · exact h
 

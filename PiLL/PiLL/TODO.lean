@@ -11,124 +11,22 @@
 
 -- TODO: Get merging of Envs / HyperEnvs to include disjointness condition
 
-
-
-
-
-
-
-
-
 /- TODO:
   · Figure out if putting disjoint and freshness constraints on Typing rules is the
     way to go, or if you should do something else
   · Finish type substitution theorem on judgements
-    · Add frehsness conditions or something to solve the current impossible cases
+    · proof works modulo not prooving it handles renaming correctly
 -/
 
--- TODO: Maybe add implicit import in relevant files
 
-/- TODO:
-  · Figure out whether to do theorem instead of current TypingStep implementation, or
-    to make a theorem connecting TypingStep, ProcStep and EnvStep
-  · Ask about whether I should keep TypingStep as its own inductive definiton, or
-    if it should use ProcStep and EnvStep and just become a Theorem stating the
-    validity of derivation after having done a step.
--/
 
-/- TODO: Look over the proof for judgement name replacement
-  · Shorten it
-  · Check whether hFresh is needed the in definiton or if the ones from the Typing
-    rule are enough
-  · Probably ask about whether the current version is fine or if it is too cluttered
--/
 
-/- TODO:
-  · Depending on Marcos response define alternate version of c- and w- rule which
-    also work on thier dependencies.
 
-  · If not and depending on whether or not the current implementations of rules needing
-    to apply a substitution work or not - Make it possible to apply a σ to Env and Proc
-    just like a PName.
 
-  · Correct the rules using this as needed.
--/
 
-/- TODO: Extend Typing and TypingStep and fix rules
-  · input : Types subst for derivations (𝒟{A // X})
-  · axcut : PName subst for derivations (𝒟{x // z})
-  · dup₂ : n-expansion rule + sigma substitution (𝒟σ)
-  · dispose₂ : Make it an n expansion of the c rule (n >= 0)
-  · Reevaluate the constraints posed in the Typing inductive, is this
-    the right place to put them, or can I move them elsewhere to make
-    everything more streamlined
-  · Remove unnecessary @[simp] tags
--/
 
-/- TODO: Make polymorphic classes for notation s.t.
-  · Tensor and output etc. can use share "⟦⟧" -- Seems to work
-  · Parr and input etc. can share "⸨⸩"        -- Seems to work
-  · Do the same for Lbls                      -- Seems to work
-  · Parallel operator -- Can't use "|" since it breaks match etc. maybe stick with subscripts
-  · Env / HyperEnv lookup -- If lookup becomes computable, use HasParen enable notation
-  · Check if possible for ⟷ -- Maybe stick with subscripts
-  · Check if it is possible to get rid double brackets, parentheses and slashes
--/
 
-/- TODO:
-  · Make notation check section in Examples.lean for Proc, Types, Labels and check
-    if it works as expected
-  · Ensure precedence works as intended
--/
 
--- TODO: Ensure consistency in using {} and for lemma and theorem arguments
-
--- TODO: Find out whether to replace occurrence of TVar with generic Types.var
-
-/- TODO:
-  · Make substitution / replacement avoid capture (create fresh name function for TVar).
-  · Alternatively require freshness for new name
-  · Could also implicitly pick freshname if there is a clash and use that instead of the
-    supplied name. Seems a little dishonest idk.
-  · Probably also make a proof that replacement avoids capture
-  · NOTE: Decide whether or not to have the capture avoiding behaviour backed into
-    Typing rules or do something with the methods instead?
--/
-
--- TODO: Find out why Types substitution causes simp to do infinite recursion
-
--- TODO: Check if the generic µ label thing works
-
--- TODO: Check if ft(Γ) works as inteded (create some examples as well)
-
--- TODO: Create the qunatifier example Marco gave in discord
-
-/- TODO:
-  WF for _Step without having WF hyp in .syn rule. Side condition seems to weak, so
-  maybe try and define the size of a label and do induction on the size instead.
--/
-
-/- TODO:
-  Check how well the serverUsableEnv predicates work if at all
-  · Consider using the sequent / check all quest definition from Github
--/
-
--- TODO: Example 5.1 (check if it is compileable)
-
-/- TODO: Create examples / test usage of:
-  · ProcStep
-  · EnvStep
-  · Typing
-  · TypingStep
-  · Create replacement examples
--/
-
-/- TODO: AlphaEQ
-  · Extend to full πLL
-  · Transitivity proof -> Equivalence relation
-  · Check rules depending on AlphaEq work as expected (Don't get stuck)
-  · Check if HyperEnv also needs renaming when Proc is renamed
--/
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
    This might need to be a structural congruence (≡)
@@ -143,6 +41,91 @@
     · 𝑣⸨x, y⸩ π.P ∼ π.(𝑣⸨x,y⸩ P)    (NOTE: LHS is ill-typed even if RHS is well-typed)
     · 𝑣⸨x, y⸩ Q ∼ Q                 (NOTE: LHS is ill-typed even if RHS is well-typed)
 -/
+
+
+
+
+
+/- TODO:
+  · Check correctness of ProcStep and EnvStep
+  · Theorem prooving when a well typed process makes a step the environment can follow
+    and is also well typed.
+-/
+
+/- TODO: Extend TypingStep and fix rules
+  · If not remade as theorem instead of actual rules then fix
+    · input : Types subst for derivations (𝒟{A // X})
+    · axcut : PName subst for derivations (𝒟{x // z})
+    · dup₂ : n-expansion rule + sigma substitution (𝒟σ)
+    · dispose₂ : Make it an n expansion of the c rule (n >= 0)
+  · Remove unnecessary @[simp] tags
+-/
+
+/- TODO:
+  · Depending on Marcos response define alternate version of c- and w-rule which
+    also work on thier dependencies.
+
+  · If not and depending on whether or not the current implementations of rules needing
+    to apply a substitution work or not - Make it possible to apply a σ to Env and Proc
+    just like a PName.
+
+  · Correct the rules using this as needed.
+-/
+
+
+
+
+/- TODO: Create examples / test usage of:
+  · ProcStep
+  · EnvStep
+  · Typing
+  · TypingStep
+  · Create replacement examples
+-/
+
+/- TODO:
+  · Make notation check section in Examples.lean for Proc, Types, Labels and check
+    if it works as expected
+  · Ensure precedence works as intended
+-/
+
+-- TODO: Create some examples for generic µ label thing
+
+-- TODO: Create some examples as well)
+
+-- TODO: Create the qunatifier example Marco gave in discord
+
+-- TODO: Create examples for ?? and !!
+
+-- TODO: Example 5.1 (check if it is compileable)
+
+
+
+
+
+
+/- TODO: Check if substitution avoids capture as they are
+  · if not:
+    · implicitly pick freshname / TVar
+      · Probably need AlphaEq to do renaming
+      · May need pick fresh function for TVar
+  · Make a proof that replacement avoids capture
+  · NOTE: Currently baked into Typing rules / theorems due to restrictions, if this had to
+    change AlphaEq and De Bruijn indices probably needs to be used.
+-/
+
+/- TODO: AlphaEQ
+  · Extend to full πLL
+  · Transitivity proof -> Equivalence relation
+  · Check rules depending on AlphaEq work as expected (Don't get stuck)
+  · Check if HyperEnv also needs renaming when Proc is renamed
+    · No it doesn't, renaming only affects bound names, environment only contains free names
+-/
+
+
+
+
+
 
 /- TODO: show erasure for processes and environments / hyperenvironments
   · if 𝒟 -[l]-> 𝒟' then proc(𝒟) -[l]-> proc(𝒟'), and
@@ -164,11 +147,46 @@
 
 -- TODO: Look through old revisions of main.pdf and transfer / check marked uncertanties
 
+-- TODO: Maybe add implicit import in relevant files
+
 -- TODO: Fix #eval env (Typing 𝒢 P) not working
 
 -- TODO: Try once more to get binders to bind tighter than infix operators without "()"
 
+-- TODO: Remove unused lemmas
+
+-- TODO: Ensure consistency in using {} and for lemma and theorem arguments
+
+/- TODO: Look over the proof for judgement name replacement
+  · Shorten it if possible
+  · Check whether hFresh is needed the in definiton or if the ones from the Typing
+    rule are enough
+  · Probably ask about whether the current version is fine or if it is too cluttered
+-/
+
+/- TODO:
+  WF for _Step without having WF hyp in .syn rule. Side condition seems to weak, so
+  maybe try and define the size of a label and do induction on the size instead.
+-/
+
+/- TODO: Make polymorphic classes for notation s.t.
+  · Env / HyperEnv lookup     -- If lookup is computable, use HasParen for notation
+  · Check if possible for ⟷  -- stick with subscripts
+-/
+
 --------------------------------------- QUESTIONS ---------------------------------------
+/-
+  Ask about the two unsolved cases in Typing.subst_types, should I keep them as sorry,
+  or can I simply restrict substitution to only handle closed types, or should I
+  implement alpha equivalence and use that to solve the cases.
+-/
+
+/-
+  Ask about whether I should keep TypingStep as its own inductive definiton, or
+  if it should use ProcStep and EnvStep and just become a Theorem stating the
+  validity of derivation after having done a step.
+-/
+
 /-
   Is it the typing rules which ensure that a single name cannot be used by multiple
   environments otherwise how is 𝒢(x) supposed to be defined and is it correctly '

@@ -1,0 +1,30 @@
+import PiLL.Framework.Model.Process
+
+inductive StructCong : Proc → Proc → Prop where
+  -- Equivalence Relation
+  | refl (P : Proc) : StructCong P P
+  | symm {P Q : Proc} : StructCong P Q → StructCong Q P
+  | trans {P Q R : Proc} : StructCong P Q → StructCong Q R → StructCong P R
+
+  -- Structural Congruence
+  | par_congr {P P' Q : Proc} :
+      StructCong P P' → StructCong (P |ₚ Q) (P' |ₚ Q)
+  | cut_congr {P P' : Proc} {x y : PName} :
+      StructCong P P' → StructCong (𝑣⸨x, y⸩ P) (𝑣⸨x, y⸩ P')
+
+  -- Monoid Laws for Parallel (|ₚ, 𝟘)
+  | par_comm (P Q : Proc) : StructCong (P |ₚ Q) (Q |ₚ P)
+  | par_assoc (P Q R : Proc) : StructCong ((P |ₚ Q) |ₚ R) (P |ₚ (Q |ₚ R))
+  | par_zero (P : Proc) : StructCong (P |ₚ 𝟘) P
+
+  -- Scope Extrusion
+  | cut_scope {P Q : Proc} {x y : PName}
+      (hFresh : x ∉ Q.f ∧ y ∉ Q.f) :
+      StructCong ((𝑣⸨x, y⸩ P) |ₚ Q) (𝑣⸨x, y⸩ (P |ₚ Q))
+
+  -- cut swapping
+  | cut_swap {P : Proc} {x y a b : PName}
+      (hDisj : ({x, y} ∩ {a, b} : Finset PName) = ∅) :
+      StructCong (𝑣⸨x, y⸩ (𝑣⸨a, b⸩ P)) (𝑣⸨a, b⸩ (𝑣⸨x, y⸩ P))
+
+infix:50 " ≡ₚ " => StructCong

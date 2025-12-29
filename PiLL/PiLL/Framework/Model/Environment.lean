@@ -68,7 +68,6 @@ infixl:85 "‚ " => Env.merge
 @[simp] theorem Env.merge_unitL (Δ : Env) : ∅‚ Δ = Δ := by
   simp [Env.merge]
 
-
 -- Merge commutivity
 theorem Env.merge_comm (Δ Γ : Env) : Δ‚ Γ = Γ‚ Δ := by
   simp [Env.merge, Finset.union_comm]
@@ -91,7 +90,7 @@ lemma Env.merge_move_second_two_right (Γ Δ Ξ Ε : Env) :
   rw [Env.merge_swap_last Γ Δ Ξ, Env.merge_swap_last]
 
 def Env.serverUsable (Γ : Env) : Prop :=
-  ∀p, p ∈ Γ → (p.snd).isServerUsable = True
+  ∀p, p ∈ Γ → (p.snd).isServerUsable
 
 prefix:max "?ₑ" => Env.serverUsable
 
@@ -146,14 +145,9 @@ lemma Env.names_substName (Γ : Env) (x z : PName) :
   subst a
   simp_all
 
-@[simp] lemma Env.names_mk (x : PName) (A : Types) :
-  (x ∶ A).names = {x} := by
-  simp [Env.names, Env.mk]
-
 @[simp] lemma Env.names_singleton (x : PName) (A : Types) :
   (x ∶ A).names = {x} := by
-  simp only [Env.names]
-  rfl
+  simp [Env.names, Env.mk]
 
 @[simp] lemma Env.names_empty : (∅ : Env).names = ∅ := by simp [Env.names]
 
