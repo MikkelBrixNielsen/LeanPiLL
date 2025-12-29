@@ -201,6 +201,73 @@ lemma Env.names_substName (Γ : Env) (x z : PName) :
   · exact hFresh.1
   · exact hFresh.2
 
+@[simp] lemma Env.substTypes_empty {A : Types} {X : TVar} :
+  (∅ : Env){A // X} = (∅ : Env) := by rfl
+
+@[simp] lemma Env.substTypes_singleton {x : PName} {T A : Types} {X : TVar} :
+  (x ∶ T){A // X} = x ∶ T{A// X} := by
+  simp only [HasSubst.subst, Env.substTypes, Env.mk, Finset.image_singleton]
+
+@[simp] lemma Env.substTypes_distributes {Γ Δ : Env} {A : Types} {X : TVar} :
+  (Γ‚ Δ){A // X} = Γ{A // X}‚ Δ{A // X} := by
+  simp only [HasSubst.subst, Env.substTypes, Env.merge, Finset.image_union]
+
+@[simp]
+lemma Env.names_substTypes {Γ : Env} {A : Types} {X : TVar} :
+  (Γ{A // X}).names = Γ.names := by
+  simp only [Env.names, Env.substTypes, HasSubst.subst, Finset.image_image]
+  apply Finset.image_congr
+  intro ⟨n, T⟩ _
+  rfl
+
+@[simp] lemma Env.substTypes_preserves_disjoint {Γ Δ : Env} {A : Types} {X : TVar} :
+  Γ{A // X}.disjoint Δ{A // X} = Γ.disjoint Δ := by
+  simp only [Env.disjoint, Env.names_substTypes]
+
+@[simp] lemma Env.substTypes_eq_self_of_not_mem {Γ : Env} {A : Types} {X : TVar}
+  (h : X ∉ ft(Γ)ₑ) : Γ{A // X} = Γ := by
+  simp only [HasSubst.subst, Env.substTypes]
+  conv_rhs => rw [← Finset.image_id (s := Γ)]
+  apply Finset.image_congr
+  intro ⟨n, T⟩ hin
+  simp
+  apply Types.subst_eq_self
+  simp only [Env.freeTypes, Finset.mem_biUnion, not_exists, not_and] at h
+  exact h (n, T) hin
+
+@[simp] lemma Env.not_mem_ft_substTypes {Γ : Env} {A : Types} {X Y : TVar} {hΓ : Y ∉ ft(Γ)ₑ}
+  {hA : Y ∉ A.freeTypes} {hneq : Y ≠ X} : Y ∉ ft(Γ{A // X})ₑ := by
+  simp only [HasSubst.subst, Env.substTypes, Env.freeTypes, Finset.mem_biUnion,
+    not_exists, not_and]
+  intro p hp
+  rcases Finset.mem_image.mp hp with ⟨op, hom, heq⟩
+  subst heq
+  apply Types.not_mem_ft_subst
+  · rw [Env.freeTypes] at hΓ
+    simp only [Finset.mem_biUnion, not_exists, not_and] at hΓ
+    exact hΓ op hom
+  · exact hA
+  · exact hneq
+
+@[simp] lemma Env.substTypes_mk {x : PName} {T A : Types} {X : TVar} :
+  (x ∶ T){A // X} = x ∶ T.subst A X := by
+  simp only [HasSubst.subst, Env.substTypes, Env.mk, Finset.image_singleton]
+
+@[simp] lemma Env.freeTypes_empty :
+  ft(∅)ₑ = ∅ := by simp only [Env.freeTypes, Finset.biUnion_empty]
+
+@[simp] lemma Env.freeTypes_singleton {x : PName} {A : Types} :
+  ft((x ∶ A : Env))ₑ = A.freeTypes := by
+  simp only [Env.freeTypes, Env.freeTypes, Env.mk, Finset.singleton_biUnion]
+
+@[simp] lemma Env.freeTypes_distributes {Γ Δ : Env} :
+   (ft(Γ‚ Δ)ₑ) = (ft(Γ)ₑ ∪ ft(Δ)ₑ) := by
+   simp only [Env.merge, Env.freeTypes, Finset.biUnion_union]
+
+@[simp] lemma Env.freeTypes_notMem_merge {Γ Δ : Env} {X : TVar} :
+   (X ∉ ft(Γ‚ Δ)ₑ) = (X ∉ ft(Γ)ₑ ∧ X ∉ ft(Δ)ₑ) := by
+   simp only [Env.freeTypes_distributes, Finset.notMem_union]
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := Finset (Env)
@@ -387,3 +454,40 @@ lemma HyperEnv.substName_eq_self_of_not_mem (𝒢 : HyperEnv) (x z : PName)
     rw [heq.1] at hneq
     contradiction
   · simp_all [HyperEnv.names, Env.names]
+
+@[simp] lemma HyperEnv.substTypes_empty {A : Types} {X : TVar} :
+  (∅ : HyperEnv){A // X} = (∅ : HyperEnv) := by rfl
+
+@[simp] lemma HyperEnv.substTypes_singleton {Γ : Env} {A : Types} {X : TVar} :
+  ({Γ} : HyperEnv){A // X} = Γ{A // X} := by
+  simp only [HasSubst.subst, HyperEnv.substTypes, Finset.image_singleton]
+
+@[simp] lemma HyperEnv.substTypes_distributes {𝒢 ℋ : HyperEnv} {A : Types} {X : TVar} :
+  (𝒢 |ₕ ℋ){A // X} = 𝒢{A // X} |ₕ ℋ{A // X} := by
+  simp only [HasSubst.subst, HyperEnv.substTypes, HyperEnv.merge, Finset.image_union]
+
+@[simp]
+lemma HyperEnv.names_substTypes {𝒢 : HyperEnv} {A : Types} {X : TVar} :
+  (𝒢{A // X}).names = 𝒢.names := by
+  simp only [HyperEnv.names, HyperEnv.substTypes, HasSubst.subst]
+  rw [Finset.image_biUnion]
+  exact Finset.biUnion_congr rfl (by intro Γ _ ; apply Env.names_substTypes)
+
+@[simp] lemma HyperEnv.substTypes_preserves_disjoint {𝒢 ℋ : HyperEnv} {A : Types} {X : TVar} :
+  𝒢{A // X}.disjoint ℋ{A // X} = 𝒢.disjoint ℋ := by
+  simp only [HyperEnv.disjoint, HyperEnv.names_substTypes]
+
+@[simp] lemma HyperEnv.freeTypes_empty :
+  ft(∅)ₕ = ∅ := by simp only [HyperEnv.freeTypes, Finset.biUnion_empty]
+
+@[simp] lemma HyperEnv.freeTypes_singleton {Γ : Env} :
+  ft(({Γ} : HyperEnv))ₕ = ft(Γ)ₑ := by
+  simp only [HyperEnv.freeTypes, HyperEnv.freeTypes, Finset.singleton_biUnion]
+
+@[simp] lemma HyperEnv.freeTypes_distributes {𝒢 ℋ : HyperEnv} :
+   (ft(𝒢 |ₕ ℋ)ₕ) = (ft(𝒢)ₕ ∪ ft(ℋ)ₕ) := by
+   simp only [HyperEnv.merge, HyperEnv.freeTypes, Finset.biUnion_union]
+
+@[simp] lemma HyperEnv.freeTypes_notMem_merge {𝒢 ℋ : HyperEnv} {X : TVar} :
+   (X ∉ ft(𝒢 |ₕ ℋ)ₕ) = (X ∉ ft(𝒢)ₕ ∧ X ∉ ft(ℋ)ₕ) := by
+   simp only [HyperEnv.freeTypes_distributes, Finset.notMem_union]

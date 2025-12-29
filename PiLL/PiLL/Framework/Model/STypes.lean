@@ -146,6 +146,8 @@ def Types.freeTypes : Types → Finset TVar
   | .forall_ v A  => A.freeTypes \ {v}
   | .exist_ v A   => A.freeTypes \ {v}
 
+attribute [simp] Types.freeTypes
+
 -- FIXME: Should aviod capture
 -- (Constriants on Typing rules handle this but maybe they shouldn't)
 def Types.subst (T R : Types) (X : TVar) : Types :=
@@ -182,3 +184,93 @@ def Types.isServerUsable : Types → Prop
 @[simp] lemma Types.isServerUsable_subst (T : Types) (A : Types) (X : TVar)
   (h : T.isServerUsable) : (T{A // X}).isServerUsable := by
   cases T <;> simp [HasSubst.subst, Types.subst, Types.isServerUsable] at h ⊢
+
+lemma Types.subst_eq_self {T A : Types} {X : TVar} {hft : X ∉ T.freeTypes} :
+  T.subst A X = T := by
+  induction T <;> simp_all [Types.subst, Types.freeTypes, ← ne_eq]
+
+  case var | varDual=>
+    intro h
+    subst h
+    contradiction
+
+  case forall_ ih | exist_ ih =>
+    split_ifs with h
+    · subst h ; rfl
+    · simp_all only [forall_.injEq, exist_.injEq, true_and, ← ne_eq]
+      apply ih
+      intro h_contra
+      simp [h_contra] at hft
+      subst hft
+      contradiction
+
+lemma Types.freeTypes_dual_eq (T : Types) : T.dual.freeTypes = T.freeTypes := by
+  induction T <;> simp_all [Types.freeTypes, Types.dual]
+
+@[simp] lemma Types.not_mem_ft_subst {T A : Types} {X Y : TVar}
+  (hT : Y ∉ T.freeTypes) (hA : Y ∉ A.freeTypes) (hneq : Y ≠ X) :
+  Y ∉ (T.subst A X).freeTypes := by
+  induction T <;> simp_all [Types.subst, Types.freeTypes, ← ne_eq]
+
+  case var =>
+    split_ifs with h
+    · exact hA
+    · simp [Types.freeTypes] ; exact hT
+
+  case varDual =>
+    split_ifs with h
+    · simp [Types.freeTypes_dual_eq] ; exact hA
+    · simp [Types.freeTypes] ; exact hT
+
+  case forall_ A' ih | exist_ A' ih =>
+    split_ifs with h1
+    · simp [Types.freeTypes]
+      intro hin
+      have heq : Y = X := by
+        rw [← h1]
+        apply hT hin
+      contradiction
+    · simp only [Types.freeTypes, Finset.mem_sdiff, Finset.mem_singleton]
+      intro h2
+      have hog : Y ∈ A'.freeTypes := by
+        by_contra hc
+        apply ih at hc
+        exact hc h2.1
+      apply hT at hog
+      exact h2.2 hog
+
+lemma Types.subst_subst (T A B : Types) (X : TVar) :
+  (T.subst A X).subst B X = T.subst (A.subst B X) X := by
+  induction T generalizing A B <;> simp_all [Types.subst]
+
+  case var | varDual =>
+    split_ifs with h
+    · (try erw [← Types.subst_dual]) ; rfl
+    · simp [Types.subst]
+      intro a
+      contradiction
+
+  case forall_ ih | exist_ ih =>
+    split_ifs with h
+    · simp [Types.subst]
+    · simp [Types.subst]
+      simp [h]
+      apply ih
+
+@[simp] lemma Types.subst_eq_self_of_not_mem (T A : Types) (X : TVar)
+  (h : X ∉ T.freeTypes) : T.subst A X = T := by
+  induction T <;> simp_all [Types.subst, Types.freeTypes]
+  case var | varDual =>
+    intro h
+    subst h
+    contradiction
+
+  case forall_ ih | exist_ ih =>
+    split_ifs with h1
+    · subst h1 ; rfl
+    · congr
+      apply ih
+      intro hin
+      apply h at hin
+      rw [hin] at h1
+      contradiction

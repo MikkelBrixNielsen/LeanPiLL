@@ -442,7 +442,7 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
         apply ih
         · simp only [HyperEnv.names_singleton, Env.names_distributes, Env.names_singleton,
             Finset.notMem_union, Finset.mem_singleton]
-          exact ⟨⟨hFresh.1, hSafe.1,⟩, (by subst h1 ; exact hFresh.2)⟩
+          exact ⟨⟨hFresh.1, hSafe.1⟩, (by subst h1 ; exact hFresh.2)⟩
         · exact hSafe.2
     · apply Typing.parr
       · apply And.intro
@@ -569,95 +569,9 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
         apply ih ⟨⟨hFresh.1, ⟨hFresh.2.1, hSafe.2.1⟩⟩, ⟨hFresh.2.2, hSafe.1⟩⟩ hSafe.2.2
 
 
-lemma Types.subst_eq_self {T A : Types} {X : TVar} {hft : X ∉ T.freeTypes} :
-  T.subst A X = T := by
-  induction T <;> simp_all [Types.subst, Types.freeTypes, ← ne_eq]
 
-  case var | varDual=>
-    intro h
-    subst h
-    contradiction
 
-  case forall_ ih | exist_ ih =>
-    split_ifs with h
-    · subst h ; rfl
-    · simp_all only [forall_.injEq, exist_.injEq, true_and, ← ne_eq]
-      apply ih
-      intro h_contra
-      simp [h_contra] at hft
-      subst hft
-      contradiction
 
-lemma Types.freeTypes_dual_eq (T : Types) : T.dual.freeTypes = T.freeTypes := by
-  induction T <;> simp_all [Types.freeTypes, Types.dual]
-
-@[simp] lemma Types.not_mem_ft_subst {T A : Types} {X Y : TVar}
-  (hT : Y ∉ T.freeTypes) (hA : Y ∉ A.freeTypes) (hneq : Y ≠ X) :
-  Y ∉ (T.subst A X).freeTypes := by
-  induction T <;> simp_all [Types.subst, Types.freeTypes, ← ne_eq]
-
-  case var =>
-    split_ifs with h
-    · exact hA
-    · simp [Types.freeTypes] ; exact hT
-
-  case varDual =>
-    split_ifs with h
-    · simp [Types.freeTypes_dual_eq] ; exact hA
-    · simp [Types.freeTypes] ; exact hT
-
-  case forall_ A' ih | exist_ A' ih =>
-    split_ifs with h1
-    · simp [Types.freeTypes]
-      intro hin
-      have heq : Y = X := by
-        rw [← h1]
-        apply hT hin
-      contradiction
-    · simp only [Types.freeTypes, Finset.mem_sdiff, Finset.mem_singleton]
-      intro h2
-      have hog : Y ∈ A'.freeTypes := by
-        by_contra hc
-        apply ih at hc
-        exact hc h2.1
-      apply hT at hog
-      exact h2.2 hog
-
-lemma Types.subst_subst (T A B : Types) (X : TVar) :
-  (T.subst A X).subst B X = T.subst (A.subst B X) X := by
-  induction T generalizing A B <;> simp_all [Types.subst]
-
-  case var | varDual =>
-    split_ifs with h
-    · (try erw [← Types.subst_dual]) ; rfl
-    · simp [Types.subst]
-      intro a
-      contradiction
-
-  case forall_ ih | exist_ ih =>
-    split_ifs with h
-    · simp [Types.subst]
-    · simp [Types.subst]
-      simp [h]
-      apply ih
-
-@[simp] lemma Types.subst_eq_self_of_not_mem (T A : Types) (X : TVar)
-  (h : X ∉ T.freeTypes) : T.subst A X = T := by
-  induction T <;> simp_all [Types.subst, Types.freeTypes]
-  case var | varDual =>
-    intro h
-    subst h
-    contradiction
-
-  case forall_ ih | exist_ ih =>
-    split_ifs with h1
-    · subst h1 ; rfl
-    · congr
-      apply ih
-      intro hin
-      apply h at hin
-      rw [hin] at h1
-      contradiction
 
 lemma Types.subst_commute (T A B : Types) (X Y : TVar) (hne : Y ≠ X) (hft : Y ∉ A.freeTypes) :
   (T.subst B Y).subst A X = (T.subst A X).subst (B.subst A X) Y := by
@@ -685,159 +599,6 @@ lemma Types.subst_commute (T A B : Types) (X Y : TVar) (hne : Y ≠ X) (hft : Y 
   case exist_ =>
     split_ifs with h1 h2 h3 <;> try simp_all [Types.subst]
     sorry -- FIXME: Currently assuming Barendregt (add frehsness contraint?)
-
-
-
-
-
-
-
-@[simp] lemma Proc.substTypes_nil {A : Types} {X : TVar} : 𝟘{A // X} = 𝟘 := by rfl
-
-@[simp] lemma Proc.substTypes_link {x y : PName} {A : Types} {X : TVar} :
-  (x⟷ₚy){A // X} = x⟷ₚy := by rfl
-
-@[simp] lemma Proc.substTypes_par {P Q : Proc} {A : Types} {X : TVar} :
-  (P |ₚ Q){A // X} = P{A // X} |ₚ Q{A // X} := by rfl
-
-@[simp] lemma Proc.substTypes_one {x : PName} {P : Proc} {A : Types} {X : TVar} :
-  (x⟦⟧․P){A // X} = x⟦⟧․(P{A // X}) := by rfl
-
-@[simp] lemma Proc.substTypes_bot {x : PName} {P : Proc} {A : Types} {X : TVar} :
-  (x⸨⸩․P){A // X} = x⸨⸩․(P{A // X}) := by rfl
-
-@[simp] lemma Proc.substTypes_output {x : PName} {P : Proc} {T A : Types} {X : TVar} :
-  (x⟦T⟧․P){A // X} = x⟦T{A // X}⟧․(P{A // X}) := by rfl
-
-
-@[simp] lemma Proc.substTypes_input_match {x : PName} {P : Proc} {A : Types} {X : TVar} :
-  (x⸨X⸩․P){A // X} = x⸨X⸩․P := by
-  simp [HasSubst.subst, Proc.substTypes, HasParen.paren]
-
-@[simp] lemma Proc.substTypes_input_diff {x : PName} {P : Proc} {A : Types} {X Y : TVar}
-  (hneq : Y ≠ X) : (x⸨Y⸩․P){A // X} = x⸨Y⸩․P{A // X} := by
-  simp_all [HasSubst.subst, Proc.substTypes, HasParen.paren]
-
-
-
-
-
-@[simp] lemma Env.substTypes_empty {A : Types} {X : TVar} :
-  (∅ : Env){A // X} = (∅ : Env) := by rfl
-
-@[simp] lemma Env.substTypes_singleton {x : PName} {T A : Types} {X : TVar} :
-  (x ∶ T){A // X} = x ∶ T{A// X} := by
-  simp only [HasSubst.subst, Env.substTypes, Env.mk, Finset.image_singleton]
-
-@[simp] lemma Env.substTypes_distributes {Γ Δ : Env} {A : Types} {X : TVar} :
-  (Γ‚ Δ){A // X} = Γ{A // X}‚ Δ{A // X} := by
-  simp only [HasSubst.subst, Env.substTypes, Env.merge, Finset.image_union]
-
-@[simp]
-lemma Env.names_substTypes {Γ : Env} {A : Types} {X : TVar} :
-  (Γ{A // X}).names = Γ.names := by
-  simp only [Env.names, Env.substTypes, HasSubst.subst, Finset.image_image]
-  apply Finset.image_congr
-  intro ⟨n, T⟩ _
-  rfl
-
-@[simp] lemma Env.substTypes_preserves_disjoint {Γ Δ : Env} {A : Types} {X : TVar} :
-  Γ{A // X}.disjoint Δ{A // X} = Γ.disjoint Δ := by
-  simp only [Env.disjoint, Env.names_substTypes]
-
-@[simp] lemma Env.substTypes_eq_self_of_not_mem {Γ : Env} {A : Types} {X : TVar}
-  (h : X ∉ ft(Γ)ₑ) : Γ{A // X} = Γ := by
-  simp only [HasSubst.subst, Env.substTypes]
-  conv_rhs => rw [← Finset.image_id (s := Γ)]
-  apply Finset.image_congr
-  intro ⟨n, T⟩ hin
-  simp
-  apply Types.subst_eq_self
-  simp only [Env.freeTypes, Finset.mem_biUnion, not_exists, not_and] at h
-  exact h (n, T) hin
-
-@[simp] lemma Env.not_mem_ft_substTypes {Γ : Env} {A : Types} {X Y : TVar} {hΓ : Y ∉ ft(Γ)ₑ}
-  {hA : Y ∉ A.freeTypes} {hneq : Y ≠ X} : Y ∉ ft(Γ{A // X})ₑ := by
-  simp only [HasSubst.subst, Env.substTypes, Env.freeTypes, Finset.mem_biUnion,
-    not_exists, not_and]
-  intro p hp
-  rcases Finset.mem_image.mp hp with ⟨op, hom, heq⟩
-  subst heq
-  apply Types.not_mem_ft_subst
-  · rw [Env.freeTypes] at hΓ
-    simp only [Finset.mem_biUnion, not_exists, not_and] at hΓ
-    exact hΓ op hom
-  · exact hA
-  · exact hneq
-
-
-
-
-@[simp] lemma Env.substTypes_mk {x : PName} {T A : Types} {X : TVar} :
-  (x ∶ T){A // X} = x ∶ T.subst A X := by
-  simp only [HasSubst.subst, Env.substTypes, Env.mk, Finset.image_singleton]
-
-@[simp] lemma Env.freeTypes_empty :
-  ft(∅)ₑ = ∅ := by simp only [Env.freeTypes, Finset.biUnion_empty]
-
-@[simp] lemma Env.freeTypes_singleton {x : PName} {A : Types} :
-  ft((x ∶ A : Env))ₑ = A.freeTypes := by
-  simp only [Env.freeTypes, Env.freeTypes, Env.mk, Finset.singleton_biUnion]
-
-@[simp] lemma Env.freeTypes_distributes {Γ Δ : Env} :
-   (ft(Γ‚ Δ)ₑ) = (ft(Γ)ₑ ∪ ft(Δ)ₑ) := by
-   simp only [Env.merge, Env.freeTypes, Finset.biUnion_union]
-
-@[simp] lemma Env.freeTypes_notMem_merge {Γ Δ : Env} {X : TVar} :
-   (X ∉ ft(Γ‚ Δ)ₑ) = (X ∉ ft(Γ)ₑ ∧ X ∉ ft(Δ)ₑ) := by
-   simp only [Env.freeTypes_distributes, Finset.notMem_union]
-
-
-
-
-
-
-
-@[simp] lemma HyperEnv.substTypes_empty {A : Types} {X : TVar} :
-  (∅ : HyperEnv){A // X} = (∅ : HyperEnv) := by rfl
-
-@[simp] lemma HyperEnv.substTypes_singleton {Γ : Env} {A : Types} {X : TVar} :
-  ({Γ} : HyperEnv){A // X} = Γ{A // X} := by
-  simp only [HasSubst.subst, HyperEnv.substTypes, Finset.image_singleton]
-
-@[simp] lemma HyperEnv.substTypes_distributes {𝒢 ℋ : HyperEnv} {A : Types} {X : TVar} :
-  (𝒢 |ₕ ℋ){A // X} = 𝒢{A // X} |ₕ ℋ{A // X} := by
-  simp only [HasSubst.subst, HyperEnv.substTypes, HyperEnv.merge, Finset.image_union]
-
-@[simp]
-lemma HyperEnv.names_substTypes {𝒢 : HyperEnv} {A : Types} {X : TVar} :
-  (𝒢{A // X}).names = 𝒢.names := by
-  simp only [HyperEnv.names, HyperEnv.substTypes, HasSubst.subst]
-  rw [Finset.image_biUnion]
-  exact Finset.biUnion_congr rfl (by intro Γ _ ; apply Env.names_substTypes)
-
-@[simp] lemma HyperEnv.substTypes_preserves_disjoint {𝒢 ℋ : HyperEnv} {A : Types} {X : TVar} :
-  𝒢{A // X}.disjoint ℋ{A // X} = 𝒢.disjoint ℋ := by
-  simp only [HyperEnv.disjoint, HyperEnv.names_substTypes]
-
-@[simp] lemma HyperEnv.freeTypes_empty :
-  ft(∅)ₕ = ∅ := by simp only [HyperEnv.freeTypes, Finset.biUnion_empty]
-
-@[simp] lemma HyperEnv.freeTypes_singleton {Γ : Env} :
-  ft(({Γ} : HyperEnv))ₕ = ft(Γ)ₑ := by
-  simp only [HyperEnv.freeTypes, HyperEnv.freeTypes, Finset.singleton_biUnion]
-
-@[simp] lemma HyperEnv.freeTypes_distributes {𝒢 ℋ : HyperEnv} :
-   (ft(𝒢 |ₕ ℋ)ₕ) = (ft(𝒢)ₕ ∪ ft(ℋ)ₕ) := by
-   simp only [HyperEnv.merge, HyperEnv.freeTypes, Finset.biUnion_union]
-
-@[simp] lemma HyperEnv.freeTypes_notMem_merge {𝒢 ℋ : HyperEnv} {X : TVar} :
-   (X ∉ ft(𝒢 |ₕ ℋ)ₕ) = (X ∉ ft(𝒢)ₕ ∧ X ∉ ft(ℋ)ₕ) := by
-   simp only [HyperEnv.freeTypes_distributes, Finset.notMem_union]
-
-
-attribute [simp] Types.freeTypes
-
 
 theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
   {A : Types} {X : TVar} : ⊢ (P{A // X}) ∷ (𝒢{A // X}) := by
@@ -910,8 +671,6 @@ theorem Typing.subst_types {𝒢 : HyperEnv} {P : Proc} {𝒟 : ⊢ P ∷ 𝒢}
       · exact ih
       · exact h
       · sorry -- FIXME: Currently assuming Barendregt (add freshness condition?)
-
-
 
   case forall_ D ft ih =>
     conv_lhs => rhs ; rhs ; simp [HasSubst.subst, Types.subst]

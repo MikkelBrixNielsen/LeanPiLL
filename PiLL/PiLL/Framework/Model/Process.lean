@@ -290,3 +290,29 @@ lemma Proc.not_bound_par_right {P Q : Proc} {x : PName}
   apply And.intro
   · right ; exact hxQ
   · simp [hxNotPf, hxNotQf]
+
+@[simp] lemma Proc.substTypes_nil {A : Types} {X : TVar} : 𝟘{A // X} = 𝟘 := by rfl
+
+@[simp] lemma Proc.substTypes_link {x y : PName} {A : Types} {X : TVar} :
+  (x⟷ₚy){A // X} = x⟷ₚy := by rfl
+
+@[simp] lemma Proc.substTypes_par {P Q : Proc} {A : Types} {X : TVar} :
+  (P |ₚ Q){A // X} = P{A // X} |ₚ Q{A // X} := by rfl
+
+@[simp] lemma Proc.substTypes_one {x : PName} {P : Proc} {A : Types} {X : TVar} :
+  (x⟦⟧․P){A // X} = x⟦⟧․(P{A // X}) := by rfl
+
+@[simp] lemma Proc.substTypes_bot {x : PName} {P : Proc} {A : Types} {X : TVar} :
+  (x⸨⸩․P){A // X} = x⸨⸩․(P{A // X}) := by rfl
+
+@[simp] lemma Proc.substTypes_output {x : PName} {P : Proc} {T A : Types} {X : TVar} :
+  (x⟦T⟧․P){A // X} = x⟦T{A // X}⟧․(P{A // X}) := by rfl
+
+
+@[simp] lemma Proc.substTypes_input_match {x : PName} {P : Proc} {A : Types} {X : TVar} :
+  (x⸨X⸩․P){A // X} = x⸨X⸩․P := by
+  simp [HasSubst.subst, Proc.substTypes, HasParen.paren]
+
+@[simp] lemma Proc.substTypes_input_diff {x : PName} {P : Proc} {A : Types} {X Y : TVar}
+  (hneq : Y ≠ X) : (x⸨Y⸩․P){A // X} = x⸨Y⸩․P{A // X} := by
+  simp_all [HasSubst.subst, Proc.substTypes, HasParen.paren]
