@@ -394,24 +394,32 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
         · exact 𝒟
         · exact hQ
     · intro h
-
+      rename_i x y
       cases h
-      rename_i x y 𝒢 Γ Δ A hd1 hf hneq 𝒟
-      generalize heq : (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) = 𝒢'
+      rename_i P' Q' 𝒢 Γ Δ A hd1 hf hneq 𝒟
+      generalize heq : (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) = 𝒥
       rw [heq] at 𝒟
       cases 𝒟
       rename_i 𝒢' ℋ' hd2 hP hQ
-      convert Typing.mix _ hQ using 1
-      rotate_left ; rotate_left ; rotate_left
-      · apply Typing.cut 𝒢 Γ Δ _ _ _ A
-        · sorry
-        · simp_all
-        · exact hneq
-        · exact hd1
+      · sorry -- Need to split 𝒢 into P's and Q's part move Q's part last in context
+              -- apply Typing.mix and prove the cut case with P and the case for Q
 
 
 
 
+      -- cases h
+      -- rename_i x y 𝒢 Γ Δ A hd1 hf hneq 𝒟
+      -- generalize heq : (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) = 𝒢'
+      -- rw [heq] at 𝒟
+      -- cases 𝒟
+      -- rename_i 𝒢' ℋ' hd2 hP hQ
+      -- convert Typing.mix _ hQ using 1
+      -- rotate_left ; rotate_left ; rotate_left
+      -- · apply Typing.cut 𝒢 Γ Δ _ _ _ A
+      --   · sorry
+      --   · simp_all
+      --   · exact hneq
+      --   · exact hd1
 
 
 
