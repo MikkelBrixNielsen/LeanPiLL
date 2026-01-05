@@ -250,9 +250,22 @@ lemma Typing.names_subset_f {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
         rw [heq] at h
         simp_all
 
-theorem Typing.f_eq_names {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
+lemma Typing.f_eq_names {𝒢 : HyperEnv} {P : Proc} {h : ⊢ P ∷ 𝒢} :
   P.f = 𝒢.names := by
   exact Finset.Subset.antisymm (Typing.f_subset_names h) (Typing.names_subset_f h)
+
+lemma HyperEnv.not_mem_of_fresh_name {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {x : PName}
+  {A : Types} (hf : x ∉ P.f) (hP : ⊢ P ∷ 𝒢) : Γ‚ x ∶ A ∉ 𝒢 := by
+  let Ex := Γ‚ x ∶ A
+  intro hc
+  have hx : x ∈ 𝒢.names := by
+    rw [HyperEnv.names, Finset.mem_biUnion]
+    use Ex
+    simp [hc, Ex, Env.names_distributes]
+  exact hf (Typing.names_subset_f hP hx)
+
+
+
 
 theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
   (hcong : P ≡ₚ Q) : (⊢ P ∷ 𝒢) ↔ (⊢ Q ∷ 𝒢) := by
@@ -401,8 +414,45 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
       rw [heq] at 𝒟
       cases 𝒟
       rename_i 𝒢' ℋ' hd2 hP hQ
-      · sorry -- Need to split 𝒢 into P's and Q's part move Q's part last in context
+      -- · sorry -- Need to split 𝒢 into P's and Q's part move Q's part last in context
               -- apply Typing.mix and prove the cut case with P and the case for Q
+      ·
+        have hTotal : (x ∈ 𝒢'.names ∨ x ∈ ℋ'.names) ∧ (y ∈ 𝒢'.names ∨ y ∈ ℋ'.names) := by
+          simp only [← Finset.mem_union, ← HyperEnv.names_distributes, ← heq]
+          simp only [HyperEnv.names_distributes, HyperEnv.names_singleton,
+            Env.names_distributes, Env.names_singleton]
+          apply And.intro
+          on_goal 1 => rw [Finset.union_comm, ← Finset.union_assoc, ← Finset.union_assoc]
+          on_goal 2 => rw [← Finset.union_assoc, ← Finset.union_assoc]
+          all_goals
+            simp only [Finset.mem_union, Finset.mem_singleton, eq_self, or_true]
+
+        have hnℋ' : x ∉ ℋ'.names ∧ y ∉ ℋ'.names :=
+          ⟨λ h => hf1.1 (Typing.names_subset_f hQ h),
+          λ h => hf1.2 (Typing.names_subset_f hQ h)⟩
+
+        have hx𝒢' : x ∈ 𝒢'.names ∧ y ∈ 𝒢'.names :=
+          ⟨Or.resolve_right hTotal.1 hnℋ'.1,
+          Or.resolve_right hTotal.2 hnℋ'.2⟩
+
+
+        let Ex := Γ‚ x ∶ A
+        let Ey := Δ‚ y ∶ Aᗮ
+        have hTotal : Ex ∈ (𝒢 |ₕ {Ex} |ₕ {Ey}) ∧ Ey ∈ (𝒢 |ₕ {Ex} |ₕ {Ey}) := by simp
+
+        rw [heq] at hTotal
+
+        have hnℋ' : Γ‚ x ∶ A ∉ ℋ' ∧ Γ‚ y ∶ A ∉ ℋ':=
+          ⟨HyperEnv.not_mem_of_fresh_name hf1.1 hQ,
+          HyperEnv.not_mem_of_fresh_name hf1.2 hQ⟩
+
+        -- have h𝒢' : Ex ∈ 𝒢' ∧ Ey ∈ 𝒢' :=
+        -- ⟨Or.resolve_right ⟩
+
+
+
+
+
 
 
 
