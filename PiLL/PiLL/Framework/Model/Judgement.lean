@@ -264,6 +264,14 @@ lemma HyperEnv.not_mem_of_fresh_name {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {x 
     simp [hc, Ex, Env.names_distributes]
   exact hf (Typing.names_subset_f hP hx)
 
+lemma HyperEnv.names_subset_self {𝒢 : HyperEnv} {Γ : Env} (h : Γ ∈ 𝒢) :
+  Γ.names ⊆ 𝒢.names := by
+  simp [HyperEnv.names, Env.names]
+  apply Finset.subset_biUnion_of_mem (fun E => Env.names E) h
+
+
+
+
 
 
 
@@ -414,71 +422,137 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
       rw [heq] at 𝒟
       cases 𝒟
       rename_i 𝒢' ℋ' hd2 hP hQ
-      -- · sorry -- Need to split 𝒢 into P's and Q's part move Q's part last in context
-              -- apply Typing.mix and prove the cut case with P and the case for Q
-      ·
-        have hTotal : (x ∈ 𝒢'.names ∨ x ∈ ℋ'.names) ∧ (y ∈ 𝒢'.names ∨ y ∈ ℋ'.names) := by
-          simp only [← Finset.mem_union, ← HyperEnv.names_distributes, ← heq]
-          simp only [HyperEnv.names_distributes, HyperEnv.names_singleton,
-            Env.names_distributes, Env.names_singleton]
-          apply And.intro
-          on_goal 1 => rw [Finset.union_comm, ← Finset.union_assoc, ← Finset.union_assoc]
-          on_goal 2 => rw [← Finset.union_assoc, ← Finset.union_assoc]
-          all_goals
-            simp only [Finset.mem_union, Finset.mem_singleton, eq_self, or_true]
-
-        have hnℋ' : x ∉ ℋ'.names ∧ y ∉ ℋ'.names :=
-          ⟨λ h => hf1.1 (Typing.names_subset_f hQ h),
-          λ h => hf1.2 (Typing.names_subset_f hQ h)⟩
-
-        have hx𝒢' : x ∈ 𝒢'.names ∧ y ∈ 𝒢'.names :=
-          ⟨Or.resolve_right hTotal.1 hnℋ'.1,
-          Or.resolve_right hTotal.2 hnℋ'.2⟩
-
-
-        let Ex := Γ‚ x ∶ A
+      · let Ex := Γ‚ x ∶ A
         let Ey := Δ‚ y ∶ Aᗮ
-        have hTotal : Ex ∈ (𝒢 |ₕ {Ex} |ₕ {Ey}) ∧ Ey ∈ (𝒢 |ₕ {Ex} |ₕ {Ey}) := by simp
+        let Ctx := ({Ex} : HyperEnv) |ₕ {Ey}
+
+        have hTotal : Ex ∈ (𝒢 |ₕ Ex |ₕ Ey) ∧ Ey ∈ (𝒢 |ₕ Ex |ₕ Ey) := by simp
 
         rw [heq] at hTotal
+        simp [HyperEnv.merge, Finset.mem_union] at hTotal
 
-        have hnℋ' : Γ‚ x ∶ A ∉ ℋ' ∧ Γ‚ y ∶ A ∉ ℋ':=
+        have hninℋ' : Ex ∉ ℋ' ∧ Ey ∉ ℋ':=
           ⟨HyperEnv.not_mem_of_fresh_name hf1.1 hQ,
           HyperEnv.not_mem_of_fresh_name hf1.2 hQ⟩
 
-        -- have h𝒢' : Ex ∈ 𝒢' ∧ Ey ∈ 𝒢' :=
-        -- ⟨Or.resolve_right ⟩
+        have hin𝒢' : Ex ∈ 𝒢' ∧ Ey ∈ 𝒢' :=
+          ⟨Or.resolve_right hTotal.1 hninℋ'.1,
+          Or.resolve_right hTotal.2 hninℋ'.2⟩
 
+        let 𝒢'_base := 𝒢' \ {Ex, Ey}
+        have h𝒢' : 𝒢' = 𝒢'_base |ₕ {Ex} |ₕ {Ey} := by
+          simp only [𝒢'_base, HyperEnv.merge]
+          rw [Finset.union_assoc, Finset.union_comm ({Ex} : HyperEnv) ({Ey} : HyperEnv),
+            Finset.union_singleton]
+          symm
+          apply Finset.sdiff_union_of_subset
+          simp [Finset.insert_subset_iff]
+          exact ⟨hin𝒢'.1, hin𝒢'.2⟩
 
+        have h𝒢 : 𝒢 = 𝒢'_base |ₕ ℋ' := by
+          simp only [h𝒢'] at heq
+          rw [HyperEnv.merge_comm _ ℋ', ← HyperEnv.merge_assoc, ← HyperEnv.merge_assoc] at heq
+          apply Finset.ext
+          intro e
+          simp only [HyperEnv.merge, Finset.mem_union]
+          simp only [HyperEnv.merge] at heq
+          constructor
+          · intro he𝒢
+            have hin : e ∈ 𝒢'_base ∪ ℋ' ∪ Ctx := by
+              simp only [Ctx, HyperEnv.merge, ← Finset.union_assoc,
+                Finset.union_comm _ ℋ']
+              rw [← heq]
+              rw [Finset.union_assoc]
+              apply Finset.mem_union_left
+              exact he𝒢
+            simp only [Ctx, HyperEnv.merge, Finset.mem_union] at hin
+            rcases hin with h1 | h2
+            · exact h1
+            · rcases h2
+              · rename_i h3
+                exfalso
+                apply hf.1
+                rw [HyperEnv.names, Finset.mem_biUnion]
+                rw [Finset.mem_singleton] at h3
+                rw [h3] at he𝒢
+                use Ex, he𝒢
+                simp [Ex, Env.names_distributes]
+              · rename_i h4
+                exfalso
+                apply hf.2.2.2.1
+                rw [HyperEnv.names, Finset.mem_biUnion]
+                rw [Finset.mem_singleton] at h4
+                rw [h4] at he𝒢
+                use Ey, he𝒢
+                simp [Ey, Env.names_distributes]
+          · intro hRHS
+            have hin : e ∈ ℋ' ∪ 𝒢'_base ∪ {Ex} ∪ {Ey} := by
+              simp only [Finset.mem_union, Finset.mem_singleton]
+              rcases hRHS with h1 | h2
+              · left ; left ; right ; exact h1
+              · left ; left ; left ; exact h2
+            rw [← heq] at hin
+            simp only [Finset.mem_union, Finset.mem_singleton] at hin
+            rcases hin with h𝒢 | rfl | rfl
+            · rcases h𝒢 with h1 | rfl
+              · exact h1
+              · exfalso
+                rcases hRHS with h1 | h2
+                · simp [𝒢'_base, Ex] at h1
+                · exact hninℋ'.1 h2
+            · exfalso
+              rcases hRHS with h1 | h2
+              · simp [𝒢'_base, Ey] at h1
+              · exact hninℋ'.2 h2
 
+        have hd' : (𝒢'_base |ₕ {Γ‚ Δ}).disjoint ℋ' := by
+          simp only [HyperEnv.disjoint] at *
+          simp only [HyperEnv.names_distributes, HyperEnv.names_singleton,
+            Env.names_distributes, Finset.disjoint_union_left]
+          split_ands
+          · apply Finset.disjoint_of_subset_left _ hd2
+            rw [h𝒢']
+            simp only [HyperEnv.names_distributes, Finset.union_assoc,
+              Finset.subset_union_left]
+          · apply Finset.disjoint_of_subset_left _ hd2
+            have hΓEx : Γ.names ⊆ Ex.names := by simp [Ex]
+            have hEx𝒢' : Ex.names ⊆ 𝒢'.names :=
+              HyperEnv.names_subset_self hin𝒢'.1
+            exact Finset.Subset.trans hΓEx hEx𝒢'
+          · apply Finset.disjoint_of_subset_left _ hd2
+            have hΔEy : Δ.names ⊆ Ey.names := by simp [Ey]
+            have hEy𝒢' : Ey.names ⊆ 𝒢'.names :=
+              HyperEnv.names_subset_self hin𝒢'.2
+            exact Finset.Subset.trans hΔEy hEy𝒢'
 
+        have hf' : x ∉ 𝒢'_base.names ∧ x ∉ Γ.names ∧ x ∉ Δ.names ∧ y ∉ 𝒢'_base.names
+          ∧ y ∉ Γ.names ∧ y ∉ Δ.names := by
+          rcases hf with ⟨hx𝒢, hxΓ, hxΔ, hy𝒢, hyΓ, hyΔ⟩
+          refine ⟨?_, hxΓ, hxΔ, ?_, hyΓ, hyΔ⟩
+          · intro h_contra
+            apply hx𝒢
+            rw [h𝒢]
+            simp only [HyperEnv.names_distributes, Finset.mem_union]
+            left
+            exact h_contra
+          · intro h_contra
+            apply hy𝒢
+            rw [h𝒢]
+            simp only [HyperEnv.names_distributes, Finset.mem_union]
+            left
+            exact h_contra
 
-
-
-
-
-      -- cases h
-      -- rename_i x y 𝒢 Γ Δ A hd1 hf hneq 𝒟
-      -- generalize heq : (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) = 𝒢'
-      -- rw [heq] at 𝒟
-      -- cases 𝒟
-      -- rename_i 𝒢' ℋ' hd2 hP hQ
-      -- convert Typing.mix _ hQ using 1
-      -- rotate_left ; rotate_left ; rotate_left
-      -- · apply Typing.cut 𝒢 Γ Δ _ _ _ A
-      --   · sorry
-      --   · simp_all
-      --   · exact hneq
-      --   · exact hd1
-
-
-
-
-
-
-
-
-
+        rw [h𝒢, HyperEnv.merge_comm, ← HyperEnv.merge_assoc, HyperEnv.merge_comm _ 𝒢'_base]
+        apply Typing.mix
+        · exact hd'
+        · apply Typing.cut _ _ _ _ _ _ A
+          · rw [h𝒢'] at hP
+            simp only [Ex, Ey] at hP
+            exact hP
+          · exact hf'
+          · exact hneq
+          · exact hd1
+        · exact hQ
 
   case cut_swap hd => sorry
 
