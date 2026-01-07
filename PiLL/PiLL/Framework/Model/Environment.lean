@@ -460,8 +460,7 @@ lemma HyperEnv.substName_eq_self_of_not_mem (𝒢 : HyperEnv) (x z : PName)
   (𝒢 |ₕ ℋ){A // X} = 𝒢{A // X} |ₕ ℋ{A // X} := by
   simp only [HasSubst.subst, HyperEnv.substTypes, HyperEnv.merge, Finset.image_union]
 
-@[simp]
-lemma HyperEnv.names_substTypes {𝒢 : HyperEnv} {A : Types} {X : TVar} :
+@[simp] lemma HyperEnv.names_substTypes {𝒢 : HyperEnv} {A : Types} {X : TVar} :
   (𝒢{A // X}).names = 𝒢.names := by
   simp only [HyperEnv.names, HyperEnv.substTypes, HasSubst.subst]
   rw [Finset.image_biUnion]
