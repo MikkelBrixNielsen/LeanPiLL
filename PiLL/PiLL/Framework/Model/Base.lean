@@ -2,6 +2,7 @@ import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Finset.Fold
 import Mathlib.Data.Finset.Union
+import Mathlib.Data.Finset.Disjoint
 import Mathlib.Tactic
 import Mathlib.Order.CompleteLattice.Finset
 

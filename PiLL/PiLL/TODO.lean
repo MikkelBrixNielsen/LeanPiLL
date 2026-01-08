@@ -26,7 +26,9 @@
 
 
 
+-- TODO: Ask about the cut_swap case
 
+-- TODO: Make lean print the notation for the Has_ Type Classes
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
    This might need to be a structural congruence (≡)
@@ -42,7 +44,7 @@
     · 𝑣⸨x, y⸩ Q ∼ Q                 (NOTE: LHS is ill-typed even if RHS is well-typed)
 -/
 
-
+-- TODO: Fix some processes bindnig weirdly (par, cut, etc.)
 
 
 

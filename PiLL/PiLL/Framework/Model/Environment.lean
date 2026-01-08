@@ -282,8 +282,8 @@ instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
 -- noncomputable instance : ToString HyperEnv where
 --   toString g := reprStr g
 
-def pairwise {α : Type} (r : α → α → Prop) (s : Finset α) : Prop :=
-  ∀ x ∈ s, ∀ y ∈ s, y ≠ x → r x y
+-- def pairwise {α : Type} (r : α → α → Prop) (s : Finset α) : Prop :=
+--   ∀ x ∈ s, ∀ y ∈ s, y ≠ x → r x y
 
 -- FIXME: Relevance?
 -- def HyperEnv.linear (𝒢 : HyperEnv) : Prop :=
