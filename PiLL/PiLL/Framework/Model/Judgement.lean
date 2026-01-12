@@ -254,21 +254,6 @@ lemma Typing.f_eq_names {𝒢 : HyperEnv} {P : Proc} {h : ⊢ P ∷ 𝒢} :
   P.f = 𝒢.names := by
   exact Finset.Subset.antisymm (Typing.f_subset_names h) (Typing.names_subset_f h)
 
-lemma HyperEnv.not_mem_of_fresh_name {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {x : PName}
-  {A : Types} (hf : x ∉ P.f) (hP : ⊢ P ∷ 𝒢) : Γ‚ x ∶ A ∉ 𝒢 := by
-  let Ex := Γ‚ x ∶ A
-  intro hc
-  have hx : x ∈ 𝒢.names := by
-    rw [HyperEnv.names, Finset.mem_biUnion]
-    use Ex
-    simp [hc, Ex, Env.names_distributes]
-  exact hf (Typing.names_subset_f hP hx)
-
-lemma HyperEnv.names_subset_self {𝒢 : HyperEnv} {Γ : Env} (h : Γ ∈ 𝒢) :
-  Γ.names ⊆ 𝒢.names := by
-  simp [HyperEnv.names, Env.names]
-  apply Finset.subset_biUnion_of_mem (fun E => Env.names E) h
-
 lemma Typing.cut_inversion {𝒢 : HyperEnv} {P : Proc} {x y : PName}
   (h : ⊢ 𝑣⸨x, y⸩ P ∷ 𝒢) : ∃ Γ Δ A 𝒢_ctx,
     𝒢 = 𝒢_ctx |ₕ {Γ‚ Δ} ∧
@@ -286,75 +271,56 @@ lemma Typing.cut_inversion {𝒢 : HyperEnv} {P : Proc} {x y : PName}
     refine ⟨rfl, hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.1, hf.2.2.2.2.2,
       hneq, hd, 𝒟'⟩
 
-lemma set_cancle {α : Type} [DecidableEq α] (S T : Finset α) (x : α)
+
+
+-- Theorem proving Typing preserves disjointness?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lemma HyperEnv.not_mem_of_fresh_name {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {x : PName}
+  {A : Types} (hf : x ∉ P.f) (hP : ⊢ P ∷ 𝒢) : Γ‚ x ∶ A ∉ 𝒢 := by
+  let Ex := Γ‚ x ∶ A
+  intro hc
+  have hx : x ∈ 𝒢.names := by
+    rw [HyperEnv.names, Finset.mem_biUnion]
+    use Ex
+    simp [hc, Ex, Env.names_distributes]
+  exact hf (Typing.names_subset_f hP hx)
+
+lemma HyperEnv.names_subset_self {𝒢 : HyperEnv} {Γ : Env} (h : Γ ∈ 𝒢) :
+  Γ.names ⊆ 𝒢.names := by
+  simp [HyperEnv.names, Env.names]
+  apply Finset.subset_biUnion_of_mem (fun E => Env.names E) h
+
+-- throw in base?
+lemma set_cancel {α : Type} [DecidableEq α] (S T : Finset α) (x : α)
   (heq : S ∪ {x} = T ∪ {x}) (hnS : x ∉ S) (hnT : x ∉ T) : S = T := by
   rw [← Finset.erase_insert hnS, ← Finset.erase_insert hnT]
   simp only [Finset.insert_eq, Finset.union_comm, heq]
 
--- theorem Typing.no_empty_components {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
---   ∅ ∉ 𝒢 := by
---   induction h
+lemma HyperEnv.merge_cancel_right {𝒢 ℋ : HyperEnv} {Γ : Env}
+  (heq : 𝒢 |ₕ {Γ} = ℋ |ₕ {Γ}) (hn1 : Γ ∉ 𝒢) (hn2 : Γ ∉ ℋ) : 𝒢 = ℋ := by
+  apply set_cancel (x := Γ)
+  · simp only [HyperEnv.merge] at heq
+    exact heq
+  · exact hn1
+  · exact hn2
 
---   case mix₀ | mix | one => simp_all [Env.mk]
-
---   case bot Γ _ x _ _ _ | oplus₁ Γ _ x _ _ _ _ | oplus₂ Γ _ x _ _ _ _
---     | amp Γ _ _ x _ _ _ _ _ _ | quest Γ _ x _ _ _ | bang Γ _ x _ _ _ _
---     | w Γ _ x _ _ _ _ | c Γ _ x _ _ _ _ _ _  | exists_ Γ _ x _ _ _ _ _
---     | forall_ Γ _ x _ _ _ _ _ | parr Γ _ x y _ _ _ hneq _ _ =>
---     simp_all
---     by_contra h
---     have hnames := congrArg Env.names h
---     simp only [Env.names_distributes, Env.names_singleton, Env.names_empty] at hnames
---     have : x ∈ (Γ.names ∪ {x}) := by simp
---     simp_all [← hnames]
-
---   case ax x y _ _  =>
---     simp_all
---     by_contra h
---     have hnames := congrArg Env.names h
---     simp only [Env.names_distributes, Env.names_singleton, Env.names_empty] at hnames
---     have : x ∈ ({x} ∪ {y} : Finset PName) :=
---       Finset.mem_union.mpr (Or.inl (Finset.mem_singleton.mpr rfl))
---     rw [← hnames] at this
---     simp at this
-
---   case tensor Γ Δ _ x y _ _ _ hneq _ _ _ =>
---     simp_all
---     by_contra h
---     have hnames := congrArg Env.names h
---     simp only [Env.names_distributes, Env.names_singleton, Env.names_empty] at hnames
---     have : x ∈ Γ.names ∪ Δ.names ∪ {x} ∪ {y} := by simp
---     simp_all [← hnames]
-
---   case cut 𝒢' Γ Δ _ x y A _ _ _ _ ih =>
---     intro h
---     simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at h
---     rcases h with h𝒢 | hØ
---     · apply ih
---       simp only [HyperEnv.merge, Finset.mem_union]
---       left ; left ; exact h𝒢
---     · sorry -- impossible since the cut rule says nothing about Γ nor Δ
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+lemma HyperEnv.merge_swap_last {𝒢 ℋ 𝒥 : HyperEnv} : 𝒢 |ₕ ℋ |ₕ 𝒥 = 𝒢 |ₕ 𝒥 |ₕ ℋ := by
+  rw [HyperEnv.merge_assoc, HyperEnv.merge_comm _ 𝒥, ← HyperEnv.merge_assoc]
 
 
 
@@ -365,6 +331,63 @@ lemma cut_premise_nonempty {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {x y : PNa
   (Γ‚ x ∶ A).names.Nonempty ∧ (Δ‚ y ∶ Aᗮ).names.Nonempty := by
   intro h
   simp [Env.names, Env.merge, Env.mk]
+
+
+
+
+def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
+  ∀ Γ ∈ 𝒢, ∀ Δ ∈ 𝒢, Γ ≠ Δ → Γ.disjoint Δ
+
+theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
+  (h : ⊢ P ∷ 𝒢) : 𝒢.PairwiseDisjoint := by
+  induction h
+
+  case mix 𝒢 ℋ P Q hd _ _ ih𝒢 ihℋ =>
+    intro A hA B hB hneq
+    simp at hA hB
+    rcases hA with hA | hA <;> rcases hB with hB | hB
+    · exact ih𝒢 A hA B hB hneq
+    · apply Disjoint.mono (HyperEnv.names_subset_self hA) (HyperEnv.names_subset_self hB) hd
+    · apply Disjoint.mono (HyperEnv.names_subset_self hA) (HyperEnv.names_subset_self hB) hd.symm
+    · exact ihℋ A hA B hB hneq
+
+  case cut 𝒢' Γ Δ P x y A hFresh hNeq hDisjΓΔ h_premise ih =>
+    let Ex := Γ‚ x ∶ A
+    let Ey := Δ‚ y ∶ Aᗮ
+    let E_new := Γ‚ Δ
+
+    have h_pairwise_premise : (𝒢' |ₕ {Ex} |ₕ {Ey}).PairwiseDisjoint := ih
+    intro E1 hE1 E2 hE2 hDiff
+    simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at hE1 hE2
+    rcases hE1 with hE1_G | rfl <;> rcases hE2 with hE2_G | rfl
+    · apply h_pairwise_premise E1
+      · simp [hE1_G]
+      · simp [hE2_G]
+      · exact hDiff
+
+    · simp only [Env.disjoint, Env.names_distributes]
+      apply Finset.disjoint_union_right.mpr
+
+      constructor
+      · apply Finset.disjoint_of_subset_right (Finset.subset_union_left)
+        · sorry
+        · sorry
+      · sorry
+
+    · simp only [Env.disjoint, Env.names_distributes]
+      apply Finset.disjoint_union_left.mpr
+      constructor
+      · sorry
+      · sorry
+    · contradiction
+
+
+
+
+  all_goals simp [HyperEnv.PairwiseDisjoint]
+
+
+
 
 
 
@@ -662,15 +685,55 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
     -- results in ⊢ P ∷ 𝒢 |ₕ ∅ |ₕ ∅ = ⊢ P ∷ 𝒢
 
 
-    -- apply Iff.intro
-    -- ·
-    --   intro h
-    --   cases h
-    --   rename_i 𝒢1 Γ1 Δ1 A1 hd1 hf1 hneq1 𝒟
-    --   generalize heq_mid :  𝒢1 |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} = 𝒥
-    --   rw [heq_mid] at 𝒟
-    --   cases 𝒟
-    --   rename_i 𝒢2 Γ2 Δ2 A2 hd2 hf2 hneq2 𝒟'
+    apply Iff.intro
+    · intro h
+
+      obtain ⟨Γ1, Δ1, A1, 𝒢_mid, rfl,
+        hx𝒢, hxΓ, hxΔ, hy𝒢, hyΓ, hyΔ,
+        hneq1, hd1, 𝒟⟩ := Typing.cut_inversion h
+
+      obtain ⟨Γ2, Δ2, A2, 𝒢_core, heq_mid,
+        ha𝒢, haΓ, haΔ, hb𝒢, hbΓ, hbΔ,
+        hneq2, hd2, 𝒟'⟩ := Typing.cut_inversion 𝒟
+
+      generalize hE : (Γ2‚ Δ2) = E
+      rw [hE] at heq_mid
+
+      have h_source : E ∈ 𝒢_mid |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} := by
+        rw [heq_mid] ; simp [HyperEnv.merge]
+
+      simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at h_source
+      rcases h_source with h1 | hR
+      · rcases h1 with hM | hL
+        · let 𝒢_rem := 𝒢_mid \ E
+          have hMS : 𝒢_mid = 𝒢_rem |ₕ E := by
+            simp_all only [𝒢_rem, Finset.union_singleton, ne_eq, Env.disjoint,
+            Finset.insert_sdiff_self_of_mem]
+
+          have heq_core : 𝒢_core = 𝒢_rem |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} := by
+            rw [hMS, HyperEnv.merge_assoc, HyperEnv.merge_swap_last,
+               ← HyperEnv.merge_assoc] at heq_mid
+            apply HyperEnv.merge_cancel_right
+            · symm ; exact heq_mid
+            · sorry
+            · sorry
+
+          rw [heq_core, HyperEnv.merge_assoc 𝒢_rem (Γ1‚ x ∶ A1) (Δ1‚ y ∶ A1ᗮ),
+            HyperEnv.merge_assoc, HyperEnv.merge_swap_last, ← HyperEnv.merge_assoc,
+            ← HyperEnv.merge_assoc] at 𝒟'
+
+          rw [hMS, ← hE, HyperEnv.merge_swap_last]
+          apply Typing.cut _ _ _ _ _ _ A2
+          · rw [HyperEnv.merge_assoc, HyperEnv.merge_swap_last]
+            apply Typing.cut _ _ _ _ _ _ A1
+            · rw [← HyperEnv.merge_assoc]
+              exact 𝒟'
+            · sorry -- disjointness
+            · exact hneq1
+            · exact hd1
+          · sorry -- disjointness
+          · exact hneq2
+          · exact hd2
 
 
 
@@ -679,8 +742,14 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
 
 
 
-    all_goals sorry
-    -- · sorry -- mpr case
+
+
+
+        · sorry
+      · sorry
+
+
+    · sorry
 
 
 
