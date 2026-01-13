@@ -351,38 +351,77 @@ theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
     · apply Disjoint.mono (HyperEnv.names_subset_self hA) (HyperEnv.names_subset_self hB) hd.symm
     · exact ihℋ A hA B hB hneq
 
-  case cut 𝒢' Γ Δ P x y A hFresh hNeq hDisjΓΔ h_premise ih =>
+  case cut 𝒢' Γ Δ P x y A hf hneq hd 𝒟 ih =>
     let Ex := Γ‚ x ∶ A
     let Ey := Δ‚ y ∶ Aᗮ
     let E_new := Γ‚ Δ
 
-    have h_pairwise_premise : (𝒢' |ₕ {Ex} |ₕ {Ey}).PairwiseDisjoint := ih
+    have hpp : (𝒢' |ₕ {Ex} |ₕ {Ey}).PairwiseDisjoint := ih
     intro E1 hE1 E2 hE2 hDiff
     simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at hE1 hE2
-    rcases hE1 with hE1_G | rfl <;> rcases hE2 with hE2_G | rfl
-    · apply h_pairwise_premise E1
-      · simp [hE1_G]
-      · simp [hE2_G]
+    rcases hE1 with hE1_𝒢 | rfl <;> rcases hE2 with hE2_𝒢 | rfl
+    · apply hpp E1
+      · simp [hE1_𝒢]
+      · simp [hE2_𝒢]
       · exact hDiff
 
     · simp only [Env.disjoint, Env.names_distributes]
       apply Finset.disjoint_union_right.mpr
 
-      constructor
-      · apply Finset.disjoint_of_subset_right (Finset.subset_union_left)
-        · sorry
-        · sorry
-      · sorry
+      have hneq : E1 ≠ Ex ∧ E1 ≠ Ey := by
+        have hxy : x ∈ Ex.names ∧ y ∈ Ey.names:= by simp [Ex, Ey]
+        apply And.intro
+        · intro heq
+          rw [← heq] at hxy
+          · have hxG : x ∈ 𝒢'.names := Finset.mem_biUnion.mpr ⟨E1, hE1_𝒢, hxy.1⟩
+            exact hf.1 hxG
+        · intro heq
+          rw [← heq] at hxy
+          · have hG : y ∈ 𝒢'.names := Finset.mem_biUnion.mpr ⟨E1, hE1_𝒢, hxy.2⟩
+            exact hf.2.2.2.1 hG
+
+      have h_disj_E1_Ex : Disjoint E1.names Ex.names :=
+        hpp E1 (by simp [hE1_𝒢]) Ex (by simp [Ex]) hneq.1
+
+      have h_disj_E1_Ey : Disjoint E1.names Ey.names :=
+        hpp E1 (by simp [hE1_𝒢]) Ey (by simp [Ey]) hneq.2
+
+      apply And.intro
+      · apply Finset.disjoint_of_subset_right _ h_disj_E1_Ex
+        simp [Ex]
+      · apply Finset.disjoint_of_subset_right _ h_disj_E1_Ey
+        simp [Ey]
 
     · simp only [Env.disjoint, Env.names_distributes]
       apply Finset.disjoint_union_left.mpr
-      constructor
-      · sorry
-      · sorry
+
+      have hneq : E2 ≠ Ex ∧ E2 ≠ Ey := by
+        have hxy : x ∈ Ex.names ∧ y ∈ Ey.names:= by simp [Ex, Ey]
+        apply And.intro
+        · intro heq
+          rw [← heq] at hxy
+          · have hxG : x ∈ 𝒢'.names := Finset.mem_biUnion.mpr ⟨E2, hE2_𝒢, hxy.1⟩
+            exact hf.1 hxG
+        · intro heq
+          rw [← heq] at hxy
+          · have hG : y ∈ 𝒢'.names := Finset.mem_biUnion.mpr ⟨E2, hE2_𝒢, hxy.2⟩
+            exact hf.2.2.2.1 hG
+
+      have h_disj_E2_Ex : Disjoint E2.names Ex.names :=
+        hpp E2 (by simp [hE2_𝒢]) Ex (by simp [Ex]) hneq.1
+
+      have h_disj_E2_Ey : Disjoint E2.names Ey.names :=
+        hpp E2 (by simp [hE2_𝒢]) Ey (by simp [Ey]) hneq.2
+
+      apply And.intro
+      · apply Disjoint.symm
+        apply Finset.disjoint_of_subset_right _ h_disj_E2_Ex
+        simp [Ex]
+      · apply Disjoint.symm
+        apply Finset.disjoint_of_subset_right _ h_disj_E2_Ey
+        simp [Ey]
+
     · contradiction
-
-
-
 
   all_goals simp [HyperEnv.PairwiseDisjoint]
 
