@@ -28,8 +28,6 @@
 
 -- TODO: Ask about the cut_swap case
 
--- TODO: Make lean print the notation for the Has_ Type Classes
-
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
    This might need to be a structural congruence (≡)
     · P |ₚ 𝟘 ∼ P
@@ -42,6 +40,8 @@
     · 𝑣⸨x,y⸩ (𝑣⸨x', y'⸩ P) ∼ 𝑣⸨x', y'⸩ (𝑣⸨x,y⸩ P)
     · 𝑣⸨x, y⸩ π.P ∼ π.(𝑣⸨x,y⸩ P)    (NOTE: LHS is ill-typed even if RHS is well-typed)
     · 𝑣⸨x, y⸩ Q ∼ Q                 (NOTE: LHS is ill-typed even if RHS is well-typed)
+
+    · Show simulation thingy
 -/
 
 -- TODO: Fix some processes bindnig weirdly (par, cut, etc.)
@@ -84,6 +84,8 @@
   · TypingStep
   · Create replacement examples
 -/
+
+-- TODO: Make lean print the notation for the Has_ Type Classes
 
 /- TODO:
   · Make notation check section in Examples.lean for Proc, Types, Labels and check
@@ -143,8 +145,6 @@
   · Both of the above are related to question (4)
 -/
 
--- TODO: Show simulation thingy
-
 -- TODO: τ-reflexicity
 
 -- TODO: Look through old revisions of main.pdf and transfer / check marked uncertanties
@@ -191,7 +191,7 @@
 
 /-
   Is it the typing rules which ensure that a single name cannot be used by multiple
-  environments otherwise how is 𝒢(x) supposed to be defined and is it correctly '
+  environments otherwise how is 𝒢(x) supposed to be defined and is it correctly
   understood that typing rules ensure name linearity in environments.
 -/
 

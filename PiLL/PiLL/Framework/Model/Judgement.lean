@@ -273,14 +273,6 @@ lemma Typing.cut_inversion {𝒢 : HyperEnv} {P : Proc} {x y : PName}
 
 
 
--- Theorem proving Typing preserves disjointness?
-
-
-
-
-
-
-
 
 
 
@@ -586,7 +578,7 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
       rename_i 𝒢' ℋ' hd2 hP hQ
       · let Ex := Γ‚ x ∶ A
         let Ey := Δ‚ y ∶ Aᗮ
-        let Ctx := ({Ex} : HyperEnv) |ₕ {Ey}
+        let Ctx := {Ex} |ₕ {Ey}
 
         have hTotal : Ex ∈ (𝒢 |ₕ Ex |ₕ Ey) ∧ Ey ∈ (𝒢 |ₕ Ex |ₕ Ey) := by simp
 
@@ -717,62 +709,58 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
         · exact hQ
 
   case cut_swap P' x y a b hDisj =>
-    -- Beginning to thinkg this is currently not possible since when having inverted both
-    -- cuts reconstructing the first cut may or may not comsume the entire environment
-    -- which the seconc cut relies on
-    -- e.g. ⊢ P ∷ 𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ, might have Γ = ∅, Δ = ∅, so performing a cut
-    -- results in ⊢ P ∷ 𝒢 |ₕ ∅ |ₕ ∅ = ⊢ P ∷ 𝒢
-
-
     apply Iff.intro
     · intro h
-
-      obtain ⟨Γ1, Δ1, A1, 𝒢_mid, rfl,
+      obtain ⟨Γxy, Δxy, Axy, 𝒢xy, rfl,
         hx𝒢, hxΓ, hxΔ, hy𝒢, hyΓ, hyΔ,
-        hneq1, hd1, 𝒟⟩ := Typing.cut_inversion h
+        hneq_xy, hd_xy, h_inner⟩ := Typing.cut_inversion h
 
-      obtain ⟨Γ2, Δ2, A2, 𝒢_core, heq_mid,
+      obtain ⟨Γab, Δab, Aab, 𝒢ab, h𝒢_eq,
         ha𝒢, haΓ, haΔ, hb𝒢, hbΓ, hbΔ,
-        hneq2, hd2, 𝒟'⟩ := Typing.cut_inversion 𝒟
+        hneq_ab, hd_ab, h_core⟩ := Typing.cut_inversion h_inner
 
-      generalize hE : (Γ2‚ Δ2) = E
-      rw [hE] at heq_mid
+      have h_mem : (Γab‚ Δab) ∈ 𝒢xy |ₕ {Γxy‚ x ∶ Axy} |ₕ {Δxy‚ y ∶ Axyᗮ} := by
+        rw [h𝒢_eq] ; simp
 
-      have h_source : E ∈ 𝒢_mid |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} := by
-        rw [heq_mid] ; simp [HyperEnv.merge]
+      simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at h_mem
+      cases h_mem
+      case mp.inl h =>
+        cases h
+        case inl hin𝒢xy =>
+          let 𝒢rest := 𝒢xy.erase (Γab‚ Δab)
+          have h_decomp : 𝒢xy = 𝒢rest |ₕ {Γab‚ Δab} := by
+            simp ; symm ; exact Finset.insert_erase hin𝒢xy
 
-      simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at h_source
-      rcases h_source with h1 | hR
-      · rcases h1 with hM | hL
-        · let 𝒢_rem := 𝒢_mid \ E
-          have hMS : 𝒢_mid = 𝒢_rem |ₕ E := by
-            simp_all only [𝒢_rem, Finset.union_singleton, ne_eq, Env.disjoint,
-            Finset.insert_sdiff_self_of_mem]
-
-          have heq_core : 𝒢_core = 𝒢_rem |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} := by
-            rw [hMS, HyperEnv.merge_assoc, HyperEnv.merge_swap_last,
-               ← HyperEnv.merge_assoc] at heq_mid
-            apply HyperEnv.merge_cancel_right
-            · symm ; exact heq_mid
-            · sorry
-            · sorry
-
-          rw [heq_core, HyperEnv.merge_assoc 𝒢_rem (Γ1‚ x ∶ A1) (Δ1‚ y ∶ A1ᗮ),
-            HyperEnv.merge_assoc, HyperEnv.merge_swap_last, ← HyperEnv.merge_assoc,
-            ← HyperEnv.merge_assoc] at 𝒟'
-
-          rw [hMS, ← hE, HyperEnv.merge_swap_last]
-          apply Typing.cut _ _ _ _ _ _ A2
+          rw [h_decomp, HyperEnv.merge_swap_last]
+          apply Typing.cut (𝒢rest |ₕ {Γxy‚ Δxy}) Γab Δab (𝑣⸨x, y⸩ P') a b Aab
           · rw [HyperEnv.merge_assoc, HyperEnv.merge_swap_last]
-            apply Typing.cut _ _ _ _ _ _ A1
+            apply Typing.cut _ _ _ _ _ _ Axy
             · rw [← HyperEnv.merge_assoc]
-              exact 𝒟'
-            · sorry -- disjointness
-            · exact hneq1
-            · exact hd1
-          · sorry -- disjointness
-          · exact hneq2
-          · exact hd2
+              sorry -- Derivation
+            · split_ands
+              · sorry
+              · exact hxΓ
+              · exact hxΔ
+              · sorry
+              · exact hyΓ
+              · exact hyΔ
+            · exact hneq_xy
+            · exact hd_xy
+          · split_ands
+            · sorry
+            · exact haΓ
+            · exact haΔ
+            · sorry
+            · exact hbΓ
+            · exact hbΔ
+          · exact hneq_ab
+          · exact hd_ab
+
+
+
+
+        case inr heq_Ex => sorry
+      case inr heq_Ey => sorry
 
 
 
@@ -784,38 +772,62 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
 
 
 
-        · sorry
-      · sorry
 
 
-    · sorry
+    -- apply Iff.intro
+    -- · intro h
+
+    --   obtain ⟨Γ1, Δ1, A1, 𝒢_mid, rfl,
+    --     hx𝒢, hxΓ, hxΔ, hy𝒢, hyΓ, hyΔ,
+    --     hneq1, hd1, 𝒟⟩ := Typing.cut_inversion h
+
+    --   obtain ⟨Γ2, Δ2, A2, 𝒢_core, heq_mid,
+    --     ha𝒢, haΓ, haΔ, hb𝒢, hbΓ, hbΔ,
+    --     hneq2, hd2, 𝒟'⟩ := Typing.cut_inversion 𝒟
+
+    --   generalize hE : (Γ2‚ Δ2) = E
+    --   rw [hE] at heq_mid
+
+    --   have h_source : E ∈ 𝒢_mid |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} := by
+    --     rw [heq_mid] ; simp [HyperEnv.merge]
+
+    --   simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at h_source
+    --   rcases h_source with h1 | hR
+    --   · rcases h1 with hM | hL
+    --     · let 𝒢_rem := 𝒢_mid \ E
+    --       have hMS : 𝒢_mid = 𝒢_rem |ₕ E := by
+    --         simp_all only [𝒢_rem, Finset.union_singleton, ne_eq, Env.disjoint,
+    --         Finset.insert_sdiff_self_of_mem]
+
+    --       have heq_core : 𝒢_core = 𝒢_rem |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} := by
+    --         sorry
+
+
+    --       rw [heq_core, HyperEnv.merge_assoc 𝒢_rem (Γ1‚ x ∶ A1) (Δ1‚ y ∶ A1ᗮ),
+    --         HyperEnv.merge_assoc, HyperEnv.merge_swap_last, ← HyperEnv.merge_assoc,
+    --         ← HyperEnv.merge_assoc] at 𝒟'
+
+    --       rw [hMS, ← hE, HyperEnv.merge_swap_last]
+    --       apply Typing.cut _ _ _ _ _ _ A2
+    --       · rw [HyperEnv.merge_assoc, HyperEnv.merge_swap_last]
+    --         apply Typing.cut _ _ _ _ _ _ A1
+    --         · rw [← HyperEnv.merge_assoc]
+    --           exact 𝒟'
+    --         · sorry -- disjointness
+    --         · exact hneq1
+    --         · exact hd1
+    --       · sorry -- disjointness
+    --       · exact hneq2
+    --       · exact hd2
+    --     · sorry
+    --   · sorry
+    -- · sorry
 
 
 
 
 
 
-
-
-
-
-example :
-  ⊢ 𝑣⸨1, 2⸩ ((1⟦⟧․𝟘) |ₚ (2⸨⸩․3⟦⟧․𝟘)) ∷ ∅‚ 3 ∶ 1 := by
-  rw [← HyperEnv.merge_unitL (∅‚ 3 ∶ 1)]
-  apply Typing.cut _ _ _ _ _ _ 1
-  · rw [HyperEnv.merge_unitL]
-    apply Typing.mix
-    · simp [HyperEnv.disjoint]
-    · rw [Env.merge_unitL]
-      apply Typing.one
-      apply Typing.mix₀
-    · apply Typing.bot
-      · simp
-      · apply Typing.one
-        · apply Typing.mix₀
-  · simp
-  · simp
-  · simp
 
 
 
