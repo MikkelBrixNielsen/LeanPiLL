@@ -9,8 +9,6 @@
     · Take another look as all side conditions
 -/
 
--- TODO: Get merging of Envs / HyperEnvs to include disjointness condition
-
 /- TODO:
   · Figure out if putting disjoint and freshness constraints on Typing rules is the
     way to go, or if you should do something else
@@ -44,7 +42,20 @@
     · Show simulation thingy
 -/
 
+/- TODO:
+  · Show that for any valid typing if the process can make a step, then the environment can
+    also make a step.
+-/
+
 -- TODO: Fix some processes bindnig weirdly (par, cut, etc.)
+
+/- TODO:
+  · Check what minimal set of disjointness side conditions are for Typing rules
+  · Fix proofs relying on these side conditions, use disjointness theorem to obtian
+    the same facts as were available by rule.
+-/
+
+
 
 
 
@@ -157,7 +168,8 @@
 
 -- TODO: Remove unused lemmas
 
--- TODO: Ensure consistency in using {} and for lemma and theorem arguments
+-- TODO: Ensure consistency in using {} and for lemma and theorem arguments use () for
+--       associativity, commutivity etc
 
 /- TODO: Look over the proof for judgement name replacement
   · Shorten it if possible

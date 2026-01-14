@@ -254,35 +254,7 @@ lemma Typing.f_eq_names {𝒢 : HyperEnv} {P : Proc} {h : ⊢ P ∷ 𝒢} :
   P.f = 𝒢.names := by
   exact Finset.Subset.antisymm (Typing.f_subset_names h) (Typing.names_subset_f h)
 
-lemma Typing.cut_inversion {𝒢 : HyperEnv} {P : Proc} {x y : PName}
-  (h : ⊢ 𝑣⸨x, y⸩ P ∷ 𝒢) : ∃ Γ Δ A 𝒢_ctx,
-    𝒢 = 𝒢_ctx |ₕ {Γ‚ Δ} ∧
-    x ∉ 𝒢_ctx.names ∧ x ∉ Γ.names ∧ x ∉ Δ.names ∧
-    y ∉ 𝒢_ctx.names ∧ y ∉ Γ.names ∧ y ∉ Δ.names ∧
-    x ≠ y ∧ Γ.disjoint Δ ∧
-    ⊢ P ∷ 𝒢_ctx |ₕ {Γ‚ x ∶ A} |ₕ {Δ‚ y ∶ Aᗮ} := by
-  generalize hG : 𝒢 = 𝒢_in at h
-  cases h
-
-  case cut 𝒢' Γ' Δ' A' hd hf hneq 𝒟' =>
-    subst hG
-    simp at *
-    exists Γ', Δ', A', 𝒢'
-    refine ⟨rfl, hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.1, hf.2.2.2.2.2,
-      hneq, hd, 𝒟'⟩
-
-
-
-
-
-
-
-
-
-
-
-
-lemma HyperEnv.not_mem_of_fresh_name {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {x : PName}
+lemma Typing.not_mem_of_fresh_name {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {x : PName}
   {A : Types} (hf : x ∉ P.f) (hP : ⊢ P ∷ 𝒢) : Γ‚ x ∶ A ∉ 𝒢 := by
   let Ex := Γ‚ x ∶ A
   intro hc
@@ -291,44 +263,6 @@ lemma HyperEnv.not_mem_of_fresh_name {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {x 
     use Ex
     simp [hc, Ex, Env.names_distributes]
   exact hf (Typing.names_subset_f hP hx)
-
-lemma HyperEnv.names_subset_self {𝒢 : HyperEnv} {Γ : Env} (h : Γ ∈ 𝒢) :
-  Γ.names ⊆ 𝒢.names := by
-  simp [HyperEnv.names, Env.names]
-  apply Finset.subset_biUnion_of_mem (fun E => Env.names E) h
-
--- throw in base?
-lemma set_cancel {α : Type} [DecidableEq α] (S T : Finset α) (x : α)
-  (heq : S ∪ {x} = T ∪ {x}) (hnS : x ∉ S) (hnT : x ∉ T) : S = T := by
-  rw [← Finset.erase_insert hnS, ← Finset.erase_insert hnT]
-  simp only [Finset.insert_eq, Finset.union_comm, heq]
-
-lemma HyperEnv.merge_cancel_right {𝒢 ℋ : HyperEnv} {Γ : Env}
-  (heq : 𝒢 |ₕ {Γ} = ℋ |ₕ {Γ}) (hn1 : Γ ∉ 𝒢) (hn2 : Γ ∉ ℋ) : 𝒢 = ℋ := by
-  apply set_cancel (x := Γ)
-  · simp only [HyperEnv.merge] at heq
-    exact heq
-  · exact hn1
-  · exact hn2
-
-lemma HyperEnv.merge_swap_last {𝒢 ℋ 𝒥 : HyperEnv} : 𝒢 |ₕ ℋ |ₕ 𝒥 = 𝒢 |ₕ 𝒥 |ₕ ℋ := by
-  rw [HyperEnv.merge_assoc, HyperEnv.merge_comm _ 𝒥, ← HyperEnv.merge_assoc]
-
-
-
-
-
-lemma cut_premise_nonempty {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {x y : PName} {A : Types} :
-  Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P →
-  (Γ‚ x ∶ A).names.Nonempty ∧ (Δ‚ y ∶ Aᗮ).names.Nonempty := by
-  intro h
-  simp [Env.names, Env.merge, Env.mk]
-
-
-
-
-def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
-  ∀ Γ ∈ 𝒢, ∀ Δ ∈ 𝒢, Γ ≠ Δ → Γ.disjoint Δ
 
 theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
   (h : ⊢ P ∷ 𝒢) : 𝒢.PairwiseDisjoint := by
@@ -339,11 +273,15 @@ theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
     simp at hA hB
     rcases hA with hA | hA <;> rcases hB with hB | hB
     · exact ih𝒢 A hA B hB hneq
-    · apply Disjoint.mono (HyperEnv.names_subset_self hA) (HyperEnv.names_subset_self hB) hd
-    · apply Disjoint.mono (HyperEnv.names_subset_self hA) (HyperEnv.names_subset_self hB) hd.symm
+    · apply Disjoint.mono
+        (HyperEnv.mem_implies_names_subset_self hA)
+        (HyperEnv.mem_implies_names_subset_self hB) hd
+    · apply Disjoint.mono
+        (HyperEnv.mem_implies_names_subset_self hA)
+        (HyperEnv.mem_implies_names_subset_self hB) hd.symm
     · exact ihℋ A hA B hB hneq
 
-  case cut 𝒢' Γ Δ P x y A hf hneq hd 𝒟 ih =>
+  case cut 𝒢' Γ Δ P x y A hf _ _ _ ih =>
     let Ex := Γ‚ x ∶ A
     let Ey := Δ‚ y ∶ Aᗮ
     let E_new := Γ‚ Δ
@@ -416,6 +354,154 @@ theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
     · contradiction
 
   all_goals simp [HyperEnv.PairwiseDisjoint]
+
+
+
+
+
+/- -------------------------------- Delete? -------------------------------- -/
+-- throw in base?
+lemma set_cancel {α : Type} [DecidableEq α] (S T : Finset α) (x : α)
+  (heq : S ∪ {x} = T ∪ {x}) (hnS : x ∉ S) (hnT : x ∉ T) : S = T := by
+  rw [← Finset.erase_insert hnS, ← Finset.erase_insert hnT]
+  simp only [Finset.insert_eq, Finset.union_comm, heq]
+
+lemma HyperEnv.merge_cancel_right {𝒢 ℋ : HyperEnv} {Γ : Env}
+  (heq : 𝒢 |ₕ {Γ} = ℋ |ₕ {Γ}) (hn1 : Γ ∉ 𝒢) (hn2 : Γ ∉ ℋ) : 𝒢 = ℋ := by
+  apply set_cancel (x := Γ)
+  · simp only [HyperEnv.merge] at heq
+    exact heq
+  · exact hn1
+  · exact hn2
+-----------------------------------------------------------------------------
+
+
+
+
+
+
+lemma Typing.cut_inversion {𝒢 : HyperEnv} {P : Proc} {x y : PName}
+  (h : ⊢ 𝑣⸨x, y⸩ P ∷ 𝒢) : ∃ Γ Δ A 𝒢_ctx,
+    𝒢 = 𝒢_ctx |ₕ {Γ‚ Δ} ∧
+    x ∉ 𝒢_ctx.names ∧ x ∉ Γ.names ∧ x ∉ Δ.names ∧
+    y ∉ 𝒢_ctx.names ∧ y ∉ Γ.names ∧ y ∉ Δ.names ∧
+    x ≠ y ∧ Γ.disjoint Δ ∧
+    ⊢ P ∷ 𝒢_ctx |ₕ {Γ‚ x ∶ A} |ₕ {Δ‚ y ∶ Aᗮ} := by
+  generalize hG : 𝒢 = 𝒢_in at h
+  cases h
+
+  case cut 𝒢' Γ' Δ' A' hd hf hneq 𝒟' =>
+    subst hG
+    simp at *
+    exists Γ', Δ', A', 𝒢'
+    refine ⟨rfl, hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.1, hf.2.2.2.2.2,
+      hneq, hd, 𝒟'⟩
+
+lemma Typing.cut_swap_dir {P : Proc} {x y a b : PName} {𝒢 : HyperEnv}
+  (hDisj : ({x, y} ∩ {a, b} : Finset PName) = ∅) (h : ⊢ 𝑣⸨x, y⸩ (𝑣⸨a, b⸩ P) ∷ 𝒢) :
+  ⊢ 𝑣⸨a, b⸩ (𝑣⸨x, y⸩ P) ∷ 𝒢 := by
+
+
+  -- cases h
+  -- rename_i 𝒢xy Γxy Δxy Axy hd_xy hf_xy hneq_xy 𝒟xy
+  -- cases
+
+  obtain ⟨Γxy, Δxy, Axy, 𝒢xy, rfl,
+          hf_x𝒢, hf_xΓ, hf_xΔ,
+          hf_y𝒢, hf_yΓ, hf_yΔ,
+          hneq_xy, hd_xy, 𝒟'⟩ := Typing.cut_inversion h
+
+  obtain ⟨Γab, Δab, Aab, 𝒢ab, heq,
+          hf_a𝒢, hf_aΓ, hf_aΔ,
+          hf_b𝒢, hf_bΓ, hf_bΔ,
+          hneq_ab, hd_ab, 𝒟⟩ := Typing.cut_inversion 𝒟'
+
+  have h_mem : (Γab‚ Δab) ∈ 𝒢xy |ₕ {Γxy‚ x ∶ Axy} |ₕ {Δxy‚ y ∶ Axyᗮ} := by
+    rw [heq] ; simp
+
+  simp at h_mem
+  rcases h_mem with hEy | hEx | h𝒢
+
+  -- CASE 1: Γab‚ Δab = Δxy‚ y ∶ Axyᗮ
+  · sorry
+
+  -- CASE 2: Γab‚ Δab = Γxy‚ x ∶ Axy
+  · sorry
+
+  -- CASE 3: Γab‚ Δab ∈ 𝒢xy
+  ·
+    let 𝒢rest := 𝒢xy.erase (Γab‚ Δab)
+    have h_decomp : 𝒢xy = 𝒢rest |ₕ {Γab‚ Δab} := by
+      rw [HyperEnv.merge_comm]
+      exact (Finset.insert_erase h𝒢).symm
+
+    rw [h_decomp, HyperEnv.merge_swap_last]
+    apply Typing.cut _ _ _ _ a b Aab
+    · -- Derivation need for outer cut to be valid
+      rw [HyperEnv.merge_assoc, HyperEnv.merge_swap_last, ← HyperEnv.merge_assoc]
+      apply Typing.cut _ _ _ _ x y Axy
+      · -- Derivation
+        convert 𝒟 using 1
+        rw [h_decomp] at heq
+        let Z := Γab‚ Δab
+
+        have h_isolation :
+          (𝒢ab |ₕ {Z}).erase Z =
+          ((𝒢rest |ₕ {Z}) |ₕ {Γxy‚ x ∶ Axy} |ₕ {Δxy‚ y ∶ Axyᗮ}).erase Z := by
+          rw [← heq]
+
+
+
+
+        simp at h_isolation
+        rw [Finset.erase_insert_of_ne] at h_isolation
+        · rw [Finset.erase_insert_of_ne] at h_isolation
+          · rw [Finset.erase_insert] at h_isolation
+            · have h_Z_not_in_Gab : Z ∉ 𝒢ab := by
+                intro h_contra
+                have h_a_in_Z : a ∈ Z.names := by sorry
+
+
+
+                have h_a_in_Gab : a ∈ 𝒢ab.names :=
+                  HyperEnv.mem_implies_names_subset_self h_contra h_a_in_Z
+
+                exact hf_a𝒢 h_a_in_Gab
+
+              rw [Finset.erase_eq_of_notMem h_Z_not_in_Gab] at h_isolation
+              rw [h_isolation]
+              simp only [Finset.insert_eq, HyperEnv.merge]
+              conv_rhs => rw [← Finset.union_assoc, Finset.union_assoc, Finset.union_assoc,
+                Finset.union_comm, Finset.union_comm ({Δxy‚ y ∶ Axyᗮ}) ({Γxy‚ x ∶ Axy}),
+                ← Finset.union_assoc, ← Finset.union_assoc]
+            · sorry
+          · sorry
+        · sorry
+
+
+
+
+      · split_ands
+        · sorry
+        · exact hf_xΓ
+        · exact hf_xΔ
+        · sorry
+        · exact hf_yΓ
+        · exact hf_yΔ
+      · exact hneq_xy
+      · exact hd_xy
+
+    · split_ands
+      · sorry
+      · exact hf_aΓ
+      · exact hf_aΔ
+      · sorry
+      · exact hf_bΓ
+      · exact hf_bΔ
+    · exact hneq_ab
+    · exact hd_ab
+
+
 
 
 
@@ -586,8 +672,8 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
         simp [HyperEnv.merge, Finset.mem_union] at hTotal
 
         have hninℋ' : Ex ∉ ℋ' ∧ Ey ∉ ℋ':=
-          ⟨HyperEnv.not_mem_of_fresh_name hf1.1 hQ,
-          HyperEnv.not_mem_of_fresh_name hf1.2 hQ⟩
+          ⟨Typing.not_mem_of_fresh_name hf1.1 hQ,
+          Typing.not_mem_of_fresh_name hf1.2 hQ⟩
 
         have hin𝒢' : Ex ∈ 𝒢' ∧ Ey ∈ 𝒢' :=
           ⟨Or.resolve_right hTotal.1 hninℋ'.1,
@@ -671,12 +757,12 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
           · apply Finset.disjoint_of_subset_left _ hd2
             have hΓEx : Γ.names ⊆ Ex.names := by simp [Ex]
             have hEx𝒢' : Ex.names ⊆ 𝒢'.names :=
-              HyperEnv.names_subset_self hin𝒢'.1
+              HyperEnv.mem_implies_names_subset_self hin𝒢'.1
             exact Finset.Subset.trans hΓEx hEx𝒢'
           · apply Finset.disjoint_of_subset_left _ hd2
             have hΔEy : Δ.names ⊆ Ey.names := by simp [Ey]
             have hEy𝒢' : Ey.names ⊆ 𝒢'.names :=
-              HyperEnv.names_subset_self hin𝒢'.2
+              HyperEnv.mem_implies_names_subset_self hin𝒢'.2
             exact Finset.Subset.trans hΔEy hEy𝒢'
 
         have hf' : x ∉ 𝒢'_base.names ∧ x ∉ Γ.names ∧ x ∉ Δ.names ∧ y ∉ 𝒢'_base.names
@@ -710,125 +796,10 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
 
   case cut_swap P' x y a b hDisj =>
     apply Iff.intro
+    · apply Typing.cut_swap_dir hDisj
     · intro h
-      obtain ⟨Γxy, Δxy, Axy, 𝒢xy, rfl,
-        hx𝒢, hxΓ, hxΔ, hy𝒢, hyΓ, hyΔ,
-        hneq_xy, hd_xy, h_inner⟩ := Typing.cut_inversion h
-
-      obtain ⟨Γab, Δab, Aab, 𝒢ab, h𝒢_eq,
-        ha𝒢, haΓ, haΔ, hb𝒢, hbΓ, hbΔ,
-        hneq_ab, hd_ab, h_core⟩ := Typing.cut_inversion h_inner
-
-      have h_mem : (Γab‚ Δab) ∈ 𝒢xy |ₕ {Γxy‚ x ∶ Axy} |ₕ {Δxy‚ y ∶ Axyᗮ} := by
-        rw [h𝒢_eq] ; simp
-
-      simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at h_mem
-      cases h_mem
-      case mp.inl h =>
-        cases h
-        case inl hin𝒢xy =>
-          let 𝒢rest := 𝒢xy.erase (Γab‚ Δab)
-          have h_decomp : 𝒢xy = 𝒢rest |ₕ {Γab‚ Δab} := by
-            simp ; symm ; exact Finset.insert_erase hin𝒢xy
-
-          rw [h_decomp, HyperEnv.merge_swap_last]
-          apply Typing.cut (𝒢rest |ₕ {Γxy‚ Δxy}) Γab Δab (𝑣⸨x, y⸩ P') a b Aab
-          · rw [HyperEnv.merge_assoc, HyperEnv.merge_swap_last]
-            apply Typing.cut _ _ _ _ _ _ Axy
-            · rw [← HyperEnv.merge_assoc]
-              sorry -- Derivation
-            · split_ands
-              · sorry
-              · exact hxΓ
-              · exact hxΔ
-              · sorry
-              · exact hyΓ
-              · exact hyΔ
-            · exact hneq_xy
-            · exact hd_xy
-          · split_ands
-            · sorry
-            · exact haΓ
-            · exact haΔ
-            · sorry
-            · exact hbΓ
-            · exact hbΔ
-          · exact hneq_ab
-          · exact hd_ab
-
-
-
-
-        case inr heq_Ex => sorry
-      case inr heq_Ey => sorry
-
-
-
-
-
-
-
-
-
-
-
-
-
-    -- apply Iff.intro
-    -- · intro h
-
-    --   obtain ⟨Γ1, Δ1, A1, 𝒢_mid, rfl,
-    --     hx𝒢, hxΓ, hxΔ, hy𝒢, hyΓ, hyΔ,
-    --     hneq1, hd1, 𝒟⟩ := Typing.cut_inversion h
-
-    --   obtain ⟨Γ2, Δ2, A2, 𝒢_core, heq_mid,
-    --     ha𝒢, haΓ, haΔ, hb𝒢, hbΓ, hbΔ,
-    --     hneq2, hd2, 𝒟'⟩ := Typing.cut_inversion 𝒟
-
-    --   generalize hE : (Γ2‚ Δ2) = E
-    --   rw [hE] at heq_mid
-
-    --   have h_source : E ∈ 𝒢_mid |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} := by
-    --     rw [heq_mid] ; simp [HyperEnv.merge]
-
-    --   simp only [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at h_source
-    --   rcases h_source with h1 | hR
-    --   · rcases h1 with hM | hL
-    --     · let 𝒢_rem := 𝒢_mid \ E
-    --       have hMS : 𝒢_mid = 𝒢_rem |ₕ E := by
-    --         simp_all only [𝒢_rem, Finset.union_singleton, ne_eq, Env.disjoint,
-    --         Finset.insert_sdiff_self_of_mem]
-
-    --       have heq_core : 𝒢_core = 𝒢_rem |ₕ {Γ1‚ x ∶ A1} |ₕ {Δ1‚ y ∶ A1ᗮ} := by
-    --         sorry
-
-
-    --       rw [heq_core, HyperEnv.merge_assoc 𝒢_rem (Γ1‚ x ∶ A1) (Δ1‚ y ∶ A1ᗮ),
-    --         HyperEnv.merge_assoc, HyperEnv.merge_swap_last, ← HyperEnv.merge_assoc,
-    --         ← HyperEnv.merge_assoc] at 𝒟'
-
-    --       rw [hMS, ← hE, HyperEnv.merge_swap_last]
-    --       apply Typing.cut _ _ _ _ _ _ A2
-    --       · rw [HyperEnv.merge_assoc, HyperEnv.merge_swap_last]
-    --         apply Typing.cut _ _ _ _ _ _ A1
-    --         · rw [← HyperEnv.merge_assoc]
-    --           exact 𝒟'
-    --         · sorry -- disjointness
-    --         · exact hneq1
-    --         · exact hd1
-    --       · sorry -- disjointness
-    --       · exact hneq2
-    --       · exact hd2
-    --     · sorry
-    --   · sorry
-    -- · sorry
-
-
-
-
-
-
-
+      rw [Finset.inter_comm] at hDisj
+      apply Typing.cut_swap_dir hDisj h
 
 
 

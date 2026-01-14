@@ -484,3 +484,18 @@ lemma HyperEnv.substName_eq_self_of_not_mem (𝒢 : HyperEnv) (x z : PName)
 @[simp] lemma HyperEnv.freeTypes_notMem_merge {𝒢 ℋ : HyperEnv} {X : TVar} :
    (X ∉ ft(𝒢 |ₕ ℋ)ₕ) = (X ∉ ft(𝒢)ₕ ∧ X ∉ ft(ℋ)ₕ) := by
    simp only [HyperEnv.freeTypes_distributes, Finset.notMem_union]
+
+lemma HyperEnv.mem_implies_names_subset_self {𝒢 : HyperEnv} {Γ : Env} (h : Γ ∈ 𝒢) :
+  Γ.names ⊆ 𝒢.names := by
+  simp [HyperEnv.names, Env.names]
+  apply Finset.subset_biUnion_of_mem (fun E => Env.names E) h
+
+lemma HyperEnv.merge_swap_last (𝒢 ℋ 𝒥 : HyperEnv) : 𝒢 |ₕ ℋ |ₕ 𝒥 = 𝒢 |ₕ 𝒥 |ₕ ℋ := by
+  rw [HyperEnv.merge_assoc, HyperEnv.merge_comm _ 𝒥, ← HyperEnv.merge_assoc]
+
+def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
+  ∀ Γ ∈ 𝒢, ∀ Δ ∈ 𝒢, Γ ≠ Δ → Γ.disjoint Δ
+
+lemma HyperEnv.merge_move_second_two_right (𝒢 ℋ ℐ 𝒥 : HyperEnv) :
+  𝒢 |ₕ ℋ |ₕ ℐ |ₕ 𝒥 = 𝒢 |ₕ ℐ |ₕ 𝒥 |ₕ ℋ := by
+  rw [HyperEnv.merge_swap_last 𝒢 ℋ ℐ, HyperEnv.merge_swap_last (𝒢 |ₕ ℐ) ℋ 𝒥]
