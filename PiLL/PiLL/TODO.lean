@@ -1,30 +1,44 @@
 ------------------------------------------ TODOs  ------------------------------------------
+/-
+1)
+I am trying to prove that typing is preserved under process congruence, in particular under
+commutativity of cuts:
 
-/- TODO: Add side conditions to typing rules enforcing
-    · Environments can only contain one occurence of a process name
-    · Hyper-environments can only contain one occurence of an environment name
-    · i.e. typing rules should enforce linearity
-    · Is it perhaps just an assumption that we don't merge Envs / HyperEnvs which
-      share a PName or should I add a sidecondition somewhere.
-    · Take another look as all side conditions
+νxy(νx'y'P) ∼ νx'y'(νxyP)
+
+I am currently stuck on this case and am unsure whether my typing assumptions are strong
+enough. Currently, I assume:
+- For any judgement ⊢ P ∷ 𝒢, all environments in 𝒢 are pairwise disjoint (i.e. no two
+  environments mention the same process name)
+- The restricted names are distinct {x, y} ∩ {a, b} = Ø
+- The cut rule requires freshness in ⊢ 𝑣xy P ∷ 𝒢 |ₕ Γ, Δ the names x, y are distinct and
+  aren't mentioned in 𝒢, Γ, or Δ. (I am currently relying on this rather than
+  alpha-equivalence)
+
+2)
+Should the cut rule allow cuts that consume the entire environment. For example, consider
+the judgement:
+⊢ x[].P | y().z[].Q ∷ 𝒢 | Γ, x ∶ 1 | Δ, z ∶ 1‚ y ∶ ⊥
+Is it intended that any or all of 𝒢, Γ, or Δ can be empty?
+
+In particular, should the following be considered a valid instance of cut?
+⊢ x[].0 | y().z[].0 ∷ Ø | Ø‚ x ∶ 1 | Ø, z : 1, y ∶ ⊥
+----------------------------------------------------- CUT
+     ⊢ 𝝂𝑥𝑦 (x[].0 | y().z[].0) ∷ Ø | Ø, z : 1
+In general should cuts be allowed when they eliminate the surrounding context,
+or restricted to cases where additional context remains?
+
+3)
+I am unsure whether the following congruences should be included in the definition of
+process congruence:
+ (1) 𝑣xy π.P ∼ π.𝑣xy P		(2) 𝑣xy Q ∼ Q
+As stated in Main.pdf the left hand side is ill-typed despite the right hand side being
+well-typed. Would it be acceptable to omit these, or should I be thinking about defining
+a (bi)simulation in terms of saturated transitions?
 -/
 
-/- TODO:
-  · Figure out if putting disjoint and freshness constraints on Typing rules is the
-    way to go, or if you should do something else
-  · Finish type substitution theorem on judgements
-    · proof works modulo not prooving it handles renaming correctly
--/
 
 
-
-
-
-
-
-
-
--- TODO: Ask about the cut_swap case
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
    This might need to be a structural congruence (≡)
@@ -43,11 +57,10 @@
 -/
 
 /- TODO:
+  · Check correctness of ProcStep and EnvStep
   · Show that for any valid typing if the process can make a step, then the environment can
     also make a step.
 -/
-
--- TODO: Fix some processes bindnig weirdly (par, cut, etc.)
 
 /- TODO:
   · Check what minimal set of disjointness side conditions are for Typing rules
@@ -55,15 +68,17 @@
     the same facts as were available by rule.
 -/
 
+-- TODO: Make lean print the notation for the Has_ Type Classes
+
+-- TODO: Fix some processes bindnig weirdly (par, cut, etc.)
 
 
 
 
-/- TODO:
-  · Check correctness of ProcStep and EnvStep
-  · Theorem prooving when a well typed process makes a step the environment can follow
-    and is also well typed.
--/
+
+
+
+
 
 /- TODO: Extend TypingStep and fix rules
   · If not remade as theorem instead of actual rules then fix
@@ -85,34 +100,6 @@
   · Correct the rules using this as needed.
 -/
 
-
-
-
-/- TODO: Create examples / test usage of:
-  · ProcStep
-  · EnvStep
-  · Typing
-  · TypingStep
-  · Create replacement examples
--/
-
--- TODO: Make lean print the notation for the Has_ Type Classes
-
-/- TODO:
-  · Make notation check section in Examples.lean for Proc, Types, Labels and check
-    if it works as expected
-  · Ensure precedence works as intended
--/
-
--- TODO: Create some examples for generic µ label thing
-
--- TODO: Create some examples as well)
-
--- TODO: Create the qunatifier example Marco gave in discord
-
--- TODO: Create examples for ?? and !!
-
--- TODO: Example 5.1 (check if it is compileable)
 
 
 
@@ -142,6 +129,7 @@
 
 
 
+
 /- TODO: show erasure for processes and environments / hyperenvironments
   · if 𝒟 -[l]-> 𝒟' then proc(𝒟) -[l]-> proc(𝒟'), and
 
@@ -155,6 +143,44 @@
 
   · Both of the above are related to question (4)
 -/
+
+
+
+/- TODO:
+  · Finish type substitution theorem on judgements.
+    · Currently works modulo not prooving it handles renaming correctly
+    · If possible get it to work without assuming Barendregt's variable convetion
+  · Remove hFresh and hSafe from name substitution proof and use aplha equivalence
+    to show it is possible to pick a freshname and get an equivalent process
+-/
+
+
+
+/- TODO: Create examples / test usage of:
+  · ProcStep
+  · EnvStep
+  · Typing
+  · TypingStep
+  · Create replacement examples
+-/
+
+/- TODO:
+  · Make notation check section in Examples.lean for Proc, Types, Labels and check
+    if it works as expected
+  · Ensure precedence works as intended
+-/
+
+-- TODO: Create some examples for generic µ label thing
+
+-- TODO: Create some examples as well)
+
+-- TODO: Create the qunatifier example Marco gave in discord
+
+-- TODO: Create examples for ?? and !!
+
+-- TODO: Example 5.1 (check if it is compileable)
+
+
 
 -- TODO: τ-reflexicity
 
