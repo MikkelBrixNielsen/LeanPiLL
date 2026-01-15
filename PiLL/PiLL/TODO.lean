@@ -1,40 +1,33 @@
 ------------------------------------------ TODOs  ------------------------------------------
-/-
-1)
-I am trying to prove that typing is preserved under process congruence, in particular under
-commutativity of cuts:
 
-νxy(νx'y'P) ∼ νx'y'(νxyP)
+/- Meeting Topics
 
-I am currently stuck on this case and am unsure whether my typing assumptions are strong
-enough. Currently, I assume:
-- For any judgement ⊢ P ∷ 𝒢, all environments in 𝒢 are pairwise disjoint (i.e. no two
-  environments mention the same process name)
-- The restricted names are distinct {x, y} ∩ {a, b} = Ø
-- The cut rule requires freshness in ⊢ 𝑣xy P ∷ 𝒢 |ₕ Γ, Δ the names x, y are distinct and
-  aren't mentioned in 𝒢, Γ, or Δ. (I am currently relying on this rather than
-  alpha-equivalence)
+# Process Congruence
+  · The definition
+  · Exclusion of 𝑣xy π.P ∼ π.𝑣xy P and 𝑣xy Q ∼ Q, valid? Or disprove them? Or
+    (bi)simulation is terms of saturated transitions.
+  · The cut_swap case being stuck, issues obtaining derivation having the process typed
+    with both the xy and ab sets of environments.
 
-2)
-Should the cut rule allow cuts that consume the entire environment. For example, consider
-the judgement:
-⊢ x[].P | y().z[].Q ∷ 𝒢 | Γ, x ∶ 1 | Δ, z ∶ 1‚ y ∶ ⊥
-Is it intended that any or all of 𝒢, Γ, or Δ can be empty?
+# Preservation Theorem (Transition / Step Proof)
+  · Should steps from judgement to judgement be a proof showing if a process can make
+    a step then it is also possible for the environment? Or should it be an inductive
+    like the Typing, and then have another theorem binding process steps, environments
+    steps and the combination together. (Theorem for Proc + Env seems more managable)
 
-In particular, should the following be considered a valid instance of cut?
-⊢ x[].0 | y().z[].0 ∷ Ø | Ø‚ x ∶ 1 | Ø, z : 1, y ∶ ⊥
------------------------------------------------------ CUT
-     ⊢ 𝝂𝑥𝑦 (x[].0 | y().z[].0) ∷ Ø | Ø, z : 1
-In general should cuts be allowed when they eliminate the surrounding context,
-or restricted to cases where additional context remains?
+# ProcStep and EnvStep
+  · Well-formedness: Is it okay to have WF premises in the syn rule? Otherwise, how do
+    I avoid this. The current restriction seem too lose to proove WF otherwise.
 
-3)
-I am unsure whether the following congruences should be included in the definition of
-process congruence:
- (1) 𝑣xy π.P ∼ π.𝑣xy P		(2) 𝑣xy Q ∼ Q
-As stated in Main.pdf the left hand side is ill-typed despite the right hand side being
-well-typed. Would it be acceptable to omit these, or should I be thinking about defining
-a (bi)simulation in terms of saturated transitions?
+# Substitution lemmas
+  · Name: hFresh and hSafe, valid? Or replace with renaming transitivity?
+  · Type: Sorry cases, valid to assume Barendregt's? Or need rename equivalence?
+
+# Typing Induvtive and its Side Conditions
+  · Should I keep hFresh, hneq etc., or convert to if there is a clash picking and using a
+    fresh name yields an equivalent process, which can be used instead.
+
+
 -/
 
 

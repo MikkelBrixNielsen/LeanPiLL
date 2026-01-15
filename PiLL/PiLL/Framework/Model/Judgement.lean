@@ -800,9 +800,3 @@ theorem Typing.respects_cong {𝒢 : HyperEnv} {P Q : Proc}
     · intro h
       rw [Finset.inter_comm] at hDisj
       apply Typing.cut_swap_dir hDisj h
-
-
-
-
--- theorem preservation {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
---   (hType : ⊢ P ∷ 𝒢) (hPStep : P -[l]->ₚ Q) (hEStep : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by
