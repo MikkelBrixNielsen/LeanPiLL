@@ -1,5 +1,36 @@
--- import PiLL.Framework.Model.Judgement
--- import PiLL.Framework.Semantics.Labels
+import PiLL.Framework.Model.Judgement
+import PiLL.Framework.Semantics.Labels
+import PiLL.Framework.Semantics.ProcStep
+import PiLL.Framework.Semantics.EnvStep
+
+
+
+
+
+
+
+
+
+
+theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
+  (h : ⊢ P ∷ 𝒢) (hPStep : P -[l]->ₚ Q) (hEStep : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by
+  induction hPStep
+
+  case one P' x' =>
+    cases h
+    rename_i 𝒟
+    have hℋ : ℋ = ∅ := by
+      cases hEStep
+      rfl
+
+
+
+
+  sorry
+
+
+
+
 
 -- inductive TypingStep : {𝒢 : HyperEnv} → {P : Proc} → Typing 𝒢 P →
 --   Lbl → {𝒢' : HyperEnv} → {P' : Proc} → Typing 𝒢' P' → Prop where
