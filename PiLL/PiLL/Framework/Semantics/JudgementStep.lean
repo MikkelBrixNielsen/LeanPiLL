@@ -4,29 +4,53 @@ import PiLL.Framework.Semantics.ProcStep
 import PiLL.Framework.Semantics.EnvStep
 
 
+-- lemma EnvStep_one_support
+--   {𝒢 ℋ : HyperEnv} {x : PName} : --{l : Lbl} :
+--   (𝒢 -[x⟦()⟧]->ₑ ℋ) → ∃ 𝒢₀, 𝒢 = 𝒢₀ |ₕ ∅ ∧ EnvStep 𝒢₀ (x⟦()⟧) ℋ := by
+--   intro h
+--   cases h
+--   . sorry
+--   . rename_i G1 G2 G3 D
+--     have ih := @EnvStep_one_support G1 G2 x D
+
+--     sorry
+  -- intro h hl
+  -- subst hl
+  -- induction h with
+  -- | one =>
+  --   simp_all
+  --   apply EnvStep.one
+
+  -- | par₁ h ih =>
+  --     subst hl
+  --     rcases ih with ⟨𝒢₀, hEq, hStep⟩
+  --     refine ⟨𝒢₀, ?_, hStep⟩
+  --     simp [hEq, HyperEnv.par_assoc]
+  -- | par₂ h ih =>
+  --     rcases ih with ⟨𝒢₀, hEq, hStep⟩
+  --     refine ⟨𝒢₀, ?_, hStep⟩
+  --     simp [hEq, HyperEnv.par_assoc]
+  -- | _ =>
+  --     cases h
 
 
 
 
 
+-- theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
+--   (h : ⊢ P ∷ 𝒢) (hPStep : P -[l]->ₚ Q) (hEStep : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by
+--   --intro heq
+--   induction hPStep
 
-
-
-theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
-  (h : ⊢ P ∷ 𝒢) (hPStep : P -[l]->ₚ Q) (hEStep : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by
-  induction hPStep
-
-  case one P' x' =>
-    cases h
-    rename_i 𝒟
-    have hℋ : ℋ = ∅ := by
-      cases hEStep
-      rfl
+--   case one P' x' =>
+--     cases h
+--     rename_i 𝒟
+--     cases hEStep
 
 
 
 
-  sorry
+--   sorry
 
 
 

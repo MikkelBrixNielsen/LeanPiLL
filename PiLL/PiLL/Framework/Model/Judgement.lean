@@ -397,14 +397,11 @@ lemma Typing.cut_inversion {𝒢 : HyperEnv} {P : Proc} {x y : PName}
     refine ⟨rfl, hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.1, hf.2.2.2.2.2,
       hneq, hd, 𝒟'⟩
 
+
+
 lemma Typing.cut_swap_dir {P : Proc} {x y a b : PName} {𝒢 : HyperEnv}
   (hDisj : ({x, y} ∩ {a, b} : Finset PName) = ∅) (h : ⊢ 𝑣⸨x, y⸩ (𝑣⸨a, b⸩ P) ∷ 𝒢) :
   ⊢ 𝑣⸨a, b⸩ (𝑣⸨x, y⸩ P) ∷ 𝒢 := by
-
-
-  -- cases h
-  -- rename_i 𝒢xy Γxy Δxy Axy hd_xy hf_xy hneq_xy 𝒟xy
-  -- cases
 
   obtain ⟨Γxy, Δxy, Axy, 𝒢xy, rfl,
           hf_x𝒢, hf_xΓ, hf_xΔ,
@@ -416,90 +413,108 @@ lemma Typing.cut_swap_dir {P : Proc} {x y a b : PName} {𝒢 : HyperEnv}
           hf_b𝒢, hf_bΓ, hf_bΔ,
           hneq_ab, hd_ab, 𝒟⟩ := Typing.cut_inversion 𝒟'
 
-  have h_mem : (Γab‚ Δab) ∈ 𝒢xy |ₕ {Γxy‚ x ∶ Axy} |ₕ {Δxy‚ y ∶ Axyᗮ} := by
-    rw [heq] ; simp
+  let Ex := Γxy‚ x ∶ Axy
+  let Ey := Δxy‚ y ∶ Axyᗮ
+  let Z  := Γab‚ Δab
 
-  simp at h_mem
-  rcases h_mem with hEy | hEx | h𝒢
+  have h_Ex : Ex ∈ 𝒢ab |ₕ {Z} := by rw [← heq] ; simp [HyperEnv.merge] ; right ; left ; rfl
+  have h_Ey : Ey ∈ 𝒢ab |ₕ {Z} := by rw [← heq] ; simp [HyperEnv.merge] ; left ; rfl
 
-  -- CASE 1: Γab‚ Δab = Δxy‚ y ∶ Axyᗮ
-  · sorry
+  simp [HyperEnv.merge, Finset.mem_union, Finset.mem_singleton] at h_Ex h_Ey
 
-  -- CASE 2: Γab‚ Δab = Γxy‚ x ∶ Axy
-  · sorry
-
-  -- CASE 3: Γab‚ Δab ∈ 𝒢xy
-  ·
-    let 𝒢rest := 𝒢xy.erase (Γab‚ Δab)
-    have h_decomp : 𝒢xy = 𝒢rest |ₕ {Γab‚ Δab} := by
-      rw [HyperEnv.merge_comm]
-      exact (Finset.insert_erase h𝒢).symm
-
-    rw [h_decomp, HyperEnv.merge_swap_last]
-    apply Typing.cut _ _ _ _ a b Aab
-    · -- Derivation need for outer cut to be valid
-      rw [HyperEnv.merge_assoc, HyperEnv.merge_swap_last, ← HyperEnv.merge_assoc]
-      apply Typing.cut _ _ _ _ x y Axy
-      · -- Derivation
-        convert 𝒟 using 1
-        rw [h_decomp] at heq
-        let Z := Γab‚ Δab
-
-        have h_isolation :
-          (𝒢ab |ₕ {Z}).erase Z =
-          ((𝒢rest |ₕ {Z}) |ₕ {Γxy‚ x ∶ Axy} |ₕ {Δxy‚ y ∶ Axyᗮ}).erase Z := by
-          rw [← heq]
+  sorry
+  -- Other approach define where Ex and Ey are instead.
 
 
 
 
-        simp at h_isolation
-        rw [Finset.erase_insert_of_ne] at h_isolation
-        · rw [Finset.erase_insert_of_ne] at h_isolation
-          · rw [Finset.erase_insert] at h_isolation
-            · have h_Z_not_in_Gab : Z ∉ 𝒢ab := by
-                intro h_contra
-                have h_a_in_Z : a ∈ Z.names := by sorry
+
+  -- have h_mem : (Γab‚ Δab) ∈ 𝒢xy |ₕ {Γxy‚ x ∶ Axy} |ₕ {Δxy‚ y ∶ Axyᗮ} := by
+  --   rw [heq] ; simp
+
+  -- simp at h_mem
+  -- rcases h_mem with hEy | hEx | h𝒢
+
+  -- -- CASE 1: Γab‚ Δab = Δxy‚ y ∶ Axyᗮ
+  -- · sorry
+
+  -- -- CASE 2: Γab‚ Δab = Γxy‚ x ∶ Axy
+  -- · sorry
+
+  -- -- CASE 3: Γab‚ Δab ∈ 𝒢xy
+  -- ·
+  --   let 𝒢rest := 𝒢xy.erase (Γab‚ Δab)
+  --   have h_decomp : 𝒢xy = 𝒢rest |ₕ {Γab‚ Δab} := by
+  --     rw [HyperEnv.merge_comm]
+  --     exact (Finset.insert_erase h𝒢).symm
+
+  --   rw [h_decomp, HyperEnv.merge_swap_last]
+  --   apply Typing.cut _ _ _ _ a b Aab
+  --   · -- Derivation need for outer cut to be valid
+  --     rw [HyperEnv.merge_assoc, HyperEnv.merge_swap_last, ← HyperEnv.merge_assoc]
+  --     apply Typing.cut _ _ _ _ x y Axy
+  --     ·
+
+  --       -- Derivation
+  --       convert 𝒟 using 1
+  --       rw [h_decomp] at heq
+  --       let Z := Γab‚ Δab
+
+  --       have h_isolation :
+  --         (𝒢ab |ₕ {Z}).erase Z =
+  --         ((𝒢rest |ₕ {Z}) |ₕ {Γxy‚ x ∶ Axy} |ₕ {Δxy‚ y ∶ Axyᗮ}).erase Z := by
+  --         rw [← heq]
 
 
 
-                have h_a_in_Gab : a ∈ 𝒢ab.names :=
-                  HyperEnv.mem_implies_names_subset_self h_contra h_a_in_Z
 
-                exact hf_a𝒢 h_a_in_Gab
-
-              rw [Finset.erase_eq_of_notMem h_Z_not_in_Gab] at h_isolation
-              rw [h_isolation]
-              simp only [Finset.insert_eq, HyperEnv.merge]
-              conv_rhs => rw [← Finset.union_assoc, Finset.union_assoc, Finset.union_assoc,
-                Finset.union_comm, Finset.union_comm ({Δxy‚ y ∶ Axyᗮ}) ({Γxy‚ x ∶ Axy}),
-                ← Finset.union_assoc, ← Finset.union_assoc]
-            · sorry
-          · sorry
-        · sorry
+  --       simp at h_isolation
+  --       rw [Finset.erase_insert_of_ne] at h_isolation
+  --       · rw [Finset.erase_insert_of_ne] at h_isolation
+  --         · rw [Finset.erase_insert] at h_isolation
+  --           · have h_Z_not_in_Gab : Z ∉ 𝒢ab := by
+  --               intro h_contra
+  --               have h_a_in_Z : a ∈ Z.names := by sorry
 
 
 
+  --               have h_a_in_Gab : a ∈ 𝒢ab.names :=
+  --                 HyperEnv.mem_implies_names_subset_self h_contra h_a_in_Z
 
-      · split_ands
-        · sorry
-        · exact hf_xΓ
-        · exact hf_xΔ
-        · sorry
-        · exact hf_yΓ
-        · exact hf_yΔ
-      · exact hneq_xy
-      · exact hd_xy
+  --               exact hf_a𝒢 h_a_in_Gab
 
-    · split_ands
-      · sorry
-      · exact hf_aΓ
-      · exact hf_aΔ
-      · sorry
-      · exact hf_bΓ
-      · exact hf_bΔ
-    · exact hneq_ab
-    · exact hd_ab
+  --             rw [Finset.erase_eq_of_notMem h_Z_not_in_Gab] at h_isolation
+  --             rw [h_isolation]
+  --             simp only [Finset.insert_eq, HyperEnv.merge]
+  --             conv_rhs => rw [← Finset.union_assoc, Finset.union_assoc, Finset.union_assoc,
+  --               Finset.union_comm, Finset.union_comm ({Δxy‚ y ∶ Axyᗮ}) ({Γxy‚ x ∶ Axy}),
+  --               ← Finset.union_assoc, ← Finset.union_assoc]
+  --           · sorry
+  --         · sorry
+  --       · sorry
+
+
+
+
+  --     · split_ands
+  --       · sorry
+  --       · exact hf_xΓ
+  --       · exact hf_xΔ
+  --       · sorry
+  --       · exact hf_yΓ
+  --       · exact hf_yΔ
+  --     · exact hneq_xy
+  --     · exact hd_xy
+
+  --   · split_ands
+  --     · sorry
+  --     · exact hf_aΓ
+  --     · exact hf_aΔ
+  --     · sorry
+  --     · exact hf_bΓ
+  --     · exact hf_bΔ
+  --   · exact hneq_ab
+  --   · exact hd_ab
 
 
 
