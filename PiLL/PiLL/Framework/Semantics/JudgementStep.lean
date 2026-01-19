@@ -4,53 +4,69 @@ import PiLL.Framework.Semantics.ProcStep
 import PiLL.Framework.Semantics.EnvStep
 
 
--- lemma EnvStep_one_support
---   {𝒢 ℋ : HyperEnv} {x : PName} : --{l : Lbl} :
---   (𝒢 -[x⟦()⟧]->ₑ ℋ) → ∃ 𝒢₀, 𝒢 = 𝒢₀ |ₕ ∅ ∧ EnvStep 𝒢₀ (x⟦()⟧) ℋ := by
---   intro h
---   cases h
---   . sorry
---   . rename_i G1 G2 G3 D
---     have ih := @EnvStep_one_support G1 G2 x D
 
---     sorry
-  -- intro h hl
-  -- subst hl
-  -- induction h with
-  -- | one =>
-  --   simp_all
-  --   apply EnvStep.one
 
-  -- | par₁ h ih =>
-  --     subst hl
-  --     rcases ih with ⟨𝒢₀, hEq, hStep⟩
-  --     refine ⟨𝒢₀, ?_, hStep⟩
-  --     simp [hEq, HyperEnv.par_assoc]
-  -- | par₂ h ih =>
-  --     rcases ih with ⟨𝒢₀, hEq, hStep⟩
-  --     refine ⟨𝒢₀, ?_, hStep⟩
-  --     simp [hEq, HyperEnv.par_assoc]
-  -- | _ =>
-  --     cases h
+
+lemma HyperEnv.merge_eq_singleton_iff {E : Env} {G H : HyperEnv} :
+  G |ₕ H = {E} ↔ (G = {E} ∧ H = ∅) ∨ (G = ∅ ∧ H = {E}) ∨ (G = {E} ∧ H = {E}) := by
+  constructor
+  · intro h
+    have hG : G ⊆ {E} := by rw [← h]; exact Finset.subset_union_left
+    have hH : H ⊆ {E} := by rw [← h]; exact Finset.subset_union_right
+    rw [Finset.subset_singleton_iff] at hG hH
+    rcases hG with rfl | rfl <;> rcases hH with rfl | rfl
+    · rw [HyperEnv.merge_unitL] at h ; left ; simp_all
+    · right; left; constructor <;> rfl
+    · left; constructor <;> rfl
+    · right; right; constructor <;> rfl
+  · intro h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp
+
+lemma EnvStep.no_step_empty {l : Lbl} {𝒢 : HyperEnv} (h : EnvStep ∅ l 𝒢) : False := by
+  generalize hℰ : (∅ : HyperEnv) = ℰ at h
+  induction h
+  all_goals simp only [Env.mk, HyperEnv.merge] at hℰ ; symm at hℰ ; simp_all
 
 
 
 
 
--- theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
---   (h : ⊢ P ∷ 𝒢) (hPStep : P -[l]->ₚ Q) (hEStep : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by
---   --intro heq
---   induction hPStep
-
---   case one P' x' =>
---     cases h
---     rename_i 𝒟
---     cases hEStep
 
 
 
 
---   sorry
+
+
+
+theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
+  (hT : ⊢ P ∷ 𝒢) (hPS : P -[l]->ₚ Q) (hES : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by
+  induction hPS
+  case one x =>
+    cases hT
+    generalize h𝒢 : ({x ∶ 1} : HyperEnv) = 𝒢 at hES
+    cases hES
+
+    case one.one => simp_all
+
+    case one.par₁ 𝒟 _ _ _ step =>
+      symm at h𝒢
+      rw [HyperEnv.merge_eq_singleton_iff] at h𝒢
+      rcases h𝒢 with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      · sorry
+      · exfalso
+        apply EnvStep.no_step_empty step
+      · sorry
+
+    case one.par₂ => sorry
+    case one.res => sorry
+
+
+
+
+
+
+
+
 
 
 
