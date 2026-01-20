@@ -28,6 +28,68 @@ lemma EnvStep.no_step_empty {l : Lbl} {𝒢 : HyperEnv} (h : EnvStep ∅ l 𝒢)
   all_goals simp only [Env.mk, HyperEnv.merge] at hℰ ; symm at hℰ ; simp_all
 
 
+lemma EnvStep.one_inv {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
+  ∃ ℋ, 𝒢 = {x ∶ 1} |ₕ ℋ ∧ 𝒢' = ℋ := by
+  generalize hl : (x⟦⟧ : Lbl) = l at h
+  induction h generalizing x <;> simp at hl
+
+  case one => simp_all
+
+  case par₁ G' H _ _ ih =>
+    specialize ih hl
+    rcases ih with ⟨_, rfl, rfl⟩
+    exists (G' |ₕ H)
+    constructor
+    · rw [HyperEnv.merge_assoc]
+    · rw [HyperEnv.merge_comm]
+
+  case par₂ G G' H _ _ ih =>
+    specialize ih hl
+    rcases ih with ⟨E, rfl, rfl⟩
+    exists (G |ₕ H)
+    constructor
+    · rw [HyperEnv.merge_comm, HyperEnv.merge_swap_last, HyperEnv.merge_assoc]
+    · rw [HyperEnv.merge_comm]
+
+  case res G G' Γ Γ' Δ Δ' a b A B l step IH =>
+    specialize IH hl
+    rcases IH with ⟨E, h1, h2⟩
+
+    have h_mem : x ∶ 1 ∈ G |ₕ {Γ‚ a ∶ Aᗮ} |ₕ {Δ‚ b ∶ A} := by
+      simp only [h1, Finset.mem_union, Finset.mem_singleton, true_or]
+
+    simp at h_mem
+    rcases h_mem with h_is_Eb | h_is_Ea | h_in_G
+    · -- For x ∶ 1 = Δ‚ b ∶ A to be true, then since b ∶ A = ∅ is false Δ = ∅ has to be true
+      -- then since b ∶ A is preserved across the step and x ∶ 1 is consumed would imply
+      -- that x ∶ 1 = b ∶ A is false and x ∶ 1 = ∅ is also false.
+      -- Need a way to show a preserved and consumed resource cannot be equal
+      sorry
+    · -- Same as above case but for Γ‚ a ∶ Aᗮ
+      sorry
+    ·
+      let G_rest := G.erase (x ∶ 1)
+      have h_G_split : G = (x ∶ 1) |ₕ G_rest := by
+        simp [G_rest, HyperEnv.merge, Finset.insert_erase h_in_G]
+
+      exists (G_rest |ₕ {Γ'‚ Δ'})
+      constructor
+
+      · rw [h_G_split]
+        -- Γ and Δ become Γ' and Δ' repsectively after the step but that does not imply
+        -- equality between the two - so might need other approach in this case.
+        sorry
+      · -- since x ∶ 1 ∈ G doing the step and consuming x ∶ 1 to obtain G' should imply
+        -- that  (G \ x ∶ 1) = G_rest = G'. Granted a way to link specific environments
+        -- across steps. It is probably not possible to immediatly show Lean
+        -- 𝒢 | Γ‚ a : Aᗮ |ₕ Δ‚ b ∶ A doing a step to 𝒢' | Γ'‚ a : Aᗮ |ₕ Δ'‚ b ∶ A implies
+        -- that 𝒢 transformed into 𝒢', Γ to Γ', and Δ to Δ'
+        sorry
+
+
+
+
+
 
 
 
@@ -61,6 +123,26 @@ theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
     case one.res => sorry
 
 
+
+
+
+
+-- theorem TypingStep' {𝒢 ℋ : HyperEnv} {P Q : Proc} {L : Lbl}
+--   (hT : Typing 𝒢 P) (hPS : ProcStep P L Q) (hES : EnvStep 𝒢 L ℋ) :
+--   Typing ℋ Q := by
+--   induction hPS
+--   case one =>
+--     cases hT
+--     set e := _
+--     conv at hES =>
+--       arg 1
+--       change e
+--     generalize h : e = e' at hES
+--     cases hES
+--     all_goals
+--       clear! e
+--     case one => assumption
+--     case one.par₁ P' x D G G' H step =>
 
 
 
