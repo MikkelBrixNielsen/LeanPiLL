@@ -4,29 +4,32 @@ import PiLL.Framework.Semantics.ProcStep
 import PiLL.Framework.Semantics.EnvStep
 
 
-
-
-
-lemma HyperEnv.merge_eq_singleton_iff {E : Env} {G H : HyperEnv} :
-  G |ₕ H = {E} ↔ (G = {E} ∧ H = ∅) ∨ (G = ∅ ∧ H = {E}) ∨ (G = {E} ∧ H = {E}) := by
+lemma Env.merge_eq_singleton_iff {Γ Δ : Env} {x : PName} {A : Types} :
+  Γ‚ Δ = x ∶ A ↔ (Γ = x ∶ A ∧ Δ = ∅) ∨ (Γ = ∅ ∧ Δ = x ∶ A) ∨ (Γ = x ∶ A ∧ Δ = x ∶ A) := by
   constructor
   · intro h
-    have hG : G ⊆ {E} := by rw [← h]; exact Finset.subset_union_left
-    have hH : H ⊆ {E} := by rw [← h]; exact Finset.subset_union_right
-    rw [Finset.subset_singleton_iff] at hG hH
-    rcases hG with rfl | rfl <;> rcases hH with rfl | rfl
-    · rw [HyperEnv.merge_unitL] at h ; left ; simp_all
-    · right; left; constructor <;> rfl
-    · left; constructor <;> rfl
-    · right; right; constructor <;> rfl
+    have hΓ : Γ ⊆ x ∶ A := by rw [← h] ; exact Finset.subset_union_left
+    have hΔ : Δ ⊆ x ∶ A := by rw [← h] ; exact Finset.subset_union_right
+    rw [Env.mk, Finset.subset_singleton_iff] at hΓ hΔ
+    rcases hΓ with rfl | rfl <;> rcases hΔ with rfl | rfl <;> simp_all [Env.merge]
   · intro h
-    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp_all [Env.merge]
+
+lemma HyperEnv.merge_eq_singleton_iff {Γ : Env} {𝒢 ℋ : HyperEnv} :
+  𝒢 |ₕ ℋ = {Γ} ↔ (𝒢 = Γ ∧ ℋ = ∅) ∨ (𝒢 = ∅ ∧ ℋ = Γ) ∨ (𝒢 = Γ ∧ ℋ = Γ) := by
+  constructor
+  · intro h
+    have h𝒢 : 𝒢 ⊆ Γ := by rw [← h] ; exact Finset.subset_union_left
+    have hℋ : ℋ ⊆ Γ := by rw [← h] ; exact Finset.subset_union_right
+    rw [Finset.subset_singleton_iff] at h𝒢 hℋ
+    rcases h𝒢 with rfl | rfl <;> rcases hℋ with rfl | rfl <;> simp_all
+  · intro h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp_all
 
 lemma EnvStep.no_step_empty {l : Lbl} {𝒢 : HyperEnv} (h : EnvStep ∅ l 𝒢) : False := by
   generalize hℰ : (∅ : HyperEnv) = ℰ at h
   induction h
   all_goals simp only [Env.mk, HyperEnv.merge] at hℰ ; symm at hℰ ; simp_all
-
 
 lemma EnvStep.one_inv {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
   ∃ ℋ, 𝒢 = {x ∶ 1} |ₕ ℋ ∧ 𝒢' = ℋ := by
@@ -63,8 +66,20 @@ lemma EnvStep.one_inv {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->
     · -- For x ∶ 1 = Δ‚ b ∶ A to be true, then since b ∶ A = ∅ is false Δ = ∅ has to be true
       -- then since b ∶ A is preserved across the step and x ∶ 1 is consumed would imply
       -- that x ∶ 1 = b ∶ A is false and x ∶ 1 = ∅ is also false.
+      have hbnØ : b ∶ A ≠ ∅ := by simp [Env.mk]
+      have hΔØ : Δ = ∅ := by
+        have h := Env.merge_eq_singleton_iff.mp h_is_Eb.symm
+        rcases h with ⟨_, hb⟩ | ⟨rfl, _⟩ | ⟨hΔ, hb⟩
+        · contradiction
+        · rfl
+        · have hd : Δ.disjoint (b ∶ A) := by sorry
+          simp [hb, hΔ] at hd
+      have hxb : x ∶ 1 = b ∶ A := by simp [h_is_Eb, hΔØ]
+      -- contradiction consumed resource cannot be rqual to preserved resource
+
+
       -- Need a way to show a preserved and consumed resource cannot be equal
-      sorry
+
     · -- Same as above case but for Γ‚ a ∶ Aᗮ
       sorry
     ·
@@ -85,6 +100,37 @@ lemma EnvStep.one_inv {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->
         -- 𝒢 | Γ‚ a : Aᗮ |ₕ Δ‚ b ∶ A doing a step to 𝒢' | Γ'‚ a : Aᗮ |ₕ Δ'‚ b ∶ A implies
         -- that 𝒢 transformed into 𝒢', Γ to Γ', and Δ to Δ'
         sorry
+
+
+
+
+
+lemma EnvStep.one_inv'
+  {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
+  ∃ ℋ₁ ℋ₂,
+    𝒢  = ℋ₁ |ₕ {x ∶ 1} |ₕ ℋ₂ ∧
+    𝒢' = ℋ₁ |ₕ ℋ₂ := by
+  generalize hl : (x⟦⟧ : Lbl) = l at h
+
+  induction h with
+
+  | one =>
+      refine ⟨∅, ∅, ?_, ?_⟩ <;> simp_all
+
+  | par₁ _ ih =>
+      rename_i ℋ _ _
+      specialize ih hl
+      rcases ih with ⟨ℋ₁, ℋ₂, hG, hG'⟩
+      refine ⟨ℋ₁, ℋ₂ |ₕ ℋ, ?_, ?_⟩ <;> simp_all
+
+
+  | par₂ _ ih =>
+    sorry
+
+
+  | res _ ih => sorry
+
+  | _ => simp_all
 
 
 

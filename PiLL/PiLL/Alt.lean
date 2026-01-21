@@ -77,8 +77,22 @@ inductive Lbl : Type
   | one (x : Nat)
 
 inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
-  | one {x : Nat} :
-      EnvStep (Env.mk x 1) (.one x) ∅
+  | one {e : HyperEnv} {x : Nat} (h : e = Env.mk x 1) :
+      EnvStep e (.one x) ∅
+
+  | res
+    {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : Nat} {l : Lbl} :
+    (EnvStep
+      (𝒢 ∪ {Γ ∪ Env.mk x 0} ∪ {Δ ∪ Env.mk y 1})
+      l
+      (𝒢' ∪ {Γ' ∪ Env.mk x 0} ∪ {Δ' ∪ Env.mk y 1})
+    )
+    →
+    (EnvStep
+      (𝒢 ∪ {Γ ∪ Δ})
+      l
+      (𝒢' ∪ {Γ' ∪ Δ'})
+    )
 
 inductive ProcStep : Proc → Lbl → Proc → Prop where
   | one {P : Proc} {x : Nat} :
@@ -88,25 +102,9 @@ theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
   (hT : Typing 𝒢 P) (hPS : ProcStep P l Q) (hES : EnvStep 𝒢 l ℋ) :
   Typing ℋ Q := by
   induction hPS
-  
+
   case one P x =>
     cases hT
     generalize h𝒢 : (Env.mk x 1 : HyperEnv) = 𝒢 at hES
-    cases hES
-    assumption  
-  
-  -- case one =>
-  --    cases hT
-  --    rename_i 𝒟
-     
-  --    set e := _
-  --    conv at hES =>
-  --      arg 1
-  --      change e
-  --    generalize h : e = e' at hES
-  --    cases hES
-  --    clear! e
-     
-     
-  --    exact 𝒟
-     
+    cases hES with try (simp_all ; done)
+      | res => sorry
