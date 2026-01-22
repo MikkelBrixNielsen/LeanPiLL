@@ -31,106 +31,46 @@ lemma EnvStep.no_step_empty {l : Lbl} {𝒢 : HyperEnv} (h : EnvStep ∅ l 𝒢)
   induction h
   all_goals simp only [Env.mk, HyperEnv.merge] at hℰ ; symm at hℰ ; simp_all
 
-lemma EnvStep.one_inv {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
-  ∃ ℋ, 𝒢 = {x ∶ 1} |ₕ ℋ ∧ 𝒢' = ℋ := by
-  generalize hl : (x⟦⟧ : Lbl) = l at h
-  induction h generalizing x <;> simp at hl
-
-  case one => simp_all
-
-  case par₁ G' H _ _ ih =>
-    specialize ih hl
-    rcases ih with ⟨_, rfl, rfl⟩
-    exists (G' |ₕ H)
-    constructor
-    · rw [HyperEnv.merge_assoc]
-    · rw [HyperEnv.merge_comm]
-
-  case par₂ G G' H _ _ ih =>
-    specialize ih hl
-    rcases ih with ⟨E, rfl, rfl⟩
-    exists (G |ₕ H)
-    constructor
-    · rw [HyperEnv.merge_comm, HyperEnv.merge_swap_last, HyperEnv.merge_assoc]
-    · rw [HyperEnv.merge_comm]
-
-  case res G G' Γ Γ' Δ Δ' a b A B l step IH =>
-    specialize IH hl
-    rcases IH with ⟨E, h1, h2⟩
-
-    have h_mem : x ∶ 1 ∈ G |ₕ {Γ‚ a ∶ Aᗮ} |ₕ {Δ‚ b ∶ A} := by
-      simp only [h1, Finset.mem_union, Finset.mem_singleton, true_or]
-
-    simp at h_mem
-    rcases h_mem with h_is_Eb | h_is_Ea | h_in_G
-    · -- For x ∶ 1 = Δ‚ b ∶ A to be true, then since b ∶ A = ∅ is false Δ = ∅ has to be true
-      -- then since b ∶ A is preserved across the step and x ∶ 1 is consumed would imply
-      -- that x ∶ 1 = b ∶ A is false and x ∶ 1 = ∅ is also false.
-      have hbnØ : b ∶ A ≠ ∅ := by simp [Env.mk]
-      have hΔØ : Δ = ∅ := by
-        have h := Env.merge_eq_singleton_iff.mp h_is_Eb.symm
-        rcases h with ⟨_, hb⟩ | ⟨rfl, _⟩ | ⟨hΔ, hb⟩
-        · contradiction
-        · rfl
-        · have hd : Δ.disjoint (b ∶ A) := by sorry
-          simp [hb, hΔ] at hd
-      have hxb : x ∶ 1 = b ∶ A := by simp [h_is_Eb, hΔØ]
-      -- contradiction consumed resource cannot be rqual to preserved resource
-
-
-      -- Need a way to show a preserved and consumed resource cannot be equal
-
-    · -- Same as above case but for Γ‚ a ∶ Aᗮ
-      sorry
-    ·
-      let G_rest := G.erase (x ∶ 1)
-      have h_G_split : G = (x ∶ 1) |ₕ G_rest := by
-        simp [G_rest, HyperEnv.merge, Finset.insert_erase h_in_G]
-
-      exists (G_rest |ₕ {Γ'‚ Δ'})
-      constructor
-
-      · rw [h_G_split]
-        -- Γ and Δ become Γ' and Δ' repsectively after the step but that does not imply
-        -- equality between the two - so might need other approach in this case.
-        sorry
-      · -- since x ∶ 1 ∈ G doing the step and consuming x ∶ 1 to obtain G' should imply
-        -- that  (G \ x ∶ 1) = G_rest = G'. Granted a way to link specific environments
-        -- across steps. It is probably not possible to immediatly show Lean
-        -- 𝒢 | Γ‚ a : Aᗮ |ₕ Δ‚ b ∶ A doing a step to 𝒢' | Γ'‚ a : Aᗮ |ₕ Δ'‚ b ∶ A implies
-        -- that 𝒢 transformed into 𝒢', Γ to Γ', and Δ to Δ'
-        sorry
 
 
 
 
 
-lemma EnvStep.one_inv'
-  {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
-  ∃ ℋ₁ ℋ₂,
-    𝒢  = ℋ₁ |ₕ {x ∶ 1} |ₕ ℋ₂ ∧
-    𝒢' = ℋ₁ |ₕ ℋ₂ := by
-  generalize hl : (x⟦⟧ : Lbl) = l at h
-
-  induction h with
-
-  | one =>
-      refine ⟨∅, ∅, ?_, ?_⟩ <;> simp_all
-
-  | par₁ _ ih =>
-      rename_i ℋ _ _
-      specialize ih hl
-      rcases ih with ⟨ℋ₁, ℋ₂, hG, hG'⟩
-      refine ⟨ℋ₁, ℋ₂ |ₕ ℋ, ?_, ?_⟩ <;> simp_all
 
 
-  | par₂ _ ih =>
-    sorry
+-- lemma EnvStep.one_inv'
+--   {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
+--   ∃ ℋ₁ ℋ₂, 𝒢  = ℋ₁ |ₕ {x ∶ 1} |ₕ ℋ₂ ∧ 𝒢' = ℋ₁ |ₕ ℋ₂ := by
+--   generalize hl : (x⟦⟧ : Lbl) = l at h
+--   induction h with
+
+--   | one =>
+--       refine ⟨∅, ∅, ?_, ?_⟩ <;> simp_all
+
+--   | par₁ _ ih =>
+--       rename_i ℋ _ _
+--       specialize ih hl
+--       rcases ih with ⟨ℋ₁, ℋ₂, _, _⟩
+--       refine ⟨ℋ₁, ℋ₂ |ₕ ℋ, ?_, ?_⟩ <;> simp_all
+
+--   | par₂ _ ih =>
+--     rename_i 𝒢 _ _ _ _
+--     specialize ih hl
+--     rcases ih with ⟨ℋ₁, ℋ₂, h𝒢, h𝒢'⟩
+--     refine ⟨ℋ₁, ℋ₂ |ₕ 𝒢, ?_, ?_⟩
+--     · rw [h𝒢, ← HyperEnv.merge_assoc (ℋ₁ |ₕ x ∶ 1) ℋ₂ 𝒢, HyperEnv.merge_comm]
+--     · rw [h𝒢', ← HyperEnv.merge_assoc ℋ₁ _ _, HyperEnv.merge_comm]
+
+--   | res step ih =>
+--     cases step
 
 
-  | res _ ih => sorry
 
-  | _ => simp_all
+
+
+--     sorry
+
+--   | _ => simp_all
 
 
 
@@ -146,49 +86,49 @@ lemma EnvStep.one_inv'
 
 
 
-theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
-  (hT : ⊢ P ∷ 𝒢) (hPS : P -[l]->ₚ Q) (hES : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by
-  induction hPS
-  case one x =>
-    cases hT
-    generalize h𝒢 : ({x ∶ 1} : HyperEnv) = 𝒢 at hES
-    cases hES
-
-    case one.one => simp_all
-
-    case one.par₁ 𝒟 _ _ _ step =>
-      symm at h𝒢
-      rw [HyperEnv.merge_eq_singleton_iff] at h𝒢
-      rcases h𝒢 with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-      · sorry
-      · exfalso
-        apply EnvStep.no_step_empty step
-      · sorry
-
-    case one.par₂ => sorry
-    case one.res => sorry
-
-
-
-
-
-
--- theorem TypingStep' {𝒢 ℋ : HyperEnv} {P Q : Proc} {L : Lbl}
---   (hT : Typing 𝒢 P) (hPS : ProcStep P L Q) (hES : EnvStep 𝒢 L ℋ) :
---   Typing ℋ Q := by
+-- theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
+--   (hT : ⊢ P ∷ 𝒢) (hPS : P -[l]->ₚ Q) (hES : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by
 --   induction hPS
---   case one =>
+--   case one x =>
 --     cases hT
---     set e := _
---     conv at hES =>
---       arg 1
---       change e
---     generalize h : e = e' at hES
+--     generalize h𝒢 : ({x ∶ 1} : HyperEnv) = 𝒢 at hES
 --     cases hES
---     all_goals
---       clear! e
---     case one => assumption
---     case one.par₁ P' x D G G' H step =>
+
+--     case one.one => simp_all
+
+--     case one.par₁ 𝒟 _ _ _ step =>
+--       symm at h𝒢
+--       rw [HyperEnv.merge_eq_singleton_iff] at h𝒢
+--       rcases h𝒢 with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+--       · sorry
+--       · exfalso
+--         apply EnvStep.no_step_empty step
+--       · sorry
+
+--     case one.par₂ => sorry
+--     case one.res => sorry
+
+
+
+
+
+
+-- -- theorem TypingStep' {𝒢 ℋ : HyperEnv} {P Q : Proc} {L : Lbl}
+-- --   (hT : Typing 𝒢 P) (hPS : ProcStep P L Q) (hES : EnvStep 𝒢 L ℋ) :
+-- --   Typing ℋ Q := by
+-- --   induction hPS
+-- --   case one =>
+-- --     cases hT
+-- --     set e := _
+-- --     conv at hES =>
+-- --       arg 1
+-- --       change e
+-- --     generalize h : e = e' at hES
+-- --     cases hES
+-- --     all_goals
+-- --       clear! e
+-- --     case one => assumption
+-- --     case one.par₁ P' x D G G' H step =>
 
 
 
@@ -220,12 +160,12 @@ theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
 --       {𝒟 : ⊢ P ∷ Γ‚ x' ∶ A‚ x ∶ B} :
 --       TypingStep (Typing.parr 𝒟) (x⸨x'⸩) 𝒟
 
---   | par₁
---       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
---       {𝒟 : ⊢ P ∷ 𝒢} {𝒟' : ⊢ P' ∷ 𝒢'} {ℰ : ⊢ Q ∷ ℋ}
---       (h : TypingStep 𝒟 l 𝒟') (disj : (l.i) ∩ (Q.f) = ∅) :
---       -----------------------------------------------------
---       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
+  -- | par₁
+  --     {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
+  --     {𝒟 : ⊢ P ∷ 𝒢} {𝒟' : ⊢ P' ∷ 𝒢'} {ℰ : ⊢ Q ∷ ℋ}
+  --     (h : TypingStep 𝒟 l 𝒟') (disj : (l.i) ∩ (Q.f) = ∅) :
+  --     -----------------------------------------------------
+  --     TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
 
 --   | par₂
 --       {𝒢 ℋ ℋ': HyperEnv} {P Q Q' : Proc} {l : Lbl}
