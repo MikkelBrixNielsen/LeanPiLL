@@ -1,110 +1,98 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Tactic
 
--- /- Zulip example -/
--- abbrev Env := Finset (Nat × Nat)
--- abbrev HyperEnv := Finset (Env)
+abbrev Atom := Nat
 
--- inductive Typing : HyperEnv → Prop where
---   | parr {Γ : Env} {x y A B : Nat} :
---       Typing {Γ ∪ {(y, A)} ∪ {(x, B)}} →
---       Typing {Γ ∪ {(x, A + B)}}
+inductive Types : Type where
+  | atom (a : Atom)
+  | atomDual (a : Atom)
+  | one
+  | bot
 
--- inductive TS1 : HyperEnv → List (Nat × Nat) →
---   HyperEnv → Prop where
---   | parr
---       {Γ : Env} {x y A B : Nat}
---       (𝒟 : Typing {Γ ∪ {(x, A + B)}})
---       (𝒟' : Typing {Γ ∪ {(y, A)} ∪ {(x, B)}}) :
---       TS1
---         {Γ ∪ {(x, A + B)}}
---         [(x, y)]
---         {Γ ∪ {(y, A)} ∪ {(x, B)}}
+instance : One Types := ⟨Types.one⟩
+instance : Bot Types := ⟨Types.bot⟩
 
--- inductive TS2 : ∀ {𝒢 𝒢' : HyperEnv},
---   Typing 𝒢 → List (Nat × Nat) → Typing 𝒢' → Prop where
---   | parr
---       {Γ : Env} {x y A B : Nat}
---       (𝒟 : Typing {Γ ∪ {(y, A)} ∪ {(x, B)}}) :
---       TS2
---         (Typing.parr 𝒟)
---         [(x, y)]
---         𝒟
+def Types.dual : Types → Types
+  | one => bot
+  | bot => one
+  | atom a => atomDual a
+  | atomDual a => atom a
 
--- theorem swap_last_two (A B C : Env) : A ∪ B ∪ C = A ∪ C ∪ B := by aesop
--- theorem move_last_two_left (A B C D : Env) : A ∪ B ∪ C ∪ D = A ∪ D ∪ B ∪ C := by aesop
+postfix:max "ᗮ" => Types.dual
 
--- theorem example1 {Γ : Env} {x y z A B : Nat}
---   (𝒟 : Typing {Γ ∪ {(x, A + B)} ∪ {(z, 0)}})
---   (𝒟' : Typing {Γ ∪ {(y, A)} ∪ {(x, B)} ∪ {(z, 0)}}) :
---   TS1
---     {Γ ∪ {(x, A + B)} ∪ {(z, 0)}}
---     [(x, y)]
---     {Γ ∪ {(y, A)} ∪ {(x, B)} ∪ {(z, 0)}} := by
---   rw [move_last_two_left]
---   rw [swap_last_two]
---   apply TS1.parr
---   · rw [← swap_last_two] ; exact 𝒟
---   · rw [← move_last_two_left] ; exact 𝒟'
-
--- theorem example2 {Γ : Env} {x y z A B : Nat}
---   (𝒟 : Typing {Γ ∪ {(x, A + B)} ∪ {(z, 0)}})
---   (𝒟' : Typing {Γ ∪ {(y, A)} ∪ {(x, B)} ∪ {(z, 0)}}) :
---   TS2
---     𝒟
---     [(x, y)]
---     𝒟' := by
---   rw! [swap_last_two]
---   rw! [move_last_two_left]
---   apply TS2.parr
-
-
-abbrev Env := Finset (Nat × Nat)
-def Env.mk (x y : Nat) : Env := {(x, y)}
-
-abbrev HyperEnv := Finset Env
-instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
+abbrev PName := Nat
 
 inductive Proc : Type where
-  | one     (x : Nat) (P : Proc)
+  | nil
+  | one (x : PName) (P : Proc)
+  | bot (x : PName) (P : Proc)
+  | par (P Q : Proc)
+  | cut (x y : PName) (P : Proc)
 
-inductive Typing : HyperEnv → Proc → Prop where
-  | one {P : Proc} {x : Nat} :
-      Typing ∅ P →
-      Typing (Env.mk x 1) (Proc.one x P)
 
-inductive Lbl : Type
-  | one (x : Nat)
+notation:80 x "⟦⟧․" P => Proc.one x P
+notation:80 x "⸨⸩․" P => Proc.bot x P
+notation:80 "𝑣⸨"x"," y"⸩"P => Proc.cut x y P
+notation "𝟘" => Proc.nil
+infixr:50 "|ₚ" => Proc.par
 
-inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
-  | one {e : HyperEnv} {x : Nat} (h : e = Env.mk x 1) :
-      EnvStep e (.one x) ∅
+abbrev Env := List (PName × Types)
+def Env.mk (x : PName) (A : Types) := [(x, A)]
+notation:80 x "∶" A => Env.mk x A
 
-  | res
-    {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : Nat} {l : Lbl} :
-    (EnvStep
-      (𝒢 ∪ {Γ ∪ Env.mk x 0} ∪ {Δ ∪ Env.mk y 1})
-      l
-      (𝒢' ∪ {Γ' ∪ Env.mk x 0} ∪ {Δ' ∪ Env.mk y 1})
-    )
-    →
-    (EnvStep
-      (𝒢 ∪ {Γ ∪ Δ})
-      l
-      (𝒢' ∪ {Γ' ∪ Δ'})
-    )
+inductive Split : Env → Env → Env → Prop where
+  | nil : Split ∅ ∅ ∅
+
+  | left (x A Γ Γ₁ Γ₂) :
+      Split Γ Γ₁ Γ₂ →
+      Split ((x, A) :: Γ) ((x, A) :: Γ₁) Γ₂
+
+  | right (x A Γ Γ₁ Γ₂) :
+      Split Γ Γ₁ Γ₂ →
+      Split ((x, A) :: Γ) Γ₁ ((x, A) :: Γ₂)
+
+
+inductive Typing : Proc → Env → Prop where
+  | mix₀ :
+    Typing 𝟘 ∅
+
+  | mix {P Q : Proc} {Γ Γ₁ Γ₂ : Env} :
+    Split Γ Γ₁ Γ₂ → Typing P Γ₁ → Typing Q Γ₂ →
+    Typing (P |ₚ Q) Γ
+
+  | one {x : PName} {P : Proc} :
+    Typing (x⟦⟧․P) (x ∶ 1)
+
+
+inductive Lbl : Type where
+  | one (x : PName)
+  | bot (x : PName)
 
 inductive ProcStep : Proc → Lbl → Proc → Prop where
-  | one {P : Proc} {x : Nat} :
-      ProcStep (Proc.one x P) (.one x) P
+  | one {x : PName} {P : Proc} :
+    ProcStep (x⟦⟧․P) (Lbl.one x) P
 
-theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
-  (hT : Typing 𝒢 P) (hPS : ProcStep P l Q) (hES : EnvStep 𝒢 l ℋ) :
-  Typing ℋ Q := by
-  induction hPS
+  | par₁ {P P' Q : Proc} {l : Lbl}:
+    ProcStep P l P' →
+    ProcStep (P |ₚ Q) l (P' |ₚ Q)
 
-  case one P x =>
-    cases hT
-    generalize h𝒢 : (Env.mk x 1 : HyperEnv) = 𝒢 at hES
-    cases hES with try (simp_all ; done)
-      | res => sorry
+  | res
+      {P P' : Proc} {x y : PName} {l : Lbl} :
+      ProcStep P l P' →
+      ProcStep (𝑣⸨x, y⸩ P) (l) (𝑣⸨x, y⸩ P')
+
+inductive EnvStep : Env → Lbl → Env → Prop where
+  | one {x : PName} :
+    EnvStep (x ∶ 1) (Lbl.one x) ∅
+
+ | par₁
+    {𝒢 𝒢' Γ Γ' Δ : Env} {l : Lbl} :
+    Split 𝒢 Γ Δ → EnvStep Γ l Γ' →
+    Split 𝒢' Γ' Δ → EnvStep 𝒢 l 𝒢'
+
+  | res {𝒢 𝒢' E𝒢'Γx 𝒢' EΓx Γ EΔy Δ : Env} {x y : PName} {A : Types} {l : Lbl}:
+    Split EΓx Γ (x ∶ Aᗮ) → Split EΔy (Δ) (y ∶ A) → Split E𝒢'Γx 𝒢' EΓx →
+    Split 𝒢 E𝒢'Γx EΔy →
+
+
+    EnvStep 𝒢 l 𝒢' →

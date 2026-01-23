@@ -38,39 +38,40 @@ lemma EnvStep.no_step_empty {l : Lbl} {𝒢 : HyperEnv} (h : EnvStep ∅ l 𝒢)
 
 
 
--- lemma EnvStep.one_inv'
---   {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
---   ∃ ℋ₁ ℋ₂, 𝒢  = ℋ₁ |ₕ {x ∶ 1} |ₕ ℋ₂ ∧ 𝒢' = ℋ₁ |ₕ ℋ₂ := by
---   generalize hl : (x⟦⟧ : Lbl) = l at h
---   induction h with
-
---   | one =>
---       refine ⟨∅, ∅, ?_, ?_⟩ <;> simp_all
-
---   | par₁ _ ih =>
---       rename_i ℋ _ _
---       specialize ih hl
---       rcases ih with ⟨ℋ₁, ℋ₂, _, _⟩
---       refine ⟨ℋ₁, ℋ₂ |ₕ ℋ, ?_, ?_⟩ <;> simp_all
-
---   | par₂ _ ih =>
---     rename_i 𝒢 _ _ _ _
---     specialize ih hl
---     rcases ih with ⟨ℋ₁, ℋ₂, h𝒢, h𝒢'⟩
---     refine ⟨ℋ₁, ℋ₂ |ₕ 𝒢, ?_, ?_⟩
---     · rw [h𝒢, ← HyperEnv.merge_assoc (ℋ₁ |ₕ x ∶ 1) ℋ₂ 𝒢, HyperEnv.merge_comm]
---     · rw [h𝒢', ← HyperEnv.merge_assoc ℋ₁ _ _, HyperEnv.merge_comm]
-
---   | res step ih =>
---     cases step
+lemma EnvStep.one_inv'
+  {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
+  ∃ ℋ₁ ℋ₂, 𝒢  = ℋ₁ |ₕ {x ∶ 1} |ₕ ℋ₂ ∧ 𝒢' = ℋ₁ |ₕ ℋ₂ := by
+  generalize hl : (x⟦⟧ : Lbl) = l at h
+  induction h with
 
 
+  | one =>
+      refine ⟨∅, ∅, ?_, ?_⟩ <;> simp_all
+
+  | par₁ _ ih =>
+      rename_i ℋ _ _
+      specialize ih hl
+      rcases ih with ⟨ℋ₁, ℋ₂, _, _⟩
+      refine ⟨ℋ₁, ℋ₂ |ₕ ℋ, ?_, ?_⟩ <;> simp_all
+
+  | par₂ _ ih =>
+    rename_i 𝒢 _ _ _ _
+    specialize ih hl
+    rcases ih with ⟨ℋ₁, ℋ₂, h𝒢, h𝒢'⟩
+    refine ⟨ℋ₁, ℋ₂ |ₕ 𝒢, ?_, ?_⟩
+    · rw [h𝒢, ← HyperEnv.merge_assoc (ℋ₁ |ₕ x ∶ 1) ℋ₂ 𝒢, HyperEnv.merge_comm]
+    · rw [h𝒢', ← HyperEnv.merge_assoc ℋ₁ _ _, HyperEnv.merge_comm]
+
+  | res step ih =>
+    cases step
 
 
 
---     sorry
 
---   | _ => simp_all
+
+    sorry
+
+  | _ => simp_all
 
 
 
