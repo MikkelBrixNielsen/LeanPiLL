@@ -30,7 +30,7 @@
 
 -/
 
-
+-- TODO: Prove linear resource usage?
 
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
