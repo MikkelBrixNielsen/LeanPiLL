@@ -157,9 +157,17 @@ lemma Typing.env_comm {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} :
   (⊢ P ∷ 𝒢 |ₕ Γ‚ Δ) → (⊢ P ∷ 𝒢 |ₕ Δ‚ Γ) :=
   fun h => Typing.exchange_env h (Env.merge_comm _ _)
 
-lemma Typing.env_rotate {P : Proc} {𝒢 : HyperEnv} {Γ : Env} {x : PName × Types} :
+lemma Typing.env_rotateL {P : Proc} {𝒢 : HyperEnv} {Γ : Env} {x : PName × Types} :
   (⊢ P ∷ 𝒢 |ₕ Γ‚ [x]) → (⊢ P ∷ 𝒢 |ₕ {x :: Γ}) :=
   fun h => Typing.exchange_env h (by symm ; apply Env.merge_rotate_left _ _)
+
+lemma Typing.env_comm_singleton {P : Proc} {Γ Δ : Env} :
+  (⊢ P ∷ Γ‚ Δ) → (⊢ P ∷ Δ‚ Γ) :=
+  fun h => Typing.exchange_env (𝒢 := ∅) h (Env.merge_comm _ _)
+
+lemma Typing.env_rotateL_singleton {P : Proc} {Γ : Env} {x : PName × Types} :
+  (⊢ P ∷ Γ‚ [x]) → (⊢ P ∷ {x :: Γ}) :=
+  fun h => Typing.exchange_env (𝒢 := ∅) h (by symm ; apply Env.merge_rotate_left _ _)
 
 lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
   (⊢ P ∷ 𝒢 |ₕ ℋ) → (⊢ P ∷ ℋ |ₕ 𝒢) :=
@@ -167,22 +175,20 @@ lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
 
 
 
-
+-- FIXME: Can't really read what is produced by the Typing.***_comm etc. lemmas
+-- Make it look like the syntax
 example : ⊢ ((10⟦⟧․𝟘) |ₚ (40⸨⸩․30⸨⸩․20⟦⟧․𝟘)) ∷
   ((40 ∶ ⊥)‚ (30 ∶ ⊥)‚ 20 ∶ 1) |ₕ (10 ∶ 1) := by
   apply Typing.hyper_comm
   · apply Typing.mix
     · apply Typing.one
       apply Typing.mix₀
-    · apply Typing.env_rotate (𝒢 := ∅)
+    · apply Typing.env_rotateL_singleton
       · apply Typing.bot
-        apply Typing.exchange_env (𝒢 := ∅)
-          (Γ := ((20 ∶ 1)‚ 30∶ ⊥))
+        apply Typing.env_comm_singleton
         · apply Typing.bot
           · apply Typing.one
             apply Typing.mix₀
-        · exact Env.merge_comm _ _
-
 
 
 
