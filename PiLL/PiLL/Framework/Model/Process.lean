@@ -1,6 +1,6 @@
 import PiLL.Framework.Model.STypes
 
-abbrev PName := Nat -- Process names are just numbers (ensures not empty)
+abbrev PName := Nat
 
 inductive Proc : Type where
   | tensor    (x y : PName) (P : Proc)            -- x[y].P

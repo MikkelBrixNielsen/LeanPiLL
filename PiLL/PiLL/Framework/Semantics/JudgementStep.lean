@@ -38,43 +38,46 @@ lemma EnvStep.no_step_empty {l : Lbl} {𝒢 : HyperEnv} (h : EnvStep ∅ l 𝒢)
 
 
 
--- lemma EnvStep.one_inv'
---   {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
---   ∃ ℋ₁ ℋ₂, 𝒢  = ℋ₁ |ₕ {x ∶ 1} |ₕ ℋ₂ ∧ 𝒢' = ℋ₁ |ₕ ℋ₂ := by
---   generalize hl : (x⟦⟧ : Lbl) = l at h
---   induction h with
+lemma EnvStep.one_inv'
+  {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
+  ∃ ℋ₁ ℋ₂, 𝒢  = ℋ₁ |ₕ {x ∶ 1} |ₕ ℋ₂ ∧ 𝒢' = ℋ₁ |ₕ ℋ₂ := by
+  generalize hl : (x⟦⟧ : Lbl) = l at h
+  induction h with
 
 
---   | one =>
---       refine ⟨∅, ∅, ?_, ?_⟩ <;> simp_all
+  | one =>
+      refine ⟨∅, ∅, ?_, ?_⟩ <;> simp_all
 
---   | par₁ _ ih =>
---       rename_i ℋ _ _
---       specialize ih hl
---       rcases ih with ⟨ℋ₁, ℋ₂, _, _⟩
---       refine ⟨ℋ₁, ℋ₂ |ₕ ℋ, ?_, ?_⟩ <;> simp_all
+  | par₁ _ ih =>
+      rename_i ℋ _ _
+      specialize ih hl
+      rcases ih with ⟨ℋ₁, ℋ₂, _, _⟩
+      refine ⟨ℋ₁, ℋ₂ |ₕ ℋ, ?_, ?_⟩ <;> simp_all
 
---   | par₂ _ ih =>
---     rename_i 𝒢 _ _ _ _
---     specialize ih hl
---     rcases ih with ⟨ℋ₁, ℋ₂, h𝒢, h𝒢'⟩
---     refine ⟨ℋ₁, ℋ₂ |ₕ 𝒢, ?_, ?_⟩
---     · rw [h𝒢, ← HyperEnv.merge_assoc (ℋ₁ |ₕ x ∶ 1) ℋ₂ 𝒢, HyperEnv.merge_comm]
---     · rw [h𝒢', ← HyperEnv.merge_assoc ℋ₁ _ _, HyperEnv.merge_comm]
+  | par₂ _ ih =>
+    rename_i 𝒢 _ _ _ _
+    specialize ih hl
+    rcases ih with ⟨ℋ₁, ℋ₂, h𝒢, h𝒢'⟩
+    refine ⟨ℋ₁, ℋ₂ |ₕ 𝒢, ?_, ?_⟩
+    · rw [h𝒢, ← HyperEnv.merge_assoc (ℋ₁ |ₕ x ∶ 1) ℋ₂ 𝒢, HyperEnv.merge_comm]
+    · rw [h𝒢', ← HyperEnv.merge_assoc ℋ₁ _ _, HyperEnv.merge_comm]
 
---   | res step ih =>
---     rename_i ℋ ℋ' Γ Γ' Δ Δ' a b A B lbl
---     have h' := ih hl
---     rcases h' with ⟨ℋ₁, ℋ₂, hL, hR⟩
---     refine ⟨ℋ₁, ℋ₂, ?_, ?_⟩
---     · sorry
---     · sorry
-
---   | _ => simp_all
+  | res step ih =>
+    rename_i ℋ ℋ' Γ Γ' Δ Δ' a b A B lbl
+    have h' := ih hl
+    rcases h' with ⟨ℋ₁, ℋ₂, hL, hR⟩
+    refine ⟨ℋ₁, ℋ₂, ?_, ?_⟩
+    · cases step
 
 
--- theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
---   (hT : ⊢ P ∷ 𝒢) (hPS : P -[l]->ₚ Q) (hES : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by sorry
+      sorry
+    · sorry
+
+  | _ => simp_all
+
+
+theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
+  (hT : ⊢ P ∷ 𝒢) (hPS : P -[l]->ₚ Q) (hES : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by sorry
 
 
 
@@ -109,12 +112,12 @@ lemma EnvStep.no_step_empty {l : Lbl} {𝒢 : HyperEnv} (h : EnvStep ∅ l 𝒢)
 --       {𝒟 : ⊢ P ∷ Γ‚ x' ∶ A‚ x ∶ B} :
 --       TypingStep (Typing.parr 𝒟) (x⸨x'⸩) 𝒟
 
-  -- | par₁
-  --     {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
-  --     {𝒟 : ⊢ P ∷ 𝒢} {𝒟' : ⊢ P' ∷ 𝒢'} {ℰ : ⊢ Q ∷ ℋ}
-  --     (h : TypingStep 𝒟 l 𝒟') (disj : (l.i) ∩ (Q.f) = ∅) :
-  --     -----------------------------------------------------
-  --     TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
+--   | par₁
+--       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
+--       {𝒟 : ⊢ P ∷ 𝒢} {𝒟' : ⊢ P' ∷ 𝒢'} {ℰ : ⊢ Q ∷ ℋ}
+--       (h : TypingStep 𝒟 l 𝒟') (disj : (l.i) ∩ (Q.f) = ∅) :
+--       -----------------------------------------------------
+--       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
 
 --   | par₂
 --       {𝒢 ℋ ℋ': HyperEnv} {P Q Q' : Proc} {l : Lbl}
