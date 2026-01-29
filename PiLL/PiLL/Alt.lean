@@ -2,10 +2,289 @@ import Mathlib.Data.List.Permutation
 import Mathlib.Tactic
 import PiLL.Framework.model.base
 
+abbrev Atom := Nat
+abbrev FTVar := Nat
+abbrev BTVar := Nat
+
+inductive TVar : Type
+  | free    (x : FTVar)
+  | bound   (x : BTVar)
+deriving DecidableEq, Repr
+
+inductive Types : Type where
+  | atom        (a : Atom)
+  | atomDual    (a : Atom)
+  | var         (v : TVar)
+  | varDual     (v : TVar)
+  | one
+  | bot
+  | tensor      (A B : Types)
+  | parr        (A B : Types)
+  | oplus       (A B : Types)
+  | amp         (A B : Types)
+  | bang        (A : Types)
+  | quest       (A : Types)
+  | forall_     (A : Types)           -- Binds 1 Type Variable
+  | exists_     (A : Types)           -- Binds 1 Type Variable
+deriving DecidableEq, BEq, Repr
+
+infixr:90 " ⨂ " => Types.tensor
+infixr:90 " ⊕ " => Types.oplus
+infixr:90 " ⅋ " => Types.parr
+infixr:90 " & " => Types.amp
+
+instance : One Types := ⟨Types.one⟩
+instance : Bot Types := ⟨Types.bot⟩
+
+prefix:95 "??" => Types.quest
+prefix:95 "!!" => Types.bang
+
+notation:max "∃․" A => Types.exist_ A
+notation:max "∀․" A => Types.forall_ A
+
+def openTVar (k : Nat) (u : TVar) : TVar → TVar
+  | TVar.bound i => if i = k then u else TVar.bound i
+  | v => v
+
+def openType (k : Nat) (u : TVar) : Types → Types
+  | .atom a => .atom a
+  | .atomDual a => .atomDual a
+  | .var v => .var (openTVar k u v)
+  | .varDual v => .varDual (openTVar k u v)
+  | .one => .one
+  | .bot => .bot
+  | .tensor A B => .tensor (openType k u A) (openType k u B)
+  | .parr A B => .parr (openType k u A) (openType k u B)
+  | .oplus A B => .oplus (openType k u A) (openType k u B)
+  | .amp A B => .amp (openType k u A) (openType k u B)
+  | .bang A => .bang (openType k u A)
+  | .quest A => .quest (openType k u A)
+  | .forall_ A => .forall_ (openType (k+1) u A)
+  | .exists_ A => .exists_ (openType (k+1) u A)
+
+def openType0 (u : TVar) (A : Types) : Types :=
+  openType 0 u A
+
+def lcTVar : Nat → TVar → Prop
+  | _, .free _ => True
+  | k, .bound i => i < k
+
+def lcType : Nat → Types → Prop
+  | _, .atom _      => True
+  | _, .atomDual _  => True
+  | k, .var v       => lcTVar k v
+  | k, .varDual v   => lcTVar k v
+  | _, .one         => true
+  | _, .bot         => true
+  | k, .tensor A B  => lcType k A ∧ lcType k B
+  | k, .parr A B    => lcType k A ∧ lcType k B
+  | k, .oplus A B   => lcType k A ∧ lcType k B
+  | k, .amp A B     => lcType k A ∧ lcType k B
+  | k, .bang A => lcType k A
+  | k, .quest A => lcType k A
+  | k, .forall_ A => lcType (k+1) A
+  | k, .exists_ A => lcType (k+1) A
+
+def lcType0 : Types → Prop := lcType 0
+
+def Types.pos : Types → Prop
+  | .atom _ => True
+  | .var _ => True
+  | .one => True
+  | .tensor _ _ => True
+  | .oplus _ _ => True
+  | .bang _ => True
+  | .exists_ _ => True
+  | _ => False
+
+def Types.neg : Types → Prop
+  | .atomDual _ => True
+  | .varDual _ => True
+  | .bot => True
+  | .parr _ _ => True
+  | .amp _ _ => True
+  | .quest _ => True
+  | .forall_ _ => True
+  | _ => False
+
+instance Types.positive_decidable (A : Types) : Decidable A.pos := by
+  unfold Types.pos
+  split <;> infer_instance
+
+instance Types.negative_decidable (A : Types) : Decidable A.neg := by
+  unfold Types.neg
+  split <;> infer_instance
+
+def Types.dual : Types → Types
+  | .atom a       => .atomDual a
+  | .atomDual a   => .atom a
+  | .var v        => .varDual v
+  | .varDual v    => .var v
+  | .one          => .bot
+  | .bot          => .one
+  | .tensor A B   => .parr (dual A) (dual B)
+  | .parr A B     => .tensor (dual A) (dual B)
+  | .oplus A B    => .amp (dual A) (dual B)
+  | .amp A B      => .oplus (dual A) (dual B)
+  | .bang A       => .quest (dual A)
+  | .quest A      => .bang (dual A)
+  | .forall_ A    => .exists_ (dual A)
+  | .exists_ A    => .forall_ (dual A)
+
+postfix:max "ᗮ" => Types.dual
+
+theorem Types.dual_neq (A : Types) : A ≠ Aᗮ := by
+  cases A <;> simp [dual]
+
+theorem Types.dual_inj (A B : Types) : Aᗮ = Bᗮ ↔ A = B := by
+  induction A generalizing B <;> cases B <;> simp [Types.dual, *]
+
+@[simp]
+theorem Types.dual_involution (A : Types) : Aᗮᗮ = A := by
+  induction A <;> simp [Types.dual, *]
+
+def Types.linImpl (A B : Types) : Types := Aᗮ ⅋ B
+infix:90 " ⊸ " => Types.linImpl
+
+abbrev FPName := Nat
+abbrev BPName := Nat
+
+inductive Channel : Type where
+  | free    (x : FPName)
+  | bound   (x : BPName)
+deriving DecidableEq, BEq, Repr
+
+inductive Proc : Type where
+  | nil
+  | one         (x : Channel) (P : Proc)
+  | bot         (x : Channel) (P : Proc)
+  | tensor      (x : Channel) (P : Proc)                -- Binds 1 name
+  | parr        (x : Channel) (P : Proc)                -- Binds 1 name
+  | cut         (P : Proc)                              -- Binds 2 names
+  | par         (P Q : Proc)
+  | selectL     (x : Channel) (P : Proc)
+  | selectR     (x : Channel) (P : Proc)
+  | amp         (x : Channel) (P Q : Proc)
+  | output      (x : Channel) (P : Proc) (A : Types)
+  | input       (x : Channel) (P : Proc)                -- Binds 1 Type Variable
+  | server      (x : Channel) (P : Proc)
+  | consume     (x : Channel) (P : Proc)
+  | duplicate   (x : Channel) (P : Proc)                -- Binds 1 name
+  | dispose     (x : Channel) (P : Proc)
+  | link        (x y : Channel)
+deriving DecidableEq, BEq, Repr
+
+def openChannel (k : Nat) (u : Channel) : Channel → Channel
+  | Channel.bound i => if i = k then u else Channel.bound i
+  | c => c
+
+def openProc (k : Nat) (u : Channel) : Proc → Proc
+  | .nil => .nil
+  | .one x P => .one (openChannel k u x) (openProc k u P)
+  | .bot x P => .bot (openChannel k u x) (openProc k u P)
+  | .tensor x P => .tensor (openChannel k u x) (openProc (k+1) u P)
+  | .parr x P => .parr (openChannel k u x) (openProc (k+1) u P)
+  | .cut P => .cut (openProc (k+2) u P) -- FIXME: Does this need two channel names?
+  | .par P Q => .par (openProc k u P) (openProc k u Q)
+  | .server x P => .server (openChannel k u x) (openProc k u P)
+  | .duplicate x P => .duplicate (openChannel k u x) (openProc (k+1) u P)
+  | .consume x P => .consume (openChannel k u x) (openProc k u P)
+  | .dispose x P => .dispose (openChannel k u x) (openProc k u P)
+  | .selectL x P => .selectL (openChannel k u x) (openProc k u P)
+  | .selectR x P => .selectR (openChannel k u x) (openProc k u P)
+  | .amp x P Q => .amp (openChannel k u x) (openProc k u P) (openProc k u Q)
+  | .output x P A => .output (openChannel k u x) (openProc k u P) A
+  | .input x P => .input (openChannel k u x) (openProc k u P)
+  | .link x y => .link (openChannel k u x) (openChannel k u y)
+
+def openProc0 (u : Channel) (P : Proc) : Proc :=
+  openProc 0 u P
+
+def openProcCut (x y : Channel) (P : Proc) : Proc :=
+  openProc 0 x (openProc 1 y P)
+
+def openProcTVar (k : Nat) (u : TVar) : Proc → Proc
+  | .nil => .nil
+  | .one x P => .one x (openProcTVar k u P)
+  | .bot x P => .bot x (openProcTVar k u P)
+  | .tensor x P => .tensor x (openProcTVar k u P)
+  | .parr x P => .parr x (openProcTVar k u P)
+  | .cut P => .cut (openProcTVar k u P)
+  | .par P Q => .par (openProcTVar k u P) (openProcTVar k u Q)
+  | .selectL x P => .selectL x (openProcTVar k u P)
+  | .selectR x P => .selectR x (openProcTVar k u P)
+  | .amp x P Q => .amp x (openProcTVar k u P) (openProcTVar k u Q)
+  | .output x P A => .output x (openProcTVar k u P) (openType k u A)
+  | .input x P => .input x (openProcTVar (k+1) u P)
+  | .server x P => .server x (openProcTVar k u P)
+  | .consume x P => .consume x (openProcTVar k u P)
+  | .duplicate x P => .duplicate x (openProcTVar k u P)
+  | .dispose x P => .dispose x (openProcTVar k u P)
+  | .link x y => .link x y
+
+def openProcTVar0 (u : TVar) (P : Proc) : Proc :=
+  openProcTVar 0 u P
+
+def lcChannel : Nat → Channel → Prop
+  | _, .free _ => True
+  | k, .bound i => i < k
+
+def lcProc : Nat → Nat → Proc → Prop
+  | _, _, .nil => True
+  | k, n, .one x P => lcChannel k x ∧ lcProc k n P
+  | k, n, .bot x P => lcChannel k x ∧ lcProc k n P
+  | k, n, .tensor x P => lcChannel k x ∧ lcProc (k+1) n P
+  | k, n, .parr x P => lcChannel k x ∧ lcProc (k+1) n P
+  | k, n, .cut P => lcProc (k+2) n P
+  | k, n, .par P Q => lcProc k n P ∧ lcProc k n Q
+  | k, n, .selectL x P => lcChannel k x ∧ lcProc k n P
+  | k, n, .selectR x P => lcChannel k x ∧ lcProc k n P
+  | k, n, .amp x P Q => lcChannel k x ∧ lcProc k n P ∧ lcProc k n Q
+  | k, n, .output x P A => lcChannel k x ∧ lcProc k n P ∧ lcType n A
+  | k, n, .input x P => lcChannel k x ∧ lcProc k (n+1) P
+  | k, n, .server x P => lcChannel k x ∧ lcProc k n P
+  | k, n, .consume x P => lcChannel k x ∧ lcProc k n P
+  | k, n, .duplicate x P => lcChannel k x ∧ lcProc (k+1) n P
+  | k, n, .dispose x P => lcChannel k x ∧ lcProc k n P
+  | k, _, .link x y => lcChannel k x ∧ lcChannel k y
+
+def lcProc0 : Proc → Prop := lcProc 0 0
+
+def Channel.f : Channel → Finset FPName
+  | .free x => {x}
+  | .bound _ => {}
+
+def Proc.f : Proc → Finset FPName
+  | .tensor x P         => x.f ∪ P.f
+  | .parr x P           => x.f ∪ P.f
+  | .one x P            => x.f ∪ P.f
+  | .bot x P            => x.f ∪ P.f
+  | .cut P              => P.f
+  | .par P Q            => P.f ∪ Q.f
+  | .nil                => {}
+  | .selectL x P        => x.f ∪ P.f
+  | .selectR x P        => x.f ∪ P.f
+  | .amp x P Q          => x.f ∪ P.f ∪ Q.f
+  | .output x P _       => x.f ∪ P.f
+  | .input  x P         => x.f ∪ P.f
+  | .server x P         => x.f ∪ P.f
+  | .consume x P        => x.f ∪ P.f
+  | .duplicate x P      => x.f ∪ P.f
+  | .dispose x P        => x.f ∪ P.f
+  | .link x y           => x.f ∪ y.f
+
+def freshName (s : Finset FPName) : FPName :=
+  s.sup id + 1
+
+lemma fresh_is_fresh (s : Finset FPName) (x : FPName) (h : x ∈ s) :
+  id x < freshName s := by
+  have hxle : x ≤ s.sup id := by
+    have : id x ≤ s.sup id := Finset.le_sup h
+    exact this
+  exact Nat.lt_succ_of_le hxle
 
 
 
--- De brujin Types and Proc relation needed
 
 
 
@@ -17,20 +296,9 @@ import PiLL.Framework.model.base
 
 
 
+abbrev Env := List (Channel × Types)
 
-
-
-
-
-
-
-
-
-
-
-abbrev Env := List (PName × Types)
-
-abbrev Env.mk (x : PName) (A : Types) := [(x, A)]
+abbrev Env.mk (x : Channel) (A : Types) := [(x, A)]
 infixr:86 " ∶ " => Env.mk
 
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
@@ -46,11 +314,11 @@ lemma Env.merge_comm (Γ Δ : Env) : List.Perm (Γ‚ Δ) (Δ‚ Γ) := by
 lemma Env.merge_assoc (Γ Δ Ξ : Env) : Γ‚ Δ‚ Ξ = Γ‚ (Δ‚ Ξ) := by
   simp [Env.merge]
 
-lemma Env.merge_rotate_left (Γ : Env) (x : PName × Types) :
+lemma Env.merge_rotate_left (Γ : Env) (x : Channel × Types) :
   (x :: Γ).Perm (Γ‚ [x]) := by
   symm ; apply List.perm_append_singleton
 
-lemma Env.merge_swap (Γ : Env) (x y : PName × Types) :
+lemma Env.merge_swap (Γ : Env) (x y : Channel × Types) :
   List.Perm (x :: y :: Γ) (y :: x :: Γ) := by
   symm ; simpa using List.Perm.swap x y Γ
 
@@ -104,37 +372,37 @@ inductive Typing : Proc → HyperEnv → Prop where
   ----------------- Actual Typing Rules -----------------
 
   | mix₀ :
-      Typing 𝟘 ∅
+      Typing Proc.nil ∅
 
   | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} :
       Typing P 𝒢 → Typing Q ℋ →
       --------------------------
-      Typing (P |ₚ Q) (𝒢 |ₕ ℋ)
+      Typing (Proc.par P Q) (𝒢 |ₕ ℋ)
 
-  | one {P : Proc} {x : PName} :
+  | one {P : Proc} {x : Channel} :
       Typing P ∅ →
       ----------------------
-      Typing (x⟦⟧․P) (x ∶ 1)
+      Typing (Proc.one x P) (x ∶ 1)
 
-  | bot {Γ : Env} {P : Proc} {x : PName} :
+  | bot {Γ : Env} {P : Proc} {x : Channel} :
       Typing P Γ →
       -------------------------
-      Typing (x⸨⸩․P) (Γ‚ x ∶ ⊥)
+      Typing (Proc.bot x P) (Γ‚ x ∶ ⊥)
 
-  | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {x y : PName} {A : Types} :
+  | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {x y : Channel} {A : Types} :
       Typing P (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) →
       -------------------------------------------
-      Typing (𝑣⸨x, y⸩ P) (𝒢 |ₕ Γ‚ Δ)
+      Typing (Proc.cut P) (𝒢 |ₕ Γ‚ Δ)
 
-  | tensor {Γ Δ : Env} {P : Proc} {x y : PName} {B A : Types} :
+  | tensor {Γ Δ : Env} {P : Proc} {x y : Channel} {B A : Types} :
       Typing P (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) →
       ---------------------------------
-      Typing (x⟦y⟧․P) (Γ‚ Δ‚ x ∶ A ⨂ B)
+      Typing (Proc.tensor x P) (Γ‚ Δ‚ x ∶ A ⨂ B)
 
-  | parr {Γ : Env} {P : Proc} {x y : PName} {A B : Types} :
+  | parr {Γ : Env} {P : Proc} {x y : Channel} {A B : Types} :
       Typing P (Γ‚ y ∶ A‚ x ∶ B) →
       ------------------------------
-      Typing (x⸨y⸩․P) (Γ‚ x ∶ A ⅋ B)
+      Typing (Proc.parr x P) (Γ‚ x ∶ A ⅋ B)
 
 notation:65 "⊢ " P " ∷ " 𝒢 => Typing P 𝒢
 
@@ -142,7 +410,7 @@ lemma Typing.env_comm {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} :
   (⊢ P ∷ 𝒢 |ₕ Γ‚ Δ) → (⊢ P ∷ 𝒢 |ₕ Δ‚ Γ) :=
   fun h => Typing.exchange_env h (Env.merge_comm _ _)
 
-lemma Typing.env_rotateL {P : Proc} {𝒢 : HyperEnv} {Γ : Env} {x : PName × Types} :
+lemma Typing.env_rotateL {P : Proc} {𝒢 : HyperEnv} {Γ : Env} {x : Channel × Types} :
   (⊢ P ∷ 𝒢 |ₕ Γ‚ [x]) → (⊢ P ∷ 𝒢 |ₕ {x :: Γ}) :=
   fun h => Typing.exchange_env h (by symm ; apply Env.merge_rotate_left _ _)
 
@@ -150,13 +418,22 @@ lemma Typing.env_comm_singleton {P : Proc} {Γ Δ : Env} :
   (⊢ P ∷ Γ‚ Δ) → (⊢ P ∷ Δ‚ Γ) :=
   fun h => Typing.exchange_env (𝒢 := ∅) h (Env.merge_comm _ _)
 
-lemma Typing.env_rotateL_singleton {P : Proc} {Γ : Env} {x : PName × Types} :
+lemma Typing.env_rotateL_singleton {P : Proc} {Γ : Env} {x : Channel × Types} :
   (⊢ P ∷ Γ‚ [x]) → (⊢ P ∷ {x :: Γ}) :=
   fun h => Typing.exchange_env (𝒢 := ∅) h (by symm ; apply Env.merge_rotate_left _ _)
 
 lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
   (⊢ P ∷ 𝒢 |ₕ ℋ) → (⊢ P ∷ ℋ |ₕ 𝒢) :=
   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -264,11 +541,3 @@ example : ⊢ ((10⟦⟧․𝟘) |ₚ (40⸨⸩․30⸨⸩․20⟦⟧․𝟘)) �
         · apply Typing.bot
           · apply Typing.one
             apply Typing.mix₀
-
-
-
-example : ⊢ 10⸨20⸩․10⸨⸩․20⟦⟧․𝟘 ∷ 10 ∶ 1 ⅋ ⊥ := by
-  apply Typing.parr (Γ := ∅)
-  apply Typing.bot
-  apply Typing.one
-  apply Typing.mix₀
