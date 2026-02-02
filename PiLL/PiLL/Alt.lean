@@ -353,6 +353,8 @@ abbrev HyperEnv := List Env
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ++ ℋ
 infixl:55 " |ₕ " => HyperEnv.merge
 
+infixl:50 " ~ " => List.Perm
+
 instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
 
 lemma HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by simp
@@ -388,17 +390,25 @@ lemma HyperEnv.merge_swap (𝒢 : HyperEnv) (Γ Δ : Env) :
 -- the same goes for Proc all bounds names are LN so never expliicitly mentioned
 
 
--- prefix:max "^" => Channel.free
-notation:max P:max "⸨" x "⸩" => openProc0 (Channel.free x) P
-notation:max P:max "⸨" x ", " y "⸩" => openProcCut (Channel.free x) (Channel.free y) P
+prefix:max "#" => Channel.free
+notation:max P:max "⸨" x "⸩" => openProc0 x P
+notation:max P:max "⸨" x ", " y "⸩" => openProcCut x y P
 
-notation:80 x "⟦⟧․" P:80 => Proc.one (Channel.free x) P
-notation:80 x "⟦^⟧․" P:80 => Proc.tensor (Channel.free x) P
-notation:80 x "⸨⸩․" P:80 => Proc.bot (Channel.free x) P
-notation:80 x "⸨^⸩․" P:80 => Proc.parr (Channel.free x) P
-notation:75 "𝑣⸨^, ""^⸩" P:80 => Proc.cut P
+
+
+notation:80 x "⟦⟧․" P:80 => Proc.one #x P
+notation:80 x "⟦#⟧․" P:80 => Proc.tensor #x P
+notation:80 x "⸨⸩․" P:80 => Proc.bot #x P
+notation:80 x "⸨#⸩․" P:80 => Proc.parr #x P
+notation:75 "𝑣⸨#, ""#⸩" P:80 => Proc.cut P
 infixr:70 " |ₚ " => Proc.par
 notation "𝟘" => Proc.nil
+
+def L1 := [[1, 2], [3, 4]]
+def L2 := [[2, 1], [3, 4]]
+
+
+#eval L1.Perm L2
 
 
 
@@ -407,86 +417,105 @@ inductive Typing : Proc → HyperEnv → Prop where
   ------ Additional Structural and Exchange Rules ------
 
   -- | struct {P Q : Proc} {𝒢 ℋ : HyperEnv} :
-  --     Typing P 𝒢 → P ≡ₚ Q → 𝒢.Perm ℋ →
+  --     Typing P 𝒢 → P ≡ₚ Q → 𝒢 ~ ℋ →
   --     --------------------------------
   --     Typing Q ℋ
 
-  -- | exchange_env {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} :
-  --     Typing P (𝒢 |ₕ Γ) → Γ.Perm Δ →
-  --     ------------------------------
-  --     Typing P (𝒢 |ₕ Δ)
+  | exchange_env {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} :
+      Typing P (𝒢 |ₕ [Γ]) → Γ ~ Δ →
+      ------------------------------
+      Typing P (𝒢 |ₕ Δ)
 
-  -- | exchange_hyper {𝒢 ℋ : HyperEnv} {P : Proc} :
-  --     Typing P 𝒢 → 𝒢.Perm ℋ →
-  --     ------------------------
-  --     Typing P ℋ
+  | exchange_hyper {𝒢 ℋ : HyperEnv} {P : Proc} :
+      Typing P 𝒢 → 𝒢 ~ ℋ →
+      ------------------------
+      Typing P ℋ
 
   ----------------- Actual Typing Rules -----------------
 
   | mix₀ :
       Typing 𝟘 ∅
 
-  | mix {Ω 𝒢 ℋ : HyperEnv} {P Q : Proc} :
-      Typing P 𝒢 → Typing Q ℋ → Ω.Perm (𝒢 |ₕ ℋ) →
-      ---------------------------------------------
-      Typing (P |ₚ Q) Ω
+  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} :
+      Typing P 𝒢 → Typing Q ℋ →
+      --------------------------
+      Typing (P |ₚ Q) (𝒢 |ₕ ℋ)
 
   | one {P : Proc} {x : FPName} :
       Typing P ∅ →
-      ---------------------------------------------
+      ----------------------
       Typing (x⟦⟧․P) (x ∶ 1)
 
-  | bot {Ω : HyperEnv} {Γ : Env} {P : Proc} {x : FPName} :
-      Typing P Γ → Ω.Perm (Γ‚ x ∶ ⊥) →
-      ------------------------------------------------
-      Typing (x⸨⸩․P) Ω
+  | bot {Γ : Env} {P : Proc} {x : FPName} :
+      Typing P Γ →
+      -------------------------
+      Typing (x⸨⸩․P) (Γ‚ x ∶ ⊥)
 
-  | cut {Ω 𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {A : Types} (L : Finset FPName) :
+  | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {A : Types} (L : Finset FPName) :
       ∀ x y, x ∉ L → y ∉ L → x ≠ y →
-      Typing (P⸨x, y⸩) (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) → Ω.Perm (𝒢 |ₕ Γ‚ Δ) →
-      --------------------------------------------------------------------
-      Typing (𝑣⸨^, ^⸩P) Ω
+      Typing (P⸨#x, #y⸩) (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) →
+      ---------------------------------------------
+      Typing (𝑣⸨#, #⸩P) (𝒢 |ₕ Γ‚ Δ)
 
-  | tensor {Ω Γ Δ : Env} {P : Proc} {x : FPName} {B A : Types} (L : Finset FPName) :
-      ∀ y, y ∉ L → Typing (P⸨y⸩) (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) →
-      Ω.Perm (Γ‚ Δ‚ x ∶ A ⨂ B) →
-      ----------------------------------------------------------------------
-      Typing (x⟦^⟧․P) Ω
+  | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {B A : Types} (L : Finset FPName) :
+      ∀ y, y ∉ L → Typing (P⸨#y⸩) (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) →
+      ----------------------------------------------------
+      Typing (x⟦#⟧․P) (Γ‚ Δ‚ x ∶ A ⨂ B)
 
-  | parr {Ω : HyperEnv} {Γ : Env} {P : Proc} {x : FPName} {A B : Types} (L : Finset FPName) :
-      ∀ y, y ∉ L → Typing (P⸨y⸩) (Γ‚ y ∶ A‚ x ∶ B) → Ω.Perm (Γ‚ x ∶ A ⅋ B) →
-      -----------------------------------------------------------------------
-      Typing (x⸨^⸩․P) Ω
+  | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types} (L : Finset FPName) :
+      ∀ y, y ∉ L → Typing (P⸨#y⸩) (Γ‚ y ∶ A‚ x ∶ B) →
+      -----------------------------------------------
+      Typing (x⸨#⸩․P) (Γ‚ x ∶ A ⅋ B)
 
 notation:65 "⊢ " P " ∷ " 𝒢 => Typing P 𝒢
 
--- lemma Typing.env_comm {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} :
---   (⊢ P ∷ 𝒢 |ₕ Γ‚ Δ) → (⊢ P ∷ 𝒢 |ₕ Δ‚ Γ) :=
---   fun h => Typing.exchange_env h (Env.merge_comm _ _)
+lemma Typing.env_comm {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} :
+  (⊢ P ∷ 𝒢 |ₕ Γ‚ Δ) → (⊢ P ∷ 𝒢 |ₕ Δ‚ Γ) :=
+  fun h => Typing.exchange_env h (Env.merge_comm _ _)
 
--- lemma Typing.env_rotateL {P : Proc} {𝒢 : HyperEnv} {Γ : Env} {x : Channel × Types} :
---   (⊢ P ∷ 𝒢 |ₕ Γ‚ [x]) → (⊢ P ∷ 𝒢 |ₕ {x :: Γ}) :=
---   fun h => Typing.exchange_env h (by symm ; apply Env.merge_rotate_left _ _)
+lemma Typing.env_rotateL {P : Proc} {𝒢 : HyperEnv} {Γ : Env} {x : Channel × Types} :
+  (⊢ P ∷ 𝒢 |ₕ Γ‚ [x]) → (⊢ P ∷ 𝒢 |ₕ {x :: Γ}) :=
+  fun h => Typing.exchange_env h (by symm ; apply Env.merge_rotate_left _ _)
 
--- lemma Typing.env_comm_singleton {P : Proc} {Γ Δ : Env} :
---   (⊢ P ∷ Γ‚ Δ) → (⊢ P ∷ Δ‚ Γ) :=
---   fun h => Typing.exchange_env (𝒢 := ∅) h (Env.merge_comm _ _)
+lemma Typing.env_comm_singleton {P : Proc} {Γ Δ : Env} :
+  (⊢ P ∷ Γ‚ Δ) → (⊢ P ∷ Δ‚ Γ) :=
+  fun h => Typing.exchange_env (𝒢 := ∅) h (Env.merge_comm _ _)
 
--- lemma Typing.env_rotateL_singleton {P : Proc} {Γ : Env} {x : Channel × Types} :
---   (⊢ P ∷ Γ‚ [x]) → (⊢ P ∷ {x :: Γ}) :=
---   fun h => Typing.exchange_env (𝒢 := ∅) h (by symm ; apply Env.merge_rotate_left _ _)
+lemma Typing.env_rotateL_singleton {P : Proc} {Γ : Env} {x : Channel × Types} :
+  (⊢ P ∷ Γ‚ [x]) → (⊢ P ∷ {x :: Γ}) :=
+  fun h => Typing.exchange_env (𝒢 := ∅) h (by symm ; apply Env.merge_rotate_left _ _)
 
--- lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
---   (⊢ P ∷ 𝒢 |ₕ ℋ) → (⊢ P ∷ ℋ |ₕ 𝒢) :=
---   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
-
-
+lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
+  (⊢ P ∷ 𝒢 |ₕ ℋ) → (⊢ P ∷ ℋ |ₕ 𝒢) :=
+  fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
 
 
 
 
+lemma typing_one_inv {𝒢 : HyperEnv} {P : Proc} {x : FPName} :
+  (⊢ x⟦⟧․P ∷ 𝒢) → (⊢ P ∷ ∅) ∧ (𝒢 ~ x ∶ 1) := by
+  intro h
+  generalize heq : x⟦⟧․P = p at h
+  induction h generalizing x P <;> try simp_all
+  case exchange_env h_perm ih =>
+    let ⟨h_P, h_E⟩ := ih heq
+    constructor
+    · exact h_P
+    · rename_i G Γ Δ _ _
+
+      -- let h_sing_perm : ({Γ} : HyperEnv) ~ ({Δ} : HyperEnv) :=
+      --   List.Perm.map (fun e => e) h_perm
 
 
+      let h_sing_perm : [Γ] ~ [Δ] := by
+        rw [List.perm_cons]
+
+
+        exact h_perm
+
+      let h_bridge : (G |ₕ {Γ}) ~ (G |ₕ {Δ}) :=
+        List.Perm.append (List.Perm.refl G) h_sing_perm
+      exact List.Perm.trans h_bridge.symm h_E
 
 
 
@@ -580,17 +609,17 @@ notation:65 "⊢ " P " ∷ " 𝒢 => Typing P 𝒢
 
 
 
--- -- FIXME: Can't really read what is produced by the Typing.***_comm etc. lemmas
--- -- Make it look like the syntax
--- example : ⊢ ((10⟦⟧․𝟘) |ₚ (40⸨⸩․30⸨⸩․20⟦⟧․𝟘)) ∷
---   ((40 ∶ ⊥)‚ (30 ∶ ⊥)‚ 20 ∶ 1) |ₕ (10 ∶ 1) := by
---   apply Typing.hyper_comm
---   · apply Typing.mix
---     · apply Typing.one
---       apply Typing.mix₀
---     · apply Typing.env_rotateL_singleton
---       · apply Typing.bot
---         apply Typing.env_comm_singleton
---         · apply Typing.bot
---           · apply Typing.one
---             apply Typing.mix₀
+-- FIXME: Can't really read what is produced by the Typing.***_comm etc. lemmas
+-- Make it look like the syntax
+example : ⊢ ((10⟦⟧․𝟘) |ₚ (40⸨⸩․30⸨⸩․20⟦⟧․𝟘)) ∷
+  ((40 ∶ ⊥)‚ (30 ∶ ⊥)‚ 20 ∶ 1) |ₕ (10 ∶ 1) := by
+  apply Typing.hyper_comm
+  · apply Typing.mix
+    · apply Typing.one
+      apply Typing.mix₀
+    · apply Typing.env_rotateL_singleton -- makes context look horrible
+      · apply Typing.bot
+        apply Typing.env_comm_singleton
+        · apply Typing.bot
+          · apply Typing.one
+            apply Typing.mix₀
