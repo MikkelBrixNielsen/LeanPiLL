@@ -507,10 +507,6 @@ theorem Typing.subst_name (𝒢 : HyperEnv) (P : Proc) (𝒟 : ⊢ P ∷ 𝒢) (
         apply ih ⟨⟨hFresh.1, ⟨hFresh.2.1, hSafe.2.1⟩⟩, ⟨hFresh.2.2, hSafe.1⟩⟩ hSafe.2.2
 
 
-
-
-
-
 lemma Types.subst_commute {T A B : Types} {X Y : TVar} {hne : Y ≠ X} {hft : Y ∉ A.freeTypes} :
   (T.subst B Y).subst A X = (T.subst A X).subst (B.subst A X) Y := by
   induction T generalizing A B X Y <;> simp_all [Types.subst]

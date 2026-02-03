@@ -77,9 +77,9 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       {x y : PName} {A : Types} :
       EnvStep (x ∶ Aᗮ‚ y ∶ A) (x ⟷ₗ y) ∅
 
-  | link₂ -- FIXME this one isn't actually in the definition in Fig 8, but it matches ProcStep
-      {x y : PName} {A : Types} :
-      EnvStep (x ∶ Aᗮ‚ y ∶ A) (y ⟷ₗ x) ∅
+--   | link₂ -- FIXME this one isn't actually in the definition in Fig 8, but it matches ProcStep
+--       {x y : PName} {A : Types} :
+--       EnvStep (x ∶ Aᗮ‚ y ∶ A) (y ⟷ₗ x) ∅
 
   | use₁
       {Γ : Env} {x : PName} {A : Types} :

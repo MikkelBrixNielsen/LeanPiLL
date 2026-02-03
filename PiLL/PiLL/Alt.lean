@@ -154,6 +154,8 @@ inductive Channel : Type where
   | bound   (x : BPName)
 deriving DecidableEq, BEq, Repr
 
+prefix:max "#" => Channel.free
+
 inductive Proc : Type where
   | nil
   | one         (x : Channel) (P : Proc)
@@ -173,6 +175,14 @@ inductive Proc : Type where
   | dispose     (x : Channel) (P : Proc)
   | link        (x y : Channel)
 deriving DecidableEq, BEq, Repr
+
+notation:80 x "⟦⟧․" P:80 => Proc.one #x P
+notation:80 x "⟦#⟧․" P:80 => Proc.tensor #x P
+notation:80 x "⸨⸩․" P:80 => Proc.bot #x P
+notation:80 x "⸨#⸩․" P:80 => Proc.parr #x P
+notation:75 "𝑣⸨#, ""#⸩" P:80 => Proc.cut P
+infixr:70 " |ₚ " => Proc.par
+notation "𝟘" => Proc.nil
 
 def openChannel (k : Nat) (u : Channel) : Channel → Channel
   | Channel.bound i => if i = k then u else Channel.bound i
@@ -199,9 +209,12 @@ def openProc (k : Nat) (u : Channel) : Proc → Proc
 
 def openProc0 (u : Channel) (P : Proc) : Proc :=
   openProc 0 u P
+notation:max P:max "⸨" x "⸩" => openProc0 x P
 
 def openProcCut (x y : Channel) (P : Proc) : Proc :=
   openProc 0 x (openProc 1 y P)
+notation:max P:max "⸨" x ", " y "⸩" => openProcCut x y P
+
 
 def openProcTVar (k : Nat) (u : TVar) : Proc → Proc
   | .nil => .nil
@@ -317,12 +330,12 @@ def closeProc (k : Nat) (name : FPName) : Proc → Proc
 
 
 
-abbrev Env := List (Channel × Types)
 
--- abbrev Env.mk (x : Channel) (A : Types) := [(x, A)]
--- infixr:86 " ∶ " => Env.mk
 
-abbrev Env.mk (x : FPName) (A : Types) := [(Channel.free x, A)]
+
+abbrev Env := List (FPName × Types)
+
+abbrev Env.mk (x : FPName) (A : Types) := [(x, A)]
 infixr:86 " ∶ " => Env.mk
 
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
@@ -338,11 +351,11 @@ lemma Env.merge_comm (Γ Δ : Env) : List.Perm (Γ‚ Δ) (Δ‚ Γ) := by
 lemma Env.merge_assoc (Γ Δ Ξ : Env) : Γ‚ Δ‚ Ξ = Γ‚ (Δ‚ Ξ) := by
   simp [Env.merge]
 
-lemma Env.merge_rotate_left (Γ : Env) (x : Channel × Types) :
+lemma Env.merge_rotate_left (Γ : Env) (x : FPName × Types) :
   (x :: Γ).Perm (Γ‚ [x]) := by
   symm ; apply List.perm_append_singleton
 
-lemma Env.merge_swap (Γ : Env) (x y : Channel × Types) :
+lemma Env.merge_swap (Γ : Env) (x y : FPName × Types) :
   List.Perm (x :: y :: Γ) (y :: x :: Γ) := by
   symm ; simpa using List.Perm.swap x y Γ
 
@@ -385,46 +398,23 @@ lemma HyperEnv.merge_swap (𝒢 : HyperEnv) (Γ Δ : Env) :
 
 
 
--- TODO: Notation to remove the .free everywhere
--- Env's only talk about free variables anyway so make implicit in mk
--- the same goes for Proc all bounds names are LN so never expliicitly mentioned
-
-
-prefix:max "#" => Channel.free
-notation:max P:max "⸨" x "⸩" => openProc0 x P
-notation:max P:max "⸨" x ", " y "⸩" => openProcCut x y P
 
 
 
-notation:80 x "⟦⟧․" P:80 => Proc.one #x P
-notation:80 x "⟦#⟧․" P:80 => Proc.tensor #x P
-notation:80 x "⸨⸩․" P:80 => Proc.bot #x P
-notation:80 x "⸨#⸩․" P:80 => Proc.parr #x P
-notation:75 "𝑣⸨#, ""#⸩" P:80 => Proc.cut P
-infixr:70 " |ₚ " => Proc.par
-notation "𝟘" => Proc.nil
-
-def L1 := [[1, 2], [3, 4]]
-def L2 := [[2, 1], [3, 4]]
-
-
-#eval L1.Perm L2
 
 
 
+-- FIXME:
+    -- Disjointness of Envs + Typing_preserves_disjointness proof
+    -- freshness conditions + Typing_preserves_linearity proof
 
 inductive Typing : Proc → HyperEnv → Prop where
   ------ Additional Structural and Exchange Rules ------
 
-  -- | struct {P Q : Proc} {𝒢 ℋ : HyperEnv} :
-  --     Typing P 𝒢 → P ≡ₚ Q → 𝒢 ~ ℋ →
-  --     --------------------------------
-  --     Typing Q ℋ
-
   | exchange_env {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} :
-      Typing P (𝒢 |ₕ [Γ]) → Γ ~ Δ →
+      Typing P (Γ :: 𝒢) → Γ ~ Δ →
       ------------------------------
-      Typing P (𝒢 |ₕ Δ)
+      Typing P (Δ :: 𝒢)
 
   | exchange_hyper {𝒢 ℋ : HyperEnv} {P : Proc} :
       Typing P 𝒢 → 𝒢 ~ ℋ →
@@ -448,46 +438,46 @@ inductive Typing : Proc → HyperEnv → Prop where
 
   | bot {Γ : Env} {P : Proc} {x : FPName} :
       Typing P Γ →
-      -------------------------
-      Typing (x⸨⸩․P) (Γ‚ x ∶ ⊥)
+      ---------------------------
+      Typing (x⸨⸩․P) (x ∶ ⊥ :: Γ)
 
   | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {A : Types} (L : Finset FPName) :
       ∀ x y, x ∉ L → y ∉ L → x ≠ y →
-      Typing (P⸨#x, #y⸩) (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) →
-      ---------------------------------------------
+      Typing (P⸨#x, #y⸩) (𝒢 |ₕ x ∶ A :: Γ |ₕ y ∶ Aᗮ :: Δ) →
+      ---------------------------------------------------
       Typing (𝑣⸨#, #⸩P) (𝒢 |ₕ Γ‚ Δ)
 
   | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {B A : Types} (L : Finset FPName) :
-      ∀ y, y ∉ L → Typing (P⸨#y⸩) (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) →
-      ----------------------------------------------------
-      Typing (x⟦#⟧․P) (Γ‚ Δ‚ x ∶ A ⨂ B)
+      ∀ y, y ∉ L → Typing (P⸨#y⸩) (y ∶ A :: Γ |ₕ x ∶ B :: Δ) →
+      ------------------------------------------------------
+      Typing (x⟦#⟧․P) (x ∶ A ⨂ B :: (Γ‚ Δ))
 
   | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types} (L : Finset FPName) :
-      ∀ y, y ∉ L → Typing (P⸨#y⸩) (Γ‚ y ∶ A‚ x ∶ B) →
-      -----------------------------------------------
-      Typing (x⸨#⸩․P) (Γ‚ x ∶ A ⅋ B)
+      ∀ y, y ∉ L → Typing (P⸨#y⸩) (x ∶ B :: (y ∶ A :: Γ)) →
+      ----------------------------------------------------
+      Typing (x⸨#⸩․P) (x ∶ A ⅋ B :: Γ)
 
 notation:65 "⊢ " P " ∷ " 𝒢 => Typing P 𝒢
 
-lemma Typing.env_comm {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} :
-  (⊢ P ∷ 𝒢 |ₕ Γ‚ Δ) → (⊢ P ∷ 𝒢 |ₕ Δ‚ Γ) :=
-  fun h => Typing.exchange_env h (Env.merge_comm _ _)
+-- lemma Typing.env_comm {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} :
+--   (⊢ P ∷ 𝒢 |ₕ Γ‚ Δ) → (⊢ P ∷ 𝒢 |ₕ Δ‚ Γ) :=
+--   fun h => Typing.exchange_env h (Env.merge_comm _ _)
 
-lemma Typing.env_rotateL {P : Proc} {𝒢 : HyperEnv} {Γ : Env} {x : Channel × Types} :
-  (⊢ P ∷ 𝒢 |ₕ Γ‚ [x]) → (⊢ P ∷ 𝒢 |ₕ {x :: Γ}) :=
-  fun h => Typing.exchange_env h (by symm ; apply Env.merge_rotate_left _ _)
+-- lemma Typing.env_rotateL {P : Proc} {𝒢 : HyperEnv} {Γ : Env} {x : FPName × Types} :
+--   (⊢ P ∷ 𝒢 |ₕ Γ‚ [x]) → (⊢ P ∷ 𝒢 |ₕ {x :: Γ}) :=
+--   fun h => Typing.exchange_env h (by symm ; apply Env.merge_rotate_left _ _)
 
-lemma Typing.env_comm_singleton {P : Proc} {Γ Δ : Env} :
-  (⊢ P ∷ Γ‚ Δ) → (⊢ P ∷ Δ‚ Γ) :=
-  fun h => Typing.exchange_env (𝒢 := ∅) h (Env.merge_comm _ _)
+-- lemma Typing.env_comm_singleton {P : Proc} {Γ Δ : Env} :
+--   (⊢ P ∷ Γ‚ Δ) → (⊢ P ∷ Δ‚ Γ) :=
+--   fun h => Typing.exchange_env (𝒢 := ∅) h (Env.merge_comm _ _)
 
-lemma Typing.env_rotateL_singleton {P : Proc} {Γ : Env} {x : Channel × Types} :
-  (⊢ P ∷ Γ‚ [x]) → (⊢ P ∷ {x :: Γ}) :=
-  fun h => Typing.exchange_env (𝒢 := ∅) h (by symm ; apply Env.merge_rotate_left _ _)
+-- lemma Typing.env_rotateL_singleton {P : Proc} {Γ : Env} {x : FPName × Types} :
+--   (⊢ P ∷ Γ‚ [x]) → (⊢ P ∷ {x :: Γ}) :=
+--   fun h => Typing.exchange_env (𝒢 := ∅) h (by symm ; apply Env.merge_rotate_left _ _)
 
-lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
-  (⊢ P ∷ 𝒢 |ₕ ℋ) → (⊢ P ∷ ℋ |ₕ 𝒢) :=
-  fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
+-- lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
+--   (⊢ P ∷ 𝒢 |ₕ ℋ) → (⊢ P ∷ ℋ |ₕ 𝒢) :=
+--   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
 
 
 
@@ -497,10 +487,11 @@ lemma typing_one_inv {𝒢 : HyperEnv} {P : Proc} {x : FPName} :
   intro h
   generalize heq : x⟦⟧․P = p at h
   induction h generalizing x P <;> try simp_all
+
   case exchange_env h_perm ih =>
-    let ⟨h_P, h_E⟩ := ih heq
+    let ⟨hP, hE⟩ := ih heq
     constructor
-    · exact h_P
+    · exact hP
     · rename_i G Γ Δ _ _
 
       -- let h_sing_perm : ({Γ} : HyperEnv) ~ ({Δ} : HyperEnv) :=
@@ -508,102 +499,12 @@ lemma typing_one_inv {𝒢 : HyperEnv} {P : Proc} {x : FPName} :
 
 
       let h_sing_perm : [Γ] ~ [Δ] := by
-        rw [List.perm_cons]
+        -- since singleton only possible iff. Γ = Δ
+        sorry
 
-
-        exact h_perm
-
-      let h_bridge : (G |ₕ {Γ}) ~ (G |ₕ {Δ}) :=
-        List.Perm.append (List.Perm.refl G) h_sing_perm
-      exact List.Perm.trans h_bridge.symm h_E
-
-
-
--- inductive TypingStep : {P : Proc} → {𝒢 : HyperEnv} → Typing P 𝒢 → Lbl →
---   {P' : Proc} → {𝒢' : HyperEnv} → Typing P' 𝒢' → Prop where
---   | one
---       {P : Proc} {x : PName} {𝒟 : ⊢ P ∷ ∅} :
---       TypingStep (Typing.one 𝒟) (x⟦⟧) 𝒟
-
---   | tensor
---       {Γ Δ : Env} {P : Proc} {x x': PName} {A B : Types}
---       {𝒟 : ⊢ P ∷ Γ‚ x' ∶ A |ₕ Δ‚ x ∶ B} :
---       TypingStep (Typing.tensor 𝒟) (x⟦x'⟧) 𝒟
-
---   | bot
---       {Γ : Env} {P : Proc} {x : PName} {𝒟 : ⊢ P ∷ Γ} :
---       TypingStep (Typing.bot 𝒟) (x⸨⸩) 𝒟
-
---   | parr
---       {Γ : Env} {P : Proc} {x x' : PName} {A B : Types}
---       {𝒟 : ⊢ P ∷ Γ‚ x' ∶ A‚ x ∶ B} :
---       TypingStep (Typing.parr 𝒟) (x⸨x'⸩) 𝒟
-
---   | par₁
---       {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}
---       {𝒟 : ⊢ P ∷ 𝒢} {𝒟' : ⊢ P' ∷ 𝒢'} {ℰ : ⊢ Q ∷ ℋ}
---       (h : TypingStep 𝒟 l 𝒟') (disj : (l.i) ∩ (Q.f) = ∅) :
---       -----------------------------------------------------
---       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟' ℰ)
-
---   | par₂
---       {𝒢 ℋ ℋ': HyperEnv} {P Q Q' : Proc} {l : Lbl}
---       {𝒟 : ⊢ P ∷ 𝒢} {ℰ : ⊢ Q ∷ ℋ} {ℰ' : ⊢ Q' ∷ ℋ'}
---       (h : TypingStep ℰ l ℰ') (disj : (l.i) ∩ (P.f) = ∅) :
---       ----------------------------------------------------
---       TypingStep (Typing.mix 𝒟 ℰ) l (Typing.mix 𝒟 ℰ')
-
---   | syn
---       {𝒢 𝒢' ℋ ℋ' : HyperEnv} {P P' Q Q' : Proc} {l l' : Act}
---       {𝒟 : ⊢ P ∷ 𝒢} {𝒟' : ⊢ P' ∷ 𝒢'}
---       {ℰ : ⊢ Q ∷ ℋ} {ℰ' : ⊢ Q' ∷ ℋ'}
---       (h₁ : TypingStep 𝒟 l 𝒟') (h₂ : TypingStep ℰ l' ℰ') :
---       ---------------------------------------------------------
---       TypingStep (Typing.mix 𝒟 ℰ) (l |ₗ l') (Typing.mix 𝒟' ℰ')
-
---   -- | alpha_equiv
---   --     {𝒢 𝒢' : HyperEnv} {P Q Q' : Proc} {l : Lbl}
---   --     {𝒟 : ⊢ P ∷ 𝒢} {ℰ : ⊢ Q ∷ 𝒢} {ℰ' : ⊢ Q' ∷ 𝒢'}
---   --     (h₁ : P =ₐ Q) (h₂ : TypingStep ℰ l ℰ') :
---   --     -----------------------------------------------
---   --     TypingStep 𝒟 l ℰ'
-
---   | one_bot
---       {𝒢: HyperEnv} {Γ : Env} {P P' : Proc} {x y : PName}
---       {𝒟 : ⊢ P ∷  𝒢 |ₕ x ∶ 1 |ₕ Γ‚ y ∶ ⊥} {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ}
---       (h : TypingStep 𝒟 (x⟦⟧ |ₗ y⸨⸩) 𝒟') :
---       -------------------------------------------------------
---       TypingStep (Typing.cut (Γ := ∅) 𝒟) (τ) 𝒟'
-
---   | tensor_parr
---       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {x y x' y' : PName} {A B : Types}
---       {𝒟 : ⊢ P ∷ 𝒢 |ₕ Γ‚ Δ‚ x ∶ A ⨂ B |ₕ Ξ‚ y ∶ Aᗮ ⅋ Bᗮ}
---       {𝒟' : ⊢ P' ∷ 𝒢 |ₕ Γ‚ x ∶ B |ₕ Δ‚ x' ∶ A |ₕ Ξ‚ y ∶ Bᗮ‚ y' ∶ Aᗮ}
---       (h : TypingStep 𝒟 (x⟦x'⟧ |ₗ y⸨y'⸩) 𝒟') :
---       ----------------------------------------------------------------------------
---       TypingStep
---         (Typing.cut 𝒟)
---         (τ)
---         (Typing.cut (by
---           let inner := Typing.cut 𝒟'
---           rw [← Env.merge_assoc] at inner
---           exact inner
---           )
---         )
-
---   | res
---       {𝒢 𝒢': HyperEnv} {Γ Γ' Δ Δ' : Env} {P P' : Proc}
---       {x y : PName} {A : Types} {l : Lbl}
---       {𝒟 : Typing P (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ)}
---       {𝒟' : Typing P' (𝒢' |ₕ Γ'‚ x ∶ A |ₕ Δ'‚ y ∶ Aᗮ)}
---       (h : TypingStep 𝒟 l 𝒟') (disj : l.fresh [x, y]) :
---       --------------------------------------------------
---       TypingStep (Typing.cut 𝒟) l (Typing.cut 𝒟')
-
-
-
-
-
+      let h_bridge : (G |ₕ Γ) ~ (G |ₕ Δ) := by
+        apply List.Perm.append (List.Perm.refl G)
+      exact List.Perm.trans h_bridge.symm hE
 
 
 
