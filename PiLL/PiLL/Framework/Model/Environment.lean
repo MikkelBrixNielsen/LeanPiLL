@@ -484,6 +484,20 @@ abbrev Env := List (FPName × Types)
 abbrev Env.mk (x : FPName) (A : Types) := [(x, A)]
 infixr:86 " ∶ " => Env.mk
 
+def Env.names (Γ : Env) :=
+  (Γ.map Prod.fst).toFinset
+
+@[simp] def Env.disjoint (Δ Γ : Env) : Prop :=
+  Disjoint Δ.names Γ.names
+
+def Env.serverUsable (Γ : Env) : Prop :=
+  ∀p, p ∈ Γ → (p.snd).isServerUsable
+prefix:max "?ₑ" => Env.serverUsable
+
+def Env.freeTypes (Γ : Env) :=
+  Γ.foldl (fun acc (_, A) => acc ∪ A.freeTypes) ∅
+notation "ft(" Γ ")ₑ" => Env.freeTypes Γ
+
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
 infixl:85 "‚ " => Env.merge
 
@@ -508,6 +522,12 @@ lemma Env.merge_swap (Γ : Env) (x y : FPName × Types) :
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
+
+def HyperEnv.names (𝒢 : HyperEnv) :=
+  𝒢.foldl (fun acc Γ => acc ∪ Γ.names) ∅
+
+def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
+  Disjoint 𝒢.names ℋ.names
 
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ++ ℋ
 infixl:55 " |ₕ " => HyperEnv.merge

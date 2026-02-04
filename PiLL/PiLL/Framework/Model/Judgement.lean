@@ -1,5 +1,5 @@
 import PiLL.Framework.Model.Environment
-import PiLL.Framework.Model.Alpha
+-- import PiLL.Framework.Model.Alpha
 import PiLL.Framework.Model.Congruence
 
 -- FIXME: Added a lot of extra contranints so facilitate Env / HyperEnv disjointness
@@ -361,18 +361,18 @@ import PiLL.Framework.Model.Congruence
 
 /- -------------------------------- Delete? -------------------------------- -/
 -- throw in base?
-lemma set_cancel {α : Type} [DecidableEq α] (S T : Finset α) (x : α)
-  (heq : S ∪ {x} = T ∪ {x}) (hnS : x ∉ S) (hnT : x ∉ T) : S = T := by
-  rw [← Finset.erase_insert hnS, ← Finset.erase_insert hnT]
-  simp only [Finset.insert_eq, Finset.union_comm, heq]
+-- lemma set_cancel {α : Type} [DecidableEq α] (S T : Finset α) (x : α)
+--   (heq : S ∪ {x} = T ∪ {x}) (hnS : x ∉ S) (hnT : x ∉ T) : S = T := by
+--   rw [← Finset.erase_insert hnS, ← Finset.erase_insert hnT]
+--   simp only [Finset.insert_eq, Finset.union_comm, heq]
 
-lemma HyperEnv.merge_cancel_right {𝒢 ℋ : HyperEnv} {Γ : Env}
-  (heq : 𝒢 |ₕ {Γ} = ℋ |ₕ {Γ}) (hn1 : Γ ∉ 𝒢) (hn2 : Γ ∉ ℋ) : 𝒢 = ℋ := by
-  apply set_cancel (x := Γ)
-  · simp only [HyperEnv.merge] at heq
-    exact heq
-  · exact hn1
-  · exact hn2
+-- lemma HyperEnv.merge_cancel_right {𝒢 ℋ : HyperEnv} {Γ : Env}
+--   (heq : 𝒢 |ₕ {Γ} = ℋ |ₕ {Γ}) (hn1 : Γ ∉ 𝒢) (hn2 : Γ ∉ ℋ) : 𝒢 = ℋ := by
+--   apply set_cancel (x := Γ)
+--   · simp only [HyperEnv.merge] at heq
+--     exact heq
+--   · exact hn1
+--   · exact hn2
 -----------------------------------------------------------------------------
 
 
@@ -801,7 +801,10 @@ lemma HyperEnv.merge_cancel_right {𝒢 ℋ : HyperEnv} {Γ : Env}
 
 
 
-
+-- Enforce disjointness of Envs
+-- Enforce linearity of Envs
+-- Open Type variables
+-- Typing rules should allow both bound and free names
 
 inductive Typing : Proc → HyperEnv → Prop where
   ------ Additional Structural and Exchange Rules ------
@@ -821,7 +824,8 @@ inductive Typing : Proc → HyperEnv → Prop where
   | mix₀ :
       Typing 𝟘 ∅
 
-  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} :
+  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc}
+      {hDisj : 𝒢.disjoint ℋ} :
       Typing P 𝒢 → Typing Q ℋ →
       --------------------------
       Typing (P |ₚ Q) (𝒢 |ₕ ℋ)
@@ -829,30 +833,134 @@ inductive Typing : Proc → HyperEnv → Prop where
   | one {P : Proc} {x : FPName} :
       Typing P ∅ →
       ----------------------
-      Typing (x⟦⟧․P) (x ∶ 1)
+      Typing (#x⟦⟧․P) (x ∶ 1)
 
+  -- Freshness contraint x ∉ Γ
   | bot {Γ : Env} {P : Proc} {x : FPName} :
       Typing P Γ →
       ---------------------------
-      Typing (x⸨⸩․P) (x ∶ ⊥ :: Γ)
+      Typing (#x⸨⸩․P) (x ∶ ⊥ :: Γ)
 
+  -- Freshness constraint x, y ∉ 𝒢 ∪ Γ ∪ Δ?
+  -- hneq x y?
+  -- Disjointness no Γ and Δ?
   | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {A : Types} (L : Finset FPName) :
       ∀ x y, x ∉ L → y ∉ L → x ≠ y →
       Typing (P⸨#x, #y⸩) (𝒢 |ₕ x ∶ A :: Γ |ₕ y ∶ Aᗮ :: Δ) →
       ---------------------------------------------------
       Typing (𝑣⸨#, #⸩P) (𝒢 |ₕ Γ‚ Δ)
 
+  -- Freshness constraint x, y ∉ Γ ∪ Δ?
+  -- hneq x y?
+  -- Disjointness no Γ and Δ?
   | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {B A : Types} (L : Finset FPName) :
       ∀ y, y ∉ L → Typing (P⸨#y⸩) (y ∶ A :: Γ |ₕ x ∶ B :: Δ) →
       ------------------------------------------------------
-      Typing (x⟦#⟧․P) (x ∶ A ⨂ B :: (Γ‚ Δ))
+      Typing (#x⟦#N⟧․P) (x ∶ A ⨂ B :: (Γ‚ Δ))
 
+  -- Freshness contraint x, y ∉ Γ
+  -- hneq x y?
   | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types} (L : Finset FPName) :
       ∀ y, y ∉ L → Typing (P⸨#y⸩) (x ∶ B :: (y ∶ A :: Γ)) →
       ----------------------------------------------------
-      Typing (x⸨#⸩․P) (x ∶ A ⅋ B :: Γ)
+      Typing (#x⸨#N⸩․P) (x ∶ A ⅋ B :: Γ)
+
+  -- FIXME: add openProc
+  -- bang and c
+
+  -- FIXME: add openTVar
+  -- Exists and forall
+
+  -- FIXME: add types and name substitution
+
+  -- No freshness since x already in the context
+  -- Does not bind, so don't need to open P or should P be opened anyway?
+  | oplus₁
+      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} :
+      Typing P (x ∶ A :: Γ) →
+      ------------------------------
+      Typing (#x⟦𝐋⟧․P) (x ∶ A ⊕ B :: Γ)
+
+  -- No freshness since x already in the context
+  -- Does not bind, so don't need to open P or should P be opened anyway?
+  | oplus₂
+      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} :
+      Typing P (x ∶ B :: Γ) →
+      ------------------------------
+      Typing (#x⟦𝐑⟧․P) (x ∶ A ⊕ B :: Γ)
+
+  -- No freshness since x already in context so should come from somwhere
+  -- where it was checked that it was free.
+  -- Does not bind new variable, so no open? or open?
+  | amp
+      {Γ : Env} {P Q : Proc} {x : FPName} {A B : Types} :
+      Typing P (x ∶ A :: Γ) → Typing Q (x ∶ B :: Γ) →
+      ---------------------------------------------
+      Typing (#x․case{𝐋 : P, 𝐑 : Q}) (x ∶ A & B :: Γ)
+
+  -- No freshness x already in contexxt
+  -- No bindings
+  | quest
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} :
+      Typing P (x ∶ A :: Γ) →
+      -----------------------------
+      Typing (#x⟦USE⟧․P) (x ∶ ??A :: Γ)
+
+  -- No freshness x already in context
+  -- No bindings
+  | bang
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} :
+      Typing P (x ∶ A :: Γ) → ?ₑΓ →
+      ------------------------------
+      Typing (!#x․{P}) (x ∶ !!A :: Γ)
+
+  -- introduces new x => Freshness constraint x ∉ Γ?
+  | w
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} :
+      Typing P Γ →
+      --------------------------------
+      Typing (#x⟦DISP⟧․P) (x ∶ ??A :: Γ)
+
+  -- x and x' already in context, so don't need freshness, since resources in
+  -- environment are linear and have had freshness checked. But maybe include them
+  -- here anyway for convinience?
+  -- Freshness contraint x, x' ∉ Γ.names
+  -- hneq x x'
+  | c
+      {Γ : Env} {P : Proc} {x x' : FPName} {A : Types} :
+      Typing P (x ∶ ??A :: (x' ∶ ??A :: Γ)) →
+      --------------------------------------
+      Typing (#x⟦DUP⟧⸨#N⸩․P) (x ∶ ??A :: Γ)
+
+  -- No freshness contraint needed
+  -- No new bindings or introductions, no openProc?
+  -- Need substitution syntax? Just open new TVar?
+  -- | exists_
+  --     {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {X : TVar} :
+  --     Typing P (x ∶ B{A // X} :: Γ) →
+  --     -----------------------------
+  --     Typing (#x⟦A⟧․P) (x ∶ ∃․B :: Γ)
+
+  -- Might not need ft(Γ) check just shift TVar indices of Γ
+  | forall_
+      {Γ : Env} {P : Proc} {x : FPName} {B : Types} {X : TVar} :
+      Typing P (x ∶ B :: Γ) → -- X ∉ ft(Γ)ₑ →
+      -------------------------------------
+      Typing (#x⸨#T⸩․P) ((x ∶ ∀․B) :: Γ)
+
+  -- Since axiom no context to do freshness check against.
+  -- hneq x y
+  | ax
+      {x y : FPName} {A : Types} :
+      Typing (#x ⟷ₚ #y) (x ∶ Aᗮ :: [y ∶ A])
 
 notation:65 "⊢ " P " ∷ " 𝒢 => Typing P 𝒢
+
+-- Projection of a Judgement to its process
+def proc {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : Proc := P
+
+-- Projection of a Judgement to its environment
+def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
 
 -- lemma Typing.env_comm {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} :
 --   (⊢ P ∷ 𝒢 |ₕ Γ‚ Δ) → (⊢ P ∷ 𝒢 |ₕ Δ‚ Γ) :=
@@ -875,114 +983,20 @@ notation:65 "⊢ " P " ∷ " 𝒢 => Typing P 𝒢
 --   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
 
 
--- inductive Typing : HyperEnv → Proc → Prop where
---   | mix₀ :
---       ----------
---       Typing ∅ 𝟘
 
---   | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} {hDisj : 𝒢.disjoint ℋ}:
---       Typing 𝒢 P → Typing ℋ Q →
---       --------------------------
---       Typing (𝒢 |ₕ ℋ) (P |ₚ Q)
 
---   | cut (𝒢 : HyperEnv) (Γ Δ : Env) (P : Proc) (x y : PName) (A : Types)
---       {hFresh: x ∉ 𝒢.names ∧ x ∉ Γ.names ∧ x ∉ Δ.names ∧
---         y ∉ 𝒢.names ∧ y ∉ Γ.names ∧ y ∉ Δ.names}
---       {hneq : x ≠ y} {hDisj: Γ.disjoint Δ} :
---       Typing (𝒢 |ₕ Γ‚ x ∶ A |ₕ Δ‚ y ∶ Aᗮ) P →
---       -------------------------------------
---       Typing (𝒢 |ₕ Γ‚ Δ) (𝑣⸨x, y⸩ P)
 
---   | tensor {Γ Δ : Env} {P : Proc} {x y : PName} {B A : Types}
---       {hFresh : x ∉ Γ.names ∧ x ∉ Δ.names ∧ y ∉ Γ.names ∧ y ∉ Δ.names}
---       {hneq : x ≠ y} {hDisj: Γ.disjoint Δ} :
---       Typing (Γ‚ y ∶ A |ₕ Δ‚ x ∶ B) P →
---       ---------------------------------
---       Typing (Γ‚ Δ‚ x ∶ A ⨂ B) (x⟦y⟧․P)
 
---   | one {P : Proc} {x : PName} :
---       Typing ∅ P →
---       ----------------------
---       Typing (x ∶ 1) (x⟦⟧․P)
 
---   | parr {Γ : Env} {P : Proc} {x y : PName} {A B : Types}
---       {hFresh : x ∉ Γ.names ∧ y ∉ Γ.names}
---       {hneq : x ≠ y} :
---       Typing (Γ‚ y ∶ A‚ x ∶ B) P →
---       ------------------------------
---       Typing (Γ‚ x ∶ A ⅋ B) (x⸨y⸩․P)
 
---   | bot {Γ : Env} {P : Proc} {x : PName} {hFresh : x ∉ Γ.names} :
---       Typing Γ P →
---       --------------------------
---       Typing (Γ‚ x ∶ ⊥) (x⸨⸩․P)
 
---   | oplus₁
---       {Γ : Env} {P : Proc} {x : PName} {A B : Types} :
---       Typing (Γ‚ x ∶ A) P →
---       ------------------------------
---       Typing (Γ‚ x ∶ A ⊕ B) (x⟦𝐋⟧․P)
 
---   | oplus₂
---       {Γ : Env} {P : Proc} {x : PName} {A B : Types} :
---       Typing (Γ‚ x ∶ B) P →
---       ------------------------------
---       Typing (Γ‚ x ∶ A ⊕ B) (x⟦𝐑⟧․P)
 
---   | amp
---       {Γ : Env} {P Q : Proc} {x : PName} {A B : Types} :
---       Typing (Γ‚ x ∶ A) P → Typing (Γ‚ x ∶ B) Q →
---       ---------------------------------------------
---       Typing (Γ‚ x ∶ A & B) (x․case{𝐋 : P, 𝐑 : Q})
 
---   | quest
---       {Γ : Env} {P : Proc} {x : PName} {A : Types} :
---       Typing (Γ‚ x ∶ A) P →
---       -----------------------------
---       Typing (Γ‚ x ∶ ??A) (x⟦USE⟧․P)
 
---   | bang
---       {Γ : Env} {P : Proc} {x : PName} {A : Types} :
---       Typing (Γ‚ x ∶ A) P → ?ₑΓ →
---       ------------------------------
---       Typing (Γ‚ x ∶ !!A) (!x․{P})
 
---   | w
---       {Γ : Env} {P : Proc} {x : PName} {A : Types} {hFrehs : x ∉ Γ.names} :
---       Typing Γ P →
---       -----------------------------
---       Typing (Γ‚ x ∶ ??A) (x⟦DISP⟧․P)
 
---   | c
---       {Γ : Env} {P : Proc} {x x' : PName} {A : Types}
---       {hneq : x ≠ x'} {hf : x ∉ Γ.names ∧ x' ∉ Γ.names} :
---       Typing (Γ‚ x ∶ ??A‚ x' ∶ ??A) P →
---       ---------------------------------
---       Typing (Γ‚ x ∶ ??A) (x⟦DUP⟧⸨x'⸩․P)
 
---   | exists_
---       {Γ : Env} {P : Proc} {x : PName} {A B : Types} {X : TVar} :
---       Typing (Γ‚ x ∶ B{A // X}) P →
---       -----------------------------
---       Typing (Γ‚ x ∶ ∃X․B) (x⟦A⟧․P)
-
---   | forall_
---       {Γ : Env} {P : Proc} {x : PName} {B : Types} {X : TVar} :
---       Typing (Γ‚ x ∶ B) P → X ∉ ft(Γ)ₑ →
---       ---------------------------------
---       Typing (Γ‚ x ∶ ∀X․B) (x⸨X⸩․P)
-
---   | ax
---       {x y : PName} {A : Types} {hneq : x ≠ y} :
---       Typing (x ∶ Aᗮ‚ y ∶ A) (x ⟷ₚ y)
-
--- notation:50 "⊢ " P " ∷ " T => Typing T P
-
--- -- Projection of a Judgement to its process
--- def proc {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : Proc := P
-
--- -- Projection of a Judgement to its environment
--- def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
 
 -- lemma Typing.f_subset_names {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
 --   P.f ⊆ 𝒢.names := by

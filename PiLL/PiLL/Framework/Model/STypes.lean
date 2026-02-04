@@ -107,8 +107,9 @@ instance : Bot Types := ⟨Types.bot⟩
 prefix:95 "??" => Types.quest
 prefix:95 "!!" => Types.bang
 
-notation:max "∃․" A => Types.exist_ A
+notation:max "∃․" A => Types.exists_ A
 notation:max "∀․" A => Types.forall_ A
+
 def openTVar (k : Nat) (u : TVar) : TVar → TVar
   | TVar.bound i => if i = k then u else TVar.bound i
   | v => v
@@ -238,6 +239,11 @@ def Types.freeTypes : Types → Finset TVar
 
 attribute [simp] Types.freeTypes
 
+def Types.isServerUsable : Types → Prop
+  | .quest _  => True
+  | .bang _   => True
+  | _         => False
+
 -- FIXME: Should aviod capture
 -- (Constriants on Typing rules handle this but maybe they shouldn't)
 -- def Types.subst (T R : Types) (X : TVar) : Types :=
@@ -265,11 +271,6 @@ attribute [simp] Types.freeTypes
 -- lemma Types.subst_dual (A B : Types) (X : TVar) : Bᗮ{A // X} = B{A // X}ᗮ := by
 --   induction B <;> simp [dual, HasSubst.subst, subst] <;> try split
 --   all_goals try simp_all [dual, HasSubst.subst, dual_involution]
-
--- def Types.isServerUsable : Types → Prop
---   | .quest _  => True
---   | .bang _   => True
---   | _         => False
 
 -- @[simp] lemma Types.isServerUsable_subst (T : Types) (A : Types) (X : TVar)
 --   (h : T.isServerUsable) : (T{A // X}).isServerUsable := by
