@@ -244,6 +244,55 @@ def Types.isServerUsable : Types → Prop
   | .bang _   => True
   | _         => False
 
+-- d used as cutoff depth, variables < d are locally bound
+-- c is correction / shift amount
+def shiftTVar (d c : Nat) : TVar → TVar
+  | .bound i => if i < d then .bound i else .bound (i + c)
+  | .free n => .free n
+
+def shift (d c : Nat) : Types → Types
+  | .var v        => .var (shiftTVar d c v)
+  | .varDual v    => .varDual (shiftTVar d c v)
+  | .forall_ A    => .forall_ (shift (d + 1) c A)          -- binds 1
+  | .exists_ A    => .exists_ (shift (d + 1) c A)          -- binds 1
+  | .tensor A B   => .tensor (shift d c A) (shift d c B)
+  | .parr A B     => .parr (shift d c A) (shift d c B)
+  | .quest A      => .quest (shift d c A)
+  | .bang A       => .bang (shift d c A)
+  | .amp A B      => .amp (shift d c A) (shift d c B)
+  | .oplus A B    => .oplus (shift d c A) (shift d c B)
+  | t             => t -- one | bot | atom | atomDual (Don't have Types to shift)
+
+-- if i == k, shift index to current depth
+-- if i > k, outside binder gone => decrement
+-- if i < k, do nothing => keep i
+def Types.subst (A : Types) (k : Nat) : Types → Types
+  | .var (.bound i) =>
+      if i == k then shift 0 k A
+      else if i > k then .var (.bound (i - 1))
+      else .var (.bound i)
+  | .varDual (.bound i) =>
+      if i == k then shift 0 k A
+      else if i > k then .varDual (.bound (i - 1))
+      else .varDual (.bound i)
+  | .var (.free i)        => .var (.free i) -- don't touch free
+  | .varDual (.free i)    => .varDual (.free i) -- don't touch free
+  | .forall_ B            => .forall_ (subst A (k + 1) B)
+  | .exists_ B            => .exists_ (subst A (k + 1) B)
+  | .tensor L R           => .tensor (subst A k L) (subst A k R)
+  | .parr L R             => .parr (subst A k L) (subst A k R)
+  | .quest B              => .quest (subst A k B)
+  | .bang B               => .bang (subst A k B)
+  | .amp L R              => .amp (subst A k L) (subst A k R)
+  | .oplus L R            => .oplus (subst A k L) (subst A k R)
+  | t                     => t -- one | bot | atom | atomDual (Don't have Types to subst)
+
+-- FIXME: define substitution notation similar to previous B{A // X}
+-- FIXME: Implement ∃ and ∀ rules.
+
+
+
+
 -- FIXME: Should aviod capture
 -- (Constriants on Typing rules handle this but maybe they shouldn't)
 -- def Types.subst (T R : Types) (X : TVar) : Types :=

@@ -1,6 +1,6 @@
 import PiLL.Framework.Model.Environment
 -- import PiLL.Framework.Model.Alpha
-import PiLL.Framework.Model.Congruence
+-- import PiLL.Framework.Model.Congruence
 
 -- FIXME: Added a lot of extra contranints so facilitate Env / HyperEnv disjointness
 -- as well as no pathological process appearing e.g. x(x).P, x[DUP](x).P etc.
@@ -800,23 +800,24 @@ import PiLL.Framework.Model.Congruence
 
 
 
+-- TODO: Proof typing preserves linearity of its context
 
--- Enforce disjointness of Envs
--- Enforce linearity of Envs
--- Open Type variables
--- Typing rules should allow both bound and free names
+-- FIXME: Enforce disjointness of Envs
+
+-- FIXME: add openTVar (Exists and forall)
+-- FIXME: add types and name substitution
 
 inductive Typing : Proc → HyperEnv → Prop where
   ------ Additional Structural and Exchange Rules ------
 
   | exchange_env {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} :
       Typing P (Γ :: 𝒢) → Γ ~ Δ →
-      ------------------------------
+      ----------------------------
       Typing P (Δ :: 𝒢)
 
   | exchange_hyper {𝒢 ℋ : HyperEnv} {P : Proc} :
       Typing P 𝒢 → 𝒢 ~ ℋ →
-      ------------------------
+      ----------------------
       Typing P ℋ
 
   ----------------- Actual Typing Rules -----------------
@@ -824,8 +825,7 @@ inductive Typing : Proc → HyperEnv → Prop where
   | mix₀ :
       Typing 𝟘 ∅
 
-  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc}
-      {hDisj : 𝒢.disjoint ℋ} :
+  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} {hD : 𝒢.disjoint ℋ} :
       Typing P 𝒢 → Typing Q ℋ →
       --------------------------
       Typing (P |ₚ Q) (𝒢 |ₕ ℋ)
@@ -835,105 +835,73 @@ inductive Typing : Proc → HyperEnv → Prop where
       ----------------------
       Typing (#x⟦⟧․P) (x ∶ 1)
 
-  -- Freshness contraint x ∉ Γ
-  | bot {Γ : Env} {P : Proc} {x : FPName} :
+  | bot {Γ : Env} {P : Proc} {x : FPName} {hF : x ∉ Γ.names} :
       Typing P Γ →
       ---------------------------
       Typing (#x⸨⸩․P) (x ∶ ⊥ :: Γ)
 
-  -- Freshness constraint x, y ∉ 𝒢 ∪ Γ ∪ Δ?
-  -- hneq x y?
-  -- Disjointness no Γ and Δ?
   | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {A : Types} (L : Finset FPName) :
-      ∀ x y, x ∉ L → y ∉ L → x ≠ y →
-      Typing (P⸨#x, #y⸩) (𝒢 |ₕ x ∶ A :: Γ |ₕ y ∶ Aᗮ :: Δ) →
-      ---------------------------------------------------
-      Typing (𝑣⸨#, #⸩P) (𝒢 |ₕ Γ‚ Δ)
+      (∀ x y, x ∉ L → y ∉ L → x ≠ y →
+      Typing (P⸨#x, #y⸩) (𝒢 |ₕ x ∶ A :: Γ |ₕ y ∶ Aᗮ :: Δ)) →
+      ----------------------------------------------------
+      Typing (𝑣⸨#,#⸩P) (𝒢 |ₕ Γ‚ Δ)
 
-  -- Freshness constraint x, y ∉ Γ ∪ Δ?
-  -- hneq x y?
-  -- Disjointness no Γ and Δ?
-  | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {B A : Types} (L : Finset FPName) :
-      ∀ y, y ∉ L → Typing (P⸨#y⸩) (y ∶ A :: Γ |ₕ x ∶ B :: Δ) →
-      ------------------------------------------------------
+  | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {B A : Types}
+      {hF : x ∉ Γ.names ∧ x ∉ Δ.names} (L : Finset FPName) :
+      (∀ y, y ∉ L → Typing (P⸨#y⸩) (y ∶ A :: Γ |ₕ x ∶ B :: Δ)) →
+      ---------------------------------------------------------
       Typing (#x⟦#N⟧․P) (x ∶ A ⨂ B :: (Γ‚ Δ))
 
-  -- Freshness contraint x, y ∉ Γ
-  -- hneq x y?
-  | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types} (L : Finset FPName) :
-      ∀ y, y ∉ L → Typing (P⸨#y⸩) (x ∶ B :: (y ∶ A :: Γ)) →
-      ----------------------------------------------------
+  | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types}
+      {hF : x ∉ Γ.names} (L : Finset FPName) :
+      (∀ y, y ∉ L → Typing (P⸨#y⸩) (x ∶ B :: (y ∶ A :: Γ))) →
+      -------------------------------------------------------
       Typing (#x⸨#N⸩․P) (x ∶ A ⅋ B :: Γ)
 
-  -- FIXME: add openProc
-  -- bang and c
-
-  -- FIXME: add openTVar
-  -- Exists and forall
-
-  -- FIXME: add types and name substitution
-
-  -- No freshness since x already in the context
-  -- Does not bind, so don't need to open P or should P be opened anyway?
   | oplus₁
       {Γ : Env} {P : Proc} {x : FPName} {A B : Types} :
       Typing P (x ∶ A :: Γ) →
-      ------------------------------
+      ---------------------------------
       Typing (#x⟦𝐋⟧․P) (x ∶ A ⊕ B :: Γ)
 
-  -- No freshness since x already in the context
-  -- Does not bind, so don't need to open P or should P be opened anyway?
   | oplus₂
       {Γ : Env} {P : Proc} {x : FPName} {A B : Types} :
       Typing P (x ∶ B :: Γ) →
-      ------------------------------
+      ---------------------------------
       Typing (#x⟦𝐑⟧․P) (x ∶ A ⊕ B :: Γ)
 
-  -- No freshness since x already in context so should come from somwhere
-  -- where it was checked that it was free.
-  -- Does not bind new variable, so no open? or open?
   | amp
       {Γ : Env} {P Q : Proc} {x : FPName} {A B : Types} :
       Typing P (x ∶ A :: Γ) → Typing Q (x ∶ B :: Γ) →
-      ---------------------------------------------
+      -----------------------------------------------
       Typing (#x․case{𝐋 : P, 𝐑 : Q}) (x ∶ A & B :: Γ)
 
-  -- No freshness x already in contexxt
-  -- No bindings
   | quest
       {Γ : Env} {P : Proc} {x : FPName} {A : Types} :
       Typing P (x ∶ A :: Γ) →
-      -----------------------------
+      --------------------------------
       Typing (#x⟦USE⟧․P) (x ∶ ??A :: Γ)
 
-  -- No freshness x already in context
-  -- No bindings
   | bang
       {Γ : Env} {P : Proc} {x : FPName} {A : Types} :
-      Typing P (x ∶ A :: Γ) → ?ₑΓ →
-      ------------------------------
+      ?ₑΓ → Typing P (x ∶ A :: Γ) →
+      -------------------------------
       Typing (!#x․{P}) (x ∶ !!A :: Γ)
 
-  -- introduces new x => Freshness constraint x ∉ Γ?
   | w
-      {Γ : Env} {P : Proc} {x : FPName} {A : Types} :
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {hF : x ∉ Γ.names} :
       Typing P Γ →
-      --------------------------------
+      ---------------------------------
       Typing (#x⟦DISP⟧․P) (x ∶ ??A :: Γ)
 
-  -- x and x' already in context, so don't need freshness, since resources in
-  -- environment are linear and have had freshness checked. But maybe include them
-  -- here anyway for convinience?
-  -- Freshness contraint x, x' ∉ Γ.names
-  -- hneq x x'
   | c
-      {Γ : Env} {P : Proc} {x x' : FPName} {A : Types} :
-      Typing P (x ∶ ??A :: (x' ∶ ??A :: Γ)) →
-      --------------------------------------
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} (L : Finset FPName) :
+      (∀ x', x' ∉ L →
+      Typing P⸨#x'⸩ (x ∶ ??A :: x' ∶ ??A :: Γ)) →
+      -------------------------------------------
       Typing (#x⟦DUP⟧⸨#N⸩․P) (x ∶ ??A :: Γ)
 
-  -- No freshness contraint needed
-  -- No new bindings or introductions, no openProc?
+  -- FIXME:
   -- Need substitution syntax? Just open new TVar?
   -- | exists_
   --     {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {X : TVar} :
@@ -941,17 +909,15 @@ inductive Typing : Proc → HyperEnv → Prop where
   --     -----------------------------
   --     Typing (#x⟦A⟧․P) (x ∶ ∃․B :: Γ)
 
-  -- Might not need ft(Γ) check just shift TVar indices of Γ
-  | forall_
-      {Γ : Env} {P : Proc} {x : FPName} {B : Types} {X : TVar} :
-      Typing P (x ∶ B :: Γ) → -- X ∉ ft(Γ)ₑ →
-      -------------------------------------
-      Typing (#x⸨#T⸩․P) ((x ∶ ∀․B) :: Γ)
+  -- FIXME:
+  -- | forall_
+  --     {Γ : Env} {P : Proc} {x : FPName} {B : Types} :
+  --     Typing P (x ∶ B :: Γ) → -- X ∉ ft(Γ)ₑ →
+  --     --------------------------------------
+  --     Typing (#x⸨#T⸩․P) ((x ∶ ∀․B) :: Γ)
 
-  -- Since axiom no context to do freshness check against.
-  -- hneq x y
   | ax
-      {x y : FPName} {A : Types} :
+      {x y : FPName} {A : Types} {hneq : x ≠ y} :
       Typing (#x ⟷ₚ #y) (x ∶ Aᗮ :: [y ∶ A])
 
 notation:65 "⊢ " P " ∷ " 𝒢 => Typing P 𝒢
@@ -983,6 +949,134 @@ def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
 --   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
 
 
+
+lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
+  Γ.names ⊆ G.names := by
+  induction G with
+  | nil => contradiction
+  | cons Δ 𝒢' ih =>
+    simp [HyperEnv.names] at *
+    cases h with
+    | inl => simp_all
+    | inr hΓ =>
+      apply Finset.Subset.trans (ih hΓ)
+      apply Finset.subset_union_right
+
+
+
+lemma Env.names_eq_of_perm {Γ Δ : Env} (h : Γ ~ Δ) :
+  Γ.names = Δ.names := by
+  dsimp [Env.names]
+  apply Finset.ext
+  intro x
+  simp only [List.mem_toFinset]
+  apply List.Perm.mem_iff
+  apply List.Perm.map _ h
+
+
+
+lemma Disjoint.subset_left_of_subset_right {Γ Δ : Env} {x : Finset FPName}
+  (hΓΔ : Disjoint Γ.names Δ.names) (hxΓ : x ≤ Γ.names) (hxΔ : x ≤ Δ.names) :
+  x ≤ ⊥ := by
+  exact le_trans (le_inf hxΓ hxΔ) (Disjoint.le_bot hΓΔ)
+
+
+
+
+
+
+theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
+  (h : ⊢ P ∷ 𝒢) : 𝒢.PairwiseDisjoint := by
+  induction h
+
+  case mix₀ => constructor
+
+  case mix hD _ _ ih𝒢 ihℋ =>
+    rw [HyperEnv.PairwiseDisjoint, List.pairwise_append]
+    refine ⟨ih𝒢, ihℋ, ?_⟩
+    intros Γ hΓin𝒢 Δ hΔinℋ
+    have hΓsub𝒢 := HyperEnv.subset_names_of_mem hΓin𝒢
+    have hΔsubℋ := HyperEnv.subset_names_of_mem hΔinℋ
+    exact Disjoint.mono hΓsub𝒢 hΔsubℋ hD
+
+  case one => constructor <;> simp
+
+  case bot | oplus₁ | oplus₂ | amp | quest | bang | w =>
+    constructor
+    · intro a ha
+      simp_all [HyperEnv.PairwiseDisjoint, Env.names]
+    · simp
+
+  case c L _ ih | tensor L _ ih | parr L _ ih =>
+    let u := freshName L
+    have hu : u ∉ L := by
+      intro hc
+      have h_lt := fresh_is_fresh L u hc
+      exact Nat.lt_irrefl _ h_lt
+    specialize ih u hu
+    constructor
+    · intro a ha
+      simp_all [HyperEnv.PairwiseDisjoint, Env.names]
+    · simp
+
+  case ax hneq =>
+    constructor
+    · intro a ha
+      simp_all [- ne_eq, Env.names]
+      rw [← ne_eq]
+      symm
+      exact hneq
+    · simp_all
+
+  case cut ℋ Γ Δ Q A L D ih =>
+    let u := freshName L
+    let v := freshName (L ∪ {u})
+    have hu : u ∉ L := by
+      intro hc
+      have h_lt := fresh_is_fresh L u hc
+      exact Nat.lt_irrefl _ h_lt
+
+    have hv : v ∉ L := by
+      intro hc
+      have hin : v ∈ L ∪ {u} := Finset.mem_union_left {u} hc
+      have h_lt := fresh_is_fresh (L ∪ {u}) v hin
+      exact Nat.lt_irrefl _ h_lt
+
+    have hneq : u ≠ v := by
+      intro heq
+      have hinu : v ∈ ({u} : Finset FPName) := by rw [← heq] ; simp
+      have hinLu : v ∈ L ∪ {u} := by rw [← heq] ; simp
+      have h_lt := fresh_is_fresh (L ∪ {u}) v hinLu
+      exact Nat.lt_irrefl _ h_lt
+
+    specialize ih u v hu hv hneq
+
+    simp only [HyperEnv.PairwiseDisjoint, List.pairwise_append,
+      List.pairwise_cons] at ih ⊢
+
+    rcases ih with ⟨ih1, ih2, ih3⟩
+    constructor
+    · exact ih1.1
+    · exact ⟨⟨by simp, by simp⟩, by simp_all [Env.names]⟩
+
+  case exchange_env hP ih =>
+    rw [HyperEnv.PairwiseDisjoint, List.pairwise_cons] at ⊢ ih
+    constructor
+    · intro a ha
+      have hDΓ := ih.1 a ha
+      simp [Env.disjoint] at ⊢ hDΓ
+      intro x hxΔ hxa
+      rw [← Env.names_eq_of_perm hP] at hxΔ
+      exact le_trans (le_inf hxΔ hxa) (Disjoint.le_bot hDΓ)
+    · exact ih.2
+
+  case exchange_hyper hP ih =>
+    rw [HyperEnv.PairwiseDisjoint, ← List.Perm.pairwise_iff _ hP]
+    · exact ih
+    · intro x y hD
+      simp at hD ⊢
+      apply Disjoint.symm
+      exact hD
 
 
 

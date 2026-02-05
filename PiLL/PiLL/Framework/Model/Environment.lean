@@ -484,7 +484,7 @@ abbrev Env := List (FPName × Types)
 abbrev Env.mk (x : FPName) (A : Types) := [(x, A)]
 infixr:86 " ∶ " => Env.mk
 
-def Env.names (Γ : Env) :=
+def Env.names (Γ : Env) : Finset FPName :=
   (Γ.map Prod.fst).toFinset
 
 @[simp] def Env.disjoint (Δ Γ : Env) : Prop :=
@@ -523,18 +523,21 @@ lemma Env.merge_swap (Γ : Env) (x y : FPName × Types) :
 
 abbrev HyperEnv := List Env
 
-def HyperEnv.names (𝒢 : HyperEnv) :=
-  𝒢.foldl (fun acc Γ => acc ∪ Γ.names) ∅
+def HyperEnv.names (𝒢 : HyperEnv) : Finset FPName :=
+  𝒢.foldr (fun Γ acc => Γ.names ∪ acc) ∅
 
 def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
   Disjoint 𝒢.names ℋ.names
+
+def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
+  List.Pairwise Env.disjoint 𝒢
 
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ++ ℋ
 infixl:55 " |ₕ " => HyperEnv.merge
 
 infixl:50 " ~ " => List.Perm
 
-instance : Coe Env HyperEnv := ⟨fun Γ => ({Γ} : HyperEnv)⟩
+instance : Coe Env HyperEnv := ⟨fun Γ => ([Γ] : HyperEnv)⟩
 
 lemma HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by simp
 
