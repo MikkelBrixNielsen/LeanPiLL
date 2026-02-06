@@ -501,6 +501,12 @@ notation "ft(" Γ ")ₑ" => Env.freeTypes Γ
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
 infixl:85 "‚ " => Env.merge
 
+infixl:50 " ~ " => List.Perm
+
+def Env.shift (Γ : Env) : Env :=
+  Γ.map (fun (x, A) => (x, A.shift 0 1))
+postfix:max "⁺" => Env.shift
+
 lemma Env.merge_unitL (Γ : Env) : ∅‚ Γ = Γ := by simp
 
 lemma Env.merge_unitR (Γ : Env) : Γ‚ ∅ = Γ := by simp
@@ -519,6 +525,20 @@ lemma Env.merge_swap (Γ : Env) (x y : FPName × Types) :
   List.Perm (x :: y :: Γ) (y :: x :: Γ) := by
   symm ; simpa using List.Perm.swap x y Γ
 
+lemma Env.names_eq_of_perm {Γ Δ : Env} (h : Γ ~ Δ) :
+  Γ.names = Δ.names := by
+  dsimp [Env.names]
+  apply Finset.ext
+  intro x
+  simp only [List.mem_toFinset]
+  apply List.Perm.mem_iff
+  apply List.Perm.map _ h
+
+lemma Env.mem_of_disjoint_le_bot {Γ Δ : Env} {x : Finset FPName}
+  (hΓΔ : Disjoint Γ.names Δ.names) (hxΓ : x ≤ Γ.names) (hxΔ : x ≤ Δ.names) :
+  x ≤ ⊥ := by
+  exact le_trans (le_inf hxΓ hxΔ) (Disjoint.le_bot hΓΔ)
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
@@ -534,8 +554,6 @@ def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
 
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ++ ℋ
 infixl:55 " |ₕ " => HyperEnv.merge
-
-infixl:50 " ~ " => List.Perm
 
 instance : Coe Env HyperEnv := ⟨fun Γ => ([Γ] : HyperEnv)⟩
 
@@ -556,3 +574,15 @@ lemma HyperEnv.merge_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
 lemma HyperEnv.merge_swap (𝒢 : HyperEnv) (Γ Δ : Env) :
   List.Perm (Γ :: Δ :: 𝒢) (Δ :: Γ :: 𝒢) := by
   symm ; simpa using List.Perm.swap Γ Δ 𝒢
+
+lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
+  Γ.names ⊆ G.names := by
+  induction G with
+  | nil => contradiction
+  | cons Δ 𝒢' ih =>
+    simp [HyperEnv.names] at *
+    cases h with
+    | inl => simp_all
+    | inr hΓ =>
+      apply Finset.Subset.trans (ih hΓ)
+      apply Finset.subset_union_right

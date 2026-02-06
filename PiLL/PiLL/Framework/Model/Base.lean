@@ -8,16 +8,17 @@ import Mathlib.Order.CompleteLattice.Finset
 
 ------------------------------ POLYMORPHIC CLASSES (NOTATION)------------------------------
 
-class HasSubst (Target New Old : Type) where
-  subst : Target → New → Old → Target
+-- class HasSubst (Target New Old : Type) where
+--   subst : Target → New → Old → Target
 
-notation:max Target "{" New " // " Old "}" => HasSubst.subst Target New Old
+-- notation:max Target "{" New " // " Old "}" => HasSubst.subst Target New Old
 
-class HasBracket (Subject Content Result : Type) where
-   brack : Subject → Content → Result
+-- -- NOTE: Might be irrelevant now
+-- class HasBracket (Subject Content Result : Type) where
+--    brack : Subject → Content → Result
 
-class HasParen (Subject Content Result : Type) where
-   paren : Subject → Content → Result
+-- class HasParen (Subject Content Result : Type) where
+--    paren : Subject → Content → Result
 
 ------------------------------- ADDITIONAL FINSET THEOREMS --------------------------------
 

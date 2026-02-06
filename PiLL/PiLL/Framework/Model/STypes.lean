@@ -107,31 +107,31 @@ instance : Bot Types := ⟨Types.bot⟩
 prefix:95 "??" => Types.quest
 prefix:95 "!!" => Types.bang
 
-notation:max "∃․" A => Types.exists_ A
-notation:max "∀․" A => Types.forall_ A
+prefix:max "∃․" => Types.exists_
+prefix:max "∀․" => Types.forall_
 
-def openTVar (k : Nat) (u : TVar) : TVar → TVar
-  | TVar.bound i => if i = k then u else TVar.bound i
-  | v => v
+-- def openTVar (k : Nat) (u : TVar) : TVar → TVar
+--   | TVar.bound i => if i = k then u else TVar.bound i
+--   | v => v
 
-def openType (k : Nat) (u : TVar) : Types → Types
-  | .atom a => .atom a
-  | .atomDual a => .atomDual a
-  | .var v => .var (openTVar k u v)
-  | .varDual v => .varDual (openTVar k u v)
-  | .one => .one
-  | .bot => .bot
-  | .tensor A B => .tensor (openType k u A) (openType k u B)
-  | .parr A B => .parr (openType k u A) (openType k u B)
-  | .oplus A B => .oplus (openType k u A) (openType k u B)
-  | .amp A B => .amp (openType k u A) (openType k u B)
-  | .bang A => .bang (openType k u A)
-  | .quest A => .quest (openType k u A)
-  | .forall_ A => .forall_ (openType (k+1) u A)
-  | .exists_ A => .exists_ (openType (k+1) u A)
+-- def openType (k : Nat) (u : TVar) : Types → Types
+--   | .atom a => .atom a
+--   | .atomDual a => .atomDual a
+--   | .var v => .var (openTVar k u v)
+--   | .varDual v => .varDual (openTVar k u v)
+--   | .one => .one
+--   | .bot => .bot
+--   | .tensor A B => .tensor (openType k u A) (openType k u B)
+--   | .parr A B => .parr (openType k u A) (openType k u B)
+--   | .oplus A B => .oplus (openType k u A) (openType k u B)
+--   | .amp A B => .amp (openType k u A) (openType k u B)
+--   | .bang A => .bang (openType k u A)
+--   | .quest A => .quest (openType k u A)
+--   | .forall_ A => .forall_ (openType (k+1) u A)
+--   | .exists_ A => .exists_ (openType (k+1) u A)
 
-def openType0 (u : TVar) (A : Types) : Types :=
-  openType 0 u A
+-- def openType0 (u : TVar) (A : Types) : Types :=
+--   openType 0 u A
 
 def lcTVar : Nat → TVar → Prop
   | _, .free _ => True
@@ -250,17 +250,17 @@ def shiftTVar (d c : Nat) : TVar → TVar
   | .bound i => if i < d then .bound i else .bound (i + c)
   | .free n => .free n
 
-def shift (d c : Nat) : Types → Types
+def Types.shift (d c : Nat) : Types → Types
   | .var v        => .var (shiftTVar d c v)
   | .varDual v    => .varDual (shiftTVar d c v)
-  | .forall_ A    => .forall_ (shift (d + 1) c A)          -- binds 1
-  | .exists_ A    => .exists_ (shift (d + 1) c A)          -- binds 1
-  | .tensor A B   => .tensor (shift d c A) (shift d c B)
-  | .parr A B     => .parr (shift d c A) (shift d c B)
-  | .quest A      => .quest (shift d c A)
-  | .bang A       => .bang (shift d c A)
-  | .amp A B      => .amp (shift d c A) (shift d c B)
-  | .oplus A B    => .oplus (shift d c A) (shift d c B)
+  | .forall_ A    => .forall_ (A.shift (d + 1) c)          -- binds 1
+  | .exists_ A    => .exists_ (A.shift (d + 1) c)          -- binds 1
+  | .tensor A B   => .tensor (A.shift d c) (B.shift d c)
+  | .parr A B     => .parr (A.shift d c) (B.shift d c)
+  | .quest A      => .quest (A.shift d c)
+  | .bang A       => .bang (A.shift d c)
+  | .amp A B      => .amp (A.shift d c) (B.shift d c)
+  | .oplus A B    => .oplus (A.shift d c) (B.shift d c)
   | t             => t -- one | bot | atom | atomDual (Don't have Types to shift)
 
 -- if i == k, shift index to current depth
@@ -287,8 +287,10 @@ def Types.subst (A : Types) (k : Nat) : Types → Types
   | .oplus L R            => .oplus (subst A k L) (subst A k R)
   | t                     => t -- one | bot | atom | atomDual (Don't have Types to subst)
 
--- FIXME: define substitution notation similar to previous B{A // X}
--- FIXME: Implement ∃ and ∀ rules.
+notation:max B "{" A " // " "#T}" => Types.subst A 0 B
+
+
+
 
 
 

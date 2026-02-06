@@ -800,9 +800,7 @@ import PiLL.Framework.Model.Environment
 
 
 
--- TODO: Proof typing preserves linearity of its context
 
--- FIXME: Enforce disjointness of Envs
 
 -- FIXME: add openTVar (Exists and forall)
 -- FIXME: add types and name substitution
@@ -901,20 +899,18 @@ inductive Typing : Proc → HyperEnv → Prop where
       -------------------------------------------
       Typing (#x⟦DUP⟧⸨#N⸩․P) (x ∶ ??A :: Γ)
 
-  -- FIXME:
-  -- Need substitution syntax? Just open new TVar?
-  -- | exists_
-  --     {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {X : TVar} :
-  --     Typing P (x ∶ B{A // X} :: Γ) →
-  --     -----------------------------
-  --     Typing (#x⟦A⟧․P) (x ∶ ∃․B :: Γ)
+  -- FIXME: Ensure that witness is valid in the context of Γ using locally closed func
+  | exists_
+      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {X : TVar} :
+      Typing P (x ∶ B{A // #T} :: Γ) →
+      --------------------------------
+      Typing (#x⟦A⟧․P) (x ∶ (∃․B) :: Γ)
 
-  -- FIXME:
-  -- | forall_
-  --     {Γ : Env} {P : Proc} {x : FPName} {B : Types} :
-  --     Typing P (x ∶ B :: Γ) → -- X ∉ ft(Γ)ₑ →
-  --     --------------------------------------
-  --     Typing (#x⸨#T⸩․P) ((x ∶ ∀․B) :: Γ)
+  | forall_
+      {Γ : Env} {P : Proc} {x : FPName} {B : Types} :
+      Typing P (x ∶ B :: Γ⁺) →
+      ----------------------------------
+      Typing (#x⸨#T⸩․P) ((x ∶ ∀․B) :: Γ)
 
   | ax
       {x y : FPName} {A : Types} {hneq : x ≠ y} :
@@ -950,35 +946,7 @@ def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
 
 
 
-lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
-  Γ.names ⊆ G.names := by
-  induction G with
-  | nil => contradiction
-  | cons Δ 𝒢' ih =>
-    simp [HyperEnv.names] at *
-    cases h with
-    | inl => simp_all
-    | inr hΓ =>
-      apply Finset.Subset.trans (ih hΓ)
-      apply Finset.subset_union_right
 
-
-
-lemma Env.names_eq_of_perm {Γ Δ : Env} (h : Γ ~ Δ) :
-  Γ.names = Δ.names := by
-  dsimp [Env.names]
-  apply Finset.ext
-  intro x
-  simp only [List.mem_toFinset]
-  apply List.Perm.mem_iff
-  apply List.Perm.map _ h
-
-
-
-lemma Disjoint.subset_left_of_subset_right {Γ Δ : Env} {x : Finset FPName}
-  (hΓΔ : Disjoint Γ.names Δ.names) (hxΓ : x ≤ Γ.names) (hxΔ : x ≤ Δ.names) :
-  x ≤ ⊥ := by
-  exact le_trans (le_inf hxΓ hxΔ) (Disjoint.le_bot hΓΔ)
 
 
 
@@ -1001,10 +969,10 @@ theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
 
   case one => constructor <;> simp
 
-  case bot | oplus₁ | oplus₂ | amp | quest | bang | w =>
+  case bot | oplus₁ | oplus₂ | amp | quest | bang | w | exists_ | forall_=>
     constructor
     · intro a ha
-      simp_all [HyperEnv.PairwiseDisjoint, Env.names]
+      simp_all [HyperEnv.PairwiseDisjoint, Env.names, Env.shift]
     · simp
 
   case c L _ ih | tensor L _ ih | parr L _ ih =>
@@ -1077,13 +1045,6 @@ theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
       simp at hD ⊢
       apply Disjoint.symm
       exact hD
-
-
-
-
-
-
-
 
 
 
