@@ -399,27 +399,27 @@ def openProcCut (x y : Channel) (P : Proc) : Proc :=
   openProc 0 x (openProc 1 y P)
 notation:max P:max "⸨" x ", " y "⸩" => openProcCut x y P
 
-def openProcTVar (k : Nat) (u : TVar) : Proc → Proc
-  | .nil => .nil
-  | .one x P => .one x (openProcTVar k u P)
-  | .bot x P => .bot x (openProcTVar k u P)
-  | .tensor x P => .tensor x (openProcTVar k u P)
-  | .parr x P => .parr x (openProcTVar k u P)
-  | .cut P => .cut (openProcTVar k u P)
-  | .par P Q => .par (openProcTVar k u P) (openProcTVar k u Q)
-  | .selectL x P => .selectL x (openProcTVar k u P)
-  | .selectR x P => .selectR x (openProcTVar k u P)
-  | .amp x P Q => .amp x (openProcTVar k u P) (openProcTVar k u Q)
-  | .output x P A => .output x (openProcTVar k u P) (openType k u A)
-  | .input x P => .input x (openProcTVar (k+1) u P)
-  | .server x P => .server x (openProcTVar k u P)
-  | .consume x P => .consume x (openProcTVar k u P)
-  | .duplicate x P => .duplicate x (openProcTVar k u P)
-  | .dispose x P => .dispose x (openProcTVar k u P)
-  | .link x y => .link x y
+-- def openProcTVar (k : Nat) (u : TVar) : Proc → Proc
+--   | .nil => .nil
+--   | .one x P => .one x (openProcTVar k u P)
+--   | .bot x P => .bot x (openProcTVar k u P)
+--   | .tensor x P => .tensor x (openProcTVar k u P)
+--   | .parr x P => .parr x (openProcTVar k u P)
+--   | .cut P => .cut (openProcTVar k u P)
+--   | .par P Q => .par (openProcTVar k u P) (openProcTVar k u Q)
+--   | .selectL x P => .selectL x (openProcTVar k u P)
+--   | .selectR x P => .selectR x (openProcTVar k u P)
+--   | .amp x P Q => .amp x (openProcTVar k u P) (openProcTVar k u Q)
+--   | .output x P A => .output x (openProcTVar k u P) (openType k u A)
+--   | .input x P => .input x (openProcTVar (k+1) u P)
+--   | .server x P => .server x (openProcTVar k u P)
+--   | .consume x P => .consume x (openProcTVar k u P)
+--   | .duplicate x P => .duplicate x (openProcTVar k u P)
+--   | .dispose x P => .dispose x (openProcTVar k u P)
+--   | .link x y => .link x y
 
-def openProcTVar0 (u : TVar) (P : Proc) : Proc :=
-  openProcTVar 0 u P
+-- def openProcTVar0 (u : TVar) (P : Proc) : Proc :=
+--   openProcTVar 0 u P
 
 def lcChannel : Nat → Channel → Prop
   | _, .free _ => True

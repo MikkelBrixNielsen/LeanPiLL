@@ -507,6 +507,9 @@ def Env.shift (Γ : Env) : Env :=
   Γ.map (fun (x, A) => (x, A.shift 0 1))
 postfix:max "⁺" => Env.shift
 
+def lcEnv (k : Nat) (Γ : Env) : Prop :=
+  ∀ x A, (x, A) ∈ Γ → lcType k A
+
 lemma Env.merge_unitL (Γ : Env) : ∅‚ Γ = Γ := by simp
 
 lemma Env.merge_unitR (Γ : Env) : Γ‚ ∅ = Γ := by simp

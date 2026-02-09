@@ -272,7 +272,7 @@ def Types.subst (A : Types) (k : Nat) : Types → Types
       else if i > k then .var (.bound (i - 1))
       else .var (.bound i)
   | .varDual (.bound i) =>
-      if i == k then shift 0 k A
+      if i == k then shift 0 k (.dual A)
       else if i > k then .varDual (.bound (i - 1))
       else .varDual (.bound i)
   | .var (.free i)        => .var (.free i) -- don't touch free

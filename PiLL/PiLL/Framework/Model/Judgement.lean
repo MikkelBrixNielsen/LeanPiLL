@@ -803,126 +803,135 @@ import PiLL.Framework.Model.Environment
 
 
 -- FIXME: add openTVar (Exists and forall)
+
 -- FIXME: add types and name substitution
 
-inductive Typing : Proc → HyperEnv → Prop where
+/- FIXME:
+  Notation + coercion has weird behaviour and does not create expected context
+  structure
+-/
+
+inductive Typing : Nat → Proc → HyperEnv → Prop where
   ------ Additional Structural and Exchange Rules ------
 
-  | exchange_env {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} :
-      Typing P (Γ :: 𝒢) → Γ ~ Δ →
+  | exchange_env {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {n : Nat} :
+      Typing n P (Γ :: 𝒢) → Γ ~ Δ →
       ----------------------------
-      Typing P (Δ :: 𝒢)
+      Typing n P (Δ :: 𝒢)
 
-  | exchange_hyper {𝒢 ℋ : HyperEnv} {P : Proc} :
-      Typing P 𝒢 → 𝒢 ~ ℋ →
+  | exchange_hyper {𝒢 ℋ : HyperEnv} {P : Proc} {n : Nat} :
+      Typing n P 𝒢 → 𝒢 ~ ℋ →
       ----------------------
-      Typing P ℋ
+      Typing n P ℋ
 
   ----------------- Actual Typing Rules -----------------
 
-  | mix₀ :
-      Typing 𝟘 ∅
+  | mix₀ {n : Nat} :
+      Typing n 𝟘 ∅
 
-  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} {hD : 𝒢.disjoint ℋ} :
-      Typing P 𝒢 → Typing Q ℋ →
+  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} {hD : 𝒢.disjoint ℋ} {n : Nat} :
+      Typing n P 𝒢 → Typing n Q ℋ →
       --------------------------
-      Typing (P |ₚ Q) (𝒢 |ₕ ℋ)
+      Typing n (P |ₚ Q) (𝒢 |ₕ ℋ)
 
-  | one {P : Proc} {x : FPName} :
-      Typing P ∅ →
+  | one {P : Proc} {x : FPName} {n : Nat} :
+      Typing n P ∅ →
       ----------------------
-      Typing (#x⟦⟧․P) (x ∶ 1)
+      Typing n (#x⟦⟧․P) [[(x, 1)]]
 
-  | bot {Γ : Env} {P : Proc} {x : FPName} {hF : x ∉ Γ.names} :
-      Typing P Γ →
+  | bot {Γ : Env} {P : Proc} {x : FPName} {hF : x ∉ Γ.names} {n : Nat} :
+      Typing n P Γ →
       ---------------------------
-      Typing (#x⸨⸩․P) (x ∶ ⊥ :: Γ)
+      Typing n (#x⸨⸩․P) [(x, ⊥) :: Γ]
 
-  | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {A : Types} (L : Finset FPName) :
+  | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {A : Types} (L : Finset FPName) {n : Nat} :
       (∀ x y, x ∉ L → y ∉ L → x ≠ y →
-      Typing (P⸨#x, #y⸩) (𝒢 |ₕ x ∶ A :: Γ |ₕ y ∶ Aᗮ :: Δ)) →
+      Typing n (P⸨#x, #y⸩) (𝒢 |ₕ [(x, A) :: Γ] |ₕ [(y, Aᗮ) :: Δ])) →
       ----------------------------------------------------
-      Typing (𝑣⸨#,#⸩P) (𝒢 |ₕ Γ‚ Δ)
+      Typing n (𝑣⸨#,#⸩P) (𝒢 |ₕ [Γ‚ Δ])
 
   | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {B A : Types}
-      {hF : x ∉ Γ.names ∧ x ∉ Δ.names} (L : Finset FPName) :
-      (∀ y, y ∉ L → Typing (P⸨#y⸩) (y ∶ A :: Γ |ₕ x ∶ B :: Δ)) →
+      {hF : x ∉ Γ.names ∧ x ∉ Δ.names} (L : Finset FPName) {n : Nat} :
+      (∀ y, y ∉ L → Typing n (P⸨#y⸩) ([(y, A) :: Γ] |ₕ [(x, B) :: Δ])) →
       ---------------------------------------------------------
-      Typing (#x⟦#N⟧․P) (x ∶ A ⨂ B :: (Γ‚ Δ))
+      Typing n (#x⟦#N⟧․P) [(x, A ⨂ B) :: (Γ‚ Δ)]
 
   | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types}
-      {hF : x ∉ Γ.names} (L : Finset FPName) :
-      (∀ y, y ∉ L → Typing (P⸨#y⸩) (x ∶ B :: (y ∶ A :: Γ))) →
+      {hF : x ∉ Γ.names} (L : Finset FPName) {n : Nat} :
+      (∀ y, y ∉ L → Typing n (P⸨#y⸩) [(x, B) :: (y, A) :: Γ]) →
       -------------------------------------------------------
-      Typing (#x⸨#N⸩․P) (x ∶ A ⅋ B :: Γ)
+      Typing n (#x⸨#N⸩․P) [(x, A ⅋ B) :: Γ]
 
   | oplus₁
-      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} :
-      Typing P (x ∶ A :: Γ) →
+      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
+      lcType n B →
+      Typing n P [(x, A) :: Γ] →
       ---------------------------------
-      Typing (#x⟦𝐋⟧․P) (x ∶ A ⊕ B :: Γ)
+      Typing n (#x⟦𝐋⟧․P) [(x, A ⊕ B) :: Γ]
 
   | oplus₂
-      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} :
-      Typing P (x ∶ B :: Γ) →
+      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
+      lcType n A →
+      Typing n P [(x, B) :: Γ] →
       ---------------------------------
-      Typing (#x⟦𝐑⟧․P) (x ∶ A ⊕ B :: Γ)
+      Typing n (#x⟦𝐑⟧․P) [(x, A ⊕ B) :: Γ]
 
   | amp
-      {Γ : Env} {P Q : Proc} {x : FPName} {A B : Types} :
-      Typing P (x ∶ A :: Γ) → Typing Q (x ∶ B :: Γ) →
+      {Γ : Env} {P Q : Proc} {x : FPName} {A B : Types} {n : Nat} :
+      Typing n P [(x, A) :: Γ] → Typing n Q [(x, B) :: Γ] →
       -----------------------------------------------
-      Typing (#x․case{𝐋 : P, 𝐑 : Q}) (x ∶ A & B :: Γ)
+      Typing n (#x․case{𝐋 : P, 𝐑 : Q}) [(x, A & B) :: Γ]
 
   | quest
-      {Γ : Env} {P : Proc} {x : FPName} {A : Types} :
-      Typing P (x ∶ A :: Γ) →
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} :
+      Typing n P [(x, A) :: Γ] →
       --------------------------------
-      Typing (#x⟦USE⟧․P) (x ∶ ??A :: Γ)
+      Typing n (#x⟦USE⟧․P) [(x, ??A) :: Γ]
 
   | bang
-      {Γ : Env} {P : Proc} {x : FPName} {A : Types} :
-      ?ₑΓ → Typing P (x ∶ A :: Γ) →
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} :
+      ?ₑΓ → Typing n P [(x, A) :: Γ] →
       -------------------------------
-      Typing (!#x․{P}) (x ∶ !!A :: Γ)
+      Typing n (!#x․{P}) [(x, !!A) :: Γ]
 
   | w
-      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {hF : x ∉ Γ.names} :
-      Typing P Γ →
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {hF : x ∉ Γ.names} {n : Nat} :
+      Typing n P Γ →
       ---------------------------------
-      Typing (#x⟦DISP⟧․P) (x ∶ ??A :: Γ)
+      Typing n (#x⟦DISP⟧․P) [(x, ??A) :: Γ]
 
   | c
-      {Γ : Env} {P : Proc} {x : FPName} {A : Types} (L : Finset FPName) :
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} (L : Finset FPName) {n : Nat} :
       (∀ x', x' ∉ L →
-      Typing P⸨#x'⸩ (x ∶ ??A :: x' ∶ ??A :: Γ)) →
+      Typing n P⸨#x'⸩ [(x, ??A) :: (x', ??A) :: Γ]) →
       -------------------------------------------
-      Typing (#x⟦DUP⟧⸨#N⸩․P) (x ∶ ??A :: Γ)
+      Typing n (#x⟦DUP⟧⸨#N⸩․P) [(x, ??A) :: Γ]
 
-  -- FIXME: Ensure that witness is valid in the context of Γ using locally closed func
   | exists_
-      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {X : TVar} :
-      Typing P (x ∶ B{A // #T} :: Γ) →
+      {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
+      lcType n A →
+      Typing n P [(x, B{A // #T}) :: Γ] →
       --------------------------------
-      Typing (#x⟦A⟧․P) (x ∶ (∃․B) :: Γ)
+      Typing n (#x⟦A⟧․P) [(x, ∃․B) :: Γ]
 
   | forall_
-      {Γ : Env} {P : Proc} {x : FPName} {B : Types} :
-      Typing P (x ∶ B :: Γ⁺) →
+      {Γ : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
+      Typing (n + 1) P [(x, B) :: Γ⁺] →
       ----------------------------------
-      Typing (#x⸨#T⸩․P) ((x ∶ ∀․B) :: Γ)
+      Typing n (#x⸨#T⸩․P) [(x, ∀․B) :: Γ]
 
   | ax
-      {x y : FPName} {A : Types} {hneq : x ≠ y} :
-      Typing (#x ⟷ₚ #y) (x ∶ Aᗮ :: [y ∶ A])
+      {x y : FPName} {A : Types} {hneq : x ≠ y} {n : Nat} :
+      lcType n A →
+      Typing n (#x ⟷ₚ #y) [(x, Aᗮ) :: [(y, A)]]
 
-notation:65 "⊢ " P " ∷ " 𝒢 => Typing P 𝒢
+notation:65 n " ⊢ " P " ∷ " 𝒢 => Typing n P 𝒢
 
 -- Projection of a Judgement to its process
-def proc {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : Proc := P
+def proc {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : Proc := P
 
 -- Projection of a Judgement to its environment
-def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
+def env {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
 
 -- lemma Typing.env_comm {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} :
 --   (⊢ P ∷ 𝒢 |ₕ Γ‚ Δ) → (⊢ P ∷ 𝒢 |ₕ Δ‚ Γ) :=
@@ -953,13 +962,13 @@ def env {𝒢 : HyperEnv} {P : Proc} (_ : ⊢ P ∷ 𝒢) : HyperEnv := 𝒢
 
 
 
-theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
-  (h : ⊢ P ∷ 𝒢) : 𝒢.PairwiseDisjoint := by
+theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
+  (h : n ⊢ P ∷ 𝒢) : 𝒢.PairwiseDisjoint := by
   induction h
 
   case mix₀ => constructor
 
-  case mix hD _ _ ih𝒢 ihℋ =>
+  case mix hD _ _ _ ih𝒢 ihℋ =>
     rw [HyperEnv.PairwiseDisjoint, List.pairwise_append]
     refine ⟨ih𝒢, ihℋ, ?_⟩
     intros Γ hΓin𝒢 Δ hΔinℋ
@@ -975,7 +984,7 @@ theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
       simp_all [HyperEnv.PairwiseDisjoint, Env.names, Env.shift]
     · simp
 
-  case c L _ ih | tensor L _ ih | parr L _ ih =>
+  case c L _ _ ih | tensor L _ _ ih | parr L _ _ ih =>
     let u := freshName L
     have hu : u ∉ L := by
       intro hc
@@ -987,16 +996,17 @@ theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
       simp_all [HyperEnv.PairwiseDisjoint, Env.names]
     · simp
 
-  case ax hneq =>
-    constructor
-    · intro a ha
-      simp_all [- ne_eq, Env.names]
-      rw [← ne_eq]
-      symm
-      exact hneq
-    · simp_all
+  case ax hneq _ _ =>
+    constructor <;> simp_all
+    -- · intro a ha
+      -- simp_all
+      -- simp_all [- ne_eq, Env.names]
+      -- rw [← ne_eq]
+      -- symm
+      -- exact hneq
+    -- · simp_all
 
-  case cut ℋ Γ Δ Q A L D ih =>
+  case cut L _ _ ih =>
     let u := freshName L
     let v := freshName (L ∪ {u})
     have hu : u ∉ L := by
@@ -1045,6 +1055,116 @@ theorem Typing.preserves_disjointness {P : Proc} {𝒢 : HyperEnv}
       simp at hD ⊢
       apply Disjoint.symm
       exact hD
+
+-- FIXME: Need weakening to allow for processes with varying depth to be mixed when using
+-- De Bruijn indices.
+-- FIXME: Need shift defined on Proc
+-- lemma weakening_preserves_typing {n : Nat} {P : Proc} {Γ : Env} :
+--   Typing n P Γ → ∀ (k : Nat), Typing (n + k) (P.shift k) (Γ.shift k) := by sorry
+
+lemma lcEnv_cons {n : Nat} {x : FPName} {A : Types} {Γ : Env} :
+  lcEnv n ((x, A) :: Γ) ↔ lcType n A ∧ lcEnv n Γ := by
+  unfold lcEnv
+  constructor
+  · intro h
+    constructor
+    · apply h x A
+      simp
+    · intro y B hΓ
+      apply h y B
+      simp [hΓ]
+  · rintro ⟨h1, h2⟩ y B hMem
+    cases hMem
+    · exact h1
+    · rename_i hΓ
+      apply h2 y B hΓ
+
+lemma lcEnv_singleton {n : Nat} {x : FPName} {A : Types} :
+  lcEnv n (x ∶ A) ↔ lcType n A := by
+  unfold lcEnv
+  simp_all
+
+
+lemma Typing_preserves_lc {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {n : Nat} :
+  (n ⊢ P ∷ 𝒢) → ∀ Γ ∈ 𝒢, lcEnv n Γ := by
+  intro hT E hE𝒢
+  induction hT generalizing E
+
+  case mix₀ => simp_all
+
+  case mix =>
+    simp at hE𝒢
+    cases hE𝒢 <;> simp_all
+
+  case one =>
+    simp_all [lcEnv, lcType]
+
+  case bot Γ P x hF n hP ih =>
+    simp at hE𝒢
+    simp [hE𝒢]
+    have hΓ : lcEnv n Γ := ih Γ (by simp)
+    have hBot : lcType n ⊥ := by simp [lcType]
+    rw [lcEnv_cons]
+    exact ⟨hBot, hΓ⟩
+
+  case oplus₁ Γ _ x A _ n _ _ ih =>
+    rw [List.mem_singleton] at hE𝒢
+    subst hE𝒢
+    have h : lcEnv n ((x, A) :: Γ) := ih ((x, A) :: Γ) (by simp)
+    rw [lcEnv_cons] at ⊢ h
+    exact ⟨⟨h.1, by simp_all⟩, h.2⟩
+
+  case oplus₂ Γ _ x _ B n _ _ ih =>
+    rw [List.mem_singleton] at hE𝒢
+    subst hE𝒢
+    have h : lcEnv n ((x, B) :: Γ) := ih ((x, B) :: Γ) (by simp)
+    rw [lcEnv_cons] at ⊢ h
+    exact ⟨⟨by simp_all, h.1⟩, h.2⟩
+
+  case amp Γ P Q x A B n hP hQ ihP ihQ =>
+    simp at hE𝒢
+    subst hE𝒢
+    have h1 : lcEnv n ((x, A) :: Γ) := ihP ((x, A) :: Γ) (by simp)
+    have h2 : lcEnv n ((x, B) :: Γ) := ihQ ((x, B) :: Γ) (by simp)
+    rw [lcEnv_cons] at ⊢ h1 h2
+    exact ⟨⟨h1.1, h2.1⟩, h2.2⟩
+
+
+
+  case quest => sorry
+  case bang => sorry
+  case w => sorry
+
+  case c x _ L _ hP ih => sorry
+  --   simp_all
+  --   cases hE𝒢
+  --   all_goals
+  --     rename_i hE
+  --     subst hE
+  --     let u := freshName (L ∪ {x})
+  --     have hu : u ∉ L := by
+  --       intro hc
+  --       have hin : u ∈ L ∪ {x} := Finset.mem_union_left {x} hc
+  --       have h_lt := fresh_is_fresh (L ∪ {x}) u hin
+  --       exact Nat.lt_irrefl _ h_lt
+  --     specialize ih u hu
+  --     simp_all
+
+  case exists_ => sorry
+  case forall_ => sorry
+  case ax => sorry
+  case cut => sorry
+  case tensor => sorry
+  case parr => sorry
+  case exchange_env => sorry
+  case exchange_hyper => sorry
+
+
+
+
+-- FIXME: Shift preserve lc: lcType k A → lcType (k+c) (A.shift 0 c)
+-- FIXME: substitution preserves lc: lcType (k+1) B → lcType k A → lcType (B{A // #T})
+-- FIXME: Environment shift preserve lc: lcEnv k Γ → lcEnv (k+1) Γ⁺
 
 
 
