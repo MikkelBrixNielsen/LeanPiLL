@@ -896,7 +896,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
 
   | w
       {Γ : Env} {P : Proc} {x : FPName} {A : Types} {hF : x ∉ Γ.names} {n : Nat} :
-      Typing n P Γ →
+      lcType n A → Typing n P Γ →
       ---------------------------------
       Typing n (#x⟦DISP⟧․P) [(x, ??A) :: Γ]
 
@@ -1056,6 +1056,53 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
       apply Disjoint.symm
       exact hD
 
+lemma lcType_of_subst_inv_gen {n k : Nat} {A B : Types} :
+  lcType (n + k) (Types.subst A k B) → lcType n A →
+  lcType (n + k + 1) B := by
+  induction B generalizing n k
+
+  all_goals (
+    simp [Types.subst, lcType] at *
+    try intros
+    try simp_all
+  )
+
+  case var v hSub hA | varDual v hSub hA =>
+    cases v with
+    | bound i =>
+      simp_all [Types.subst, lcTVar]
+      split_ifs at hSub
+      case pos =>
+        simp_all
+        apply Nat.lt_succ_of_le
+        exact Nat.le_add_left k n
+      case pos h =>
+        simp [lcType, lcTVar] at hSub
+        apply Nat.succ_lt_succ at hSub
+        have hneq : i ≠ 0 := by
+          rw [Nat.lt_or_gt]
+          exact  Or.inr (Nat.lt_of_le_of_lt (Nat.zero_le k) h)
+        rw [← Nat.pred_eq_sub_one, Nat.succ_pred hneq, Nat.succ_eq_add_one] at hSub
+        exact hSub
+      · simp [lcType, lcTVar] at hSub
+        exact Nat.lt_succ_of_lt hSub
+    | free i =>
+      simp_all [Types.subst, lcType, lcTVar]
+
+  case forall_ ihB hSub hA | exists_ ihB hSub hA =>
+    apply ihB (k := k + 1)
+    · exact hSub
+    · exact hA
+
+lemma lcType_of_subst_inv_0 {n : Nat} {A B : Types} :
+  lcType n (Types.subst A 0 B) → lcType n A →
+  lcType (n + 1) B := lcType_of_subst_inv_gen (k := 0)
+
+
+
+
+
+
 -- FIXME: Need weakening to allow for processes with varying depth to be mixed when using
 -- De Bruijn indices.
 -- FIXME: Need shift defined on Proc
@@ -1096,61 +1143,28 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {n : Nat} :
     simp at hE𝒢
     cases hE𝒢 <;> simp_all
 
-  case one =>
+  case one | bot | quest | bang | amp | oplus₁ | oplus₂ | w =>
+    simp_all [lcEnv_cons]
     simp_all [lcEnv, lcType]
 
-  case bot Γ P x hF n hP ih =>
-    simp at hE𝒢
-    simp [hE𝒢]
-    have hΓ : lcEnv n Γ := ih Γ (by simp)
-    have hBot : lcType n ⊥ := by simp [lcType]
-    rw [lcEnv_cons]
-    exact ⟨hBot, hΓ⟩
-
-  case oplus₁ Γ _ x A _ n _ _ ih =>
-    rw [List.mem_singleton] at hE𝒢
-    subst hE𝒢
-    have h : lcEnv n ((x, A) :: Γ) := ih ((x, A) :: Γ) (by simp)
-    rw [lcEnv_cons] at ⊢ h
-    exact ⟨⟨h.1, by simp_all⟩, h.2⟩
-
-  case oplus₂ Γ _ x _ B n _ _ ih =>
-    rw [List.mem_singleton] at hE𝒢
-    subst hE𝒢
-    have h : lcEnv n ((x, B) :: Γ) := ih ((x, B) :: Γ) (by simp)
-    rw [lcEnv_cons] at ⊢ h
-    exact ⟨⟨by simp_all, h.1⟩, h.2⟩
-
-  case amp Γ P Q x A B n hP hQ ihP ihQ =>
+  case c Γ _ x A L n hP ih =>
     simp at hE𝒢
     subst hE𝒢
-    have h1 : lcEnv n ((x, A) :: Γ) := ihP ((x, A) :: Γ) (by simp)
-    have h2 : lcEnv n ((x, B) :: Γ) := ihQ ((x, B) :: Γ) (by simp)
-    rw [lcEnv_cons] at ⊢ h1 h2
-    exact ⟨⟨h1.1, h2.1⟩, h2.2⟩
+    let u := freshName L
+    have hu : u ∉ L := by
+      intro hc
+      have h_lt := fresh_is_fresh L u hc
+      exact Nat.lt_irrefl _ h_lt
+    specialize ih u hu
+    simp_all [lcEnv_cons]
 
+  case exists_ Γ _ x A B n hlc _ ih =>
+    simp at hE𝒢
+    subst hE𝒢
+    have h : lcEnv n ((x, B{A // #T}) :: Γ) := ih ((x, B{A // #T}) :: Γ) (by simp)
+    rw [lcEnv_cons] at h ⊢
+    exact ⟨lcType_of_subst_inv_0 h.1 hlc, by simp_all⟩
 
-
-  case quest => sorry
-  case bang => sorry
-  case w => sorry
-
-  case c x _ L _ hP ih => sorry
-  --   simp_all
-  --   cases hE𝒢
-  --   all_goals
-  --     rename_i hE
-  --     subst hE
-  --     let u := freshName (L ∪ {x})
-  --     have hu : u ∉ L := by
-  --       intro hc
-  --       have hin : u ∈ L ∪ {x} := Finset.mem_union_left {x} hc
-  --       have h_lt := fresh_is_fresh (L ∪ {x}) u hin
-  --       exact Nat.lt_irrefl _ h_lt
-  --     specialize ih u hu
-  --     simp_all
-
-  case exists_ => sorry
   case forall_ => sorry
   case ax => sorry
   case cut => sorry
