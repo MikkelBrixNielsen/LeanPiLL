@@ -542,6 +542,66 @@ lemma Env.mem_of_disjoint_le_bot {Γ Δ : Env} {x : Finset FPName}
   x ≤ ⊥ := by
   exact le_trans (le_inf hxΓ hxΔ) (Disjoint.le_bot hΓΔ)
 
+lemma lcEnv_shift_inv {n k : Nat} {Γ : Env} :
+  lcEnv (n + k + 1) Γ⁺ ↔ lcEnv (n + k) Γ := by
+  simp [lcEnv, Env.shift]
+  constructor
+  all_goals (
+    intro h x A hin
+    specialize h x A hin
+    simp_all [lcType_shift_inv_0]
+  )
+
+lemma lcEnv_shift_inv_0 {n : Nat} {Γ : Env} :
+  lcEnv (n + 1) Γ⁺ ↔ lcEnv n Γ := lcEnv_shift_inv (k := 0)
+
+lemma lcEnv_cons {n : Nat} {x : FPName} {A : Types} {Γ : Env} :
+  lcEnv n ((x, A) :: Γ) ↔ lcType n A ∧ lcEnv n Γ := by
+  unfold lcEnv
+  constructor
+  · intro h
+    constructor
+    · apply h x A
+      simp
+    · intro y B hΓ
+      apply h y B
+      simp [hΓ]
+  · rintro ⟨h1, h2⟩ y B hMem
+    cases hMem
+    · exact h1
+    · rename_i hΓ
+      apply h2 y B hΓ
+
+lemma lcEnv_singleton {n : Nat} {x : FPName} {A : Types} :
+  lcEnv n (x ∶ A) ↔ lcType n A := by simp_all [lcEnv]
+
+lemma lcEnv_append {n : Nat} {Γ Δ : Env} :
+  lcEnv n (Γ‚ Δ) ↔ lcEnv n Γ ∧ lcEnv n Δ := by
+  simp [lcEnv]
+  constructor
+  · intro h
+    constructor
+    · intro x A hin
+      exact h x A (Or.inl hin)
+    · intro x A hin
+      exact h x A (Or.inr hin)
+  · intro ⟨hΓ, hΔ⟩ x A hin
+    cases hin with
+    | inl hin => exact hΓ x A hin
+    | inr hin => exact hΔ x A hin
+
+lemma lcEnv_perm {n : Nat} {Γ Δ : Env} :
+  Γ ~ Δ → (lcEnv n Γ ↔ lcEnv n Δ) := by
+  intro hPerm
+  simp [lcEnv]
+  constructor
+  · intro h x A hin
+    rw [List.Perm.mem_iff hPerm.symm] at hin
+    exact h x A hin
+  · intro h x A hin
+    rw [List.Perm.mem_iff hPerm] at hin
+    exact h x A hin
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env

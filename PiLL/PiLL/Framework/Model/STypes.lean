@@ -289,6 +289,166 @@ def Types.subst (A : Types) (k : Nat) : Types → Types
 
 notation:max B "{" A " // " "#T}" => Types.subst A 0 B
 
+lemma lcType_dual {n : Nat} {A : Types} :
+  lcType n A ↔ lcType n Aᗮ := by
+  induction A generalizing n <;>
+  simp_all [lcType, Types.dual]
+
+lemma lcType_shift_k_inv {n k d : Nat} {A : Types} :
+  lcType (n + k + d) (A.shift d k) ↔ lcType (n + d) A := by
+  induction A generalizing n k d
+
+  all_goals (
+    simp_all [Types.shift, lcType]
+  )
+
+  case forall_ ih | exists_ ih => apply ih (d := d + 1)
+
+  case var v | varDual v =>
+    cases v with
+    | bound i =>
+      constructor
+      · intro h
+        simp_all [lcTVar, shiftTVar]
+        split_ifs at h
+        case pos hlt =>
+          simp at h
+          apply Nat.lt_of_lt_of_le hlt
+          apply Nat.le_add_left
+        case neg hge =>
+          simp_all
+          rw [Nat.add_assoc n k d, Nat.add_comm k d, ← Nat.add_assoc] at h
+          apply Nat.lt_of_add_lt_add_right h
+      · intro h
+        simp_all [lcTVar, shiftTVar]
+        split_ifs
+        case pos hlt =>
+          simp
+          apply Nat.lt_of_lt_of_le h
+          rw [Nat.add_assoc, Nat.add_comm k d, ← Nat.add_assoc]
+          apply Nat.le_add_right
+        case neg hge =>
+          simp_all
+          rw [Nat.add_assoc n k d, Nat.add_comm k d, ← Nat.add_assoc]
+          simp_all
+
+    | free _ => simp_all [lcTVar, shiftTVar]
+
+
+lemma lcType_subst_inv {n k : Nat} {A B : Types} (hA : lcType n A) :
+   lcType (n + k) (Types.subst A k B) ↔ lcType (n + k + 1) B := by
+  induction B generalizing n k
+
+  all_goals (
+    simp_all [Types.subst, lcType]
+  )
+
+  case forall_ B ih | exists_ B ih => apply ih (k := k + 1) hA
+
+  case var v | varDual v =>
+    cases v with
+    | bound i =>
+      simp [Types.subst, lcTVar]
+      split_ifs
+      case pos =>
+        constructor
+        · intro ; simp_all [Nat.lt_succ_of_le]
+        · intro
+          try exact (lcType_shift_k_inv (d := 0) (k := k)).mpr hA
+          try apply lcType_dual.mp at hA ; exact (lcType_shift_k_inv (d := 0) (k := k)).mpr hA
+      case pos hneq hgt =>
+        simp [lcType, lcTVar]
+        have hneq0 : i ≠ 0 := by
+          rw [Nat.lt_or_gt]
+          exact Or.inr (Nat.lt_of_le_of_lt (Nat.zero_le k) hgt)
+        constructor
+        · intro h
+          apply Nat.succ_lt_succ at h
+          rw [← Nat.pred_eq_sub_one, Nat.succ_pred hneq0, Nat.succ_eq_add_one] at h
+          exact h
+        · intro h
+          rw [← Nat.succ_eq_add_one, ← Nat.succ_pred hneq0] at h
+          simp at h
+          exact h
+      case neg hneq hge =>
+        simp_all [lcType, lcTVar]
+        constructor
+        · exact Nat.lt_succ_of_lt
+        · simp [Nat.lt_of_lt_of_le (Nat.lt_of_le_of_ne hge hneq)]
+
+    | free _ => simp_all [Types.subst, lcType, lcTVar]
+
+-- lemma lcType_of_subst_inv {n k : Nat} {A B : Types} :
+--   lcType (n + k) (Types.subst A k B) → lcType n A →
+--   lcType (n + k + 1) B := by
+--   induction B generalizing n k
+
+--   all_goals (
+--     simp_all [Types.subst, lcType]
+--     try intros
+--     try simp_all
+--   )
+
+--   case var v hSub hA | varDual v hSub hA =>
+--     cases v with
+--     | bound i =>
+--       simp_all [Types.subst, lcTVar]
+--       split_ifs at hSub
+--       case pos =>
+--         simp_all
+--         apply Nat.lt_succ_of_le
+--         exact Nat.le_add_left k n
+--       case pos h =>
+--         simp [lcType, lcTVar] at hSub
+--         apply Nat.succ_lt_succ at hSub
+--         have hneq : i ≠ 0 := by
+--           rw [Nat.lt_or_gt]
+--           exact Or.inr (Nat.lt_of_le_of_lt (Nat.zero_le k) h)
+--         rw [← Nat.pred_eq_sub_one, Nat.succ_pred hneq, Nat.succ_eq_add_one] at hSub
+--         exact hSub
+--       · simp [lcType, lcTVar] at hSub
+--         exact Nat.lt_succ_of_lt hSub
+--     | free i =>
+--       simp_all [Types.subst, lcType, lcTVar]
+
+--   case forall_ ihB hSub hA | exists_ ihB hSub hA =>
+--     apply ihB (k := k + 1)
+--     · exact hSub
+--     · exact hA
+
+lemma lcType_of_subst_inv_0 {n : Nat} {A B : Types} :
+  lcType n A → (lcType n (B{A // #T}) ↔
+  lcType (n + 1) B) := by
+  intro hA
+  exact lcType_subst_inv (k := 0) hA
+
+lemma lcType_shift_inv {n k : Nat} {A : Types} :
+  lcType (n + k + 1) (A.shift k 1) ↔ lcType (n + k) A := by
+  induction A generalizing n k
+  all_goals (
+    simp_all [lcType, Types.shift]
+  )
+
+  case var v | varDual v =>
+    cases v with
+    | bound i =>
+      simp [shiftTVar, lcTVar]
+      split_ifs with hle
+      · simp
+        constructor
+        · simp_all [Nat.lt_of_lt_of_le hle]
+        · simp_all [Nat.lt_succ_of_lt]
+      · simp
+
+    | free i => simp_all [lcTVar, shiftTVar]
+
+  case forall_ ihA | exists_ ihA =>
+    apply ihA (k := k + 1)
+
+lemma lcType_shift_inv_0 {n : Nat} {A : Types} :
+  lcType (n + 1) (A.shift 0 1) ↔ lcType n A := lcType_shift_inv (k := 0)
+
+
 
 
 

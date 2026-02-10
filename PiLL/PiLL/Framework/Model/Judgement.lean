@@ -954,6 +954,37 @@ def env {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : HyperEnv
 --   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
 
 
+lemma exists_one_fresh (L : Finset FPName) :
+  ∃u, u ∉ L := by
+  let u := freshName L
+  use u
+  intro hc
+  have h_lt := fresh_is_fresh L u hc
+  exact Nat.lt_irrefl _ h_lt
+
+lemma exists_two_fresh (L : Finset FPName) :
+  ∃ u v, u ∉ L ∧ v ∉ L ∧ u ≠ v := by
+  let u := freshName L
+  have hu : u ∉ L := by
+    intro hc
+    have h_lt := fresh_is_fresh L u hc
+    exact Nat.lt_irrefl _ h_lt
+
+  let v := freshName (L ∪ {u})
+  have hv : v ∉ L := by
+    intro hc
+    have hin : v ∈ L ∪ {u} := Finset.mem_union_left {u} hc
+    have h_lt := fresh_is_fresh (L ∪ {u}) v hin
+    exact Nat.lt_irrefl _ h_lt
+
+  have hneq : u ≠ v := by
+    intro heq
+    have hinu : v ∈ ({u} : Finset FPName) := by rw [← heq] ; simp
+    have hinLu : v ∈ L ∪ {u} := by rw [← heq] ; simp
+    have h_lt := fresh_is_fresh (L ∪ {u}) v hinLu
+    exact Nat.lt_irrefl _ h_lt
+
+  refine ⟨u, v, hu, hv, hneq⟩
 
 
 
@@ -985,11 +1016,7 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
     · simp
 
   case c L _ _ ih | tensor L _ _ ih | parr L _ _ ih =>
-    let u := freshName L
-    have hu : u ∉ L := by
-      intro hc
-      have h_lt := fresh_is_fresh L u hc
-      exact Nat.lt_irrefl _ h_lt
+    obtain ⟨u, hu⟩ := exists_one_fresh L
     specialize ih u hu
     constructor
     · intro a ha
@@ -1007,26 +1034,7 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
     -- · simp_all
 
   case cut L _ _ ih =>
-    let u := freshName L
-    let v := freshName (L ∪ {u})
-    have hu : u ∉ L := by
-      intro hc
-      have h_lt := fresh_is_fresh L u hc
-      exact Nat.lt_irrefl _ h_lt
-
-    have hv : v ∉ L := by
-      intro hc
-      have hin : v ∈ L ∪ {u} := Finset.mem_union_left {u} hc
-      have h_lt := fresh_is_fresh (L ∪ {u}) v hin
-      exact Nat.lt_irrefl _ h_lt
-
-    have hneq : u ≠ v := by
-      intro heq
-      have hinu : v ∈ ({u} : Finset FPName) := by rw [← heq] ; simp
-      have hinLu : v ∈ L ∪ {u} := by rw [← heq] ; simp
-      have h_lt := fresh_is_fresh (L ∪ {u}) v hinLu
-      exact Nat.lt_irrefl _ h_lt
-
+    obtain ⟨u, v, hu, hv, hneq⟩ := exists_two_fresh L
     specialize ih u v hu hv hneq
 
     simp only [HyperEnv.PairwiseDisjoint, List.pairwise_append,
@@ -1056,83 +1064,16 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
       apply Disjoint.symm
       exact hD
 
-lemma lcType_of_subst_inv_gen {n k : Nat} {A B : Types} :
-  lcType (n + k) (Types.subst A k B) → lcType n A →
-  lcType (n + k + 1) B := by
-  induction B generalizing n k
-
-  all_goals (
-    simp [Types.subst, lcType] at *
-    try intros
-    try simp_all
-  )
-
-  case var v hSub hA | varDual v hSub hA =>
-    cases v with
-    | bound i =>
-      simp_all [Types.subst, lcTVar]
-      split_ifs at hSub
-      case pos =>
-        simp_all
-        apply Nat.lt_succ_of_le
-        exact Nat.le_add_left k n
-      case pos h =>
-        simp [lcType, lcTVar] at hSub
-        apply Nat.succ_lt_succ at hSub
-        have hneq : i ≠ 0 := by
-          rw [Nat.lt_or_gt]
-          exact  Or.inr (Nat.lt_of_le_of_lt (Nat.zero_le k) h)
-        rw [← Nat.pred_eq_sub_one, Nat.succ_pred hneq, Nat.succ_eq_add_one] at hSub
-        exact hSub
-      · simp [lcType, lcTVar] at hSub
-        exact Nat.lt_succ_of_lt hSub
-    | free i =>
-      simp_all [Types.subst, lcType, lcTVar]
-
-  case forall_ ihB hSub hA | exists_ ihB hSub hA =>
-    apply ihB (k := k + 1)
-    · exact hSub
-    · exact hA
-
-lemma lcType_of_subst_inv_0 {n : Nat} {A B : Types} :
-  lcType n (Types.subst A 0 B) → lcType n A →
-  lcType (n + 1) B := lcType_of_subst_inv_gen (k := 0)
 
 
-
-
-
-
--- FIXME: Need weakening to allow for processes with varying depth to be mixed when using
--- De Bruijn indices.
+/- FIXME:
+  Need weakening to allow for processes with varying depth to be mixed when using De Bruijn indices.
+-/
 -- FIXME: Need shift defined on Proc
 -- lemma weakening_preserves_typing {n : Nat} {P : Proc} {Γ : Env} :
 --   Typing n P Γ → ∀ (k : Nat), Typing (n + k) (P.shift k) (Γ.shift k) := by sorry
 
-lemma lcEnv_cons {n : Nat} {x : FPName} {A : Types} {Γ : Env} :
-  lcEnv n ((x, A) :: Γ) ↔ lcType n A ∧ lcEnv n Γ := by
-  unfold lcEnv
-  constructor
-  · intro h
-    constructor
-    · apply h x A
-      simp
-    · intro y B hΓ
-      apply h y B
-      simp [hΓ]
-  · rintro ⟨h1, h2⟩ y B hMem
-    cases hMem
-    · exact h1
-    · rename_i hΓ
-      apply h2 y B hΓ
-
-lemma lcEnv_singleton {n : Nat} {x : FPName} {A : Types} :
-  lcEnv n (x ∶ A) ↔ lcType n A := by
-  unfold lcEnv
-  simp_all
-
-
-lemma Typing_preserves_lc {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {n : Nat} :
+lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   (n ⊢ P ∷ 𝒢) → ∀ Γ ∈ 𝒢, lcEnv n Γ := by
   intro hT E hE𝒢
   induction hT generalizing E
@@ -1143,39 +1084,63 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {Γ : Env} {P : Proc} {n : Nat} :
     simp at hE𝒢
     cases hE𝒢 <;> simp_all
 
-  case one | bot | quest | bang | amp | oplus₁ | oplus₂ | w =>
-    simp_all [lcEnv_cons]
+  case one | bot | quest | bang | amp | oplus₁ | oplus₂ | w | ax =>
+    simp_all [lcEnv_cons, lcType_dual.mp]
     simp_all [lcEnv, lcType]
-
-  case c Γ _ x A L n hP ih =>
-    simp at hE𝒢
-    subst hE𝒢
-    let u := freshName L
-    have hu : u ∉ L := by
-      intro hc
-      have h_lt := fresh_is_fresh L u hc
-      exact Nat.lt_irrefl _ h_lt
-    specialize ih u hu
-    simp_all [lcEnv_cons]
 
   case exists_ Γ _ x A B n hlc _ ih =>
     simp at hE𝒢
     subst hE𝒢
     have h : lcEnv n ((x, B{A // #T}) :: Γ) := ih ((x, B{A // #T}) :: Γ) (by simp)
     rw [lcEnv_cons] at h ⊢
-    exact ⟨lcType_of_subst_inv_0 h.1 hlc, by simp_all⟩
+    exact ⟨(lcType_of_subst_inv_0 hlc).mp h.1, by simp_all⟩
 
-  case forall_ => sorry
-  case ax => sorry
-  case cut => sorry
-  case tensor => sorry
-  case parr => sorry
-  case exchange_env => sorry
-  case exchange_hyper => sorry
+  case forall_ Γ _ x B n _ ih =>
+    simp at hE𝒢
+    subst hE𝒢
+    have h : lcEnv (n + 1) ((x, B) :: Γ⁺) := ih ((x, B) :: Γ⁺) (by simp)
+    simp_all [lcEnv_cons]
+    constructor
+    · simp [lcType, h.1]
+    · exact lcEnv_shift_inv_0.mp h.2
+
+  case cut Γ Δ _ A L n _  ih =>
+    obtain ⟨u, v, hu, hv, hneq⟩ := exists_two_fresh L
+    specialize ih u v hu hv hneq
+    simp at hE𝒢
+    cases hE𝒢 with
+    | inl => simp_all
+    | inr hin =>
+      subst hin
+      have hΓ : lcEnv n ((u, A) :: Γ) := ih ((u, A) :: Γ) (by simp)
+      have hΔ : lcEnv n ((v, Aᗮ) :: Δ) := ih ((v, Aᗮ) :: Δ) (by simp)
+      rw [lcEnv_cons] at hΓ hΔ
+      exact lcEnv_append.mpr ⟨hΓ.2, hΔ.2⟩
+
+  case tensor L _ _ ih | parr L _ _ ih =>
+    obtain ⟨u, hu⟩ := exists_one_fresh L
+    specialize ih u hu
+    simp_all [lcEnv_cons]
+    simp_all [lcType, lcEnv_append]
+
+  case c L _ _ ih =>
+    obtain ⟨u, hu⟩ := exists_one_fresh L
+    specialize ih u hu
+    simp_all [lcEnv_cons]
+
+  case exchange_env hP ih =>
+    simp_all
+    cases hE𝒢 with
+    | inl => simp_all [(lcEnv_perm hP).mp]
+    | inr => simp_all
+
+  case exchange_hyper hP _ =>
+    simp_all [List.Perm.mem_iff hP]
 
 
 
 
+-- NOTE: Think all these are done
 -- FIXME: Shift preserve lc: lcType k A → lcType (k+c) (A.shift 0 c)
 -- FIXME: substitution preserves lc: lcType (k+1) B → lcType k A → lcType (B{A // #T})
 -- FIXME: Environment shift preserve lc: lcEnv k Γ → lcEnv (k+1) Γ⁺
