@@ -8,12 +8,19 @@ import Mathlib.Order.CompleteLattice.Finset
 
 ------------------------------ POLYMORPHIC CLASSES (NOTATION)------------------------------
 
+class HasShift (Subject Depth Correction : Type) where
+  shift : Subject → Depth → Correction → Subject
+
+notation:max S:max " ↑ " d:max ", " c:max => HasShift.shift S d c
+notation:max S:max " ↑ " c:max => HasShift.shift S 0 c
+notation:max S:max "⁺" => HasShift.shift S 0 1
+
+-- NOTE: Might be irrelevant now
 -- class HasSubst (Target New Old : Type) where
 --   subst : Target → New → Old → Target
 
 -- notation:max Target "{" New " // " Old "}" => HasSubst.subst Target New Old
 
--- -- NOTE: Might be irrelevant now
 -- class HasBracket (Subject Content Result : Type) where
 --    brack : Subject → Content → Result
 

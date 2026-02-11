@@ -246,13 +246,15 @@ def Types.isServerUsable : Types → Prop
 
 -- d used as cutoff depth, variables < d are locally bound
 -- c is correction / shift amount
-def shiftTVar (d c : Nat) : TVar → TVar
+def TVar.shift (d c : Nat) : TVar → TVar
   | .bound i => if i < d then .bound i else .bound (i + c)
   | .free n => .free n
 
+instance : HasShift TVar Nat Nat where shift v d c := TVar.shift d c v
+
 def Types.shift (d c : Nat) : Types → Types
-  | .var v        => .var (shiftTVar d c v)
-  | .varDual v    => .varDual (shiftTVar d c v)
+  | .var v        => .var (v.shift d c)
+  | .varDual v    => .varDual (v.shift d c)
   | .forall_ A    => .forall_ (A.shift (d + 1) c)          -- binds 1
   | .exists_ A    => .exists_ (A.shift (d + 1) c)          -- binds 1
   | .tensor A B   => .tensor (A.shift d c) (B.shift d c)
@@ -262,6 +264,8 @@ def Types.shift (d c : Nat) : Types → Types
   | .amp A B      => .amp (A.shift d c) (B.shift d c)
   | .oplus A B    => .oplus (A.shift d c) (B.shift d c)
   | t             => t -- one | bot | atom | atomDual (Don't have Types to shift)
+
+instance : HasShift Types Nat Nat where shift T d c := Types.shift d c T
 
 -- if i == k, shift index to current depth
 -- if i > k, outside binder gone => decrement
@@ -309,7 +313,7 @@ lemma lcType_shift_k_inv {n k d : Nat} {A : Types} :
     | bound i =>
       constructor
       · intro h
-        simp_all [lcTVar, shiftTVar]
+        simp_all [lcTVar, TVar.shift]
         split_ifs at h
         case pos hlt =>
           simp at h
@@ -320,7 +324,7 @@ lemma lcType_shift_k_inv {n k d : Nat} {A : Types} :
           rw [Nat.add_assoc n k d, Nat.add_comm k d, ← Nat.add_assoc] at h
           apply Nat.lt_of_add_lt_add_right h
       · intro h
-        simp_all [lcTVar, shiftTVar]
+        simp_all [lcTVar, TVar.shift]
         split_ifs
         case pos hlt =>
           simp
@@ -332,8 +336,7 @@ lemma lcType_shift_k_inv {n k d : Nat} {A : Types} :
           rw [Nat.add_assoc n k d, Nat.add_comm k d, ← Nat.add_assoc]
           simp_all
 
-    | free _ => simp_all [lcTVar, shiftTVar]
-
+    | free _ => simp_all [lcTVar, TVar.shift]
 
 lemma lcType_subst_inv {n k : Nat} {A B : Types} (hA : lcType n A) :
    lcType (n + k) (Types.subst A k B) ↔ lcType (n + k + 1) B := by
@@ -416,7 +419,7 @@ lemma lcType_subst_inv {n k : Nat} {A B : Types} (hA : lcType n A) :
 --     · exact hSub
 --     · exact hA
 
-lemma lcType_of_subst_inv_0 {n : Nat} {A B : Types} :
+lemma lcType_subst_inv_0 {n : Nat} {A B : Types} :
   lcType n A → (lcType n (B{A // #T}) ↔
   lcType (n + 1) B) := by
   intro hA
@@ -432,7 +435,7 @@ lemma lcType_shift_inv {n k : Nat} {A : Types} :
   case var v | varDual v =>
     cases v with
     | bound i =>
-      simp [shiftTVar, lcTVar]
+      simp [TVar.shift, lcTVar]
       split_ifs with hle
       · simp
         constructor
@@ -440,7 +443,7 @@ lemma lcType_shift_inv {n k : Nat} {A : Types} :
         · simp_all [Nat.lt_succ_of_lt]
       · simp
 
-    | free i => simp_all [lcTVar, shiftTVar]
+    | free i => simp_all [lcTVar, TVar.shift]
 
   case forall_ ihA | exists_ ihA =>
     apply ihA (k := k + 1)

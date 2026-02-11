@@ -328,22 +328,25 @@ deriving DecidableEq, BEq, Repr
 prefix:max "#" => Channel.free
 prefix:max "$" => Channel.bound
 
+-- parr / tensor / duplicate binds 1 name
+-- cut binds 2 names
+-- input binds 1 TVar
 inductive Proc : Type where
   | nil
   | one         (x : Channel) (P : Proc)
   | bot         (x : Channel) (P : Proc)
-  | tensor      (x : Channel) (P : Proc)                -- Binds 1 name
-  | parr        (x : Channel) (P : Proc)                -- Binds 1 name
-  | cut         (P : Proc)                              -- Binds 2 names
+  | tensor      (x : Channel) (P : Proc)
+  | parr        (x : Channel) (P : Proc)
+  | cut         (P : Proc)
   | par         (P Q : Proc)
   | selectL     (x : Channel) (P : Proc)
   | selectR     (x : Channel) (P : Proc)
   | amp         (x : Channel) (P Q : Proc)
   | output      (x : Channel) (P : Proc) (A : Types)
-  | input       (x : Channel) (P : Proc)                -- Binds 1 Type Variable
+  | input       (x : Channel) (P : Proc)
   | server      (x : Channel) (P : Proc)
   | consume     (x : Channel) (P : Proc)
-  | duplicate   (x : Channel) (P : Proc)                -- Binds 1 name
+  | duplicate   (x : Channel) (P : Proc)
   | dispose     (x : Channel) (P : Proc)
   | link        (x y : Channel)
 deriving DecidableEq, BEq, Repr
@@ -373,23 +376,23 @@ def openChannel (k : Nat) (u : Channel) : Channel → Channel
   | c => c
 
 def openProc (k : Nat) (u : Channel) : Proc → Proc
-  | .nil => .nil
-  | .one x P => .one (openChannel k u x) (openProc k u P)
-  | .bot x P => .bot (openChannel k u x) (openProc k u P)
-  | .tensor x P => .tensor (openChannel k u x) (openProc (k+1) u P)
-  | .parr x P => .parr (openChannel k u x) (openProc (k+1) u P)
-  | .cut P => .cut (openProc (k+2) u P)
-  | .par P Q => .par (openProc k u P) (openProc k u Q)
-  | .server x P => .server (openChannel k u x) (openProc k u P)
-  | .duplicate x P => .duplicate (openChannel k u x) (openProc (k+1) u P)
-  | .consume x P => .consume (openChannel k u x) (openProc k u P)
-  | .dispose x P => .dispose (openChannel k u x) (openProc k u P)
-  | .selectL x P => .selectL (openChannel k u x) (openProc k u P)
-  | .selectR x P => .selectR (openChannel k u x) (openProc k u P)
-  | .amp x P Q => .amp (openChannel k u x) (openProc k u P) (openProc k u Q)
-  | .output x P A => .output (openChannel k u x) (openProc k u P) A
-  | .input x P => .input (openChannel k u x) (openProc k u P)
-  | .link x y => .link (openChannel k u x) (openChannel k u y)
+  | .nil              => .nil
+  | .one x P          => .one (openChannel k u x) (openProc k u P)
+  | .bot x P          => .bot (openChannel k u x) (openProc k u P)
+  | .tensor x P       => .tensor (openChannel k u x) (openProc (k+1) u P)
+  | .parr x P         => .parr (openChannel k u x) (openProc (k+1) u P)
+  | .cut P            => .cut (openProc (k+2) u P)
+  | .par P Q          => .par (openProc k u P) (openProc k u Q)
+  | .server x P       => .server (openChannel k u x) (openProc k u P)
+  | .duplicate x P    => .duplicate (openChannel k u x) (openProc (k+1) u P)
+  | .consume x P      => .consume (openChannel k u x) (openProc k u P)
+  | .dispose x P      => .dispose (openChannel k u x) (openProc k u P)
+  | .selectL x P      => .selectL (openChannel k u x) (openProc k u P)
+  | .selectR x P      => .selectR (openChannel k u x) (openProc k u P)
+  | .amp x P Q        => .amp (openChannel k u x) (openProc k u P) (openProc k u Q)
+  | .output x P A     => .output (openChannel k u x) (openProc k u P) A
+  | .input x P        => .input (openChannel k u x) (openProc k u P)
+  | .link x y         => .link (openChannel k u x) (openChannel k u y)
 
 def openProc0 (u : Channel) (P : Proc) : Proc :=
   openProc 0 u P
@@ -422,33 +425,33 @@ notation:max P:max "⸨" x ", " y "⸩" => openProcCut x y P
 --   openProcTVar 0 u P
 
 def lcChannel : Nat → Channel → Prop
-  | _, .free _ => True
-  | k, .bound i => i < k
+  | _, .free _    => True
+  | k, .bound i   => i < k
 
 def lcProc : Nat → Nat → Proc → Prop
-  | _, _, .nil => True
-  | k, n, .one x P => lcChannel k x ∧ lcProc k n P
-  | k, n, .bot x P => lcChannel k x ∧ lcProc k n P
-  | k, n, .tensor x P => lcChannel k x ∧ lcProc (k+1) n P
-  | k, n, .parr x P => lcChannel k x ∧ lcProc (k+1) n P
-  | k, n, .cut P => lcProc (k+2) n P
-  | k, n, .par P Q => lcProc k n P ∧ lcProc k n Q
-  | k, n, .selectL x P => lcChannel k x ∧ lcProc k n P
-  | k, n, .selectR x P => lcChannel k x ∧ lcProc k n P
-  | k, n, .amp x P Q => lcChannel k x ∧ lcProc k n P ∧ lcProc k n Q
-  | k, n, .output x P A => lcChannel k x ∧ lcProc k n P ∧ lcType n A
-  | k, n, .input x P => lcChannel k x ∧ lcProc k (n+1) P
-  | k, n, .server x P => lcChannel k x ∧ lcProc k n P
-  | k, n, .consume x P => lcChannel k x ∧ lcProc k n P
-  | k, n, .duplicate x P => lcChannel k x ∧ lcProc (k+1) n P
-  | k, n, .dispose x P => lcChannel k x ∧ lcProc k n P
-  | k, _, .link x y => lcChannel k x ∧ lcChannel k y
+  | _, _, .nil              => True
+  | k, n, .one x P          => lcChannel k x ∧ lcProc k n P
+  | k, n, .bot x P          => lcChannel k x ∧ lcProc k n P
+  | k, n, .tensor x P       => lcChannel k x ∧ lcProc (k+1) n P
+  | k, n, .parr x P         => lcChannel k x ∧ lcProc (k+1) n P
+  | k, n, .cut P            => lcProc (k+2) n P
+  | k, n, .par P Q          => lcProc k n P ∧ lcProc k n Q
+  | k, n, .selectL x P      => lcChannel k x ∧ lcProc k n P
+  | k, n, .selectR x P      => lcChannel k x ∧ lcProc k n P
+  | k, n, .amp x P Q        => lcChannel k x ∧ lcProc k n P ∧ lcProc k n Q
+  | k, n, .output x P A     => lcChannel k x ∧ lcProc k n P ∧ lcType n A
+  | k, n, .input x P        => lcChannel k x ∧ lcProc k (n+1) P
+  | k, n, .server x P       => lcChannel k x ∧ lcProc k n P
+  | k, n, .consume x P      => lcChannel k x ∧ lcProc k n P
+  | k, n, .duplicate x P    => lcChannel k x ∧ lcProc (k+1) n P
+  | k, n, .dispose x P      => lcChannel k x ∧ lcProc k n P
+  | k, _, .link x y         => lcChannel k x ∧ lcChannel k y
 
 def lcProc0 : Proc → Prop := lcProc 0 0
 
 def Channel.f : Channel → Finset FPName
-  | .free x => {x}
-  | .bound _ => {}
+  | .free x     => {x}
+  | .bound _    => {}
 
 def Proc.f : Proc → Finset FPName
   | .tensor x P         => x.f ∪ P.f
@@ -479,25 +482,80 @@ lemma fresh_is_fresh (s : Finset FPName) (x : FPName) (h : x ∈ s) :
     exact this
   exact Nat.lt_succ_of_le hxle
 
-def closeChannel (k : Nat) (name : FPName) : Channel → Channel
-  | .free x => if x = name then .bound k else .free x
-  | .bound i => .bound i
+lemma exists_one_fresh (L : Finset FPName) :
+  ∃u, u ∉ L := by
+  let u := freshName L
+  use u
+  intro hc
+  have h_lt := fresh_is_fresh L u hc
+  exact Nat.lt_irrefl _ h_lt
 
+lemma exists_two_fresh (L : Finset FPName) :
+  ∃ u v, u ∉ L ∧ v ∉ L ∧ u ≠ v := by
+  let u := freshName L
+  have hu : u ∉ L := by
+    intro hc
+    have h_lt := fresh_is_fresh L u hc
+    exact Nat.lt_irrefl _ h_lt
+
+  let v := freshName (L ∪ {u})
+  have hv : v ∉ L := by
+    intro hc
+    have hin : v ∈ L ∪ {u} := Finset.mem_union_left {u} hc
+    have h_lt := fresh_is_fresh (L ∪ {u}) v hin
+    exact Nat.lt_irrefl _ h_lt
+
+  have hneq : u ≠ v := by
+    intro heq
+    have hinu : v ∈ ({u} : Finset FPName) := by rw [← heq] ; simp
+    have hinLu : v ∈ L ∪ {u} := by rw [← heq] ; simp
+    have h_lt := fresh_is_fresh (L ∪ {u}) v hinLu
+    exact Nat.lt_irrefl _ h_lt
+
+  refine ⟨u, v, hu, hv, hneq⟩
+
+def closeChannel (k : Nat) (name : FPName) : Channel → Channel
+  | .free x   => if x = name then .bound k else .free x
+  | .bound i  => .bound i
+
+-- parr / tensor / duplicate binds 1
+-- cut binds 2
 def closeProc (k : Nat) (name : FPName) : Proc → Proc
   | .nil => .nil
-  | .one x P => .one (closeChannel k name x) (closeProc k name P)
-  | .bot x P => .bot (closeChannel k name x) (closeProc k name P)
-  | .tensor x P => .tensor (closeChannel k name x) (closeProc (k+1) name P) -- Binder +1
-  | .parr x P => .parr (closeChannel k name x) (closeProc (k+1) name P)     -- Binder +1
-  | .cut P => .cut (closeProc (k+2) name P)                                 -- Binder +2
-  | .par P Q => .par (closeProc k name P) (closeProc k name Q)
-  | .selectL x P => .selectL (closeChannel k name x) (closeProc k name P)
-  | .selectR x P => .selectR (closeChannel k name x) (closeProc k name P)
-  | .amp x P Q => .amp (closeChannel k name x) (closeProc k name P) (closeProc k name Q)
-  | .output x P A => .output (closeChannel k name x) (closeProc k name P) A
-  | .input x P => .input (closeChannel k name x) (closeProc k name P)
-  | .server x P => .server (closeChannel k name x) (closeProc k name P)
-  | .consume x P => .consume (closeChannel k name x) (closeProc k name P)
-  | .duplicate x P => .duplicate (closeChannel k name x) (closeProc (k+1) name P) -- Binder +1
-  | .dispose x P => .dispose (closeChannel k name x) (closeProc k name P)
-  | .link x y => .link (closeChannel k name x) (closeChannel k name y)
+  | .one x P          => .one (closeChannel k name x) (closeProc k name P)
+  | .bot x P          => .bot (closeChannel k name x) (closeProc k name P)
+  | .tensor x P       => .tensor (closeChannel k name x) (closeProc (k+1) name P)
+  | .parr x P         => .parr (closeChannel k name x) (closeProc (k+1) name P)
+  | .cut P            => .cut (closeProc (k+2) name P)
+  | .par P Q          => .par (closeProc k name P) (closeProc k name Q)
+  | .selectL x P      => .selectL (closeChannel k name x) (closeProc k name P)
+  | .selectR x P      => .selectR (closeChannel k name x) (closeProc k name P)
+  | .amp x P Q        => .amp (closeChannel k name x) (closeProc k name P) (closeProc k name Q)
+  | .output x P A     => .output (closeChannel k name x) (closeProc k name P) A
+  | .input x P        => .input (closeChannel k name x) (closeProc k name P)
+  | .server x P       => .server (closeChannel k name x) (closeProc k name P)
+  | .consume x P      => .consume (closeChannel k name x) (closeProc k name P)
+  | .duplicate x P    => .duplicate (closeChannel k name x) (closeProc (k+1) name P)
+  | .dispose x P      => .dispose (closeChannel k name x) (closeProc k name P)
+  | .link x y         => .link (closeChannel k name x) (closeChannel k name y)
+
+def Proc.shift (d c : Nat) : Proc → Proc
+  | .nil              => .nil
+  | .one x P          => .one x (P.shift d c)
+  | .bot x P          => .bot x (P.shift d c)
+  | .tensor x P       => .tensor x (P.shift d c)
+  | .parr x P         => .parr x (P.shift d c)
+  | .cut P            => .cut (P.shift d c)
+  | .par P Q          => .par (P.shift d c) (Q.shift d c)
+  | .selectL x P      => .selectL x (P.shift d c)
+  | .selectR x P      => .selectR x (P.shift d c)
+  | .amp x P Q        => .amp x (P.shift d c) (Q.shift d c)
+  | .output x P A     => .output x (P.shift d c) (A.shift d c)
+  | .input x P        => .input x (P.shift (d + 1) c)
+  | .server x P       => .server x (P.shift d c)
+  | .consume x P      => .consume x (P.shift d c)
+  | .duplicate x P    => .duplicate x (P.shift d c)
+  | .dispose x P      => .dispose x (P.shift d c)
+  | .link x y         => .link x y
+
+instance : HasShift Proc Nat Nat where shift P d c := Proc.shift d c P

@@ -479,10 +479,14 @@ import PiLL.Framework.Model.Process
 
 --------------------------------------- ENVIRONMENTS ---------------------------------------
 
-abbrev Env := List (FPName × Types)
+abbrev Elem := (FPName × Types)
 
-abbrev Env.mk (x : FPName) (A : Types) := [(x, A)]
-infixr:86 " ∶ " => Env.mk
+abbrev Elem.mk (x : FPName) (A : Types) : Elem := (x, A)
+infixr:68 " ∶ " => Elem.mk
+
+infixl:50 " ~ " => List.Perm
+
+abbrev Env := List Elem
 
 def Env.names (Γ : Env) : Finset FPName :=
   (Γ.map Prod.fst).toFinset
@@ -498,30 +502,31 @@ def Env.freeTypes (Γ : Env) :=
   Γ.foldl (fun acc (_, A) => acc ∪ A.freeTypes) ∅
 notation "ft(" Γ ")ₑ" => Env.freeTypes Γ
 
+-- d : Depth shift should be applied
+-- c : Correction / how much to shift
+def Env.shift (d c : Nat) (Γ : Env) : Env :=
+  Γ.map (fun (x, A) => (x, A.shift d c))
+
+instance : HasShift Env Nat Nat where shift Γ d c := Env.shift d c Γ
+
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
-infixl:85 "‚ " => Env.merge
-
-infixl:50 " ~ " => List.Perm
-
-def Env.shift (Γ : Env) : Env :=
-  Γ.map (fun (x, A) => (x, A.shift 0 1))
-postfix:max "⁺" => Env.shift
+infixr:69 "‚ " => Env.merge
 
 def lcEnv (k : Nat) (Γ : Env) : Prop :=
   ∀ x A, (x, A) ∈ Γ → lcType k A
 
-lemma Env.merge_unitL (Γ : Env) : ∅‚ Γ = Γ := by simp
+lemma Env.merge_unitL (Γ : Env) : ∅ ++ Γ = Γ := by simp
 
-lemma Env.merge_unitR (Γ : Env) : Γ‚ ∅ = Γ := by simp
+lemma Env.merge_unitR (Γ : Env) : Γ ++ ∅ = Γ := by simp
 
-lemma Env.merge_comm (Γ Δ : Env) : List.Perm (Γ‚ Δ) (Δ‚ Γ) := by
+lemma Env.merge_comm (Γ Δ : Env) : List.Perm (Γ ++ Δ) (Δ ++ Γ) := by
   exact List.perm_append_comm
 
-lemma Env.merge_assoc (Γ Δ Ξ : Env) : Γ‚ Δ‚ Ξ = Γ‚ (Δ‚ Ξ) := by
-  simp [Env.merge]
+lemma Env.merge_assoc (Γ Δ Ξ : Env) : Γ ++ Δ ++ Ξ = Γ ++ (Δ ++ Ξ) := by
+  simp
 
 lemma Env.merge_rotate_left (Γ : Env) (x : FPName × Types) :
-  (x :: Γ).Perm (Γ‚ [x]) := by
+  (x :: Γ).Perm (Γ ++ [x]) := by
   symm ; apply List.perm_append_singleton
 
 lemma Env.merge_swap (Γ : Env) (x y : FPName × Types) :
@@ -544,7 +549,7 @@ lemma Env.mem_of_disjoint_le_bot {Γ Δ : Env} {x : Finset FPName}
 
 lemma lcEnv_shift_inv {n k : Nat} {Γ : Env} :
   lcEnv (n + k + 1) Γ⁺ ↔ lcEnv (n + k) Γ := by
-  simp [lcEnv, Env.shift]
+  simp [lcEnv, HasShift.shift, Env.shift]
   constructor
   all_goals (
     intro h x A hin
@@ -573,10 +578,10 @@ lemma lcEnv_cons {n : Nat} {x : FPName} {A : Types} {Γ : Env} :
       apply h2 y B hΓ
 
 lemma lcEnv_singleton {n : Nat} {x : FPName} {A : Types} :
-  lcEnv n (x ∶ A) ↔ lcType n A := by simp_all [lcEnv]
+  lcEnv n ([x ∶ A]) ↔ lcType n A := by simp_all [lcEnv]
 
 lemma lcEnv_append {n : Nat} {Γ Δ : Env} :
-  lcEnv n (Γ‚ Δ) ↔ lcEnv n Γ ∧ lcEnv n Δ := by
+  lcEnv n (Γ ++ Δ) ↔ lcEnv n Γ ∧ lcEnv n Δ := by
   simp [lcEnv]
   constructor
   · intro h
@@ -605,6 +610,7 @@ lemma lcEnv_perm {n : Nat} {Γ Δ : Env} :
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
+-- instance : Coe Env HyperEnv := ⟨fun Γ => ([Γ] : HyperEnv)⟩
 
 def HyperEnv.names (𝒢 : HyperEnv) : Finset FPName :=
   𝒢.foldr (fun Γ acc => Γ.names ∪ acc) ∅
@@ -615,10 +621,15 @@ def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
 def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
   List.Pairwise Env.disjoint 𝒢
 
+-- d : Depth shift should be applied
+-- c : Correction / how much to shift
+def HyperEnv.shift (d c : Nat) (𝒢 : HyperEnv) : HyperEnv :=
+  𝒢.map (fun Γ => Γ.shift d c)
+
+instance : HasShift HyperEnv Nat Nat where shift 𝒢 d c := HyperEnv.shift d c 𝒢
+
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ++ ℋ
 infixl:55 " |ₕ " => HyperEnv.merge
-
-instance : Coe Env HyperEnv := ⟨fun Γ => ([Γ] : HyperEnv)⟩
 
 lemma HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by simp
 
@@ -631,7 +642,7 @@ lemma HyperEnv.merge_assoc (𝒢 ℋ ℐ : HyperEnv) : 𝒢 |ₕ ℋ |ₕ ℐ = 
   simp [HyperEnv.merge]
 
 lemma HyperEnv.merge_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
-  (Γ :: 𝒢).Perm (𝒢 ++ Γ) := by
+  (Γ :: 𝒢).Perm (𝒢 ++ [Γ]) := by
   symm ; apply List.perm_append_singleton
 
 lemma HyperEnv.merge_swap (𝒢 : HyperEnv) (Γ Δ : Env) :

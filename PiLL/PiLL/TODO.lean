@@ -26,11 +26,17 @@
 # Typing Induvtive and its Side Conditions
   · Should I keep hFresh, hneq etc., or convert to if there is a clash picking and using a
     fresh name yields an equivalent process, which can be used instead.
-
-
 -/
 
--- TODO: Prove linear resource usage?
+
+
+
+
+
+/- TODO:
+  Fix Env -> HyperEnv coercion and Env.mk / merge + HyperEnv merge syntax binding
+  and producing weird results
+-/
 
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
@@ -55,12 +61,6 @@
     also make a step.
 -/
 
-/- TODO:
-  · Check what minimal set of disjointness side conditions are for Typing rules
-  · Fix proofs relying on these side conditions, use disjointness theorem to obtian
-    the same facts as were available by rule.
--/
-
 -- TODO: Make lean print the notation for the Has_ Type Classes
 
 -- TODO: Fix some processes bindnig weirdly (par, cut, etc.)
@@ -71,7 +71,7 @@
 
 
 
-
+--------- Might be doing something different now ---------
 
 /- TODO: Extend TypingStep and fix rules
   · If not remade as theorem instead of actual rules then fix
@@ -93,10 +93,11 @@
   · Correct the rules using this as needed.
 -/
 
+----------------------------------------------------------
 
 
 
-
+--------- This behaves differently due to de Bruijn  ---------
 
 
 /- TODO: Check if substitution avoids capture as they are
@@ -117,6 +118,15 @@
     · No it doesn't, renaming only affects bound names, environment only contains free names
 -/
 
+/- TODO:
+  · Finish type substitution theorem on judgements.
+    · Currently works modulo not prooving it handles renaming correctly
+    · If possible get it to work without assuming Barendregt's variable convetion
+  · Remove hFresh and hSafe from name substitution proof and use aplha equivalence
+    to show it is possible to pick a freshname and get an equivalent process
+-/
+
+--------------------------------------------------------------
 
 
 
@@ -139,13 +149,7 @@
 
 
 
-/- TODO:
-  · Finish type substitution theorem on judgements.
-    · Currently works modulo not prooving it handles renaming correctly
-    · If possible get it to work without assuming Barendregt's variable convetion
-  · Remove hFresh and hSafe from name substitution proof and use aplha equivalence
-    to show it is possible to pick a freshname and get an equivalent process
--/
+
 
 
 
