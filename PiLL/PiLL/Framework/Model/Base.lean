@@ -15,12 +15,14 @@ notation:max S:max " ↑ " d:max ", " c:max => HasShift.shift S d c
 notation:max S:max " ↑ " c:max => HasShift.shift S 0 c
 notation:max S:max "⁺" => HasShift.shift S 0 1
 
+class HasSubst (Target New Index : Type) where
+  subst : Target → New → Index → Target
+
+notation:max Target "{" New " // " Index "}" => HasSubst.subst Target New Index
+notation:max Target "{" New " // " "#T}" => HasSubst.subst Target New 0
+
+
 -- NOTE: Might be irrelevant now
--- class HasSubst (Target New Old : Type) where
---   subst : Target → New → Old → Target
-
--- notation:max Target "{" New " // " Old "}" => HasSubst.subst Target New Old
-
 -- class HasBracket (Subject Content Result : Type) where
 --    brack : Subject → Content → Result
 

@@ -21,7 +21,7 @@
 
 # Substitution lemmas
   · Name: hFresh and hSafe, valid? Or replace with renaming transitivity?
-  · Type: Sorry cases, valid to assume Barendregt's? Or need rename equivalence?
+  · Type: sorry cases, valid to assume Barendregt's? Or need rename equivalence?
 
 # Typing Induvtive and its Side Conditions
   · Should I keep hFresh, hneq etc., or convert to if there is a clash picking and using a

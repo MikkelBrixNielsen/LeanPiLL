@@ -554,7 +554,8 @@ lemma lcEnv_shift_inv {n k : Nat} {Γ : Env} :
   all_goals (
     intro h x A hin
     specialize h x A hin
-    simp_all [lcType_shift_inv_0]
+    have := lcType_shift_inv_0 (A := A) (n := n + k)
+    simp_all [HasShift.shift]
   )
 
 lemma lcEnv_shift_inv_0 {n : Nat} {Γ : Env} :

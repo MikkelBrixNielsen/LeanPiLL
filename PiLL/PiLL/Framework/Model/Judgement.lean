@@ -1100,6 +1100,9 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
 -- FIXME: Subject reduction
 
 
+-- lemma Types.subst_shift_comm {A B : Types} {k : Nat} :
+--   (B{A // #T}) ↑ k = (B ↑ 1, k){A ↑ k // #T} := by sorry
+
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   Typing n P 𝒢 → ∀ (k : Nat), Typing (n + k) (P ↑ k) (𝒢 ↑ k) := by
   intro h
