@@ -250,7 +250,7 @@ def TVar.shift (d c : Nat) : TVar → TVar
   | .bound i => if i < d then .bound i else .bound (i + c)
   | .free n => .free n
 
-instance : HasShift TVar Nat Nat where shift v d c := TVar.shift d c v
+instance : HasShiftTypes TVar where shift v d c := TVar.shift d c v
 
 def Types.shift (d c : Nat) : Types → Types
   | .var v        => .var (v.shift d c)
@@ -265,7 +265,7 @@ def Types.shift (d c : Nat) : Types → Types
   | .oplus A B    => .oplus (A.shift d c) (B.shift d c)
   | t             => t -- one | bot | atom | atomDual (Don't have Types to shift)
 
-instance : HasShift Types Nat Nat where shift T d c := Types.shift d c T
+instance : HasShiftTypes Types where shift T d c := Types.shift d c T
 
 -- k act as current depth and target index s.t. when A is inserted it is done so safely
 -- by shifting it to the correct depth
@@ -300,12 +300,12 @@ lemma lcType_dual {n : Nat} {A : Types} :
   induction A generalizing n <;>
   simp_all [lcType, Types.dual]
 
-lemma lcType_shift_k_inv {n d c : Nat} {A : Types} :
-  lcType (n + c + d) (A ↑ d, c) ↔ lcType (n + d) A := by
+lemma lcType_shift_c_inv {n d c : Nat} {A : Types} :
+  lcType (n + c + d) (A ↑ᵗ d, c) ↔ lcType (n + d) A := by
   induction A generalizing n d c
 
   all_goals (
-    simp_all [HasShift.shift, Types.shift, lcType]
+    simp_all [HasShiftTypes.shift, Types.shift, lcType]
   )
 
   case forall_ ih | exists_ ih => apply ih (d := d + 1)
@@ -360,9 +360,9 @@ lemma lcType_subst_inv {n k : Nat} {A B : Types} (hA : lcType n A) :
         · intro ; simp_all [Nat.lt_succ_of_le]
         · intro
           -- var
-          try exact (lcType_shift_k_inv (d := 0) (c := k)).mpr hA
+          try exact (lcType_shift_c_inv (d := 0) (c := k)).mpr hA
           -- varDual
-          try apply lcType_dual.mp at hA ; exact (lcType_shift_k_inv (d := 0) (c := k)).mpr hA
+          try apply lcType_dual.mp at hA ; exact (lcType_shift_c_inv (d := 0) (c := k)).mpr hA
       case pos hneq hgt =>
         simp [lcType, lcTVar]
         have hneq0 : i ≠ 0 := by
@@ -429,10 +429,10 @@ lemma lcType_subst_inv_0 {n : Nat} {A B : Types} :
   exact lcType_subst_inv (k := 0) hA
 
 lemma lcType_shift_inv {n d : Nat} {A : Types} :
-  lcType (n + d + 1) (A ↑ d, 1) ↔ lcType (n + d) A := by
+  lcType (n + d + 1) (A ↑ᵗ d, 1) ↔ lcType (n + d) A := by
   induction A generalizing n d
   all_goals (
-    simp_all [lcType, HasShift.shift, Types.shift]
+    simp_all [lcType, HasShiftTypes.shift, Types.shift]
   )
 
   case var v | varDual v =>
@@ -452,7 +452,7 @@ lemma lcType_shift_inv {n d : Nat} {A : Types} :
     apply ihA (d := d + 1)
 
 lemma lcType_shift_inv_0 {n : Nat} {A : Types} :
-  lcType (n + 1) A⁺ ↔ lcType n A := lcType_shift_inv (d := 0)
+  lcType (n + 1) A⁺ᵗ ↔ lcType n A := lcType_shift_inv (d := 0)
 
 
 -- lemma lcType_shift_comm_aux {d i m : Nat} (h1 : d ≤ i) (h2 : i + m < d) :
@@ -461,22 +461,22 @@ lemma lcType_shift_inv_0 {n : Nat} {A : Types} :
   -- exact False.elim (Nat.lt_irrefl _ this)
 
 lemma lcType_shift_comm {A : Types} {d m n : Nat} :
-  (A ↑ d, m) ↑ d, n = (A ↑ d, n) ↑ d, m := by
+  (A ↑ᵗ d, m) ↑ᵗ d, n = (A ↑ᵗ d, n) ↑ᵗ d, m := by
   induction A generalizing d m n
 
   case atom | atomDual | one | bot | tensor | parr | oplus | bang =>
-    simp_all [HasShift.shift, Types.shift]
+    simp_all [HasShiftTypes.shift, Types.shift]
 
   case amp ihA ihB =>
-    simp [HasShift.shift, Types.shift]
+    simp [HasShiftTypes.shift, Types.shift]
     exact ⟨ihA, ihB⟩
 
   case quest ih | forall_ ih | exists_ ih=>
-    simp [HasShift.shift, Types.shift]
+    simp [HasShiftTypes.shift, Types.shift]
     exact ih
 
   case var v | varDual v =>
-    simp [HasShift.shift, Types.shift]
+    simp [HasShiftTypes.shift, Types.shift]
     cases v with
     | bound i => simp [TVar.shift] ; grind
       -- repeat (split_ifs <;> simp_all)
@@ -487,12 +487,12 @@ lemma lcType_shift_comm {A : Types} {d m n : Nat} :
     | free _ => simp [TVar.shift]
 
 lemma lcType_shift_comm_0 {A : Types} {k : Nat} :
-  A⁺ ↑ k = (A ↑ k)⁺ := lcType_shift_comm (d := 0)
+  A⁺ᵗ ↑ᵗ k = (A ↑ᵗ k)⁺ᵗ := lcType_shift_comm (d := 0)
 
 lemma Types.shift_add {A : Types} {d a b : Nat} :
-  (A ↑ d, a) ↑ d, b = A ↑ d, (a + b) := by
+  (A ↑ᵗ d, a) ↑ᵗ d, b = A ↑ᵗ d, (a + b) := by
   induction A generalizing d a b <;> (
-    simp [HasShift.shift, Types.shift]
+    simp [HasShiftTypes.shift, Types.shift]
   )
 
   case var v | varDual v =>
@@ -506,9 +506,9 @@ lemma Types.shift_add {A : Types} {d a b : Nat} :
     exact ⟨ihA, ihB⟩
 
 lemma Types.shift_accum {A : Types} {d a b : Nat} :
-  (A ↑ d, a) ↑ (d + a), b = A ↑ d, (a + b) := by
+  (A ↑ᵗ d, a) ↑ᵗ (d + a), b = A ↑ᵗ d, (a + b) := by
   induction A generalizing d a b <;> (
-    simp [HasShift.shift, Types.shift]
+    simp [HasShiftTypes.shift, Types.shift]
   )
 
   case var v | varDual v =>
@@ -526,21 +526,21 @@ lemma Types.shift_accum {A : Types} {d a b : Nat} :
   case bang ih | quest ih => exact ih
 
 lemma Types.shift_accum_0 {A : Types} {a b : Nat} :
-  (A ↑ a) ↑ a, b = A ↑ (a + b) := by
-  change (A ↑ 0, a) ↑ (a + 0), b = A ↑ (a + b)
+  (A ↑ᵗ a) ↑ᵗ a, b = A ↑ᵗ (a + b) := by
+  change (A ↑ᵗ 0, a) ↑ᵗ (a + 0), b = A ↑ᵗ (a + b)
   rw [Nat.add_comm a 0]
   exact Types.shift_accum
 
 lemma Types.shift_dual_comm {A : Types} {d c : Nat} :
-  (Aᗮ ↑ d, c) = (A ↑ d, c)ᗮ := by
+  (Aᗮ ↑ᵗ d, c) = (A ↑ᵗ d, c)ᗮ := by
   induction A generalizing d c <;> (
-    simp_all [HasShift.shift, Types.shift, Types.dual, TVar.shift]
+    simp_all [HasShiftTypes.shift, Types.shift, Types.dual, TVar.shift]
   )
 
 lemma lcType_shift_subst_comm {A B : Types} {i k : Nat} :
-  B{A // i} ↑ i, k = (B ↑ (i+1), k){A ↑ k // i} := by
+  B{A // i} ↑ᵗ i, k = (B ↑ᵗ (i + 1), k){A ↑ᵗ k // i} := by
   induction B generalizing A i k <;> (
-    simp [HasShift.shift, HasSubst.subst, Types.subst, Types.shift]
+    simp [HasShiftTypes.shift, HasSubst.subst, Types.subst, Types.shift]
   )
 
   case var v | varDual v =>
@@ -551,12 +551,12 @@ lemma lcType_shift_subst_comm {A B : Types} {i k : Nat} :
       case pos =>
         simp_all [Types.subst]
         try ( -- var
-          change (A ↑ i) ↑ i, k = (A ↑ k) ↑ i
+          change (A ↑ᵗ i) ↑ᵗ i, k = (A ↑ᵗ k) ↑ᵗ i
           rw [Types.shift_accum_0, Types.shift_add, Nat.add_comm]
         )
         try ( -- varDual
-          change  (Aᗮ ↑ 0, i ) ↑ i, k = ((A ↑ 0, k)ᗮ) ↑ 0, i
-          rw [Types.shift_accum_0, Types.shift_dual_comm (A := A ↑ k), Types.shift_add,
+          change  (Aᗮ ↑ᵗ 0, i ) ↑ᵗ i, k = ((A ↑ᵗ 0, k)ᗮ) ↑ᵗ 0, i
+          rw [Types.shift_accum_0, Types.shift_dual_comm (A := A ↑ᵗ k), Types.shift_add,
           Nat.add_comm, Types.shift_dual_comm]
         )
       case neg => simp_all

@@ -911,7 +911,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
 
   | forall_
       {Γ : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
-      Typing (n + 1) P [x ∶ B :: Γ⁺] →
+      Typing (n + 1) P [x ∶ B :: Γ⁺ᵗ] →
       ----------------------------------
       Typing n (#x⸨#T⸩․P) [x ∶ ∀․B :: Γ]
 
@@ -1046,7 +1046,7 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   case forall_ Γ _ x B n _ ih =>
     simp at hE𝒢
     subst hE𝒢
-    have h : lcEnv (n + 1) ((x, B) :: Γ⁺) := ih ((x, B) :: Γ⁺) (by simp)
+    have h : lcEnv (n + 1) ((x, B) :: Γ⁺ᵗ) := ih ((x, B) :: Γ⁺ᵗ) (by simp)
     simp_all [lcEnv_cons]
     constructor
     · simp [lcType, h.1]
@@ -1103,10 +1103,143 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
 -- lemma Types.subst_shift_comm {A B : Types} {k : Nat} :
 --   (B{A // #T}) ↑ k = (B ↑ 1, k){A ↑ k // #T} := by sorry
 
+
+
+
+
+
+@[simp] lemma Env.shift_empty {d c : Nat} :
+  ([] : Env) ↑ᵗ d, c = ([] : Env) := by
+  simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.shift_singleton {d c : Nat} {x : FPName} {A : Types} :
+  [x ∶ A] ↑ᵗ d, c = [x ∶ A ↑ᵗ d, c] := by
+    simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.shift_cons {d k : Nat} {Γ : Env} {x : FPName} {A : Types} :
+  (x ∶ A :: Γ) ↑ᵗ d, k = x ∶ A ↑ᵗ d, k :: Γ ↑ᵗ d, k := by
+    simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.shift_append {d k : Nat} {Γ Δ : Env} :
+  (Γ ++ Δ) ↑ᵗ d, k = Γ ↑ᵗ d, k ++ Δ ↑ᵗ d, k := by
+    simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.shift_preserves_names {d c : Nat} {Γ : Env} :
+  (Γ ↑ᵗ d, c).names = Γ.names := by
+  simp [HasShiftTypes.shift, Env.shiftTypes, Env.names]
+  rfl
+
+@[simp] lemma Env.shift_preserves_disjoint {d c : Nat} {Γ Δ : Env} :
+  Γ.disjoint Δ → (Γ ↑ᵗ d, c).disjoint (Δ ↑ᵗ d, c) := by simp
+
+
+@[simp] lemma HyperEnv.shift_empty {d c : Nat} :
+  ([] : HyperEnv) ↑ᵗ d, c = ([] : HyperEnv) := by
+  simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+
+@[simp] lemma HyperEnv.shift_singleton {d c : Nat} {Γ : Env} :
+  [Γ] ↑ᵗ d, c = [Γ ↑ᵗ d, c] := by
+    simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+
+@[simp] lemma HyperEnv.shift_cons {d k : Nat} {𝒢 : HyperEnv} {Γ : Env} :
+  (Γ :: 𝒢) ↑ᵗ d, k = Γ ↑ᵗ d, k :: 𝒢 ↑ᵗ d, k := by
+    simp [HasShiftTypes.shift, HyperEnv.shiftTypes, Env.shiftTypes]
+
+@[simp] lemma HyperEnv.shift_append {d k : Nat} {𝒢 ℋ : HyperEnv} :
+  (𝒢 ++ ℋ) ↑ᵗ d, k = 𝒢 ↑ᵗ d, k ++ ℋ ↑ᵗ d, k := by
+    simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+
+@[simp] lemma HyperEnv.names_cons {Γ : Env} {𝒢 : HyperEnv} :
+  HyperEnv.names (Γ :: 𝒢) = Γ.names ∪ 𝒢.names := by simp [HyperEnv.names]
+
+@[simp] lemma HyperEnv.shift_preserves_names {d c : Nat} {𝒢 : HyperEnv} :
+  (𝒢 ↑ᵗ d, c).names = 𝒢.names := by
+  induction 𝒢 <;> simp_all
+
+@[simp] lemma HyperEnv.shift_preserves_disjoint {d c : Nat} {𝒢 ℋ : HyperEnv} :
+  (𝒢.disjoint ℋ) → ((𝒢 ↑ᵗ d, c).disjoint (ℋ ↑ᵗ d, c)) := by simp
+
+
+
+
+@[simp] lemma Proc.shift_nil {d c : Nat} :
+  𝟘 ↑ᶜ d, c = 𝟘 := by
+  simp [HasShiftNames.shift, Proc.shiftNames]
+
+@[simp] lemma Proc.shift_ax {d c : Nat} {x y : FPName} :
+  (#x⟷ₚ#y) ↑ᶜ d, c = (#x⟷ₚ#y) := by
+  simp [HasShiftNames.shift, Proc.shiftNames]
+
+@[simp] lemma Proc.shift_par {d c : Nat} {P Q : Proc} :
+  (P |ₚ Q) ↑ᶜ d, c = P ↑ᶜ d, c |ₚ Q ↑ᶜ d, c := by
+  simp [HasShiftNames.shift, Proc.shiftNames]
+
+@[simp] lemma Proc.shift_one {d c : Nat} {P : Proc} {x : FPName} :
+  (#x⟦⟧․P) ↑ᶜ d, c = #x⟦⟧․(P ↑ᶜ d, c) := by
+  simp [HasShiftNames.shift, Proc.shiftNames]
+
+@[simp] lemma Proc.shift_bot {d c : Nat} {P : Proc} {x : FPName} :
+  (#x⸨⸩․P) ↑ᶜ d, c = #x⸨⸩․(P ↑ᶜ d, c) := by
+  simp [HasShiftNames.shift, Proc.shiftNames]
+
+@[simp] lemma Proc.shift_cut {d c : Nat} {P : Proc} :
+  (𝑣⸨#,#⸩ P) ↑ᶜ d, c = 𝑣⸨#,#⸩ (P ↑ᶜ (d + 2), c) := by
+  simp [HasShiftNames.shift, Proc.shiftNames]
+
+
+
+
+-- FIXME:
+-- @[simp] lemma Proc.shift_open_comm {d c : Nat} {P : Proc} {x y : FPName} :
+--   (P⸨#x, #y⸩) ↑ᶜ d, c = (P ↑ᶜ d, c) ⸨#x, #y⸩ := by
+--   simp [Proc.openCut]
+
+
+
+
+
+
+-- FIXME:
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
-  Typing n P 𝒢 → ∀ (k : Nat), Typing (n + k) (P ↑ k) (𝒢 ↑ k) := by
+  Typing n P 𝒢 → ∀ k, Typing (n + k) (P ↑ᵗ k) (𝒢 ↑ᵗ k) := by
   intro h
   induction h
+  all_goals (
+    try simp_all
+    intro k
+  )
+
+  case mix₀ n' => exact Typing.mix₀
+
+  case mix hD _ _ ihP ihQ =>
+    apply Typing.mix
+    · simp ; exact hD
+    · exact ihP k
+    · exact ihQ k
+
+  case ax hneq hlc =>
+    rw [Types.shift_dual_comm]
+    exact Typing.ax
+      (hneq := hneq)
+      ((lcType_shift_c_inv (c := k) (d := 0)).mpr hlc)
+
+  case one ih =>
+    exact Typing.one (ih k)
+
+  case bot hF _ _ ih =>
+    exact Typing.bot (hF := by simp [hF]) (ih k)
+
+  case cut A L _ _ ih =>
+
+    apply Typing.cut L (A := A ↑ᵗ k)
+    intros x y hx hy hneq
+    specialize ih x y hx hy hneq
+    rw [← Types.shift_dual_comm]
+    specialize ih k
+    simp
+
+    sorry
+
   all_goals sorry
 
 

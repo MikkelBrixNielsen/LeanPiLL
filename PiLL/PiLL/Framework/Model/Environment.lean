@@ -504,10 +504,10 @@ notation "ft(" Γ ")ₑ" => Env.freeTypes Γ
 
 -- d : Depth shift should be applied
 -- c : Correction / how much to shift
-def Env.shift (d c : Nat) (Γ : Env) : Env :=
+def Env.shiftTypes (d c : Nat) (Γ : Env) : Env :=
   Γ.map (fun (x, A) => (x, A.shift d c))
 
-instance : HasShift Env Nat Nat where shift Γ d c := Env.shift d c Γ
+instance : HasShiftTypes Env where shift Γ d c := Env.shiftTypes d c Γ
 
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
 infixr:69 "‚ " => Env.merge
@@ -548,18 +548,18 @@ lemma Env.mem_of_disjoint_le_bot {Γ Δ : Env} {x : Finset FPName}
   exact le_trans (le_inf hxΓ hxΔ) (Disjoint.le_bot hΓΔ)
 
 lemma lcEnv_shift_inv {n k : Nat} {Γ : Env} :
-  lcEnv (n + k + 1) Γ⁺ ↔ lcEnv (n + k) Γ := by
-  simp [lcEnv, HasShift.shift, Env.shift]
+  lcEnv (n + k + 1) Γ⁺ᵗ ↔ lcEnv (n + k) Γ := by
+  simp [lcEnv, HasShiftTypes.shift, Env.shiftTypes]
   constructor
   all_goals (
     intro h x A hin
     specialize h x A hin
     have := lcType_shift_inv_0 (A := A) (n := n + k)
-    simp_all [HasShift.shift]
+    simp_all [HasShiftTypes.shift]
   )
 
 lemma lcEnv_shift_inv_0 {n : Nat} {Γ : Env} :
-  lcEnv (n + 1) Γ⁺ ↔ lcEnv n Γ := lcEnv_shift_inv (k := 0)
+  lcEnv (n + 1) Γ⁺ᵗ ↔ lcEnv n Γ := lcEnv_shift_inv (k := 0)
 
 lemma lcEnv_cons {n : Nat} {x : FPName} {A : Types} {Γ : Env} :
   lcEnv n ((x, A) :: Γ) ↔ lcType n A ∧ lcEnv n Γ := by
@@ -616,7 +616,7 @@ abbrev HyperEnv := List Env
 def HyperEnv.names (𝒢 : HyperEnv) : Finset FPName :=
   𝒢.foldr (fun Γ acc => Γ.names ∪ acc) ∅
 
-def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
+@[simp] def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
   Disjoint 𝒢.names ℋ.names
 
 def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
@@ -624,10 +624,10 @@ def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
 
 -- d : Depth shift should be applied
 -- c : Correction / how much to shift
-def HyperEnv.shift (d c : Nat) (𝒢 : HyperEnv) : HyperEnv :=
-  𝒢.map (fun Γ => Γ.shift d c)
+def HyperEnv.shiftTypes (d c : Nat) (𝒢 : HyperEnv) : HyperEnv :=
+  𝒢.map (fun Γ => Γ.shiftTypes d c)
 
-instance : HasShift HyperEnv Nat Nat where shift 𝒢 d c := HyperEnv.shift d c 𝒢
+instance : HasShiftTypes HyperEnv where shift 𝒢 d c := HyperEnv.shiftTypes d c 𝒢
 
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ++ ℋ
 infixl:55 " |ₕ " => HyperEnv.merge
