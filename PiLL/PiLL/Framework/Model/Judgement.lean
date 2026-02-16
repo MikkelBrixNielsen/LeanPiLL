@@ -1107,6 +1107,27 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
 
 
 
+@[simp] lemma Types.shift_preserves_isServerUsable {d c : Nat} {A : Types} :
+  A.isServerUsable ↔ (A ↑ᵗ d, c).isServerUsable := by
+  cases A <;> simp [HasShiftTypes.shift, Types.shift, Types.isServerUsable]
+
+@[simp] lemma Env.shift_preserves_serverUsable {d c : Nat} {Γ : Env} :
+  ?ₑΓ → ?ₑ(Γ ↑ᵗ d, c) := by
+  simp [Env.serverUsable, HasShiftTypes.shift, Env.shiftTypes]
+  intro h x A x' A' hMem heq hShift
+  have := h x' A' hMem
+  apply Types.shift_preserves_isServerUsable (d := d) (c := c).mp at this
+  simp [HasShiftTypes.shift] at this
+  rw [hShift] at this
+  exact this
+
+
+
+
+
+
+
+
 
 @[simp] lemma Env.shift_empty {d c : Nat} :
   ([] : Env) ↑ᵗ d, c = ([] : Env) := by
@@ -1189,10 +1210,146 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
 
 
 
--- FIXME:
--- @[simp] lemma Proc.shift_open_comm {d c : Nat} {P : Proc} {x y : FPName} :
---   (P⸨#x, #y⸩) ↑ᶜ d, c = (P ↑ᶜ d, c) ⸨#x, #y⸩ := by
---   simp [Proc.openCut]
+
+-- FIXME: Notation for opening a proc at some depth not just 0
+
+lemma Proc.shiftTypes_open_comm {n d c : Nat} {P : Proc} {u : Channel} :
+  (P.open n u) ↑ᵗ d, c = (P ↑ᵗ d, c).open n u := by
+  induction P generalizing d n <;> (
+    simp_all [Proc.open, HasShiftTypes.shift, Proc.shiftTypes]
+  )
+
+lemma Proc.shiftTypes0_open0_comm {c : Nat} {P : Proc} {u : Channel} :
+  (P⸨u⸩) ↑ᵗ c = (P ↑ᵗ c)⸨u⸩ := Proc.shiftTypes_open_comm
+
+lemma Proc.shiftTypes_open0_comm {d c : Nat} {P : Proc} {u : Channel} :
+  (P⸨u⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨u⸩ := Proc.shiftTypes_open_comm
+
+
+lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
+  (P⸨x, y⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨x, y⸩ := by
+  simp [Proc.openCut, Proc.shiftTypes_open_comm]
+
+
+
+
+
+
+
+lemma Types.lcType_shift {n d c : Nat} {A : Types} :
+  lcType n A → lcType (n + c) (A ↑ᵗ d, c) := by
+  induction A generalizing n d c <;> (
+    intro h
+    simp_all [lcType, HasShiftTypes.shift, Types.shift, TVar.shift, lcTVar]
+  )
+
+  case var v | varDual v =>
+    cases v <;> simp ; split_ifs <;> simp_all [Nat.lt_add_right]
+
+  case forall_ ih | exists_ ih =>
+    have := ih (n := n + 1) (d := d + 1) (c := c) h
+    rw [Nat.add_assoc, Nat.add_comm 1 _, ← Nat.add_assoc] at this
+    exact this
+
+
+@[simp] lemma Types.shift_d0 {d : Nat} {A : Types} :
+  A ↑ᵗ d, 0 = A := by
+  induction A generalizing d <;> (
+    simp_all [HasShiftTypes.shift, Types.shift, TVar.shift]
+  )
+
+  case var v | varDual v => cases v <;> simp
+
+@[simp] lemma Types.shift_00 {A : Types} :
+  Types.shift 0 0 A  = A := Types.shift_d0
+
+
+
+
+-- lemma Types.shift_comm {A : Types} {d c : Nat} :
+--   (A.shift 0 1).shift (d + 1) c = (A.shift d c).shift 0 1 := by
+lemma Types.shift_subst_comm' {A B : Types} {k d c : Nat} (hle : k ≤ d) :
+  (B{A // k}) ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // k} := by
+  induction B generalizing k d c A
+
+  case atom | atomDual | one | bot | amp | oplus | quest | bang =>
+    simp_all [HasSubst.subst, Types.subst, HasShiftTypes.shift, Types.shift]
+
+  case tensor ihA ihB | parr ihA ihB =>
+    simp [HasSubst.subst, Types.subst, HasShiftTypes.shift, Types.shift]
+    exact ⟨ihA hle, ihB hle⟩
+
+  case var v =>
+    simp [HasSubst.subst, HasShiftTypes.shift, Types.shift, TVar.shift]
+    cases v with
+    | bound =>
+      simp [Types.subst]
+      repeat split_ifs
+      case pos =>
+        simp_all [Types.subst]
+        sorry
+      case neg =>
+        simp_all [Types.subst]
+        sorry
+      case pos => sorry
+      case neg => sorry
+      case pos => sorry
+      case neg => sorry
+
+
+    | free _ => simp_all [Types.subst, Types.shift, TVar.shift]
+
+  case varDual v => sorry
+  case forall_ => sorry
+  case exists_ => sorry
+
+
+
+
+
+
+
+
+-- NOTE: Might be bade since this changes how goals behave after having simped the syntax
+-- It can reappear...
+-- Tells Lean that Proc.shiftTypes d c P can be written using the shift-notation
+-- since it seems that some rules are undfolding it when being applied.
+-- @[app_unexpander Proc.shiftTypes]
+-- def unexpandProcShiftTypes : Lean.PrettyPrinter.Unexpander
+--   | `($(_) 0 1 $P) => `($P⁺ᵗ)
+--   | `($(_) 0 $c $P) => `($P ↑ᵗ $c)
+--   | `($(_) $d $c $P) => `($P ↑ᵗ $d, $c)
+--   | _ => throw ()
+
+-- @[app_unexpander Proc.shiftNames]
+-- def unexpandProcShiftNames : Lean.PrettyPrinter.Unexpander
+--   | `($(_) 0 1 $P) => `($P⁺ᶜ)
+--   | `($(_) 0 $c $P) => `($P ↑ᶜ $c)
+--   | `($(_) $d $c $P) => `($P ↑ᶜ $d, $c)
+--   | _ => throw ()
+
+-- @[app_unexpander Types.shift]
+-- def unexpandTypesShift : Lean.PrettyPrinter.Unexpander
+--   | `($(_) 0 1 $A) => `($A⁺)
+--   | `($(_) 0 $c $A) => `($A ↑ᵗ $c)
+--   | `($(_) $d $c $A) => `($A ↑ᵗ $d, $c)
+--   | _ => throw ()
+
+-- @[app_unexpander HyperEnv.merge]
+-- def unexpandHyperEnv.merge : Lean.PrettyPrinter.Unexpander
+--   | `($(_) $𝒢 $ℋ) => `($𝒢 |ₕ $ℋ)
+--   | _ => throw ()
+
+-- @[app_unexpander Env.merge]
+-- def unexpandEnv.merge : Lean.PrettyPrinter.Unexpander
+--   | `($(_) $Γ $Δ) => `($Γ‚ $Δ)
+--   | _ => throw ()
+
+
+
+
+
+
 
 
 
@@ -1201,46 +1358,128 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
 
 -- FIXME:
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
-  Typing n P 𝒢 → ∀ k, Typing (n + k) (P ↑ᵗ k) (𝒢 ↑ᵗ k) := by
+  Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by
   intro h
   induction h
   all_goals (
     try simp_all
-    intro k
+    intro d c
   )
 
-  case mix₀ n' => exact Typing.mix₀
+  case mix₀ => exact Typing.mix₀
 
   case mix hD _ _ ihP ihQ =>
     apply Typing.mix
     · simp ; exact hD
-    · exact ihP k
-    · exact ihQ k
+    · exact ihP d c
+    · exact ihQ d c
 
   case ax hneq hlc =>
     rw [Types.shift_dual_comm]
-    exact Typing.ax
-      (hneq := hneq)
-      ((lcType_shift_c_inv (c := k) (d := 0)).mpr hlc)
+    apply Typing.ax
+    · exact hneq
+    · exact Types.lcType_shift hlc
 
   case one ih =>
-    exact Typing.one (ih k)
+    exact Typing.one (ih d c)
 
   case bot hF _ _ ih =>
-    exact Typing.bot (hF := by simp [hF]) (ih k)
+    exact Typing.bot (hF := by simp [hF]) (ih d c)
 
   case cut A L _ _ ih =>
-
-    apply Typing.cut L (A := A ↑ᵗ k)
-    intros x y hx hy hneq
-    specialize ih x y hx hy hneq
+    apply Typing.cut L (A := A ↑ᵗ d, c)
+    intro x y hx hy hneq
+    specialize ih x y hx hy hneq d c
     rw [← Types.shift_dual_comm]
-    specialize ih k
+    rw [Proc.shiftTypes_openCut_comm] at ih
     simp
+    exact ih
 
+  case tensor L _ _ ih =>
+    apply Typing.tensor L
+    · intro y hy
+      specialize ih y hy d c
+      rw [Proc.shiftTypes_open0_comm] at ih
+      exact ih
+    · simp_all
+
+  case parr L _ _ ih =>
+    apply Typing.parr L
+    · intro y hy
+      specialize ih y hy d c
+      rw [Proc.shiftTypes_open0_comm] at ih
+      exact ih
+    · simp_all
+
+  case oplus₁ hlc _ ih =>
+    apply Typing.oplus₁
+    · exact Types.lcType_shift hlc
+    · exact ih d c
+
+  case oplus₂ hlc _ ih =>
+    apply Typing.oplus₂
+    · exact Types.lcType_shift hlc
+    · exact ih d c
+
+  case amp ihP ihQ =>
+    exact Typing.amp (ihP d c) (ihQ d c)
+
+  case quest ih =>
+    exact Typing.quest (ih d c)
+
+  case bang ih =>
+    apply Typing.bang
+    · simp_all [Env.shift_preserves_serverUsable]
+    · exact ih d c
+
+  case w hlc _ ih =>
+    apply Typing.w
+    · simp_all
+    · exact Types.lcType_shift hlc
+    · exact ih d c
+
+  case c L _ _ ih =>
+    apply Typing.c L
+    intro x hx
+    specialize ih x hx d c
+    rw [Proc.shiftTypes_open0_comm] at ih
+    exact ih
+
+
+
+
+  case exists_ Γ Q x A B n' hlc hTP ih =>
+    apply Typing.exists_
+    · exact Types.lcType_shift hlc
+    · specialize ih d c
+      sorry
+
+
+
+
+
+  case forall_ ih =>
+    apply Typing.forall_
+    rw [Nat.add_assoc, Nat.add_comm c 1 , ← Nat.add_assoc]
     sorry
 
-  all_goals sorry
+
+
+
+
+  case exchange_env => sorry
+  case exchange_hyper => sorry
+
+
+
+
+
+
+
+
+
+
+
 
 
 

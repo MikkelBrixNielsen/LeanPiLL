@@ -385,44 +385,6 @@ lemma lcType_subst_inv {n k : Nat} {A B : Types} (hA : lcType n A) :
 
     | free _ => simp_all [Types.subst, lcType, lcTVar]
 
--- lemma lcType_of_subst_inv {n k : Nat} {A B : Types} :
---   lcType (n + k) (Types.subst A k B) → lcType n A →
---   lcType (n + k + 1) B := by
---   induction B generalizing n k
-
---   all_goals (
---     simp_all [Types.subst, lcType]
---     try intros
---     try simp_all
---   )
-
---   case var v hSub hA | varDual v hSub hA =>
---     cases v with
---     | bound i =>
---       simp_all [Types.subst, lcTVar]
---       split_ifs at hSub
---       case pos =>
---         simp_all
---         apply Nat.lt_succ_of_le
---         exact Nat.le_add_left k n
---       case pos h =>
---         simp [lcType, lcTVar] at hSub
---         apply Nat.succ_lt_succ at hSub
---         have hneq : i ≠ 0 := by
---           rw [Nat.lt_or_gt]
---           exact Or.inr (Nat.lt_of_le_of_lt (Nat.zero_le k) h)
---         rw [← Nat.pred_eq_sub_one, Nat.succ_pred hneq, Nat.succ_eq_add_one] at hSub
---         exact hSub
---       · simp [lcType, lcTVar] at hSub
---         exact Nat.lt_succ_of_lt hSub
---     | free i =>
---       simp_all [Types.subst, lcType, lcTVar]
-
---   case forall_ ihB hSub hA | exists_ ihB hSub hA =>
---     apply ihB (k := k + 1)
---     · exact hSub
---     · exact hA
-
 lemma lcType_subst_inv_0 {n : Nat} {A B : Types} :
   lcType n A → (lcType n (B{A // #T}) ↔ lcType (n + 1) B) := by
   intro hA
@@ -479,11 +441,6 @@ lemma lcType_shift_comm {A : Types} {d m n : Nat} :
     simp [HasShiftTypes.shift, Types.shift]
     cases v with
     | bound i => simp [TVar.shift] ; grind
-      -- repeat (split_ifs <;> simp_all)
-      -- case pos h1 h2 h3 => by_contra ; exact lcType_shift_comm_aux h1 h2
-      -- case neg h1 h2 h3 => by_contra ; exact lcType_shift_comm_aux h1 h2
-      -- case pos h1 h2 h3 => by_contra ; exact lcType_shift_comm_aux h1 h3
-      -- case neg => simp_rw [Nat.add_assoc, Nat.add_comm n m]
     | free _ => simp [TVar.shift]
 
 lemma lcType_shift_comm_0 {A : Types} {k : Nat} :
@@ -537,7 +494,7 @@ lemma Types.shift_dual_comm {A : Types} {d c : Nat} :
     simp_all [HasShiftTypes.shift, Types.shift, Types.dual, TVar.shift]
   )
 
-lemma lcType_shift_subst_comm {A B : Types} {i k : Nat} :
+lemma Types.shift_subst_comm {A B : Types} {i k : Nat} :
   B{A // i} ↑ᵗ i, k = (B ↑ᵗ (i + 1), k){A ↑ᵗ k // i} := by
   induction B generalizing A i k <;> (
     simp [HasShiftTypes.shift, HasSubst.subst, Types.subst, Types.shift]

@@ -377,22 +377,22 @@ def Channel.open (k : Nat) (u : Channel) : Channel → Channel
 
 def Proc.open (k : Nat) (u : Channel) : Proc → Proc
   | .nil              => .nil
-  | .one x P          => .one (Channel.open k u x) (.open k u P)
-  | .bot x P          => .bot (Channel.open k u x) (.open k u P)
-  | .tensor x P       => .tensor (Channel.open k u x) (.open (k + 1) u P)
-  | .parr x P         => .parr (Channel.open k u x) (.open (k + 1) u P)
-  | .cut P            => .cut (.open (k + 2) u P)
-  | .par P Q          => .par (.open k u P) (.open k u Q)
-  | .server x P       => .server (Channel.open k u x) (.open k u P)
-  | .duplicate x P    => .duplicate (Channel.open k u x) (.open (k + 1) u P)
-  | .consume x P      => .consume (Channel.open k u x) (.open k u P)
-  | .dispose x P      => .dispose (Channel.open k u x) (.open k u P)
-  | .selectL x P      => .selectL (Channel.open k u x) (.open k u P)
-  | .selectR x P      => .selectR (Channel.open k u x) (.open k u P)
-  | .amp x P Q        => .amp (Channel.open k u x) (.open k u P) (.open k u Q)
-  | .output x P A     => .output (Channel.open k u x) (.open k u P) A
-  | .input x P        => .input (Channel.open k u x) (.open k u P)
-  | .link x y         => .link (Channel.open k u x) (Channel.open k u y)
+  | .one x P          => .one (x.open k u) (P.open k u)
+  | .bot x P          => .bot (x.open k u) (P.open k u)
+  | .tensor x P       => .tensor (x.open k u) (P.open (k + 1) u)
+  | .parr x P         => .parr (x.open k u) (P.open (k + 1) u)
+  | .cut P            => .cut (P.open (k + 2) u)
+  | .par P Q          => .par (P.open k u) (Q.open k u)
+  | .server x P       => .server (x.open k u) (P.open k u)
+  | .duplicate x P    => .duplicate (x.open k u) (P.open (k + 1) u)
+  | .consume x P      => .consume (x.open k u) (P.open k u)
+  | .dispose x P      => .dispose (x.open k u) (P.open k u)
+  | .selectL x P      => .selectL (x.open k u) (P.open k u)
+  | .selectR x P      => .selectR (x.open k u) (P.open k u)
+  | .amp x P Q        => .amp (x.open k u) (P.open k u) (Q.open k u)
+  | .output x P A     => .output (x.open k u) (P.open k u) A
+  | .input x P        => .input (x.open k u) (P.open k u)
+  | .link x y         => .link (x.open k u) (y.open k u)
 
 def Proc.open0 (u : Channel) (P : Proc) : Proc :=
   Proc.open 0 u P
