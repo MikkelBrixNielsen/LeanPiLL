@@ -1265,7 +1265,8 @@ lemma Types.lcType_shift {n d c : Nat} {A : Types} :
 
 
 
-
+-- FIXME:
+-- Also try eager type shifting?
 -- lemma Types.shift_comm {A : Types} {d c : Nat} :
 --   (A.shift 0 1).shift (d + 1) c = (A.shift d c).shift 0 1 := by
 lemma Types.shift_subst_comm' {A B : Types} {k d c : Nat} (hle : k ≤ d) :
