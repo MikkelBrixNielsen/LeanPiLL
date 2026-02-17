@@ -512,8 +512,8 @@ instance : HasShiftTypes Env where shift Γ d c := Env.shiftTypes d c Γ
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
 infixr:69 "‚ " => Env.merge
 
-def lcEnv (k : Nat) (Γ : Env) : Prop :=
-  ∀ x A, (x, A) ∈ Γ → lcType k A
+def Env.lc (k : Nat) (Γ : Env) : Prop :=
+  ∀ x A, (x, A) ∈ Γ → A.lc k
 
 lemma Env.merge_unitL (Γ : Env) : ∅ ++ Γ = Γ := by simp
 
@@ -547,23 +547,23 @@ lemma Env.mem_of_disjoint_le_bot {Γ Δ : Env} {x : Finset FPName}
   x ≤ ⊥ := by
   exact le_trans (le_inf hxΓ hxΔ) (Disjoint.le_bot hΓΔ)
 
-lemma lcEnv_shift_inv {n k : Nat} {Γ : Env} :
-  lcEnv (n + k + 1) Γ⁺ᵗ ↔ lcEnv (n + k) Γ := by
-  simp [lcEnv, HasShiftTypes.shift, Env.shiftTypes]
+lemma Env.lc_shift_inv {n k : Nat} {Γ : Env} :
+  (Γ⁺ᵗ).lc (n + k + 1) ↔ Γ.lc (n + k) := by
+  simp [Env.lc, HasShiftTypes.shift, Env.shiftTypes]
   constructor
   all_goals (
     intro h x A hin
     specialize h x A hin
-    have := lcType_shift_inv_0 (A := A) (n := n + k)
+    have := Types.lc_shift_inv_0 (A := A) (n := n + k)
     simp_all [HasShiftTypes.shift]
   )
 
-lemma lcEnv_shift_inv_0 {n : Nat} {Γ : Env} :
-  lcEnv (n + 1) Γ⁺ᵗ ↔ lcEnv n Γ := lcEnv_shift_inv (k := 0)
+lemma Env.lc_shift_inv_0 {n : Nat} {Γ : Env} :
+  (Γ⁺ᵗ).lc (n + 1) ↔ Γ.lc n := Env.lc_shift_inv (k := 0)
 
-lemma lcEnv_cons {n : Nat} {x : FPName} {A : Types} {Γ : Env} :
-  lcEnv n ((x, A) :: Γ) ↔ lcType n A ∧ lcEnv n Γ := by
-  unfold lcEnv
+lemma Env.lc_cons {n : Nat} {x : FPName} {A : Types} {Γ : Env} :
+  Env.lc n ((x, A) :: Γ) ↔ A.lc n ∧ Γ.lc n := by
+  unfold Env.lc
   constructor
   · intro h
     constructor
@@ -578,12 +578,12 @@ lemma lcEnv_cons {n : Nat} {x : FPName} {A : Types} {Γ : Env} :
     · rename_i hΓ
       apply h2 y B hΓ
 
-lemma lcEnv_singleton {n : Nat} {x : FPName} {A : Types} :
-  lcEnv n ([x ∶ A]) ↔ lcType n A := by simp_all [lcEnv]
+lemma Env.lc_singleton {n : Nat} {x : FPName} {A : Types} :
+  Env.lc n ([x ∶ A]) ↔ A.lc n := by simp_all [Env.lc]
 
-lemma lcEnv_append {n : Nat} {Γ Δ : Env} :
-  lcEnv n (Γ ++ Δ) ↔ lcEnv n Γ ∧ lcEnv n Δ := by
-  simp [lcEnv]
+lemma Env.lc_append {n : Nat} {Γ Δ : Env} :
+  (Γ ++ Δ).lc n ↔ Γ.lc n ∧ Δ.lc n := by
+  simp [Env.lc]
   constructor
   · intro h
     constructor
@@ -596,10 +596,10 @@ lemma lcEnv_append {n : Nat} {Γ Δ : Env} :
     | inl hin => exact hΓ x A hin
     | inr hin => exact hΔ x A hin
 
-lemma lcEnv_perm {n : Nat} {Γ Δ : Env} :
-  Γ ~ Δ → (lcEnv n Γ ↔ lcEnv n Δ) := by
+lemma Env.lc_perm {n : Nat} {Γ Δ : Env} :
+  Γ ~ Δ → (Γ.lc n ↔ Δ.lc n) := by
   intro hPerm
-  simp [lcEnv]
+  simp [Env.lc]
   constructor
   · intro h x A hin
     rw [List.Perm.mem_iff hPerm.symm] at hin
