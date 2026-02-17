@@ -1154,6 +1154,7 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   Γ.disjoint Δ → (Γ ↑ᵗ d, c).disjoint (Δ ↑ᵗ d, c) := by simp
 
 
+
 @[simp] lemma HyperEnv.shift_empty {d c : Nat} :
   ([] : HyperEnv) ↑ᵗ d, c = ([] : HyperEnv) := by
   simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
@@ -1183,29 +1184,29 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
 
 
 
-@[simp] lemma Proc.shift_nil {d c : Nat} :
-  𝟘 ↑ᶜ d, c = 𝟘 := by
-  simp [HasShiftNames.shift, Proc.shiftNames]
+-- @[simp] lemma Proc.shift_nil {d c : Nat} :
+--   𝟘 ↑ᶜ d, c = 𝟘 := by
+--   simp [HasShiftNames.shift, Proc.shiftNames]
 
-@[simp] lemma Proc.shift_ax {d c : Nat} {x y : FPName} :
-  (#x⟷ₚ#y) ↑ᶜ d, c = (#x⟷ₚ#y) := by
-  simp [HasShiftNames.shift, Proc.shiftNames]
+-- @[simp] lemma Proc.shift_ax {d c : Nat} {x y : FPName} :
+--   (#x⟷ₚ#y) ↑ᶜ d, c = (#x⟷ₚ#y) := by
+--   simp [HasShiftNames.shift, Proc.shiftNames]
 
-@[simp] lemma Proc.shift_par {d c : Nat} {P Q : Proc} :
-  (P |ₚ Q) ↑ᶜ d, c = P ↑ᶜ d, c |ₚ Q ↑ᶜ d, c := by
-  simp [HasShiftNames.shift, Proc.shiftNames]
+-- @[simp] lemma Proc.shift_par {d c : Nat} {P Q : Proc} :
+--   (P |ₚ Q) ↑ᶜ d, c = P ↑ᶜ d, c |ₚ Q ↑ᶜ d, c := by
+--   simp [HasShiftNames.shift, Proc.shiftNames]
 
-@[simp] lemma Proc.shift_one {d c : Nat} {P : Proc} {x : FPName} :
-  (#x⟦⟧․P) ↑ᶜ d, c = #x⟦⟧․(P ↑ᶜ d, c) := by
-  simp [HasShiftNames.shift, Proc.shiftNames]
+-- @[simp] lemma Proc.shift_one {d c : Nat} {P : Proc} {x : FPName} :
+--   (#x⟦⟧․P) ↑ᶜ d, c = #x⟦⟧․(P ↑ᶜ d, c) := by
+--   simp [HasShiftNames.shift, Proc.shiftNames]
 
-@[simp] lemma Proc.shift_bot {d c : Nat} {P : Proc} {x : FPName} :
-  (#x⸨⸩․P) ↑ᶜ d, c = #x⸨⸩․(P ↑ᶜ d, c) := by
-  simp [HasShiftNames.shift, Proc.shiftNames]
+-- @[simp] lemma Proc.shift_bot {d c : Nat} {P : Proc} {x : FPName} :
+--   (#x⸨⸩․P) ↑ᶜ d, c = #x⸨⸩․(P ↑ᶜ d, c) := by
+--   simp [HasShiftNames.shift, Proc.shiftNames]
 
-@[simp] lemma Proc.shift_cut {d c : Nat} {P : Proc} :
-  (𝑣⸨#,#⸩ P) ↑ᶜ d, c = 𝑣⸨#,#⸩ (P ↑ᶜ (d + 2), c) := by
-  simp [HasShiftNames.shift, Proc.shiftNames]
+-- @[simp] lemma Proc.shift_cut {d c : Nat} {P : Proc} :
+--   (𝑣⸨#,#⸩ P) ↑ᶜ d, c = 𝑣⸨#,#⸩ (P ↑ᶜ (d + 2), c) := by
+--   simp [HasShiftNames.shift, Proc.shiftNames]
 
 
 
@@ -1236,20 +1237,8 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
 
 
 
-lemma Types.lcType_shift {n d c : Nat} {A : Types} :
-  lcType n A → lcType (n + c) (A ↑ᵗ d, c) := by
-  induction A generalizing n d c <;> (
-    intro h
-    simp_all [lcType, HasShiftTypes.shift, Types.shift, TVar.shift, lcTVar]
-  )
 
-  case var v | varDual v =>
-    cases v <;> simp ; split_ifs <;> simp_all [Nat.lt_add_right]
 
-  case forall_ ih | exists_ ih =>
-    have := ih (n := n + 1) (d := d + 1) (c := c) h
-    rw [Nat.add_assoc, Nat.add_comm 1 _, ← Nat.add_assoc] at this
-    exact this
 
 
 @[simp] lemma Types.shift_d0 {d : Nat} {A : Types} :
@@ -1262,13 +1251,9 @@ lemma Types.lcType_shift {n d c : Nat} {A : Types} :
 
 @[simp] lemma Types.shift_00 {A : Types} :
   Types.shift 0 0 A  = A := Types.shift_d0
-
-
+s
 
 -- FIXME:
--- Also try eager type shifting?
--- lemma Types.shift_comm {A : Types} {d c : Nat} :
---   (A.shift 0 1).shift (d + 1) c = (A.shift d c).shift 0 1 := by
 lemma Types.shift_subst_comm' {A B : Types} {k d c : Nat} (hle : k ≤ d) :
   (B{A // k}) ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // k} := by
   induction B generalizing k d c A
@@ -1284,18 +1269,11 @@ lemma Types.shift_subst_comm' {A B : Types} {k d c : Nat} (hle : k ≤ d) :
     simp [HasSubst.subst, HasShiftTypes.shift, Types.shift, TVar.shift]
     cases v with
     | bound =>
-      simp [Types.subst]
-      repeat split_ifs
-      case pos =>
-        simp_all [Types.subst]
-        sorry
-      case neg =>
-        simp_all [Types.subst]
-        sorry
-      case pos => sorry
-      case neg => sorry
-      case pos => sorry
-      case neg => sorry
+      simp
+      split_ifs
+
+
+
 
 
     | free _ => simp_all [Types.subst, Types.shift, TVar.shift]
