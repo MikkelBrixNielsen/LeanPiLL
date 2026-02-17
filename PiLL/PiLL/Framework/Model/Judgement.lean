@@ -1237,10 +1237,6 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
 
 
 
-
-
-
-
 @[simp] lemma Types.shift_d0 {d : Nat} {A : Types} :
   A ↑ᵗ d, 0 = A := by
   induction A generalizing d <;> (
@@ -1251,37 +1247,10 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
 
 @[simp] lemma Types.shift_00 {A : Types} :
   Types.shift 0 0 A  = A := Types.shift_d0
-s
 
 -- FIXME:
-lemma Types.shift_subst_comm' {A B : Types} {k d c : Nat} (hle : k ≤ d) :
-  (B{A // k}) ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // k} := by
-  induction B generalizing k d c A
-
-  case atom | atomDual | one | bot | amp | oplus | quest | bang =>
-    simp_all [HasSubst.subst, Types.subst, HasShiftTypes.shift, Types.shift]
-
-  case tensor ihA ihB | parr ihA ihB =>
-    simp [HasSubst.subst, Types.subst, HasShiftTypes.shift, Types.shift]
-    exact ⟨ihA hle, ihB hle⟩
-
-  case var v =>
-    simp [HasSubst.subst, HasShiftTypes.shift, Types.shift, TVar.shift]
-    cases v with
-    | bound =>
-      simp
-      split_ifs
-
-
-
-
-
-    | free _ => simp_all [Types.subst, Types.shift, TVar.shift]
-
-  case varDual v => sorry
-  case forall_ => sorry
-  case exists_ => sorry
-
+-- lemma Types.shift_subst_comm' {A B : Types} {k d c : Nat} (hle : k ≤ d) :
+--   (B{A // k}) ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // k} := by sorry
 
 
 
