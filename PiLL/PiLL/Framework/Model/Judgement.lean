@@ -859,14 +859,14 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
 
   | oplus₁
       {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
-      lcType n B →
+      B.lc n →
       Typing n P [x ∶ A :: Γ] →
       -----------------------------------
       Typing n (#x⟦𝐋⟧․P) [x ∶ A ⊕ B :: Γ]
 
   | oplus₂
       {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
-      lcType n A →
+      A.lc n →
       Typing n P [x ∶ B :: Γ] →
       ------------------------------------
       Typing n (#x⟦𝐑⟧․P) [x ∶ A ⊕ B :: Γ]
@@ -891,7 +891,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
 
   | w
       {Γ : Env} {P : Proc} {x : FPName} {A : Types} {hF : x ∉ Γ.names} {n : Nat} :
-      lcType n A → Typing n P [Γ] →
+      A.lc n → Typing n P [Γ] →
       -----------------------------------
       Typing n (#x⟦DISP⟧․P) [x ∶ ??A :: Γ]
 
@@ -904,7 +904,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
 
   | exists_
       {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
-      lcType n A →
+      A.lc n →
       Typing n P [x ∶ B{A // #T} :: Γ] →
       ----------------------------------
       Typing n (#x⟦A⟧․P) [x ∶ ∃․B :: Γ]
@@ -917,7 +917,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
 
   | ax
       {x y : FPName} {A : Types} {hneq : x ≠ y} {n : Nat} :
-      lcType n A →
+      A.lc n →
       Typing n (#x ⟷ₚ #y) [x ∶ Aᗮ :: [y ∶ A]]
 
 notation:45 n " ⊢ " P " ∷ " 𝒢 => Typing n P 𝒢
@@ -1022,7 +1022,7 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
       exact hD
 
 lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
-  (n ⊢ P ∷ 𝒢) → ∀ Γ ∈ 𝒢, lcEnv n Γ := by
+  (n ⊢ P ∷ 𝒢) → ∀ Γ ∈ 𝒢, Γ.lc n := by
   intro hT E hE𝒢
   induction hT generalizing E
 
@@ -1033,24 +1033,24 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
     cases hE𝒢 <;> simp_all
 
   case one | bot | quest | bang | amp | oplus₁ | oplus₂ | w | ax =>
-    simp_all [lcEnv_cons, lcType_dual.mp]
-    simp_all [lcEnv, lcType]
+    simp_all [Env.lc_cons, Types.lc_dual.mp]
+    simp_all [Env.lc, Types.lc]
 
   case exists_ Γ _ x A B n hlc _ ih =>
     simp at hE𝒢
     subst hE𝒢
-    have h : lcEnv n ((x, B{A // #T}) :: Γ) := ih ((x, B{A // #T}) :: Γ) (by simp)
-    rw [lcEnv_cons] at h ⊢
-    exact ⟨(lcType_subst_inv_0 hlc).mp h.1, by simp_all⟩
+    have h : Env.lc n ((x, B{A // #T}) :: Γ) := ih ((x, B{A // #T}) :: Γ) (by simp)
+    rw [Env.lc_cons] at h ⊢
+    exact ⟨(Types.lc_subst_inv_0 hlc).mp h.1, by simp_all⟩
 
   case forall_ Γ _ x B n _ ih =>
     simp at hE𝒢
     subst hE𝒢
-    have h : lcEnv (n + 1) ((x, B) :: Γ⁺ᵗ) := ih ((x, B) :: Γ⁺ᵗ) (by simp)
-    simp_all [lcEnv_cons]
+    have h : Env.lc (n + 1) ((x, B) :: Γ⁺ᵗ) := ih ((x, B) :: Γ⁺ᵗ) (by simp)
+    simp_all [Env.lc_cons]
     constructor
-    · simp [lcType, h.1]
-    · exact lcEnv_shift_inv_0.mp h.2
+    · simp [Types.lc, h.1]
+    · exact Env.lc_shift_inv_0.mp h.2
 
   case cut Γ Δ _ A L n _  ih =>
     obtain ⟨u, v, hu, hv, hneq⟩ := exists_two_fresh L
@@ -1060,26 +1060,26 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
     | inl => simp_all
     | inr hin =>
       subst hin
-      have hΓ : lcEnv n ((u, A) :: Γ) := ih ((u, A) :: Γ) (by simp)
-      have hΔ : lcEnv n ((v, Aᗮ) :: Δ) := ih ((v, Aᗮ) :: Δ) (by simp)
-      rw [lcEnv_cons] at hΓ hΔ
-      exact lcEnv_append.mpr ⟨hΓ.2, hΔ.2⟩
+      have hΓ : Env.lc n ((u, A) :: Γ) := ih ((u, A) :: Γ) (by simp)
+      have hΔ : Env.lc n ((v, Aᗮ) :: Δ) := ih ((v, Aᗮ) :: Δ) (by simp)
+      rw [Env.lc_cons] at hΓ hΔ
+      exact Env.lc_append.mpr ⟨hΓ.2, hΔ.2⟩
 
   case tensor L _ _ ih | parr L _ _ ih =>
     obtain ⟨u, hu⟩ := exists_one_fresh L
     specialize ih u hu
-    simp_all [lcEnv_cons]
-    simp_all [lcType, lcEnv_append]
+    simp_all [Env.lc_cons]
+    simp_all [Types.lc, Env.lc_append]
 
   case c L _ _ ih =>
     obtain ⟨u, hu⟩ := exists_one_fresh L
     specialize ih u hu
-    simp_all [lcEnv_cons]
+    simp_all [Env.lc_cons]
 
   case exchange_env hP ih =>
     simp_all
     cases hE𝒢 with
-    | inl => simp_all [(lcEnv_perm hP).mp]
+    | inl => simp_all [(Env.lc_perm hP).mp]
     | inr => simp_all
 
   case exchange_hyper hP _ =>
@@ -1326,7 +1326,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     rw [Types.shift_dual_comm]
     apply Typing.ax
     · exact hneq
-    · exact Types.lcType_shift hlc
+    · exact Types.lc_shift hlc
 
   case one ih =>
     exact Typing.one (ih d c)
@@ -1361,12 +1361,12 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 
   case oplus₁ hlc _ ih =>
     apply Typing.oplus₁
-    · exact Types.lcType_shift hlc
+    · exact Types.lc_shift hlc
     · exact ih d c
 
   case oplus₂ hlc _ ih =>
     apply Typing.oplus₂
-    · exact Types.lcType_shift hlc
+    · exact Types.lc_shift hlc
     · exact ih d c
 
   case amp ihP ihQ =>
@@ -1383,7 +1383,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case w hlc _ ih =>
     apply Typing.w
     · simp_all
-    · exact Types.lcType_shift hlc
+    · exact Types.lc_shift hlc
     · exact ih d c
 
   case c L _ _ ih =>
@@ -1398,8 +1398,15 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 
   case exists_ Γ Q x A B n' hlc hTP ih =>
     apply Typing.exists_
-    · exact Types.lcType_shift hlc
-    · specialize ih d c
+    · exact Types.lc_shift hlc
+    ·
+      change (
+        n' + c ⊢ Q ↑ᵗ d, c
+        ∷
+        [x ∶ (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // #T} :: Γ ↑ᵗ d, c]
+      )
+
+
       sorry
 
 
