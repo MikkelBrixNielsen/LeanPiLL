@@ -372,7 +372,7 @@ infixr:70 " |ₚ " => Proc.par
 notation "𝟘" => Proc.nil
 
 def Channel.open (k : Nat) (u : Channel) : Channel → Channel
-  | Channel.bound i => if i = k then u else Channel.bound i
+  | Channel.bound i => if i == k then u else Channel.bound i
   | c => c
 
 def Proc.open (k : Nat) (u : Channel) : Proc → Proc
@@ -515,7 +515,7 @@ lemma exists_two_fresh (L : Finset FPName) :
   refine ⟨u, v, hu, hv, hneq⟩
 
 def Channel.close (k : Nat) (name : FPName) : Channel → Channel
-  | .free x   => if x = name then .bound k else .free x
+  | .free x   => if x == name then .bound k else .free x
   | .bound i  => .bound i
 
 -- parr / tensor / duplicate binds 1
@@ -580,3 +580,53 @@ def Proc.shiftTypes (d c : Nat) : Proc → Proc
   | .link x y         => .link x y
 
 instance : HasShiftTypes Proc where shift P d c := Proc.shiftTypes d c P
+
+-- T : Target, R : Replacement
+def Channel.substNames (R T : FPName) : Channel → Channel
+  | .free x => if x == T then .free R else .free x
+  | .bound i => .bound i
+
+instance : HasSubst Channel FPName FPName where subst C R T := Channel.substNames R T C
+
+-- T : Target, R : Replacement
+def Proc.substNames (R T : FPName) : Proc → Proc
+  | .nil              => .nil
+  | .one x P          => .one (x.substNames T R) (P.substNames T R)
+  | .bot x P          => .bot (x.substNames T R) (P.substNames T R)
+  | .tensor x P       => .tensor (x.substNames T R) (P.substNames T R)
+  | .parr x P         => .parr (x.substNames T R) (P.substNames T R)
+  | .cut P            => .cut (P.substNames T R)
+  | .par P Q          => .par (P.substNames T R) (Q.substNames T R)
+  | .selectL x P      => .selectL (x.substNames T R) (P.substNames T R)
+  | .selectR x P      => .selectR (x.substNames T R) (P.substNames T R)
+  | .amp x P Q        => .amp (x.substNames T R) (P.substNames T R) (Q.substNames T R)
+  | .output x P A     => .output (x.substNames T R) (P.substNames T R) A
+  | .input x P        => .input (x.substNames T R) (P.substNames T R)
+  | .server x P       => .server (x.substNames T R) (P.substNames T R)
+  | .consume x P      => .consume (x.substNames T R) (P.substNames T R)
+  | .duplicate x P    => .duplicate (x.substNames T R) (P.substNames T R)
+  | .dispose x P      => .dispose (x.substNames T R) (P.substNames T R)
+  | .link x y         => .link (x.substNames T R) (y.substNames T R)
+
+instance : HasSubst Proc FPName FPName where subst P R T := Proc.substNames R T P
+
+def Proc.substTypes (A : Types) (k : Nat) : Proc → Proc
+  | .nil              => .nil
+  | .one x P          => .one x (P.substTypes A k)
+  | .bot x P          => .bot x (P.substTypes A k)
+  | .tensor x P       => .tensor x (P.substTypes A k)
+  | .parr x P         => .parr x (P.substTypes A k)
+  | .cut P            => .cut (P.substTypes A k)
+  | .par P Q          => .par (P.substTypes A k) (Q.substTypes A k)
+  | .selectL x P      => .selectL x (P.substTypes A k)
+  | .selectR x P      => .selectR x (P.substTypes A k)
+  | .amp x P Q        => .amp x (P.substTypes A k) (Q.substTypes A k)
+  | .output x P B     => .output x (P.substTypes A k) (B.subst A k)
+  | .input x P        => .input x (P.substTypes (A.shift 0 1) (k + 1))
+  | .server x P       => .server x (P.substTypes A k)
+  | .consume x P      => .consume x (P.substTypes A k)
+  | .duplicate x P    => .duplicate x (P.substTypes A k)
+  | .dispose x P      => .dispose x (P.substTypes A k)
+  | .link x y         => .link x y
+
+instance : HasSubst Proc Types Nat where subst P A k := Proc.substTypes A k P

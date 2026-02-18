@@ -502,6 +502,9 @@ def Env.freeTypes (Γ : Env) :=
   Γ.foldl (fun acc (_, A) => acc ∪ A.freeTypes) ∅
 notation "ft(" Γ ")ₑ" => Env.freeTypes Γ
 
+def Env.lc (k : Nat) (Γ : Env) : Prop :=
+  ∀ x A, (x, A) ∈ Γ → A.lc k
+
 -- d : Depth shift should be applied
 -- c : Correction / how much to shift
 def Env.shiftTypes (d c : Nat) (Γ : Env) : Env :=
@@ -509,11 +512,18 @@ def Env.shiftTypes (d c : Nat) (Γ : Env) : Env :=
 
 instance : HasShiftTypes Env where shift Γ d c := Env.shiftTypes d c Γ
 
+def Env.substNames (Γ : Env) (T R : FPName) : Env :=
+  Γ.map (fun (x, A) => if x == T then (R, A) else (x, A))
+
+instance : HasSubst Env FPName FPName where subst := Env.substNames
+
+def Env.substTypes (Γ : Env) (A : Types) (k : Nat) : Env :=
+  Γ.map (fun (x, B) => (x, B.subst A k))
+
+instance : HasSubst Env Types Nat where subst := Env.substTypes
+
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
 infixr:69 "‚ " => Env.merge
-
-def Env.lc (k : Nat) (Γ : Env) : Prop :=
-  ∀ x A, (x, A) ∈ Γ → A.lc k
 
 lemma Env.merge_unitL (Γ : Env) : ∅ ++ Γ = Γ := by simp
 
@@ -555,7 +565,7 @@ lemma Env.lc_shift_inv {n k : Nat} {Γ : Env} :
     intro h x A hin
     specialize h x A hin
     have := Types.lc_shift_inv_0 (A := A) (n := n + k)
-    simp_all [HasShiftTypes.shift]
+    simp_all
   )
 
 lemma Env.lc_shift_inv_0 {n : Nat} {Γ : Env} :
@@ -628,6 +638,16 @@ def HyperEnv.shiftTypes (d c : Nat) (𝒢 : HyperEnv) : HyperEnv :=
   𝒢.map (fun Γ => Γ.shiftTypes d c)
 
 instance : HasShiftTypes HyperEnv where shift 𝒢 d c := HyperEnv.shiftTypes d c 𝒢
+
+def HyperEnv.substNames (𝒢 : HyperEnv) (T R : FPName) : HyperEnv :=
+  𝒢.map (fun Γ => Γ.substNames T R)
+
+instance : HasSubst HyperEnv FPName FPName where subst := HyperEnv.substNames
+
+def HyperEnv.substTypes (𝒢 : HyperEnv) (A : Types) (k : Nat) : HyperEnv :=
+  𝒢.map (fun Γ => Γ.substTypes A k)
+
+instance : HasSubst HyperEnv Types Nat where subst := HyperEnv.substTypes
 
 abbrev HyperEnv.merge (𝒢 ℋ : HyperEnv) : HyperEnv := 𝒢 ++ ℋ
 infixl:55 " |ₕ " => HyperEnv.merge

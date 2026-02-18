@@ -905,7 +905,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
   | exists_
       {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
       A.lc n →
-      Typing n P [x ∶ B{A // #T} :: Γ] →
+      Typing n P [x ∶ B{A // 0} :: Γ] →
       ----------------------------------
       Typing n (#x⟦A⟧․P) [x ∶ ∃․B :: Γ]
 
@@ -1039,7 +1039,7 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   case exists_ Γ _ x A B n hlc _ ih =>
     simp at hE𝒢
     subst hE𝒢
-    have h : Env.lc n ((x, B{A // #T}) :: Γ) := ih ((x, B{A // #T}) :: Γ) (by simp)
+    have h : Env.lc n ((x, B{A // 0}) :: Γ) := ih ((x, B{A // 0}) :: Γ) (by simp)
     rw [Env.lc_cons] at h ⊢
     exact ⟨(Types.lc_subst_inv_0 hlc).mp h.1, by simp_all⟩
 
@@ -1084,25 +1084,6 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
 
   case exchange_hyper hP _ =>
     simp_all [List.Perm.mem_iff hP]
-
-
-/- FIXME:
-  Need weakening to allow for processes with varying depth to be mixed when using De Bruijn indices.
--/
--- FIXME: Need shift defined on Proc
--- lemma weakening_preserves_typing {n : Nat} {P : Proc} {Γ : Env} :
---   Typing n P Γ → ∀ (k : Nat), Typing (n + k) (P.shift k) (Γ.shift k) := by sorry
-
--- FIXME: Typing_preserves_proc_congr
-
--- FIXME: Fix ProcStep and EnvStep
--- FIXME: Name and Type substitution
--- FIXME: Subject reduction
-
-
--- lemma Types.subst_shift_comm {A B : Types} {k : Nat} :
---   (B{A // #T}) ↑ k = (B ↑ 1, k){A ↑ k // #T} := by sorry
-
 
 
 
@@ -1226,13 +1207,11 @@ lemma Env.shiftTypes_comm {Γ : Env} {d c : Nat} :
 
 
 
--- FIXME: Notation for opening a proc at some depth not just 0
+
 
 lemma Proc.shiftTypes_open_comm {n d c : Nat} {P : Proc} {u : Channel} :
   (P.open n u) ↑ᵗ d, c = (P ↑ᵗ d, c).open n u := by
-  induction P generalizing d n <;> (
-    simp_all [Proc.open, HasShiftTypes.shift, Proc.shiftTypes]
-  )
+  induction P generalizing d n <;> simp_all [Proc.open, HasShiftTypes.shift, Proc.shiftTypes]
 
 lemma Proc.shiftTypes0_open0_comm {c : Nat} {P : Proc} {u : Channel} :
   (P⸨u⸩) ↑ᵗ c = (P ↑ᵗ c)⸨u⸩ := Proc.shiftTypes_open_comm
@@ -1240,35 +1219,9 @@ lemma Proc.shiftTypes0_open0_comm {c : Nat} {P : Proc} {u : Channel} :
 lemma Proc.shiftTypes_open0_comm {d c : Nat} {P : Proc} {u : Channel} :
   (P⸨u⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨u⸩ := Proc.shiftTypes_open_comm
 
-
 lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
   (P⸨x, y⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨x, y⸩ := by
   simp [Proc.openCut, Proc.shiftTypes_open_comm]
-
-
-
-
-
-
-
-@[simp] lemma Types.shift_d0 {d : Nat} {A : Types} :
-  A ↑ᵗ d, 0 = A := by
-  induction A generalizing d <;> (
-    simp_all [HasShiftTypes.shift, Types.shift, TVar.shift]
-  )
-
-  case var v | varDual v => cases v <;> simp
-
-@[simp] lemma Types.shift_00 {A : Types} :
-  Types.shift 0 0 A  = A := Types.shift_d0
-
--- FIXME:
--- lemma Types.shift_subst_comm' {A B : Types} {k d c : Nat} (hle : k ≤ d) :
---   (B{A // k}) ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // k} := by sorry
-
-
-
-
 
 
 
@@ -1385,7 +1338,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 
   case bang ih =>
     apply Typing.bang
-    · simp_all [Env.shiftTypes_preserves_serverUsable]
+    · simp_all
     · exact ih d c
 
   case w hlc _ ih =>
@@ -1417,27 +1370,39 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case exchange_env hP ih =>
     apply Typing.exchange_env
     · exact ih d c
-    · exact Env.shiftTypes_preserves_perm hP
+    · simp_all
 
   case exchange_hyper hP ih =>
     intro d c
     apply Typing.exchange_hyper
     · exact ih d c
-    · exact HyperEnv.shiftTypes_preserves_perm hP
+    · simp_all
 
 
 
 
+-- FIXME: Notation for opening a proc at some depth not just 0
+-- FIXME: Typing_preserves_proc_congr
+
+-- FIXME: Fix ProcStep, EnvStep and TypingStep
+-- FIXME: Name and Type substitution
+-- FIXME: Subject reduction / simulation proof
+
+-- FIXME: Proof showing substitution avoids capture
+-- FIXME: Check possibility of not having exchange rules
 
 
 
+lemma subst_open_comm {P : Proc} {k : Nat} {x y : FPName} {u : Channel} :
+  (P.open k u){y // x} = (P{y // x}).open k (u.substNames x y) := by sorry
 
+lemma Typing_subst_names {n : Nat} {P : Proc} {G : HyperEnv} {x y : FPName} :
+  Typing n P G →
+  -- Condition: y is not already in G (unless y = x, which is a no-op)
+  (∀ Γ ∈ G, ∀ A, (y, A) ∈ Γ → y = x) →
+  Typing n (P{y // x}) (HyperEnv.substNames x y G) := by sorry
 
-
-
-
-
-
+-- lemma Typing_subst_types
 
 
 

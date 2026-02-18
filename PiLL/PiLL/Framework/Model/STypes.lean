@@ -330,7 +330,7 @@ lemma Types.lc_subst_inv {n k : Nat} {A B : Types} (hA : A.lc (n + k)) :
   case forall_ B ih | exists_ B ih => exact ih (k := k + 1) (Types.lc_shift_0 hA)
   case var v | varDual v => grind [Types.subst, Types.lc, TVar.lc, Types.lc_dual]
 
--- A.lc n → ((B{A // #T}).lc n ↔ B.lc (n + 1))
+-- A.lc n → ((B{A // 0}).lc n ↔ B.lc (n + 1))
 lemma Types.lc_subst_inv_0 {n : Nat} {A B : Types} (hA : A.lc n) :
   ((B.subst A 0).lc n ↔ B.lc (n + 1)) := by
   exact Types.lc_subst_inv (k := 0) hA

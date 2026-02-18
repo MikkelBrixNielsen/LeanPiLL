@@ -22,11 +22,11 @@ notation:max S:max " ↑ᵗ " d:max ", " c:max => HasShiftTypes.shift S d c
 notation:max S:max " ↑ᵗ " c:max => HasShiftTypes.shift S 0 c
 notation:max S:max "⁺ᵗ" => HasShiftTypes.shift S 0 1
 
-class HasSubst (Target New Index : Type) where
-  subst : Target → New → Index → Target
+class HasSubst (Subject Replacement Target : Type) where
+  subst : Subject → Replacement → Target → Subject
 
-notation:max Target "{" New " // " Index "}" => HasSubst.subst Target New Index
-notation:max Target "{" New " // " "#T}" => HasSubst.subst Target New 0
+notation:max S "{" R " // " T "}" => HasSubst.subst S R T
+-- notation:max S "{" R " // " "#T}" => HasSubst.subst S R 0
 
 
 -- NOTE: Might be irrelevant now
