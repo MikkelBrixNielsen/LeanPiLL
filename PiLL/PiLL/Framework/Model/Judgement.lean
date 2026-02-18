@@ -1298,6 +1298,9 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
 
 
 
+lemma Env.shiftTypes_comm {Γ : Env} {d c : Nat} :
+  (Γ.shiftTypes d c).shiftTypes 0 1 = (Γ.shiftTypes 0 1).shiftTypes (d + 1) c := by
+  induction Γ <;> grind [Env.shiftTypes, Types.shift_comm_0]
 
 
 
@@ -1308,11 +1311,7 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by
   intro h
-  induction h
-  all_goals (
-    try simp_all
-    intro d c
-  )
+  induction h <;> try simp_all ; intro d c
 
   case mix₀ => exact Typing.mix₀
 
@@ -1323,7 +1322,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     · exact ihQ d c
 
   case ax hneq hlc =>
-    rw [Types.shift_dual_comm]
+    rw [Types.shift_dual_comm_notation]
     apply Typing.ax
     · exact hneq
     · exact Types.lc_shift hlc
@@ -1338,9 +1337,8 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     apply Typing.cut L (A := A ↑ᵗ d, c)
     intro x y hx hy hneq
     specialize ih x y hx hy hneq d c
-    rw [← Types.shift_dual_comm]
+    simp [← Types.shift_dual_comm_notation]
     rw [Proc.shiftTypes_openCut_comm] at ih
-    simp
     exact ih
 
   case tensor L _ _ ih =>
@@ -1393,34 +1391,18 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     rw [Proc.shiftTypes_open0_comm] at ih
     exact ih
 
-
-
-
-  case exists_ Γ Q x A B n' hlc hTP ih =>
+  case exists_ hlc _ ih =>
     apply Typing.exists_
     · exact Types.lc_shift hlc
-    ·
-      change (
-        n' + c ⊢ Q ↑ᵗ d, c
-        ∷
-        [x ∶ (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // #T} :: Γ ↑ᵗ d, c]
-      )
+    · simp [HasSubst.subst]
+      rw [← Types.shift_subst_comm (by simp)]
+      exact ih d c
 
-
-      sorry
-
-
-
-
-
-  case forall_ ih =>
+  case forall_ Γ Q x B n' hTQ ih =>
     apply Typing.forall_
-    rw [Nat.add_assoc, Nat.add_comm c 1 , ← Nat.add_assoc]
-    sorry
-
-
-
-
+    simp [HasShiftTypes.shift]
+    rw [Nat.add_assoc, Nat.add_comm _ 1, ← Nat.add_assoc, Env.shiftTypes_comm]
+    apply ih
 
   case exchange_env => sorry
   case exchange_hyper => sorry

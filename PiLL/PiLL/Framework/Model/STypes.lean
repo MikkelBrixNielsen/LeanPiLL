@@ -273,8 +273,9 @@ instance : HasShiftTypes Types where shift T d c := Types.shift d c T
 -- if i == k, target depth reached insert A
 -- if i > k, outside binder => decrement to compress an account for i == k being explicit now
 -- if i < k, inside binder do nothing => keep i
-
-def Types.subst (A : Types) (k : Nat) : Types → Types
+-- in B replace all index k with explicit A
+def Types.subst (B A : Types) (k : Nat) : Types :=
+  match B with
   | .var (.bound i) =>
       if i == k then A
       else if i > k then .var (.bound (i - 1))
@@ -285,302 +286,131 @@ def Types.subst (A : Types) (k : Nat) : Types → Types
       else .varDual (.bound i)
   | .var (.free i)        => .var (.free i)       -- don't touch free
   | .varDual (.free i)    => .varDual (.free i)   -- don't touch free
-  | .forall_ B            => .forall_ (subst (shift 0 1 A) (k + 1) B)
-  | .exists_ B            => .exists_ (subst (shift 0 1 A) (k + 1) B)
-  | .tensor L R           => .tensor (subst A k L) (subst A k R)
-  | .parr L R             => .parr (subst A k L) (subst A k R)
-  | .quest B              => .quest (subst A k B)
-  | .bang B               => .bang (subst A k B)
-  | .amp L R              => .amp (subst A k L) (subst A k R)
-  | .oplus L R            => .oplus (subst A k L) (subst A k R)
+  | .forall_ B            => .forall_ (B.subst (shift 0 1 A) (k + 1))
+  | .exists_ B            => .exists_ (B.subst (shift 0 1 A) (k + 1))
+  | .tensor L R           => .tensor (L.subst A k) (R.subst A k)
+  | .parr L R             => .parr (L.subst A k) (R.subst A k)
+  | .quest B              => .quest (B.subst A k)
+  | .bang B               => .bang (B.subst A k)
+  | .amp L R              => .amp (L.subst A k) (R.subst A k)
+  | .oplus L R            => .oplus (L.subst A k) (R.subst A k)
   | t                     => t -- one | bot | atom | atomDual (Don't have Types to subst)
 
-instance : HasSubst Types Types Nat where subst B A k := Types.subst A k B
+instance : HasSubst Types Types Nat where subst := Types.subst
 
 lemma Types.lc_dual {n : Nat} {A : Types} :
-  A.lc n ↔  Aᗮ.lc n := by
-  induction A generalizing n <;>
-  simp_all [Types.lc, Types.dual]
+  A.lc n ↔  Aᗮ.lc n :=
+  by induction A generalizing n <;> simp_all [Types.lc, Types.dual]
 
+-- (A ↑ᵗ d, c).lc (n + c + d) ↔ A.lc (n + d)
 lemma Types.lc_shift_c_inv {n d c : Nat} {A : Types} :
-  (A ↑ᵗ d, c).lc (n + c + d) ↔ A.lc (n + d) := by
-  induction A generalizing n d c
+  (A.shift d c).lc (n + c + d) ↔ A.lc (n + d) := by
+  induction A generalizing n d c <;> simp_all [Types.shift, Types.lc]
+  case var v | varDual v => cases v <;> grind [TVar.lc, TVar.shift]
+  case forall_ ih | exists_ ih => exact ih (d := d + 1)
 
-  all_goals (
-    simp_all [HasShiftTypes.shift, Types.shift, Types.lc]
-  )
-
-  case forall_ ih | exists_ ih => apply ih (d := d + 1)
-
-  case var v | varDual v =>
-    cases v with
-    | bound i =>
-      constructor
-      · intro h
-        simp_all [TVar.lc, TVar.shift]
-        split_ifs at h
-        case pos hlt =>
-          simp at h
-          apply Nat.lt_of_lt_of_le hlt
-          apply Nat.le_add_left
-        case neg hge =>
-          simp_all
-          rw [Nat.add_assoc n c d, Nat.add_comm c d, ← Nat.add_assoc] at h
-          apply Nat.lt_of_add_lt_add_right h
-      · intro h
-        simp_all [TVar.lc, TVar.shift]
-        split_ifs
-        case pos hlt =>
-          simp
-          apply Nat.lt_of_lt_of_le h
-          rw [Nat.add_assoc, Nat.add_comm c d, ← Nat.add_assoc]
-          apply Nat.le_add_right
-        case neg hge =>
-          simp_all
-          rw [Nat.add_assoc n c d, Nat.add_comm c d, ← Nat.add_assoc]
-          simp_all
-
-    | free _ => simp_all [TVar.lc, TVar.shift]
-
--- FIXME: Not used?
 lemma Types.lc_le {n m : Nat} {A : Types} (h : n ≤ m) :
   A.lc n → A.lc m := by
-  intro hlc
-  induction A generalizing n m <;> (
-    simp_all [Types.lc]
-  )
+  induction A generalizing n m <;> simp_all [Types.lc, TVar.lc] <;> grind
 
-  case var v | varDual v =>
-    cases v with
-    | bound i => grind [TVar.lc]
-    | free _ => simp [TVar.lc]
-
-  case forall_ ih | exists_ ih =>
-    exact ih (n := n + 1) (m := m + 1) (Nat.add_one_le_add_one_iff.mpr h) hlc
-
-  case tensor ihA ihB | parr ihA ihB | oplus ihA ihB | amp ihA ihB =>
-    exact ⟨ihA h hlc.1, ihB h hlc.2⟩
-
-  case quest ih | bang ih =>
-    exact ih h hlc
-
+-- A.lc n → (A ↑ᵗ d, c).lc (n + c)
 lemma Types.lc_shift {n d c : Nat} {A : Types} :
-  A.lc n → (A ↑ᵗ d, c).lc (n + c) := by
-  induction A generalizing n d c <;> (
-    intro h
-    simp_all [HasShiftTypes.shift, Types.shift, TVar.shift, Types.lc, TVar.lc]
-  )
+  A.lc n → (A.shift d c).lc (n + c) := by
+  induction A generalizing n d c <;> simp_all [Types.shift, TVar.shift, Types.lc, TVar.lc] <;> grind
 
-  case var v | varDual v =>
-    cases v <;> simp ; split_ifs <;> simp_all [Nat.lt_add_right]
-
-  case forall_ ih | exists_ ih =>
-    have := ih (n := n + 1) (d := d + 1) (c := c) h
-    rw [Nat.add_assoc, Nat.add_comm 1 _, ← Nat.add_assoc] at this
-    exact this
-
+-- A.lc n → (A ↑ᵗ 0, 1).lc (n + 1)
 lemma Types.lc_shift_0 {n : Nat} {A : Types} :
-  A.lc n → (A ↑ᵗ 0, 1).lc (n + 1) := by
+  A.lc n → (A.shift 0 1).lc (n + 1) := by
   intro h ; apply Types.lc_shift h
 
+-- B{A // k}.lc (n + k) ↔ B.lc (n + k + 1)
 lemma Types.lc_subst_inv {n k : Nat} {A B : Types} (hA : A.lc (n + k)) :
-   B{A // k}.lc (n + k) ↔ B.lc (n + k + 1) := by
-  induction B generalizing n k A
+  (B.subst A k).lc (n + k) ↔ B.lc (n + k + 1) := by
+  induction B generalizing n k A <;> simp_all [Types.subst, Types.lc, TVar.lc]
+  case forall_ B ih | exists_ B ih => exact ih (k := k + 1) (Types.lc_shift_0 hA)
+  case var v | varDual v => grind [Types.subst, Types.lc, TVar.lc, Types.lc_dual]
 
-  all_goals (
-    simp_all [HasSubst.subst, Types.subst, Types.lc]
-  )
-
-  case forall_ B ih | exists_ B ih =>
-    exact ih (k := k + 1) (Types.lc_shift_0 hA)
-
-  case var v =>
-    cases v with
-    | bound i =>
-      simp [Types.subst, TVar.lc]
-      split_ifs <;> constructor <;> (intros ; try grind [Types.lc, TVar.lc])
-    | free _ => simp_all [Types.subst, Types.lc, TVar.lc]
-
-  case varDual v =>
-    cases v with
-    | bound i =>
-      simp [Types.subst, TVar.lc]
-      split_ifs <;> constructor <;> (intros ; try grind [Types.lc, TVar.lc])
-      case pos => exact (Types.lc_dual).mp hA
-    | free _ => simp_all [Types.subst, Types.lc, TVar.lc]
-
-lemma Types.lc_subst_inv_0 {n : Nat} {A B : Types} :
-  A.lc n → ((B{A // #T}).lc n ↔ B.lc (n + 1)) := by
-  intro hA
+-- A.lc n → ((B{A // #T}).lc n ↔ B.lc (n + 1))
+lemma Types.lc_subst_inv_0 {n : Nat} {A B : Types} (hA : A.lc n) :
+  ((B.subst A 0).lc n ↔ B.lc (n + 1)) := by
   exact Types.lc_subst_inv (k := 0) hA
 
+-- (A ↑ᵗ d, 1).lc (n + d + 1) ↔ A.lc (n + d)
 lemma Types.lc_shift_inv {n d : Nat} {A : Types} :
-  (A ↑ᵗ d, 1).lc (n + d + 1) ↔ A.lc (n + d) := by
-  induction A generalizing n d
-  all_goals (
-    simp_all [Types.lc, HasShiftTypes.shift, Types.shift]
-  )
+  (A.shift d 1).lc (n + d + 1) ↔ A.lc (n + d) := by
+  induction A generalizing n d <;> simp_all [Types.lc, Types.shift]
+  case var v | varDual v => cases v <;> grind [TVar.shift, TVar.lc]
+  case forall_ ihA | exists_ ihA => exact ihA (d := d + 1)
 
-  case var v | varDual v =>
-    cases v with
-    | bound i =>
-      simp [TVar.shift, TVar.lc]
-      split_ifs with hle
-      · simp
-        constructor
-        · simp_all [Nat.lt_of_lt_of_le hle]
-        · simp_all [Nat.lt_succ_of_lt]
-      · simp
-
-    | free i => simp_all [TVar.lc, TVar.shift]
-
-  case forall_ ihA | exists_ ihA =>
-    apply ihA (d := d + 1)
-
+-- A⁺ᵗ.lc (n + 1) ↔ A.lc n
 lemma Types.lc_shift_inv_0 {n : Nat} {A : Types} :
-  A⁺ᵗ.lc (n + 1) ↔ A.lc n := Types.lc_shift_inv (d := 0)
+  (A.shift 0 1).lc (n + 1) ↔ A.lc n := Types.lc_shift_inv (d := 0)
 
+-- (A ↑ᵗ d, m) ↑ᵗ d, n = (A ↑ᵗ d, n) ↑ᵗ d, m
 lemma Types.lc_shift_comm {A : Types} {d m n : Nat} :
-  (A ↑ᵗ d, m) ↑ᵗ d, n = (A ↑ᵗ d, n) ↑ᵗ d, m := by
-  induction A generalizing d m n
+  (A.shift d m).shift d n = (A.shift d n).shift d m := by
+  induction A generalizing d m n <;> simp [Types.shift] <;> simp_all [TVar.shift] <;> grind
 
-  case atom | atomDual | one | bot | tensor | parr | oplus | bang =>
-    simp_all [HasShiftTypes.shift, Types.shift]
-
-  case amp ihA ihB =>
-    simp [HasShiftTypes.shift, Types.shift]
-    exact ⟨ihA, ihB⟩
-
-  case quest ih | forall_ ih | exists_ ih=>
-    simp [HasShiftTypes.shift, Types.shift]
-    exact ih
-
-  case var v | varDual v =>
-    simp [HasShiftTypes.shift, Types.shift]
-    cases v with
-    | bound i => simp [TVar.shift] ; grind
-    | free _ => simp [TVar.shift]
-
+-- A⁺ᵗ ↑ᵗ k = (A ↑ᵗ k)⁺ᵗ
 lemma Types.lc_shift_comm_0 {A : Types} {k : Nat} :
-  A⁺ᵗ ↑ᵗ k = (A ↑ᵗ k)⁺ᵗ := Types.lc_shift_comm (d := 0)
+  (A.shift 0 1).shift 0 k = (A.shift 0 k).shift 0 1 := Types.lc_shift_comm (d := 0)
 
+-- (A ↑ᵗ d, a) ↑ᵗ d, b = A ↑ᵗ d, (a + b)
 lemma Types.shift_add {A : Types} {d a b : Nat} :
-  (A ↑ᵗ d, a) ↑ᵗ d, b = A ↑ᵗ d, (a + b) := by
-  induction A generalizing d a b <;> (
-    simp [HasShiftTypes.shift, Types.shift]
-  )
+  (A.shift d a).shift d b = A.shift d (a + b) := by
+  induction A generalizing d a b <;> simp [Types.shift] <;> simp_all [TVar.shift]
+  case var v | varDual v => cases v <;> grind
 
-  case var v | varDual v =>
-    cases v with
-    | bound i => grind [TVar.shift]
-    | free _ => simp [TVar.shift]
-
-  case forall_ ih | exists_ ih | bang ih | quest ih=> exact ih
-
-  case tensor ihA ihB | parr ihA ihB | oplus ihA ihB | amp ihA ihB =>
-    exact ⟨ihA, ihB⟩
-
+-- (A ↑ᵗ d, a) ↑ᵗ (d + a), b = A ↑ᵗ d, (a + b)
 lemma Types.shift_accum {A : Types} {d a b : Nat} :
-  (A ↑ᵗ d, a) ↑ᵗ (d + a), b = A ↑ᵗ d, (a + b) := by
-  induction A generalizing d a b <;> (
-    simp [HasShiftTypes.shift, Types.shift]
-  )
-
-  case var v | varDual v =>
-    cases v with
-    | bound i => grind [TVar.shift]
-    | free _ => simp [TVar.shift]
-
-  case forall_  ih | exists_ ih =>
-    rw [Nat.add_assoc, Nat.add_comm a 1, ← Nat.add_assoc]
-    exact ih (d := d + 1) (a := a) (b := b)
-
-  case tensor ihA ihB | parr ihA ihB | oplus ihA ihB | amp ihA ihB =>
-    exact ⟨ihA, ihB⟩
-
-  case bang ih | quest ih => exact ih
+  (A.shift d a).shift (d + a) b = A.shift d (a + b) := by
+  induction A generalizing d a b <;> simp [Types.shift, TVar.shift] <;> try grind
+  case var v | varDual v => cases v <;> grind
 
 lemma Types.shift_accum_0 {A : Types} {a b : Nat} :
-  (A ↑ᵗ a) ↑ᵗ a, b = A ↑ᵗ (a + b) := by
-  change (A ↑ᵗ 0, a) ↑ᵗ (a + 0), b = A ↑ᵗ (a + b)
-  rw [Nat.add_comm a 0]
-  exact Types.shift_accum
+  (A.shift 0 a).shift a b = A.shift 0 (a + b) := by
+  have := Types.shift_accum (d := 0) (a := a) (b := b) (A := A)
+  simp_all
 
+-- (Aᗮ ↑ᵗ d, c) = (A ↑ᵗ d, c)ᗮ
 lemma Types.shift_dual_comm {A : Types} {d c : Nat} :
+  ((A.dual).shift d c) = (A.shift d c).dual := by
+  induction A generalizing d c <;> simp_all [Types.shift, Types.dual, TVar.shift]
+
+lemma Types.shift_dual_comm_notation {A : Types} {d c : Nat} :
   (Aᗮ ↑ᵗ d, c) = (A ↑ᵗ d, c)ᗮ := by
-  induction A generalizing d c <;> (
+  induction A generalizing d c <;>
     simp_all [HasShiftTypes.shift, Types.shift, Types.dual, TVar.shift]
-  )
 
+--  (A ↑ᵗ i, 1) ↑ᵗ (d + 1 + i), c = (A ↑ᵗ (d + i), c) ↑ᵗ i, 1
 lemma Types.shift_comm {A : Types} {d c i : Nat} :
-  (A ↑ᵗ i, 1) ↑ᵗ (d + 1 + i), c = (A ↑ᵗ (d + i), c) ↑ᵗ i, 1 := by
-  induction A generalizing d c i
+  (A.shift i 1).shift (d + 1 + i) c = (A.shift (d + i) c).shift i 1 := by
+  induction A generalizing d c i <;> simp [Types.shift] <;> try simp_all [TVar.shift]
+  case var v | varDual v => cases v <;> grind
+  case forall_ ih | exists_ ih => exact ih (d := d) (c := c) (i := i + 1)
 
-  case atom | atomDual | one | bot =>
-    simp_all [HasShiftTypes.shift, Types.shift]
+-- (A ↑ᵗ 1) ↑ᵗ (d + 1), c = (A.↑ᵗ d, c) ↑ᵗ 1
+lemma Types.shift_comm_0 {A : Types} {d c : Nat} :
+ (A.shift 0 1).shift (d + 1) c = (A.shift d c).shift 0 1 := Types.shift_comm (i := 0)
 
-  case tensor ihA ihB | parr ihA ihB | oplus ihA ihB | amp ihA ihB =>
-    simp [HasShiftTypes.shift, Types.shift]
-    exact ⟨ihA, ihB⟩
-
-  case bang A ih | quest A ih =>
-    simp [HasShiftTypes.shift, Types.shift]
-    exact ih
+-- (B{A // k}) ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){(A ↑ᵗ d, c) // k}
+lemma Types.shift_subst_comm {A B : Types} {k d c : Nat} (hle : k ≤ d) :
+  (B.subst A k).shift d c = (B.shift (d + 1) c).subst (A.shift d c) k := by
+  induction B generalizing d c k A <;> simp [Types.shift, Types.subst] <;> try simp_all
 
   case var v | varDual v =>
-    simp [HasShiftTypes.shift, Types.shift]
     cases v with
-    | bound i => grind [TVar.shift]
-    | free _ => simp [TVar.shift]
+    | bound =>
+      simp [Types.subst]
+      split_ifs <;> grind [Types.shift, TVar.shift, Types.subst, Types.shift_dual_comm]
+    | free => rfl
 
-  case forall_ ih | exists_ ih =>
-    simp [HasShiftTypes.shift, Types.shift]
-    exact ih (d := d) (c := c) (i := i + 1)
+  case forall_ B ih | exists_ => grind [Types.shift_comm_0]
 
-lemma Types.shift_comm_0 {A : Types} {d c : Nat} :
- (A.shift 0 1).shift (d + 1) c = (A.shift d c).shift 0 1 := by
-  exact Types.shift_comm (i := 0)
-
-lemma Types.shift_subst_comm {A B : Types} {d c : Nat} :
-  B{A // d} ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // d} := by
-  induction B generalizing A d c <;> (
-    simp [HasShiftTypes.shift, HasSubst.subst, Types.subst, Types.shift]
-  )
-
-  case tensor ihA ihB | parr ihA ihB | oplus ihA ihB | amp ihA ihB =>
-    exact ⟨ihA, ihB⟩
-
-  case bang ih | quest ih =>
-    exact ih
-
-  case var v =>
-    cases v with
-    | bound x =>
-      by_cases h : x = d
-      · grind [Types.subst, TVar.shift]
-      · simp [Types.subst, TVar.shift]
-        grind [Types.subst, Types.shift, TVar.shift]
-    | free _ => simp [Types.shift, Types.subst, TVar.shift]
-
-  case varDual v =>
-    cases v with
-    | bound x =>
-      by_cases h : x = d
-      · simp_all [Types.subst, TVar.shift]
-        exact Types.shift_dual_comm
-      · simp [Types.subst, TVar.shift]
-        grind [Types.subst, Types.shift, TVar.shift]
-    | free _ => simp [Types.shift, Types.subst, TVar.shift]
-
-  case forall_ B ih | exists_ B ih =>
-    rw [← Types.shift_comm_0 (A := A) (d := d) (c := c)]
-    exact ih (A := A⁺ᵗ) (d := d + 1) (c := c)
-
-
-
-
-
-
+-- B{A // d} ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // d}
+lemma Types.shift_subst_comm_eq_depth_index {A B : Types} {d c : Nat} :
+  (B.subst A d).shift d c = (B.shift (d + 1) c).subst (A.shift d c) d :=
+  Types.shift_subst_comm (by simp)
 
 
 
