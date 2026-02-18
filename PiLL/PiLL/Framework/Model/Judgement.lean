@@ -1111,7 +1111,9 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   A.isServerUsable ↔ (A ↑ᵗ d, c).isServerUsable := by
   cases A <;> simp [HasShiftTypes.shift, Types.shift, Types.isServerUsable]
 
-@[simp] lemma Env.shift_preserves_serverUsable {d c : Nat} {Γ : Env} :
+
+
+@[simp] lemma Env.shiftTypes_preserves_serverUsable {d c : Nat} {Γ : Env} :
   ?ₑΓ → ?ₑ(Γ ↑ᵗ d, c) := by
   simp [Env.serverUsable, HasShiftTypes.shift, Env.shiftTypes]
   intro h x A x' A' hMem heq hShift
@@ -1121,65 +1123,77 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   rw [hShift] at this
   exact this
 
-
-
-
-
-
-
-
-
-@[simp] lemma Env.shift_empty {d c : Nat} :
+@[simp] lemma Env.shiftTypes_empty {d c : Nat} :
   ([] : Env) ↑ᵗ d, c = ([] : Env) := by
   simp [HasShiftTypes.shift, Env.shiftTypes]
 
-@[simp] lemma Env.shift_singleton {d c : Nat} {x : FPName} {A : Types} :
+@[simp] lemma Env.shiftTypes_singleton {d c : Nat} {x : FPName} {A : Types} :
   [x ∶ A] ↑ᵗ d, c = [x ∶ A ↑ᵗ d, c] := by
     simp [HasShiftTypes.shift, Env.shiftTypes]
 
-@[simp] lemma Env.shift_cons {d k : Nat} {Γ : Env} {x : FPName} {A : Types} :
+@[simp] lemma Env.shiftTypes_cons {d k : Nat} {Γ : Env} {x : FPName} {A : Types} :
   (x ∶ A :: Γ) ↑ᵗ d, k = x ∶ A ↑ᵗ d, k :: Γ ↑ᵗ d, k := by
     simp [HasShiftTypes.shift, Env.shiftTypes]
 
-@[simp] lemma Env.shift_append {d k : Nat} {Γ Δ : Env} :
+@[simp] lemma Env.shiftTypes_append {d k : Nat} {Γ Δ : Env} :
   (Γ ++ Δ) ↑ᵗ d, k = Γ ↑ᵗ d, k ++ Δ ↑ᵗ d, k := by
     simp [HasShiftTypes.shift, Env.shiftTypes]
 
-@[simp] lemma Env.shift_preserves_names {d c : Nat} {Γ : Env} :
+@[simp] lemma Env.shiftTypes_preserves_names {d c : Nat} {Γ : Env} :
   (Γ ↑ᵗ d, c).names = Γ.names := by
   simp [HasShiftTypes.shift, Env.shiftTypes, Env.names]
   rfl
 
-@[simp] lemma Env.shift_preserves_disjoint {d c : Nat} {Γ Δ : Env} :
+@[simp] lemma Env.shiftTypes_preserves_disjoint {d c : Nat} {Γ Δ : Env} :
   Γ.disjoint Δ → (Γ ↑ᵗ d, c).disjoint (Δ ↑ᵗ d, c) := by simp
 
+@[simp] lemma Env.shiftTypes_preserves_perm {d c : Nat} {Γ Δ : Env} :
+  (Γ ~ Δ) → (Γ ↑ᵗ d, c ~ Δ ↑ᵗ d, c) := by
+  simp [HasShiftTypes.shift]
+  apply List.Perm.map
+
+lemma Env.shiftTypes_comm {Γ : Env} {d c : Nat} :
+  (Γ.shiftTypes d c).shiftTypes 0 1 = (Γ.shiftTypes 0 1).shiftTypes (d + 1) c := by
+  induction Γ <;> grind [Env.shiftTypes, Types.shift_comm_0]
 
 
-@[simp] lemma HyperEnv.shift_empty {d c : Nat} :
+
+@[simp] lemma HyperEnv.shiftTypes_empty {d c : Nat} :
   ([] : HyperEnv) ↑ᵗ d, c = ([] : HyperEnv) := by
   simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
 
-@[simp] lemma HyperEnv.shift_singleton {d c : Nat} {Γ : Env} :
+@[simp] lemma HyperEnv.shiftTypes_singleton {d c : Nat} {Γ : Env} :
   [Γ] ↑ᵗ d, c = [Γ ↑ᵗ d, c] := by
     simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
 
-@[simp] lemma HyperEnv.shift_cons {d k : Nat} {𝒢 : HyperEnv} {Γ : Env} :
+@[simp] lemma HyperEnv.shiftTypes_cons {d k : Nat} {𝒢 : HyperEnv} {Γ : Env} :
   (Γ :: 𝒢) ↑ᵗ d, k = Γ ↑ᵗ d, k :: 𝒢 ↑ᵗ d, k := by
     simp [HasShiftTypes.shift, HyperEnv.shiftTypes, Env.shiftTypes]
 
-@[simp] lemma HyperEnv.shift_append {d k : Nat} {𝒢 ℋ : HyperEnv} :
+@[simp] lemma HyperEnv.shiftTypes_append {d k : Nat} {𝒢 ℋ : HyperEnv} :
   (𝒢 ++ ℋ) ↑ᵗ d, k = 𝒢 ↑ᵗ d, k ++ ℋ ↑ᵗ d, k := by
     simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
 
-@[simp] lemma HyperEnv.names_cons {Γ : Env} {𝒢 : HyperEnv} :
+@[simp] lemma HyperEnv.namesTypes_cons {Γ : Env} {𝒢 : HyperEnv} :
   HyperEnv.names (Γ :: 𝒢) = Γ.names ∪ 𝒢.names := by simp [HyperEnv.names]
 
-@[simp] lemma HyperEnv.shift_preserves_names {d c : Nat} {𝒢 : HyperEnv} :
+@[simp] lemma HyperEnv.shiftTypes_preserves_names {d c : Nat} {𝒢 : HyperEnv} :
   (𝒢 ↑ᵗ d, c).names = 𝒢.names := by
   induction 𝒢 <;> simp_all
 
-@[simp] lemma HyperEnv.shift_preserves_disjoint {d c : Nat} {𝒢 ℋ : HyperEnv} :
+@[simp] lemma HyperEnv.shiftTypes_preserves_disjoint {d c : Nat} {𝒢 ℋ : HyperEnv} :
   (𝒢.disjoint ℋ) → ((𝒢 ↑ᵗ d, c).disjoint (ℋ ↑ᵗ d, c)) := by simp
+
+@[simp] lemma HyperEnv.shiftTypes_preserves_perm {d c : Nat} {𝒢 ℋ : HyperEnv} :
+  (𝒢 ~ ℋ) → (𝒢 ↑ᵗ d, c ~ ℋ ↑ᵗ d, c) := by
+  simp [HasShiftTypes.shift]
+  apply List.Perm.map
+
+
+
+
+
+
 
 
 
@@ -1298,16 +1312,12 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
 
 
 
-lemma Env.shiftTypes_comm {Γ : Env} {d c : Nat} :
-  (Γ.shiftTypes d c).shiftTypes 0 1 = (Γ.shiftTypes 0 1).shiftTypes (d + 1) c := by
-  induction Γ <;> grind [Env.shiftTypes, Types.shift_comm_0]
 
 
 
 
 
 
--- FIXME:
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by
   intro h
@@ -1375,7 +1385,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 
   case bang ih =>
     apply Typing.bang
-    · simp_all [Env.shift_preserves_serverUsable]
+    · simp_all [Env.shiftTypes_preserves_serverUsable]
     · exact ih d c
 
   case w hlc _ ih =>
@@ -1404,8 +1414,17 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     rw [Nat.add_assoc, Nat.add_comm _ 1, ← Nat.add_assoc, Env.shiftTypes_comm]
     apply ih
 
-  case exchange_env => sorry
-  case exchange_hyper => sorry
+  case exchange_env hP ih =>
+    apply Typing.exchange_env
+    · exact ih d c
+    · exact Env.shiftTypes_preserves_perm hP
+
+  case exchange_hyper hP ih =>
+    intro d c
+    apply Typing.exchange_hyper
+    · exact ih d c
+    · exact HyperEnv.shiftTypes_preserves_perm hP
+
 
 
 
