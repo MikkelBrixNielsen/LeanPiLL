@@ -1358,7 +1358,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     apply Typing.exists_
     · exact Types.lc_shift hlc
     · simp [HasSubst.subst]
-      rw [← Types.shift_subst_comm (by simp)]
+      rw [← Types.shift_subst_0_comm]
       exact ih d c
 
   case forall_ Γ Q x B n' hTQ ih =>
@@ -1393,6 +1393,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 -- FIXME: Proof showing substitution avoids capture
 -- FIXME: Check possibility of not having exchange rules
 
+-- FIXME: Maybe activate unexpanders for notation and make lemmas work on notation instead?
 
 
 -- lemma Proc.subst_open_comm {P : Proc} {k : Nat} {x y : FPName} {u : Channel} :
@@ -1403,7 +1404,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 -- Condition: y is not already in G (unless y = x, which is a no-op)
 lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
   Typing n P 𝒢 → (∀ Γ ∈ 𝒢, ∀ A, (y, A) ∈ Γ → y = x) →
-  Typing n (P{y // x}) (HyperEnv.substNames x y 𝒢) := by sorry
+  Typing n (P{y // x}) (𝒢{x // y}) := by sorry
 
 
 
@@ -1414,107 +1415,28 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
 
 
 
--- @[simp] lemma Types.subst_preserves_isServerUsable {A B : Types} {k : Nat} :
---   B.isServerUsable ↔ (B.subst A k).isServerUsable := by
---   induction B generalizing A k <;> simp_all [isServerUsable, Types.subst]
---   case var v =>
---     cases v with
---     | bound =>
---       simp_all [Types.subst]
---       split_ifs <;> sorry
---     | free => sorry
 
 
 
--- Similar lemma but for Envs : ?ₑΓ✝{A // k}
+-- @[simp] lemma Proc.substTypes_nil {A : Types} {k : Nat} :
+--   𝟘{A // k} = 𝟘 := by simp [HasSubst.subst, Proc.substTypes]
 
-
-
-@[simp] lemma Proc.substTypes_nil {A : Types} {k : Nat} :
-  𝟘{A // k} = 𝟘 := by simp [HasSubst.subst, Proc.substTypes]
+@[simp] lemma Proc.substTypes_ax {u v : Channel} {A : Types} {k : Nat} :
+  (u ⟷ₚ v){A // k} = (u ⟷ₚ v) := by simp [HasSubst.subst, Proc.substTypes]
 
 @[simp] lemma Proc.substTypes_par {P Q : Proc} {A : Types} {k : Nat} :
   (P |ₚ Q){A // k} = P{A // k} |ₚ Q{A // k} := by simp [HasSubst.subst, Proc.substTypes]
 
-@[simp] lemma Proc.substTypes_cut {P : Proc} {A : Types} {k : Nat} :
-  (𝑣⸨#,#⸩ P){A // k} = 𝑣⸨#,#⸩ P{A // k} := by simp [HasSubst.subst, Proc.substTypes]
+-- @[simp] lemma Proc.substTypes_cut {P : Proc} {A : Types} {k : Nat} :
+--   (𝑣⸨#,#⸩ P){A // k} = 𝑣⸨#,#⸩ P{A // k} := by simp [HasSubst.subst, Proc.substTypes]
 
-@[simp] lemma Proc.substTypes_tensor {P : Proc} {x : FPName} {A : Types} {k : Nat} :
-  (#x⟦#N⟧․P){A // k} = #x⟦#N⟧․P{A // k} := by simp [HasSubst.subst, Proc.substTypes]
+-- @[simp] lemma Proc.substTypes_tensor {P : Proc} {x : FPName} {A : Types} {k : Nat} :
+--   (#x⟦#N⟧․P){A // k} = #x⟦#N⟧․P{A // k} := by simp [HasSubst.subst, Proc.substTypes]
 
-@[simp] lemma Proc.substTypes_parr {P : Proc} {x : FPName} {A : Types} {k : Nat} :
-  (#x⸨#N⸩․P){A // k} = #x⸨#N⸩․P{A // k} := by simp [HasSubst.subst, Proc.substTypes]
-
-
+-- @[simp] lemma Proc.substTypes_parr {P : Proc} {x : FPName} {A : Types} {k : Nat} :
+--   (#x⸨#N⸩․P){A // k} = #x⸨#N⸩․P{A // k} := by simp [HasSubst.subst, Proc.substTypes]
 
 
-
-@[simp] lemma Env.substTypes_singleton {x : FPName} {A : Types} {k : Nat} :
-  ([x ∶ A] : Env){A // k} = [x ∶ A{A // k}] := by simp [HasSubst.subst, Env.substTypes]
-
-@[simp] lemma Env.substTypes_distributes {Γ : Env} {x : FPName} {A B : Types} {k : Nat} :
-  (x ∶ B :: Γ){A // k} = x ∶ B{A // k} :: Γ{A // k} := by simp [HasSubst.subst, Env.substTypes]
-
-@[simp] lemma Env.substTypes_merge {Γ Δ : Env} {A : Types} {k : Nat} :
-  (Γ ++ Δ){A // k} =  Γ{A // k} ++ Δ{A // k} := by simp [HasSubst.subst, Env.substTypes]
-
-@[simp] lemma Env.substTypes_nil {A : Types} {k : Nat} :
-  ([] : Env){A // k} = [] := by simp [HasSubst.subst, Env.substTypes]
-
-
-
-@[simp] lemma Env.substTypes_preserves_names {Γ : Env} {A : Types} {k : Nat} :
-  Γ{A // k}.names = Γ.names := by
-  simp [HasSubst.subst, Env.substTypes, Env.names]
-  rfl
-
-@[simp] lemma Env.substTypes_preserves_disjoint {Γ Δ : Env} {A : Types} {k : Nat} :
-  Γ.disjoint Δ → Γ{A // k}.disjoint Δ{A // k} := by
-  simp [Env.disjoint]
-
-
-
-@[simp] lemma HyperEnv.substTypes_singleton {Γ : Env} {A : Types} {k : Nat} :
-  ([Γ] : HyperEnv){A // k} = [Γ{A // k}] := by simp [HasSubst.subst, HyperEnv.substTypes]
-
-@[simp] lemma HyperEnv.substTypes_distributes {𝒢 : HyperEnv} {Γ : Env} {A : Types} {k : Nat} :
-  (Γ :: 𝒢){A // k} = Γ{A // k} :: 𝒢{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
-
-@[simp] lemma HyperEnv.substTypes_merge {Γ Δ : HyperEnv} {A : Types} {k : Nat} :
-  (Γ ++ Δ){A // k} =  Γ{A // k} ++ Δ{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
-
-@[simp] lemma HyperEnv.substTypes_nil {A : Types} {k : Nat} :
-  ([] : HyperEnv){A // k} = [] := by simp [HasSubst.subst, HyperEnv.substTypes]
-
-
-
-@[simp] lemma HyperEnv.substTypes_preserves_names {𝒢 : HyperEnv} {A : Types} {k : Nat} :
-  𝒢{A // k}.names = 𝒢.names := by
-  induction 𝒢 <;> simp_all
-
-@[simp] lemma HyperEnv.substTypes_preserves_disjoint {Γ Δ : Env} {A : Types} {k : Nat} :
-  Γ.disjoint Δ → Γ{A // k}.disjoint Δ{A // k} := by
-  simp [Env.disjoint]
-
-
-
-
-@[simp] lemma Proc.open_subst_comm {P : Proc} {u : Channel} {A : Types} {k d : Nat} :
-  (P.open d u).substTypes A k = (P.substTypes A k).open d u := by
-  induction P generalizing A k d u <;> simp_all [Proc.open, Channel.open, Proc.substTypes]
-
-@[simp] lemma Proc.open_subst_comm_notation {P : Proc} {u : Channel} {A : Types} {k : Nat} :
-  P⸨u⸩{A // k} = P{A // k}⸨u⸩ := by
-  apply Proc.open_subst_comm
-
-
-
-
--- lemma Types.lc_subst_lc_eq_lc {A B : Types} {n k : Nat} :
---   Types.lc n B → Types.lc n A → Types.lc n (B.subst A k) := by
---   intro hB hA
---   induction B generalizing n A k <;> try grind [Types.lc, TVar.lc, Types.subst, Types.lc_shift_0]
---   case var v | varDual v => cases v <;> grind [Types.lc, TVar.lc, Types.subst, Types.lc_dual]
 
 lemma Types.lc_subst_lc_eq_lc_gen {A B : Types} {n n' k : Nat} :
   n' ≤ n → k ≤ n → Types.lc n B → Types.lc n' A → Types.lc n (B.subst A k) := by
@@ -1530,14 +1452,17 @@ lemma Types.lc_subst_lc_eq_lc_gen {A B : Types} {n n' k : Nat} :
 lemma Types.lc_subst_lc_eq_lc {A B : Types} {n k : Nat} :
   Types.lc (n + 1) B → Types.lc n A → k ≤ n → Types.lc n (B.subst A k) := by
   intro hB hA hk
-  induction B generalizing n k hk A <;> simp_all [Types.lc, TVar.lc, Types.subst, Types.lc_shift]
+  induction B generalizing n k hk A <;>
+    simp_all [Types.lc, TVar.lc, Types.subst, Types.lc_shift]
   case var v | varDual v => grind [Types.lc, Types.subst, TVar.lc, Types.lc_dual]
-
-
 
 lemma Types.isServerUsable_subst {T A : Types} {k : Nat} (h : T.isServerUsable) :
   (T.subst A k).isServerUsable := by
   cases T <;> simp_all [Types.isServerUsable, Types.subst]
+
+
+
+
 
 @[simp] lemma Env.serverUsable_substTypes {Γ : Env} {A : Types} {k : Nat} (h : ?ₑΓ) :
   (Γ.substTypes A k).serverUsable := by
@@ -1559,9 +1484,143 @@ lemma Types.isServerUsable_subst {T A : Types} {k : Nat} (h : T.isServerUsable) 
         simp [Env.substTypes]
         exact hptl
 
+@[simp] lemma Env.substTypes_singleton {x : FPName} {A : Types} {k : Nat} :
+  ([x ∶ A] : Env){A // k} = [x ∶ A{A // k}] := by simp [HasSubst.subst, Env.substTypes]
+
+@[simp] lemma Env.substTypes_distributes {Γ : Env} {x : FPName} {A B : Types} {k : Nat} :
+  (x ∶ B :: Γ){A // k} = x ∶ B{A // k} :: Γ{A // k} := by simp [HasSubst.subst, Env.substTypes]
+
+@[simp] lemma Env.substTypes_merge {Γ Δ : Env} {A : Types} {k : Nat} :
+  (Γ ++ Δ){A // k} =  Γ{A // k} ++ Δ{A // k} := by simp [HasSubst.subst, Env.substTypes]
+
+@[simp] lemma Env.substTypes_nil {A : Types} {k : Nat} :
+  ([] : Env){A // k} = [] := by simp [HasSubst.subst, Env.substTypes]
 
 
 
+
+@[simp] lemma Env.substTypes_preserves_names {Γ : Env} {A : Types} {k : Nat} :
+  Γ{A // k}.names = Γ.names := by
+  simp [HasSubst.subst, Env.substTypes, Env.names]
+  rfl
+
+@[simp] lemma Env.substTypes_preserves_disjoint {Γ Δ : Env} {A : Types} {k : Nat} :
+  Γ.disjoint Δ → Γ{A // k}.disjoint Δ{A // k} := by
+  simp [Env.disjoint]
+
+@[simp] lemma Env.substTypes_preserves_perm {Γ Δ : Env} {A : Types} {k : Nat} :
+  (Γ ~ Δ) → (Γ{A // k} ~ Δ{A // k}) := by
+  simp [HasSubst.subst]
+  apply List.Perm.map
+
+-- Γ{A // k}⁺ᵗ = Γ⁺ᵗ{A⁺ᵗ // k + 1}
+@[simp] lemma Env.shiftTypes_subst_comm {Γ : Env} {A : Types} {k : Nat} :
+  (Γ.substTypes A k).shiftTypes 0 1 = (Γ.shiftTypes 0 1).substTypes (A.shift 0 1) (k + 1) := by
+  induction Γ <;> simp [Env.substTypes, Env.shiftTypes, Types.shift_0_subst_comm]
+
+
+
+
+@[simp] lemma HyperEnv.substTypes_singleton {Γ : Env} {A : Types} {k : Nat} :
+  ([Γ] : HyperEnv){A // k} = [Γ{A // k}] := by simp [HasSubst.subst, HyperEnv.substTypes]
+
+@[simp] lemma HyperEnv.substTypes_distributes {𝒢 : HyperEnv} {Γ : Env} {A : Types} {k : Nat} :
+  (Γ :: 𝒢){A // k} = Γ{A // k} :: 𝒢{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
+
+@[simp] lemma HyperEnv.substTypes_merge {Γ Δ : HyperEnv} {A : Types} {k : Nat} :
+  (Γ ++ Δ){A // k} =  Γ{A // k} ++ Δ{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
+
+
+
+
+@[simp] lemma HyperEnv.substTypes_nil {A : Types} {k : Nat} :
+  ([] : HyperEnv){A // k} = [] := by simp [HasSubst.subst, HyperEnv.substTypes]
+
+@[simp] lemma HyperEnv.substTypes_preserves_names {𝒢 : HyperEnv} {A : Types} {k : Nat} :
+  𝒢{A // k}.names = 𝒢.names := by
+  induction 𝒢 <;> simp_all
+
+@[simp] lemma HyperEnv.substTypes_preserves_disjoint {Γ Δ : Env} {A : Types} {k : Nat} :
+  Γ.disjoint Δ → Γ{A // k}.disjoint Δ{A // k} := by
+  simp [Env.disjoint]
+
+@[simp] lemma HyperEnv.substTypes_preserves_perm {𝒢 ℋ : HyperEnv} {A : Types} {k : Nat} :
+  (𝒢 ~ ℋ) → (𝒢{A // k} ~ ℋ{A // k}) := by
+  simp [HasSubst.subst]
+  apply List.Perm.map
+
+-- 𝒢{A // k}⁺ᵗ = 𝒢⁺ᵗ{A⁺ᵗ // k + 1}
+@[simp] lemma HyperEnv.shiftTypes_subst_comm {𝒢 : HyperEnv} {A : Types} {k : Nat} :
+  (𝒢.substTypes A k).shiftTypes 0 1 = (𝒢.shiftTypes 0 1).substTypes (A.shift 0 1) (k + 1) := by
+  induction 𝒢 <;>
+    simp [HyperEnv.substTypes, HyperEnv.shiftTypes, Env.substTypes,
+      Env.shiftTypes, Types.shift_0_subst_comm]
+
+
+
+
+@[simp] lemma Proc.open_subst_comm {P : Proc} {u : Channel} {A : Types} {d i : Nat} :
+  (P.open d u).substTypes A i = (P.substTypes A i).open d u := by
+  induction P generalizing A i d u <;> simp_all [Proc.open, Channel.open, Proc.substTypes]
+
+@[simp] lemma Proc.open_subst_comm_notation {P : Proc} {u : Channel} {A : Types} {i : Nat} :
+  P⸨u⸩{A // i} = P{A // i}⸨u⸩ := Proc.open_subst_comm
+
+@[simp] lemma Proc.openCut_subst_comm {P : Proc} {u v : Channel} {A : Types} {i : Nat} :
+  (P.openCut u v).substTypes A i = (P.substTypes A i).openCut u v := by
+  induction P generalizing A i u <;>
+    simp_all [Proc.openCut, Proc.open, Channel.open, Proc.substTypes]
+
+@[simp] lemma Proc.openCut_subst_comm_notation
+  {P : Proc} {u v : Channel} {A : Types} {i : Nat} :
+  (P⸨u, v⸩){A // i} = (P{A // i})⸨u, v⸩ := Proc.openCut_subst_comm
+
+
+
+
+
+
+
+
+
+
+
+
+lemma Types.subst_dual_comm {A B : Types} {k : Nat} :
+  (B.subst A k).dual = (B.dual).subst A k := by
+  induction B generalizing A k <;> simp_all [Types.subst, Types.dual]
+  case var v |varDual v =>
+    cases v <;> grind [Types.subst, Types.dual, Types.dual_involution]
+
+lemma Types.shift_subst_cancel {A B : Types} {d : Nat} :
+  (A.shift d 1).subst B d = A := by
+  induction A generalizing d B <;> simp_all [Types.shift, Types.subst]
+  case var v | varDual v => cases v <;> grind [TVar.shift, Types.subst]
+
+-- B{A' // d}{A // i} = B{A ↑ᵗ d, 1 // i + 1}{A'{A // i} // d}
+lemma Types.subst_comm {A A' B : Types} {d i : Nat} (hle : d ≤ i) :
+  (B.subst A' d).subst A i = (B.subst (A.shift d 1) (i + 1)).subst (A'.subst A i) d := by
+  induction B generalizing A A' d i hle <;> try simp_all [Types.subst]
+
+  case forall_ ih | exists_ ih => rw [Types.shift_comm_0, Types.shift_0_subst_comm]
+
+  case var v | varDual v =>
+    cases v <;> (
+      simp_all [Types.subst] <;> (
+        grind [Types.subst, Types.shift_subst_cancel, Types.subst_dual_comm,
+          Types.dual_involution]
+      )
+    )
+
+  -- B{A' // 0}{A // k} = B{A ↑ᵗ 0, 1 // k + 1}{A'{A // k} // 0}
+lemma Types.subst_comm_0 {A A' B : Types} {i : Nat} :
+  (B.subst A' 0).subst A i = (B.subst (A.shift 0 1) (i + 1)).subst (A'.subst A i) 0 :=
+    Types.subst_comm (by simp)
+
+@[simp] lemma Types.subst_comm_notation {A B : Types} {i : Nat} :
+  Bᗮ{A // i} = B{A // i}ᗮ := by
+  simp [HasSubst.subst]
+  rw [Types.subst_dual_comm]
 
 
 
@@ -1573,7 +1632,7 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
   Typing (n + 1) P 𝒢 → A.lc n → k ≤ n → Typing n (P{A // k}) (𝒢{A // k}) := by
   intro hT hlcA hk
   generalize heq : n + 1 = n' at hT
-  induction hT generalizing k hk <;> try simp_all
+  induction hT generalizing n A k hk <;> try simp_all
 
   case mix₀ =>
     exact Typing.mix₀
@@ -1582,51 +1641,102 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
     apply Typing.mix <;> simp_all
 
   case one ih =>
-    exact Typing.one (ih hk)
+    exact Typing.one (ih hlcA hk heq)
 
   case bot hF _ _ ih =>
     apply Typing.bot
     · simp_all
-    · apply (ih hk)
+    · exact ih hlcA hk heq
 
-  case cut => sorry
+  case cut 𝒢' Γ Δ Q B n'' L hTP ih =>
+    subst heq
+    apply Typing.cut (A := B{A // k}) L
+    simp [HyperEnv.merge]
+    intro x y hx hy hneq
+    exact ih x y hx hy hneq (n := n) (k := k) (A := A) hlcA hk (by simp)
 
   case tensor L _ ih =>
     apply Typing.tensor L
     · intro y hy
-      exact ih y hy hk
+      exact ih y hy hlcA hk heq
     · simp_all
 
   case parr L _ ih =>
     apply Typing.parr L
     · intro y hy
-      exact ih y hy hk
+      exact ih y hy hlcA hk heq
     · simp_all
 
   case oplus₁ hlcB _ ih =>
+    have 𝒟 := ih hlcA hk heq
     subst heq
     apply Typing.oplus₁
     · exact Types.lc_subst_lc_eq_lc hlcB hlcA hk
-    · exact ih hk
+    · exact 𝒟
 
-  case oplus₂ hlcB _ ih =>
+  case oplus₂ hlc _ ih =>
+    have 𝒟 := ih hlcA hk heq
     subst heq
     apply Typing.oplus₂
-    · exact Types.lc_subst_lc_eq_lc hlcB hlcA hk
-    · exact ih hk
+    · exact Types.lc_subst_lc_eq_lc hlc hlcA hk
+    · exact 𝒟
 
   case amp ihP ihQ =>
-    exact Typing.amp (ihP hk) (ihQ hk)
+    exact Typing.amp (ihP hlcA hk heq) (ihQ hlcA hk heq)
 
   case quest ih =>
-    exact Typing.quest (ih hk)
+    exact Typing.quest (ih hlcA hk heq)
 
   case bang his _ ih =>
     apply Typing.bang
     · exact Env.serverUsable_substTypes his
-    · exact (ih hk)
+    · exact (ih hlcA hk heq)
 
-  all_goals sorry
+  case w hlc _ ih =>
+    have 𝒟 := ih hlcA hk heq
+    subst heq
+    apply Typing.w
+    · simp_all
+    · exact Types.lc_subst_lc_eq_lc hlc hlcA hk
+    · exact 𝒟
+
+  case c L _ ih =>
+    apply Typing.c L
+    intro x hx
+    exact ih x hx hlcA hk heq
+
+  case exists_ hlc _ ih =>
+    have := ih hlcA hk heq
+    subst heq
+    apply Typing.exists_
+    · exact Types.lc_subst_lc_eq_lc hlc hlcA hk
+    · simp [HasSubst.subst]
+      rw [← Types.subst_comm_0]
+      exact this
+
+  case forall_ Γ P x B _ _ ih =>
+    have hk' : k + 1 ≤ n + 1 := by grind
+    have := ih (Types.lc_shift_0 hlcA) hk' heq
+    subst heq
+    apply Typing.forall_
+    simp [HasSubst.subst, HasShiftTypes.shift] at ⊢ this
+    exact this
+
+  case exchange_env ih =>
+    apply Typing.exchange_env
+    · apply ih hlcA hk heq
+    · simp_all
+
+  case exchange_hyper ih =>
+    apply Typing.exchange_hyper
+    · apply ih hlcA hk heq
+    · simp_all
+
+  case ax x y B n'' hneq hlcB =>
+    subst heq
+    apply Typing.ax
+    · simp_all
+    · exact Types.lc_subst_lc_eq_lc hlcB hlcA hk
 
 
 

@@ -394,9 +394,9 @@ lemma Types.shift_comm_0 {A : Types} {d c : Nat} :
  (A.shift 0 1).shift (d + 1) c = (A.shift d c).shift 0 1 := Types.shift_comm (i := 0)
 
 -- (B{A // k}) ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){(A ↑ᵗ d, c) // k}
-lemma Types.shift_subst_comm {A B : Types} {k d c : Nat} (hle : k ≤ d) :
-  (B.subst A k).shift d c = (B.shift (d + 1) c).subst (A.shift d c) k := by
-  induction B generalizing d c k A <;> simp [Types.shift, Types.subst] <;> try simp_all
+lemma Types.shift_subst_comm_depth_ge_idx {A B : Types} {d c i : Nat} (hle : i ≤ d) :
+  (B.subst A i).shift d c = (B.shift (d + 1) c).subst (A.shift d c) i := by
+  induction B generalizing d c i A <;> simp [Types.shift, Types.subst] <;> try simp_all
 
   case var v | varDual v =>
     cases v with
@@ -407,11 +407,34 @@ lemma Types.shift_subst_comm {A B : Types} {k d c : Nat} (hle : k ≤ d) :
 
   case forall_ B ih | exists_ => grind [Types.shift_comm_0]
 
+-- FIXME: Not currently in use, delete?
 -- B{A // d} ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){A ↑ᵗ d, c // d}
-lemma Types.shift_subst_comm_eq_depth_index {A B : Types} {d c : Nat} :
+lemma Types.shift_subst_comm_depth_eq_index {A B : Types} {d c : Nat} :
   (B.subst A d).shift d c = (B.shift (d + 1) c).subst (A.shift d c) d :=
-  Types.shift_subst_comm (by simp)
+  Types.shift_subst_comm_depth_ge_idx (by simp)
 
+-- (B{A // 0}) ↑ᵗ d, c = (B ↑ᵗ (d + 1), c){(A ↑ᵗ d, c) // 0}
+lemma Types.shift_subst_0_comm {A B : Types} {d c : Nat} :
+  (B.subst A 0).shift d c = (B.shift (d + 1) c).subst (A.shift d c) 0 :=
+  Types.shift_subst_comm_depth_ge_idx (by simp)
+
+-- B{A // i} ↑ᵗ d, c = (B ↑ᵗ d, c){(A ↑ᵗ d, c) // (i + c)}
+lemma Types.shift_subst_comm_depth_le_idx {A B : Types} {d c i : Nat} (hle : d ≤ i) :
+  (B.subst A i).shift d c = (B.shift d c).subst (A.shift d c) (i + c) := by
+  induction B generalizing A d c i <;> simp_all [Types.shift, Types.subst]
+  case var v | varDual v =>
+    cases v with
+    | bound =>
+      simp [TVar.shift]
+      split_ifs <;> grind [Types.shift_dual_comm, Types.shift, Types.subst, TVar.shift]
+    | free => rfl
+
+  case forall_ ih | exists_ ih => grind [Types.shift_comm_0]
+
+-- B{A // i} ↑ᵗ c = (B ↑ᵗ c){(A ↑ᵗ c) // (i + c)}
+lemma Types.shift_0_subst_comm {A B : Types} {c i : Nat} :
+  (B.subst A i).shift 0 c = (B.shift 0 c).subst (A.shift 0 c) (i + c) :=
+  Types.shift_subst_comm_depth_le_idx (by simp)
 
 
 

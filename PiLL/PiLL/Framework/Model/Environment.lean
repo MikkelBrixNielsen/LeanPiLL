@@ -525,18 +525,18 @@ instance : HasSubst Env Types Nat where subst := Env.substTypes
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
 infixr:69 "‚ " => Env.merge
 
-lemma Env.merge_unitL (Γ : Env) : ∅ ++ Γ = Γ := by simp
+lemma Env.merge_unitL (Γ : Env) : ∅‚ Γ = Γ := by simp
 
-lemma Env.merge_unitR (Γ : Env) : Γ ++ ∅ = Γ := by simp
+lemma Env.merge_unitR (Γ : Env) : Γ‚ ∅ = Γ := by simp
 
-lemma Env.merge_comm (Γ Δ : Env) : List.Perm (Γ ++ Δ) (Δ ++ Γ) := by
+lemma Env.merge_comm (Γ Δ : Env) : List.Perm (Γ‚ Δ) (Δ‚ Γ) := by
   exact List.perm_append_comm
 
-lemma Env.merge_assoc (Γ Δ Ξ : Env) : Γ ++ Δ ++ Ξ = Γ ++ (Δ ++ Ξ) := by
-  simp
+lemma Env.merge_assoc (Γ Δ Ξ : Env) : Γ‚ Δ‚ Ξ = Γ‚ (Δ‚ Ξ) := by
+  simp [Env.merge]
 
 lemma Env.merge_rotate_left (Γ : Env) (x : FPName × Types) :
-  (x :: Γ).Perm (Γ ++ [x]) := by
+  (x :: Γ).Perm (Γ‚ [x]) := by
   symm ; apply List.perm_append_singleton
 
 lemma Env.merge_swap (Γ : Env) (x y : FPName × Types) :
@@ -592,8 +592,8 @@ lemma Env.lc_singleton {n : Nat} {x : FPName} {A : Types} :
   Env.lc n ([x ∶ A]) ↔ A.lc n := by simp_all [Env.lc]
 
 lemma Env.lc_append {n : Nat} {Γ Δ : Env} :
-  (Γ ++ Δ).lc n ↔ Γ.lc n ∧ Δ.lc n := by
-  simp [Env.lc]
+  (Γ‚ Δ).lc n ↔ Γ.lc n ∧ Δ.lc n := by
+  simp [Env.lc, Env.merge]
   constructor
   · intro h
     constructor
@@ -663,7 +663,7 @@ lemma HyperEnv.merge_assoc (𝒢 ℋ ℐ : HyperEnv) : 𝒢 |ₕ ℋ |ₕ ℐ = 
   simp [HyperEnv.merge]
 
 lemma HyperEnv.merge_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
-  (Γ :: 𝒢).Perm (𝒢 ++ [Γ]) := by
+  (Γ :: 𝒢).Perm (𝒢 |ₕ [Γ]) := by
   symm ; apply List.perm_append_singleton
 
 lemma HyperEnv.merge_swap (𝒢 : HyperEnv) (Γ Δ : Env) :
