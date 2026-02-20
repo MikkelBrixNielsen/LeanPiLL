@@ -581,32 +581,32 @@ def Proc.shiftTypes (d c : Nat) : Proc → Proc
 
 instance : HasShiftTypes Proc where shift P d c := Proc.shiftTypes d c P
 
--- T : Target, R : Replacement
+-- R : Replacement, T : Target
 def Channel.substNames (R T : FPName) : Channel → Channel
   | .free x => if x == T then .free R else .free x
   | .bound i => .bound i
 
 instance : HasSubst Channel FPName FPName where subst C R T := Channel.substNames R T C
 
--- T : Target, R : Replacement
+-- R : Replacement, T : Target
 def Proc.substNames (R T : FPName) : Proc → Proc
   | .nil              => .nil
-  | .one x P          => .one (x.substNames T R) (P.substNames T R)
-  | .bot x P          => .bot (x.substNames T R) (P.substNames T R)
-  | .tensor x P       => .tensor (x.substNames T R) (P.substNames T R)
-  | .parr x P         => .parr (x.substNames T R) (P.substNames T R)
-  | .cut P            => .cut (P.substNames T R)
-  | .par P Q          => .par (P.substNames T R) (Q.substNames T R)
-  | .selectL x P      => .selectL (x.substNames T R) (P.substNames T R)
-  | .selectR x P      => .selectR (x.substNames T R) (P.substNames T R)
-  | .amp x P Q        => .amp (x.substNames T R) (P.substNames T R) (Q.substNames T R)
-  | .output x P A     => .output (x.substNames T R) (P.substNames T R) A
-  | .input x P        => .input (x.substNames T R) (P.substNames T R)
-  | .server x P       => .server (x.substNames T R) (P.substNames T R)
-  | .consume x P      => .consume (x.substNames T R) (P.substNames T R)
-  | .duplicate x P    => .duplicate (x.substNames T R) (P.substNames T R)
-  | .dispose x P      => .dispose (x.substNames T R) (P.substNames T R)
-  | .link x y         => .link (x.substNames T R) (y.substNames T R)
+  | .one x P          => .one (x.substNames R T) (P.substNames R T)
+  | .bot x P          => .bot (x.substNames R T) (P.substNames R T)
+  | .tensor x P       => .tensor (x.substNames R T) (P.substNames R T)
+  | .parr x P         => .parr (x.substNames R T) (P.substNames R T)
+  | .cut P            => .cut (P.substNames R T)
+  | .par P Q          => .par (P.substNames R T) (Q.substNames R T)
+  | .selectL x P      => .selectL (x.substNames R T) (P.substNames R T)
+  | .selectR x P      => .selectR (x.substNames R T) (P.substNames R T)
+  | .amp x P Q        => .amp (x.substNames R T) (P.substNames R T) (Q.substNames R T)
+  | .output x P A     => .output (x.substNames R T) (P.substNames R T) A
+  | .input x P        => .input (x.substNames R T) (P.substNames R T)
+  | .server x P       => .server (x.substNames R T) (P.substNames R T)
+  | .consume x P      => .consume (x.substNames R T) (P.substNames R T)
+  | .duplicate x P    => .duplicate (x.substNames R T) (P.substNames R T)
+  | .dispose x P      => .dispose (x.substNames R T) (P.substNames R T)
+  | .link x y         => .link (x.substNames R T) (y.substNames R T)
 
 instance : HasSubst Proc FPName FPName where subst P R T := Proc.substNames R T P
 

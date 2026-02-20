@@ -1396,26 +1396,6 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 -- FIXME: Maybe activate unexpanders for notation and make lemmas work on notation instead?
 
 
--- lemma Proc.subst_open_comm {P : Proc} {k : Nat} {x y : FPName} {u : Channel} :
---   (P.open k u){y // x} = (P{y // x}).open k (u.substNames x y) := by sorry
-
-
-
--- Condition: y is not already in G (unless y = x, which is a no-op)
-lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
-  Typing n P 𝒢 → (∀ Γ ∈ 𝒢, ∀ A, (y, A) ∈ Γ → y = x) →
-  Typing n (P{y // x}) (𝒢{x // y}) := by sorry
-
-
-
-
-
-
-
-
-
-
-
 
 -- FIXME: Move to Process
 
@@ -1566,8 +1546,8 @@ lemma Types.subst_comm_0 {A A' B : Types} {i : Nat} :
 @[simp] lemma HyperEnv.substTypes_distributes {𝒢 : HyperEnv} {Γ : Env} {A : Types} {k : Nat} :
   (Γ :: 𝒢){A // k} = Γ{A // k} :: 𝒢{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
 
-@[simp] lemma HyperEnv.substTypes_merge {Γ Δ : HyperEnv} {A : Types} {k : Nat} :
-  (Γ ++ Δ){A // k} =  Γ{A // k} ++ Δ{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
+@[simp] lemma HyperEnv.substTypes_merge {𝒢 ℋ : HyperEnv} {A : Types} {k : Nat} :
+  (𝒢 |ₕ ℋ){A // k} =  𝒢{A // k} |ₕ ℋ{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
 
 @[simp] lemma HyperEnv.substTypes_nil {A : Types} {k : Nat} :
   ([] : HyperEnv){A // k} = [] := by simp [HasSubst.subst, HyperEnv.substTypes]
@@ -1727,6 +1707,125 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
 
 
 
+-- lemma Proc.subst_open_comm {P : Proc} {k : Nat} {x y : FPName} {u : Channel} :
+--   (P.open k u){y // x} = (P{y // x}).open k (u.substNames x y) := by sorry
+
+
+-- FIXME: Move to Process
+@[simp] lemma Proc.substNames_par {P Q : Proc} {x y : FPName} :
+  (P |ₚ Q){y // x} = P{y // x} |ₚ (Q{y // x}) := by
+  simp [HasSubst.subst, Proc.substNames]
+
+
+-- FIXME: Move to Environment
+
+@[simp] lemma Env.mem_pair_fst_in_names {Γ : Env} {x : FPName} :
+   x ∈ Γ.names ↔ ∃ A, (x, A) ∈ Γ := by simp_all [Env.names]
+
+@[simp] lemma Env.mem_names_substNames {Γ : Env} {x y : FPName} :
+  x ∈ Γ.names → y ∈ Γ{y // x}.names := by
+  simp_all [HasSubst.subst, Env.substNames, Env.names]
+  grind [Env.mem_pair_fst_in_names]
+
+@[simp] lemma Env.mem_substNames_names' {Γ : Env} {x y : FPName} {hF : ∀ A, (y, A) ∉ Γ} :
+  y ∈ Γ{y // x}.names → x ∈ Γ.names := by
+  simp_all [HasSubst.subst, Env.substNames, Env.names]
+  grind
+
+@[simp] lemma Env.mem_substNames {Γ : Env} {x y : FPName} {A : Types} :
+  (x, A) ∈ Γ → (y, A) ∈ Γ{y // x} := by
+  simp_all [HasSubst.subst, Env.substNames]
+  grind [Env.mem_pair_fst_in_names]
+
+@[simp] lemma Env.mem_subst_of_ne {Γ : Env} {x y z : FPName} {A : Types} :
+  (z, A) ∈ Γ → z ≠ x → (z, A) ∈ Γ{y // x} := by
+  intro hin hneq
+  simp [HasSubst.subst, Env.substNames]
+  use z
+  constructor
+  · split_ifs with h
+    · constructor
+      · apply hin
+      · simp_all
+    · constructor
+      · apply hin
+      · rfl
+
+
+lemma HyperEnv.mem_names_substNames {𝒢 : HyperEnv} {x y z : FPName} :
+  z ∈ (𝒢{y // x}).names ↔ (z = y ∧ x ∈ 𝒢.names) ∨ (z ∈ 𝒢.names ∧ z ≠ x) := by
+  induction 𝒢 <;> simp_all [HasSubst.subst, HyperEnv.substNames]
+  case nil => simp [HyperEnv.names]
+  case cons hd tl ih =>
+    constructor
+    case mp => grind [Env.substNames, Env.mem_pair_fst_in_names]
+    case mpr =>
+      intro h
+      cases h with
+      | inl h' =>
+        cases h'
+        case inl.intro heq hin =>
+          cases hin with
+          | inl hin =>
+            cases hin
+            case inl.intro T hin =>
+              apply Or.inl
+              use T
+              subst heq
+              apply Env.mem_substNames hin
+          | inr hin => grind
+      | inr h' =>
+        cases h'
+        case inr.intro h1 hneq =>
+          cases h1
+          case inl hin =>
+            cases hin
+            case intro T hin =>
+              apply Or.inl
+              use T
+              exact Env.mem_subst_of_ne hin hneq (y := y)
+          case inr => grind
+
+
+
+
+lemma HyperEnv.substNames_preserves_disjoint {𝒢 ℋ : HyperEnv} {x y : FPName}
+  (hD : 𝒢.disjoint ℋ) (huniq : ∀ Γ ∈ 𝒢 |ₕ ℋ, ∀ A, (y, A) ∈ Γ → y = x) :
+  𝒢{y // x}.disjoint ℋ{y // x} := by
+  simp [HyperEnv.merge]
+  rw [Finset.disjoint_left]
+  simp [HasSubst.subst, HyperEnv.substNames, HyperEnv.disjoint]
+
+
+
+
+
+
+
+
+
+
+@[simp] lemma HyperEnv.substNames_merge {𝒢 ℋ : HyperEnv} {x y : FPName} :
+  (𝒢 |ₕ ℋ){y // x} = 𝒢{y // x} |ₕ ℋ{y // x} := by
+  simp [HasSubst.subst, HyperEnv.substNames]
+
+
+
+-- Condition: y is not already in G (unless y = x, which is a no-op)
+lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
+  Typing n P 𝒢 → (∀ Γ ∈ 𝒢, ∀ A, (y, A) ∈ Γ → y = x) →
+  Typing n (P{y // x}) (𝒢{y // x}) := by
+  intro hT huniq
+  induction hT generalizing x y <;> try simp
+
+  case mix₀ => apply Typing.mix₀
+
+  case mix =>
+    apply Typing.mix
+    -- since disjoint before either x in 𝒢 or ℋ not both
+    -- if y == x nothing changes
+    -- y neq x and y fresh for 𝒢 |ₕ ℋ putting y in either 𝒢 or ℋ does not ruin disjointness
+    ·
 
 
 

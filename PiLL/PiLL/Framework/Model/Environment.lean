@@ -512,7 +512,7 @@ def Env.shiftTypes (d c : Nat) (Γ : Env) : Env :=
 
 instance : HasShiftTypes Env where shift Γ d c := Env.shiftTypes d c Γ
 
-def Env.substNames (Γ : Env) (T R : FPName) : Env :=
+def Env.substNames (Γ : Env) (R T : FPName) : Env :=
   Γ.map (fun (x, A) => if x == T then (R, A) else (x, A))
 
 instance : HasSubst Env FPName FPName where subst := Env.substNames
