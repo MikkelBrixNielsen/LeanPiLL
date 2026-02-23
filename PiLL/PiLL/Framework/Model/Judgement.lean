@@ -1752,6 +1752,43 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
       · rfl
 
 
+lemma HyperEnv.mem_pair_fst_in_names {𝒢 : HyperEnv} {x : FPName} :
+   x ∈ 𝒢.names ↔ ∃ A Γ, (x, A) ∈ Γ ∧ Γ ∈ 𝒢 := by
+   induction 𝒢
+   case nil => simp_all [HyperEnv.names]
+   case cons hd tl ih =>
+    constructor
+    case mp =>
+      intro h
+      simp at h
+      cases h
+      case inl hL =>
+        cases hL
+        case intro T hin =>
+          use T, hd
+          exact ⟨hin, by simp⟩
+      case inr hR =>
+        have := ih.mp hR
+        simp_all
+        obtain ⟨T, Γ, hinΓ, hinℋ⟩ := this
+        use T, Γ
+        exact ⟨hinΓ, by apply Or.inr ; exact hinℋ⟩
+    case mpr =>
+      intro h
+      obtain ⟨T, Γ, hinΓ, hOr⟩ := h
+      cases hOr
+      case head =>
+        simp_all
+        apply Or.inl
+        use T
+      case tail hMem =>
+        simp_all
+        apply Or.inr
+        use T, Γ
+        constructor
+        · exact hinΓ
+        · apply hMem
+
 lemma HyperEnv.mem_names_substNames {𝒢 : HyperEnv} {x y z : FPName} :
   z ∈ (𝒢{y // x}).names ↔ (z = y ∧ x ∈ 𝒢.names) ∨ (z ∈ 𝒢.names ∧ z ≠ x) := by
   induction 𝒢 <;> simp_all [HasSubst.subst, HyperEnv.substNames]
@@ -1789,14 +1826,61 @@ lemma HyperEnv.mem_names_substNames {𝒢 : HyperEnv} {x y z : FPName} :
 
 
 
+-- lemma HyperEnv.substNames_preserves_disjoint {𝒢 ℋ : HyperEnv} {x y : FPName}
+--   (hD : 𝒢.disjoint ℋ) (huniq : ∀ Γ ∈ 𝒢 |ₕ ℋ, ∀ A, (y, A) ∈ Γ → y = x) :
+--   𝒢{y // x}.disjoint ℋ{y // x} := by
+--   simp
+--   rw [Finset.disjoint_left]
+--   intro z hz
+--   rw [HyperEnv.mem_names_substNames] at ⊢ hz
+--   simp_all
+--   cases hz
+--   case inl hL =>
+--     constructor
+--     · intro hzy
+--       simp_all
+--       rw [Finset.disjoint_left] at hD
+--       exact hD hL
+--     · intro hyℋ
+--       simp_all
+--       have := HyperEnv.mem_pair_fst_in_names.mp hyℋ
+--       obtain ⟨T, Γ, hinΓ, hinℋ⟩ := this
+--       exact huniq Γ (Or.inr hinℋ) T hinΓ
+--   case inr hR =>
+--     obtain ⟨hzin𝒢, hneq⟩ := hR
+--     constructor
+--     · intro heq
+--       subst heq
+--       exfalso
+--       have := HyperEnv.mem_pair_fst_in_names.mp hzin𝒢
+--       obtain ⟨T, Γ, hinΓ, hΓin𝒢⟩ := this
+--       exact hneq (huniq Γ (Or.inl hΓin𝒢) T hinΓ)
+--     · intro hzinℋ
+--       exfalso
+--       rw [Finset.disjoint_left] at hD
+--       exact hD (a := z) hzin𝒢 hzinℋ
+
 lemma HyperEnv.substNames_preserves_disjoint {𝒢 ℋ : HyperEnv} {x y : FPName}
   (hD : 𝒢.disjoint ℋ) (huniq : ∀ Γ ∈ 𝒢 |ₕ ℋ, ∀ A, (y, A) ∈ Γ → y = x) :
   𝒢{y // x}.disjoint ℋ{y // x} := by
-  simp [HyperEnv.merge]
-  rw [Finset.disjoint_left]
-  simp [HasSubst.subst, HyperEnv.substNames, HyperEnv.disjoint]
+  simp_all only [HyperEnv.disjoint]
+  grind [HyperEnv.mem_names_substNames, Finset.disjoint_left, HyperEnv.mem_pair_fst_in_names]
 
 
+-- lemma Typing_substNames_aux_split_uniq {𝒢 ℋ : HyperEnv} {x y : FPName}
+--   (huniq : ∀ Γ ∈ 𝒢 |ₕ ℋ, ∀ (A : Types), (y, A) ∈ Γ → y = x) :
+--   (∀ Γ ∈ 𝒢, ∀ (A : Types), (y, A) ∈ Γ → y = x) ∧ (∀ Γ ∈ ℋ, ∀ (A : Types), (y, A) ∈ Γ → y = x) := by
+--   simp at huniq
+--   constructor
+--   · intro Γ h1 T h2
+--     exact huniq Γ (Or.inl h1) T h2
+--   · intros Γ h1 T h2
+--     exact huniq Γ (Or.inr h1) T h2
+
+-- lemma Typing_substNames_aux_split_uniq_iff {𝒢 ℋ : HyperEnv} {x y : FPName} :
+--   (∀ Γ ∈ 𝒢 |ₕ ℋ, ∀ (A : Types), (y, A) ∈ Γ → y = x) ↔
+--   (∀ Γ ∈ 𝒢, ∀ (A : Types), (y, A) ∈ Γ → y = x) ∧ (∀ Γ ∈ ℋ, ∀ (A : Types), (y, A) ∈ Γ → y = x) := by
+--   grind
 
 
 
@@ -1820,12 +1904,17 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
 
   case mix₀ => apply Typing.mix₀
 
-  case mix =>
+  case mix hD _ _ _ ihP ihQ=>
     apply Typing.mix
-    -- since disjoint before either x in 𝒢 or ℋ not both
-    -- if y == x nothing changes
-    -- y neq x and y fresh for 𝒢 |ₕ ℋ putting y in either 𝒢 or ℋ does not ruin disjointness
-    ·
+    -- obtain ⟨huP, huQ⟩ := Typing_substNames_aux_split_uniq huniq
+    · apply HyperEnv.substNames_preserves_disjoint
+      · exact hD
+      · exact huniq
+    · exact ihP (by grind)
+    · exact ihQ (by grind)
+
+
+
 
 
 
