@@ -1719,23 +1719,44 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
 
 -- FIXME: Move to Environment
 
-@[simp] lemma Env.mem_pair_fst_in_names {Γ : Env} {x : FPName} :
+@[simp] lemma Env.mem_pair_fst_in_names_iff {Γ : Env} {x : FPName} :
    x ∈ Γ.names ↔ ∃ A, (x, A) ∈ Γ := by simp_all [Env.names]
+
+@[simp] lemma Env.mem_pair_fst_in_names {Γ : Env} {x : FPName} :
+   ∀ A, (x, A) ∈ Γ → x ∈ Γ.names := by
+   intro A hin
+   cases hin
+   case head => simp_all
+   case tail hd tl hin =>
+    simp_all
+    use A
+    exact Or.inr hin
+
+
 
 @[simp] lemma Env.mem_names_impl_mem_substNames {Γ : Env} {x y : FPName} :
   x ∈ Γ.names → y ∈ Γ{y // x}.names := by
   simp_all [HasSubst.subst, Env.substNames, Env.names]
-  grind [Env.mem_pair_fst_in_names]
+  grind [Env.mem_pair_fst_in_names_iff]
 
-@[simp] lemma Env.mem_names_impl_mem_substNames' {Γ : Env} {x y : FPName} {hF : ∀ A, (y, A) ∉ Γ} :
+@[simp] lemma Env.mem_names_impl_mem_substNames' {Γ : Env} {x y : FPName}
+  {hF : ∀ A, (y, A) ∉ Γ} :
   y ∈ Γ{y // x}.names → x ∈ Γ.names := by
   simp_all [HasSubst.subst, Env.substNames, Env.names]
   grind
 
+@[simp] lemma Env.mem_names_substNames_iff {Γ : Env} {x y z : FPName} :
+  z ∈ Γ{y // x}.names ↔ (z = y ∧ x ∈ Γ.names) ∨ (z ∈ Γ.names ∧ z ≠ x) := by
+  simp_all [HasSubst.subst, Env.substNames, Env.names]
+  grind
+
+
+
+
 @[simp] lemma Env.mem_substNames {Γ : Env} {x y : FPName} {A : Types} :
   (x, A) ∈ Γ → (y, A) ∈ Γ{y // x} := by
   simp_all [HasSubst.subst, Env.substNames]
-  grind [Env.mem_pair_fst_in_names]
+  grind [Env.mem_pair_fst_in_names_iff]
 
 @[simp] lemma Env.mem_substNames_of_ne {Γ : Env} {x y z : FPName} {A : Types} :
   (z, A) ∈ Γ → z ≠ x → (z, A) ∈ Γ{y // x} := by
@@ -1750,16 +1771,6 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
     · constructor
       · apply hin
       · rfl
-
-lemma Env.mem_names_substNames {Γ : Env} {x y z : FPName} :
-  z ∈ Γ{y // x}.names ↔ (z = y ∧ x ∈ Γ.names) ∨ (z ∈ Γ.names ∧ z ≠ x) := by
-  induction Γ <;> simp_all [HasSubst.subst, Env.substNames]
-  case cons hd tl ih =>
-    constructor
-    · split_ifs <;> (simp_all ; grind)
-    · sorry
-
-
 
 lemma HyperEnv.mem_pair_fst_in_names {𝒢 : HyperEnv} {x : FPName} :
    x ∈ 𝒢.names ↔ ∃ A Γ, (x, A) ∈ Γ ∧ Γ ∈ 𝒢 := by
@@ -1804,7 +1815,7 @@ lemma HyperEnv.mem_names_substNames {𝒢 : HyperEnv} {x y z : FPName} :
   case nil => simp [HyperEnv.names]
   case cons hd tl ih =>
     constructor
-    case mp => grind [Env.substNames, Env.mem_pair_fst_in_names]
+    case mp => grind [Env.substNames, Env.mem_pair_fst_in_names_iff]
     case mpr =>
       intro h
       cases h with
@@ -1951,12 +1962,12 @@ instance : HasSubst FPName FPName FPName where subst x R T := FPName.subst R T x
 
 @[simp] lemma Proc.substNames_one {P : Proc} {x y z : FPName} :
   (#z⟦⟧․P){y // x} = (#z{y // x}⟦⟧․P{y // x}) := by
-  simp [HasSubst.subst, Proc.substNames, Channel.substNames, FPName.subst]
+  simp [HasSubst.subst, Proc.substNames, Channel.subst, FPName.subst]
   split_ifs <;> rfl
 
 @[simp] lemma Proc.substNames_bot {P : Proc} {x y z : FPName} :
   (#z⸨⸩․P){y // x} = (#z{y // x}⸨⸩․P{y // x}) := by
-  simp [HasSubst.subst, Proc.substNames, Channel.substNames, FPName.subst]
+  simp [HasSubst.subst, Proc.substNames, Channel.subst, FPName.subst]
   split_ifs <;> rfl
 
 
@@ -1964,30 +1975,44 @@ instance : HasSubst FPName FPName FPName where subst x R T := FPName.subst R T x
 
 
 
--- Condition: y is not already in G (unless y = x, which is a no-op)
-lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
-  Typing n P 𝒢 → (∀ Γ ∈ 𝒢, ∀ A, (y, A) ∈ Γ → y = x) →
-  Typing n (P{y // x}) (𝒢{y // x}) := by
-  intro hT huniq
-  induction hT generalizing x y <;> try simp
 
-  case mix₀ => apply Typing.mix₀
 
-  case mix hD _ _ _ ihP ihQ =>
-    apply Typing.mix
-    · apply HyperEnv.substNames_preserves_disjoint
-      · exact hD
-      · exact huniq
-    · exact ihP (by grind)
-    · exact ihQ (by grind)
 
-  case one ih =>
-    exact Typing.one (ih (by simp))
 
-  case bot Γ' P' z hF n' hT ih =>
-    apply Typing.bot
-    · sorry
-    · apply ih (by grind)
+
+
+-- FIXME: Move to Process
+@[simp] lemma FPName.subst_self {x y : FPName} :
+  x{y // x} = y := by simp [HasSubst.subst, FPName.subst]
+
+@[simp] lemma FPName.subst_self_of_ne {x y z : FPName} (hneq : z ≠ x) :
+  z{y // x} = z := by
+  simp [HasSubst.subst, FPName.subst]
+  intro h
+  contradiction
+
+lemma Env.fresh_substNames_aux {Γ : Env} {x y z : FPName}
+  (hyz : y = z → y = x) (hyΓ : y ∈ Γ.names → y = x) (hF : z ∉ Γ.names) :
+  (z{y // x}) ∉ (Γ{y // x}).names := by
+  intro hc
+  rw [mem_names_substNames_iff] at hc
+  by_cases hzx : z = x <;> (simp [hzx] at hc ; cases hc <;> simp_all)
+
+lemma Env.fresh_substNames {Γ : Env} {x y z : FPName} {A : Types} (hF : z ∉ Γ.names)
+  (huniq : ∀ Δ ∈ [z ∶ A :: Γ], ∀ (B : Types), (y, B) ∈ Δ → y = x) :
+  z{y // x} ∉ Env.names Γ{y // x} := by
+  apply Env.fresh_substNames_aux
+  · intro hyz
+    exact huniq (z ∶ A :: Γ) (by simp) A (by simp [hyz])
+  · intro hyΓ
+    obtain ⟨B, hB⟩ := Env.mem_pair_fst_in_names_iff.mp hyΓ
+    exact huniq (z ∶ A :: Γ) (by simp) B (by simp [hB])
+  · exact hF
+
+
+
+
+
 
 
 
