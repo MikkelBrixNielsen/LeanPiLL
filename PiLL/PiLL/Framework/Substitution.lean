@@ -671,21 +671,85 @@ import PiLL.Framework.Model.Judgement
 
 
 
-@[simp] lemma Proc.substNames_self {x : FPName} {P : Proc} :
+@[simp] lemma Proc.substNames_self {P : Proc} {x : FPName} :
   P{x // x} = P := by
   induction P generalizing x <;> simp_all [HasSubst.subst, Proc.substNames]
 
 
 
-@[simp] lemma Proc.substNames_oplus₁ {x y z : FPName} {P : Proc} :
-  (#z⟦𝐋⟧․P){y // x} = (#z{y // x}⟦𝐋⟧․P{y // x}) := by
-  simp [HasSubst.subst, Proc.substNames, Channel.subst, FPName.subst]
-  split_ifs <;> rfl
+macro "simp_Proc_substNames" : tactic =>
+  `(tactic|
+    (simp [HasSubst.subst, Proc.substNames, Channel.subst, FPName.subst] ;
+      try (split_ifs <;> try constructor <;> rfl)))
 
-@[simp] lemma Proc.substNames_oplus₂ {x y z : FPName} {P : Proc} :
+@[simp] lemma Proc.substNames_cut {P : Proc} {x y : FPName} :
+  (𝑣⸨#,#⸩P){y // x} = 𝑣⸨#,#⸩P{y // x} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_tensor {P : Proc} {x y z : FPName} :
+  (#z⟦#N⟧․P){y // x} = #z{y // x}⟦#N⟧․P{y // x} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_parr {P : Proc} {x y z : FPName} :
+  (#z⸨#N⸩․P){y // x} = #z{y // x}⸨#N⸩․P{y // x} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_oplus₁ {P : Proc} {x y z : FPName} :
+  (#z⟦𝐋⟧․P){y // x} = (#z{y // x}⟦𝐋⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_oplus₂ {P : Proc} {x y z : FPName} :
   (#z⟦𝐑⟧․P){y // x} = (#z{y // x}⟦𝐑⟧․P{y // x}) := by
-  simp [HasSubst.subst, Proc.substNames, Channel.subst, FPName.subst]
-  split_ifs <;> rfl
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_amp {P Q : Proc} {x y z : FPName} :
+  #z․case{𝐋 : P, 𝐑 : Q}{y // x} = #z{y // x}․case{𝐋 : P{y // x}, 𝐑 : Q{y // x}} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_quest {P : Proc} {x y z : FPName} :
+  (#z⟦USE⟧․P){y // x} = (#z{y // x}⟦USE⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_bang {P : Proc} {x y z : FPName} :
+  !#z․{P}{y // x} = !#z{y // x}․{P{y // x}} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_w {P : Proc} {x y z : FPName} :
+  (#z⟦DISP⟧․P){y // x} = (#z{y // x}⟦DISP⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_c {P : Proc} {x y z : FPName} :
+  (#z⟦DUP⟧⸨#N⸩․P){y // x} = (#z{y // x}⟦DUP⟧⸨#N⸩․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_exists {P : Proc} {x y z : FPName} {A : Types} :
+  (#z⟦A⟧․P){y // x} = (#z{y // x}⟦A⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_forall {P : Proc} {x y z : FPName} :
+  (#z⸨#T⸩․P){y // x} = (#z{y // x}⸨#T⸩․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_ax {w x y z : FPName} :
+  (#w⟷ₚ#z){y // x} = (#w{y // x}⟷ₚ#z{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.open_substNames_comm {Q : Proc} {x' x y : FPName} (hneq : x' ≠ x) :
+  Q⸨#x'⸩{y // x} = Q{y // x}⸨#x'⸩ := by
+  induction Q
+  case nil => simp [Proc.open0, Proc.open, HasSubst.subst, Proc.substNames]
+  case one => sorry
+  all_goals sorry
+
+
+
+
+
+
+
+-- @[simp] lemma Proc.open_substTypes_comm_notation {P : Proc} {u : Channel} {A : Types} {i : Nat} :
+--   P⸨u⸩{A // i} = P{A // i}⸨u⸩ := Proc.open_substTypes_comm
+
 
 
 
@@ -732,34 +796,81 @@ import PiLL.Framework.Model.Judgement
       · exact ih (hF := by simp_all)
 
 
+lemma Env.substNames_preserves_Types {Γ : Env} {x y : FPName} :
+  ∀ z A, (z, A) ∈ Γ → (z{y // x}, A) ∈ Γ{y // x} := by
+  simp [HasSubst.subst, Env.substNames, FPName.subst]
+  intro z A hMem
+  use z, A
+  simp_all
+  split_ifs <;> rfl
+
+lemma Env.mem_serverUsable_Types {Γ : Env} {x : FPName} {A : Types} :
+  ?ₑΓ → (x, A) ∈ Γ → A.isServerUsable := by
+  intro hServ hMem
+  simp [Env.serverUsable] at hServ
+  exact hServ x A hMem
+
+
+lemma Env.serverUsable_substNames {Γ : Env} {x y : FPName} :
+  ?ₑΓ → ?ₑΓ{y // x} := by
+  intro hServ
+  simp [HasSubst.subst, Env.substNames, Env.serverUsable]
+  intros z A w B hMem
+  split_ifs <;> intro h <;> (
+    simp_all
+    exact Env.mem_serverUsable_Types hServ hMem
+  )
+
+lemma Env.substNames_preserves_perm {Γ Δ : Env} {x y : FPName} :
+  Γ ~ Δ → Γ{y // x} ~ Δ{y // x} := by
+  simp_all [HasSubst.subst, Env.substNames]
+  grind
+
+@[simp] lemma Env.shiftTypes_substNames_comm {Γ : Env} {x y : FPName} :
+  (Γ{y // x})⁺ᵗ = (Γ⁺ᵗ){y // x} := by
+  simp_all [HasSubst.subst, Env.substNames, HasShiftTypes.shift, Env.shiftTypes]
+  intros ; split_ifs <;> rfl
+
+lemma Env.mem_shiftTypes_iff {Γ : Env} {y : FPName} {T : Types} :
+  (y, T) ∈ Γ⁺ᵗ ↔ ∃ A, (y, A) ∈ Γ ∧ T = A⁺ᵗ := by
+  induction Γ
+  case nil => simp
+  case cons hd tl ih =>
+    match hd with
+    | (x, B) => simp_all ; grind
+
+
+
+
+
+
+
+
+
+
+
 @[simp] lemma HyperEnv.substNames_self {𝒢 : HyperEnv} {x : FPName} :
   𝒢{x // x} = 𝒢 := by induction 𝒢 generalizing x <;> simp_all
 
 @[simp] lemma HyperEnv.substNames_of_not_mem {𝒢 : HyperEnv} {x : FPName} :
   x ∉ 𝒢.names → (𝒢{x // x} = 𝒢) := by induction 𝒢 <;> simp
 
+lemma HyperEnv.substNames_preserves_perm {𝒢 ℋ : HyperEnv} {x y : FPName} :
+  𝒢 ~ ℋ → 𝒢{y // x} ~ ℋ{y // x} := by
+  simp_all [HasSubst.subst, HyperEnv.substNames]
+  grind
 
 
--- FIXME:
--- @[simp] lemma Typing.fresh_substNames {n : Nat} {𝒢 : HyperEnv} {Γ : Env} {P : Proc}
---   {x y z : FPName} {A : Types} (huniq : ∀ Δ ∈ Γ :: 𝒢, ∀ (B : Types), (y, B) ∈ Δ → y = x)
---   (𝒟 : n ⊢ P ∷ [z ∶ A :: Γ])
-
---   (ih : ∀ {x y : FPName},
---     (∀ Δ ∈ [z ∶ A :: Γ],
---     ∀ (B : Types), (y, B) ∈ Δ → y = x)
---     → n ⊢ P{y // x} ∷ [z ∶ A :: Γ]{y // x}) :
-
---   n ⊢ P{y // x} ∷ [z{y // x} ∶ A :: Γ{y // x}] := by
-
---   by_cases hxy : x = y
---   case pos =>
---     simp_all
---   case neg =>
---     simp at ih
---     grind
---     simp_all?
-
+macro "split_names " x:term " eq " y:term " using " ih:ident : tactic =>
+  `(tactic| (
+    by_cases hxy : $x = $y
+    case pos =>
+      simp_all
+    case neg =>
+      simp at $ih:ident
+      grind [FPName.subst_self_of_ne, Proc.open_substNames_comm,
+        Env.shiftTypes_substNames_comm]
+  ))
 
 
 -- Condition: y is not already in G (unless y = x, which is a no-op)
@@ -788,32 +899,105 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
     · apply ih (by grind)
 
 
-  case cut => sorry
-  case tensor => sorry
-  case parr => sorry
+  case cut =>
+    -- apply Typing.cut
+    sorry
+
+  case tensor =>
+    -- apply Typing.tensor
+    sorry
+
+  case parr =>
+    -- apply Typing.parr
+    sorry
 
   case oplus₁ Γ _ z T1 T2 _ hlc _ ih =>
     apply Typing.oplus₁
     · exact hlc
-    · by_cases hxy : x = y
-      case pos => simp_all
-      case neg => simp at ih ; grind
+    · split_names x eq y using ih
+
+  case oplus₂ hlc _ ih =>
+    apply Typing.oplus₂
+    · exact hlc
+    · split_names x eq y using ih
+
+  case amp ihP ihQ =>
+    apply Typing.amp
+    · split_names x eq y using ihP
+    · split_names x eq y using ihQ
+
+  case quest ih =>
+    apply Typing.quest
+    split_names x eq y using ih
+
+  case bang hServ _ ih =>
+    apply Typing.bang
+    · exact Env.serverUsable_substNames hServ
+    · split_names x eq y using ih
+
+  case w hF _ hlc _ ih=>
+    apply Typing.w
+    · exact Env.fresh_substNames hF huniq
+    · exact hlc
+    · split_names x eq y using ih
+
+  case c Γ Q z A n' L hT ih =>
+    apply Typing.c (L ∪ {x} ∪ {y})
+    · intro w hin
+      specialize ih w (by simp at hin ; exact hin.2.2) (x := x) (y := y)
+      split_names x eq y using ih
 
 
 
-  case oplus₂ => sorry
-  case amp => sorry
-  case quest => sorry
-  case bang => sorry
-  case w => sorry
-  case c => sorry
-  case exists_ => sorry
-  case forall_ => sorry
+
+
+  case exists_ hlc _ ih =>
+    apply Typing.exists_
+    · exact hlc
+    · split_names x eq y using ih
+
+
+
+  case forall_ ih =>
+    apply Typing.forall_
+    have := ih (x := x) (y := y)
+    rw [Env.shiftTypes_substNames_comm]
+    simp only [HyperEnv.substnames_distributes, Env.substNames_distributes,
+      HyperEnv.substNames_nil] at this
+    apply this
+    simp at ⊢ huniq this
+    intros T hOr
+    cases hOr with
+    | inl hL =>
+      obtain ⟨hy, hT⟩ := hL
+      subst hy hT
+      exact huniq ∀․T (Or.inl ⟨rfl, rfl⟩)
+    | inr hin =>
+      obtain ⟨A, hL, hR⟩ := Env.mem_shiftTypes_iff.mp hin
+      exact huniq A (Or.inr hL)
 
 
 
 
 
-  case exchange_env => sorry
-  case exchange_hyper => sorry
-  case ax => sorry
+  case exchange_env hP ih =>
+    apply Typing.exchange_env
+    · apply ih ; grind
+      -- intros Ξ hin B hinΞ
+      -- simp at hin
+      -- grind
+      -- rcases hin with rfl | hin𝒢
+      -- · exact huniq Δ (by simp) B (hP.mem_iff.mp hinΞ)
+      -- · apply huniq Ξ (by simp ; apply Or.inr hin𝒢) B hinΞ
+    · exact Env.substNames_preserves_perm hP
+
+  case exchange_hyper hP ih =>
+    apply Typing.exchange_hyper
+    · apply ih ; grind
+    · apply HyperEnv.substNames_preserves_perm hP
+
+  case ax hlc =>
+    apply Typing.ax
+    · simp [HasSubst.subst, FPName.subst]
+      split_ifs <;> (by_contra ; simp_all)
+    · exact hlc
