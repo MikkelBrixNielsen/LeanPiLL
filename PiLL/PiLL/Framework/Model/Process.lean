@@ -582,13 +582,17 @@ def Proc.shiftTypes (d c : Nat) : Proc → Proc
 instance : HasShiftTypes Proc where shift P d c := Proc.shiftTypes d c P
 
 -- R : Replacement, T : Target
+def FPName.subst (R T : FPName) : FPName → FPName :=
+  (fun x => if x = T then R else x)
+
+instance : HasSubst FPName FPName FPName where subst x R T := FPName.subst R T x
+
 def Channel.subst (R T : FPName) : Channel → Channel
   | .free x => if x == T then .free R else .free x
   | .bound i => .bound i
 
 instance : HasSubst Channel FPName FPName where subst C R T := Channel.subst R T C
 
--- R : Replacement, T : Target
 def Proc.substNames (R T : FPName) : Proc → Proc
   | .nil              => .nil
   | .one x P          => .one (x.subst R T) (P.substNames R T)
@@ -630,3 +634,135 @@ def Proc.substTypes (A : Types) (k : Nat) : Proc → Proc
   | .link x y         => .link x y
 
 instance : HasSubst Proc Types Nat where subst P A k := Proc.substTypes A k P
+
+@[simp] lemma FPName.subst_id {x z : FPName} :
+  z{x // x} = z := by
+  simp [HasSubst.subst, FPName.subst]
+  intro h
+  apply h.symm
+
+@[simp] lemma FPName.subst_self {x y : FPName} :
+  x{y // x} = y := by simp [HasSubst.subst, FPName.subst]
+
+@[simp] lemma FPName.subst_self_of_ne {x y z : FPName} (hneq : z ≠ x) :
+  z{y // x} = z := by
+  simp [HasSubst.subst, FPName.subst]
+  intro h
+  contradiction
+
+@[simp] lemma Channel.subst_self {u : Channel} {x : FPName} :
+  u.subst x x = u := by
+  induction u generalizing x <;> simp_all [Channel.subst]
+
+@[simp] lemma Channel.subst_self_notation {u : Channel} {x : FPName} :
+  u{x // x} = u := by
+  induction u generalizing x <;> simp_all [HasSubst.subst, Channel.subst]
+
+@[simp] lemma Proc.substNames_self {P : Proc} {x : FPName} :
+  P{x // x} = P := by
+  induction P generalizing x <;> simp_all [HasSubst.subst, Proc.substNames]
+
+@[simp] lemma Proc.substNames_par {P Q : Proc} {x y : FPName} :
+  (P |ₚ Q){y // x} = P{y // x} |ₚ (Q{y // x}) := by
+  simp [HasSubst.subst, Proc.substNames]
+
+macro "simp_Proc_substNames" : tactic =>
+  `(tactic|
+    (simp [HasSubst.subst, Proc.substNames, Channel.subst, FPName.subst] ;
+      try (split_ifs <;> try constructor <;> rfl)))
+
+@[simp] lemma Proc.substNames_one {P : Proc} {x y z : FPName} :
+  (#z⟦⟧․P){y // x} = (#z{y // x}⟦⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_bot {P : Proc} {x y z : FPName} :
+  (#z⸨⸩․P){y // x} = (#z{y // x}⸨⸩․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_cut {P : Proc} {x y : FPName} :
+  (𝑣⸨#,#⸩P){y // x} = 𝑣⸨#,#⸩P{y // x} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_tensor {P : Proc} {x y z : FPName} :
+  (#z⟦#N⟧․P){y // x} = #z{y // x}⟦#N⟧․P{y // x} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_parr {P : Proc} {x y z : FPName} :
+  (#z⸨#N⸩․P){y // x} = #z{y // x}⸨#N⸩․P{y // x} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_oplus₁ {P : Proc} {x y z : FPName} :
+  (#z⟦𝐋⟧․P){y // x} = (#z{y // x}⟦𝐋⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_oplus₂ {P : Proc} {x y z : FPName} :
+  (#z⟦𝐑⟧․P){y // x} = (#z{y // x}⟦𝐑⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_amp {P Q : Proc} {x y z : FPName} :
+  #z․case{𝐋 : P, 𝐑 : Q}{y // x} = #z{y // x}․case{𝐋 : P{y // x}, 𝐑 : Q{y // x}} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_quest {P : Proc} {x y z : FPName} :
+  (#z⟦USE⟧․P){y // x} = (#z{y // x}⟦USE⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_bang {P : Proc} {x y z : FPName} :
+  !#z․{P}{y // x} = !#z{y // x}․{P{y // x}} := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_w {P : Proc} {x y z : FPName} :
+  (#z⟦DISP⟧․P){y // x} = (#z{y // x}⟦DISP⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_c {P : Proc} {x y z : FPName} :
+  (#z⟦DUP⟧⸨#N⸩․P){y // x} = (#z{y // x}⟦DUP⟧⸨#N⸩․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_exists {P : Proc} {x y z : FPName} {A : Types} :
+  (#z⟦A⟧․P){y // x} = (#z{y // x}⟦A⟧․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_forall {P : Proc} {x y z : FPName} :
+  (#z⸨#T⸩․P){y // x} = (#z{y // x}⸨#T⸩․P{y // x}) := by
+  simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_ax {w x y z : FPName} :
+  (#w⟷ₚ#z){y // x} = (#w{y // x}⟷ₚ#z{y // x}) := by
+  simp_Proc_substNames
+
+lemma Proc.shiftTypes_open_comm {n d c : Nat} {P : Proc} {u : Channel} :
+  (P.open n u) ↑ᵗ d, c = (P ↑ᵗ d, c).open n u := by
+  induction P generalizing d n <;> simp_all [Proc.open, HasShiftTypes.shift, Proc.shiftTypes]
+
+lemma Proc.shiftTypes0_open0_comm {c : Nat} {P : Proc} {u : Channel} :
+  (P⸨u⸩) ↑ᵗ c = (P ↑ᵗ c)⸨u⸩ := Proc.shiftTypes_open_comm
+
+lemma Proc.shiftTypes_open0_comm {d c : Nat} {P : Proc} {u : Channel} :
+  (P⸨u⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨u⸩ := Proc.shiftTypes_open_comm
+
+lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
+  (P⸨x, y⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨x, y⸩ := by
+  simp [Proc.openCut, Proc.shiftTypes_open_comm]
+
+@[simp] lemma Proc.substTypes_ax {u v : Channel} {A : Types} {k : Nat} :
+  (u ⟷ₚ v){A // k} = (u ⟷ₚ v) := by simp [HasSubst.subst, Proc.substTypes]
+
+@[simp] lemma Proc.substTypes_par {P Q : Proc} {A : Types} {k : Nat} :
+  (P |ₚ Q){A // k} = P{A // k} |ₚ Q{A // k} := by simp [HasSubst.subst, Proc.substTypes]
+
+@[simp] lemma Proc.open_substTypes_comm {P : Proc} {u : Channel} {A : Types} {d i : Nat} :
+  (P.open d u).substTypes A i = (P.substTypes A i).open d u := by
+  induction P generalizing A i d u <;> simp_all [Proc.open, Channel.open, Proc.substTypes]
+
+@[simp] lemma Proc.open_substTypes_comm_notation {P : Proc} {u : Channel} {A : Types} {i : Nat} :
+  P⸨u⸩{A // i} = P{A // i}⸨u⸩ := Proc.open_substTypes_comm
+
+@[simp] lemma Proc.openCut_substTypes_comm {P : Proc} {u v : Channel} {A : Types} {i : Nat} :
+  (P.openCut u v).substTypes A i = (P.substTypes A i).openCut u v := by
+  induction P generalizing A i u <;>
+    simp_all [Proc.openCut, Proc.open, Channel.open, Proc.substTypes]
+
+@[simp] lemma Proc.openCut_substTypes_comm_notation
+  {P : Proc} {u v : Channel} {A : Types} {i : Nat} :
+  (P⸨u, v⸩){A // i} = (P{A // i})⸨u, v⸩ := Proc.openCut_substTypes_comm

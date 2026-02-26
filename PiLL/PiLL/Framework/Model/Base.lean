@@ -26,15 +26,12 @@ class HasSubst (Subject Replacement Target : Type) where
   subst : Subject → Replacement → Target → Subject
 
 notation:max S "{" R " // " T "}" => HasSubst.subst S R T
--- notation:max S "{" R " // " "#T}" => HasSubst.subst S R 0
 
+class HasBracket (Subject Content Result : Type) where
+   brack : Subject → Content → Result
 
--- NOTE: Might be irrelevant now
--- class HasBracket (Subject Content Result : Type) where
---    brack : Subject → Content → Result
-
--- class HasParen (Subject Content Result : Type) where
---    paren : Subject → Content → Result
+class HasParen (Subject Content Result : Type) where
+   paren : Subject → Content → Result
 
 ------------------------------- ADDITIONAL FINSET THEOREMS --------------------------------
 

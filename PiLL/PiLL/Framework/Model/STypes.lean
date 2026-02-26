@@ -436,9 +436,67 @@ lemma Types.shift_0_subst_comm {A B : Types} {c i : Nat} :
   (B.subst A i).shift 0 c = (B.shift 0 c).subst (A.shift 0 c) (i + c) :=
   Types.shift_subst_comm_depth_le_idx (by simp)
 
+@[simp] lemma Types.isServerUsable_shift {d c : Nat} {A : Types} :
+  A.isServerUsable ↔ (A ↑ᵗ d, c).isServerUsable := by
+  cases A <;> simp [HasShiftTypes.shift, Types.shift, Types.isServerUsable]
 
+lemma Types.lc_subst_lc_eq_lc_gen {A B : Types} {n n' k : Nat} :
+  n' ≤ n → k ≤ n → Types.lc n B → Types.lc n' A → Types.lc n (B.subst A k) := by
+  intro hle1 hle2 hB hA
+  induction B generalizing n n' A k <;> try grind [Types.lc, TVar.lc, Types.subst]
 
+  case var v | varDual v => cases v <;>
+    grind [Types.lc, TVar.lc, Types.subst, Types.lc_dual, Types.lc_le]
 
+  case forall_ ih | exists_ ih =>
+    exact ih (by simp_all) (by simp_all) hB (Types.lc_shift hA)
+
+lemma Types.lc_subst_lc_eq_lc {A B : Types} {n k : Nat} :
+  Types.lc (n + 1) B → Types.lc n A → k ≤ n → Types.lc n (B.subst A k) := by
+  intro hB hA hk
+  induction B generalizing n k hk A <;>
+    simp_all [Types.lc, TVar.lc, Types.subst, Types.lc_shift]
+  case var v | varDual v => grind [Types.lc, Types.subst, TVar.lc, Types.lc_dual]
+
+lemma Types.isServerUsable_subst {T A : Types} {k : Nat} (h : T.isServerUsable) :
+  (T.subst A k).isServerUsable := by
+  cases T <;> simp_all [Types.isServerUsable, Types.subst]
+
+lemma Types.subst_dual_comm {A B : Types} {k : Nat} :
+  (B.subst A k).dual = (B.dual).subst A k := by
+  induction B generalizing A k <;> simp_all [Types.subst, Types.dual]
+  case var v |varDual v =>
+    cases v <;> grind [Types.subst, Types.dual, Types.dual_involution]
+
+lemma Types.shift_subst_cancel {A B : Types} {d : Nat} :
+  (A.shift d 1).subst B d = A := by
+  induction A generalizing d B <;> simp_all [Types.shift, Types.subst]
+  case var v | varDual v => cases v <;> grind [TVar.shift, Types.subst]
+
+-- B{A' // d}{A // i} = B{A ↑ᵗ d, 1 // i + 1}{A'{A // i} // d}
+lemma Types.subst_comm {A A' B : Types} {d i : Nat} (hle : d ≤ i) :
+  (B.subst A' d).subst A i = (B.subst (A.shift d 1) (i + 1)).subst (A'.subst A i) d := by
+  induction B generalizing A A' d i hle <;> try simp_all [Types.subst]
+
+  case forall_ ih | exists_ ih => rw [Types.shift_comm_0, Types.shift_0_subst_comm]
+
+  case var v | varDual v =>
+    cases v <;> (
+      simp_all [Types.subst] <;> (
+        grind [Types.subst, Types.shift_subst_cancel, Types.subst_dual_comm,
+          Types.dual_involution]
+      )
+    )
+
+  -- B{A' // 0}{A // k} = B{A ↑ᵗ 0, 1 // k + 1}{A'{A // k} // 0}
+lemma Types.subst_comm_0 {A A' B : Types} {i : Nat} :
+  (B.subst A' 0).subst A i = (B.subst (A.shift 0 1) (i + 1)).subst (A'.subst A i) 0 :=
+    Types.subst_comm (by simp)
+
+@[simp] lemma Types.subst_comm_notation {A B : Types} {i : Nat} :
+  Bᗮ{A // i} = B{A // i}ᗮ := by
+  simp [HasSubst.subst]
+  rw [Types.subst_dual_comm]
 
 
 

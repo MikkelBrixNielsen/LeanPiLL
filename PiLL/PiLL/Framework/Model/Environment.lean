@@ -618,6 +618,291 @@ lemma Env.lc_perm {n : Nat} {Γ Δ : Env} :
     rw [List.Perm.mem_iff hPerm] at hin
     exact h x A hin
 
+@[simp] lemma Env.substNames_singleton {x y : FPName} {A : Types} :
+  ([x ∶ A] : Env){y // x} = [x{y // x} ∶ A] := by
+  simp [HasSubst.subst, Env.substNames, FPName.subst]
+
+@[simp] lemma Env.substNames_distributes {Γ : Env} {x y z : FPName} {A : Types} :
+  (z ∶ A :: Γ){y // x} = z{y // x} ∶ A :: Γ{y // x} := by
+  simp [HasSubst.subst, Env.substNames, FPName.subst]
+  split_ifs <;> rfl
+
+@[simp] lemma Env.substNames_merge {Γ Δ : Env} {x y : FPName} :
+  (Γ ++ Δ){y // x} =  Γ{y // x} ++ Δ{y // x} := by
+  simp [HasSubst.subst, Env.substNames]
+
+@[simp] lemma Env.substNames_nil {x y : FPName} :
+  ([] : Env){x // y} = [] := by simp [HasSubst.subst, Env.substNames]
+
+@[simp] lemma Env.mem_pair_fst_in_names_iff {Γ : Env} {x : FPName} :
+   x ∈ Γ.names ↔ ∃ A, (x, A) ∈ Γ := by simp_all [Env.names]
+
+@[simp] lemma Env.mem_pair_fst_in_names {Γ : Env} {x : FPName} :
+   ∀ A, (x, A) ∈ Γ → x ∈ Γ.names := by
+   intro A hin
+   cases hin
+   case head => simp_all
+   case tail hd tl hin =>
+    simp_all
+    use A
+    exact Or.inr hin
+
+@[simp] lemma Env.mem_names_impl_mem_substNames {Γ : Env} {x y : FPName} :
+  x ∈ Γ.names → y ∈ Γ{y // x}.names := by
+  simp_all [HasSubst.subst, Env.substNames, Env.names]
+  grind [Env.mem_pair_fst_in_names_iff]
+
+@[simp] lemma Env.mem_names_impl_mem_substNames' {Γ : Env} {x y : FPName}
+  {hF : ∀ A, (y, A) ∉ Γ} :
+  y ∈ Γ{y // x}.names → x ∈ Γ.names := by
+  simp_all [HasSubst.subst, Env.substNames, Env.names]
+  grind
+
+@[simp] lemma Env.mem_names_substNames_iff {Γ : Env} {x y z : FPName} :
+  z ∈ Γ{y // x}.names ↔ (z = y ∧ x ∈ Γ.names) ∨ (z ∈ Γ.names ∧ z ≠ x) := by
+  simp_all [HasSubst.subst, Env.substNames, Env.names]
+  grind
+
+@[simp] lemma Env.mem_substNames {Γ : Env} {x y : FPName} {A : Types} :
+  (x, A) ∈ Γ → (y, A) ∈ Γ{y // x} := by
+  simp_all [HasSubst.subst, Env.substNames]
+  grind [Env.mem_pair_fst_in_names_iff]
+
+@[simp] lemma Env.mem_substNames_of_ne {Γ : Env} {x y z : FPName} {A : Types} :
+  (z, A) ∈ Γ → z ≠ x → (z, A) ∈ Γ{y // x} := by
+  intro hin hneq
+  simp [HasSubst.subst, Env.substNames]
+  use z
+  constructor
+  · split_ifs with h
+    · constructor
+      · apply hin
+      · simp_all
+    · constructor
+      · apply hin
+      · rfl
+
+lemma Env.fresh_substNames_aux {Γ : Env} {x y z : FPName}
+  (hyz : y = z → y = x) (hyΓ : y ∈ Γ.names → y = x) (hF : z ∉ Γ.names) :
+  (z{y // x}) ∉ (Γ{y // x}).names := by
+  intro hc
+  rw [mem_names_substNames_iff] at hc
+  by_cases hzx : z = x <;> (simp [hzx] at hc ; cases hc <;> simp_all)
+
+lemma Env.fresh_substNames {Γ : Env} {x y z : FPName} {A : Types} (hF : z ∉ Γ.names)
+  (huniq : ∀ Δ ∈ [z ∶ A :: Γ], ∀ (B : Types), (y, B) ∈ Δ → y = x) :
+  z{y // x} ∉ Env.names Γ{y // x} := by
+  apply Env.fresh_substNames_aux
+  · intro hyz
+    exact huniq (z ∶ A :: Γ) (by simp) A (by simp [hyz])
+  · intro hyΓ
+    obtain ⟨B, hB⟩ := Env.mem_pair_fst_in_names_iff.mp hyΓ
+    exact huniq (z ∶ A :: Γ) (by simp) B (by simp [hB])
+  · exact hF
+
+@[simp] lemma Env.serverUsable_shiftTypes {d c : Nat} {Γ : Env} :
+  ?ₑΓ → ?ₑ(Γ ↑ᵗ d, c) := by
+  simp [Env.serverUsable, HasShiftTypes.shift, Env.shiftTypes]
+  intro h x A x' A' hMem heq hShift
+  have := h x' A' hMem
+  apply Types.isServerUsable_shift (d := d) (c := c).mp at this
+  simp [HasShiftTypes.shift] at this
+  rw [hShift] at this
+  exact this
+
+@[simp] lemma Env.shiftTypes_empty {d c : Nat} :
+  ([] : Env) ↑ᵗ d, c = ([] : Env) := by
+  simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.shiftTypes_singleton {d c : Nat} {x : FPName} {A : Types} :
+  [x ∶ A] ↑ᵗ d, c = [x ∶ A ↑ᵗ d, c] := by
+    simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.shiftTypes_cons {d k : Nat} {Γ : Env} {x : FPName} {A : Types} :
+  (x ∶ A :: Γ) ↑ᵗ d, k = x ∶ A ↑ᵗ d, k :: Γ ↑ᵗ d, k := by
+    simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.shiftTypes_append {d k : Nat} {Γ Δ : Env} :
+  (Γ ++ Δ) ↑ᵗ d, k = Γ ↑ᵗ d, k ++ Δ ↑ᵗ d, k := by
+    simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.shiftTypes_preserves_names {d c : Nat} {Γ : Env} :
+  (Γ ↑ᵗ d, c).names = Γ.names := by
+  simp [HasShiftTypes.shift, Env.shiftTypes, Env.names]
+  rfl
+
+@[simp] lemma Env.shiftTypes_preserves_disjoint {d c : Nat} {Γ Δ : Env} :
+  Γ.disjoint Δ → (Γ ↑ᵗ d, c).disjoint (Δ ↑ᵗ d, c) := by simp
+
+@[simp] lemma Env.shiftTypes_preserves_perm {d c : Nat} {Γ Δ : Env} :
+  (Γ ~ Δ) → (Γ ↑ᵗ d, c ~ Δ ↑ᵗ d, c) := by
+  simp [HasShiftTypes.shift]
+  apply List.Perm.map
+
+lemma Env.shiftTypes_comm {Γ : Env} {d c : Nat} :
+  (Γ.shiftTypes d c).shiftTypes 0 1 = (Γ.shiftTypes 0 1).shiftTypes (d + 1) c := by
+  induction Γ <;> grind [Env.shiftTypes, Types.shift_comm_0]
+
+@[simp] lemma Env.substNames_self {Γ : Env} {x : FPName} :
+  Γ{x // x} = Γ := by
+  induction Γ generalizing x <;> simp_all [HasSubst.subst, Env.substNames]
+  case cons hd tl ih =>
+    intro h
+    obtain ⟨hd1, hd2⟩ := hd
+    simp_all
+
+@[simp] lemma Env.not_mem_names_iff {Γ : Env} {x : FPName} :
+  x ∉ Γ.names ↔ ∀ A, (x, A) ∉ Γ := by
+  simp [Env.mem_pair_fst_in_names_iff]
+
+@[simp] lemma Env.not_mem_names_cons {Γ : Env} {E : Elem} {x : FPName} :
+  x ∉ Env.names (E :: Γ) ↔ x ≠ E.1 ∧ x ∉ Γ.names := by
+  simp_all
+  constructor
+  · intro h
+    simp_all
+    obtain ⟨E1, E2⟩ := E
+    specialize h E2
+    simp_all
+  · intro A
+    obtain ⟨E1, E2⟩ := E
+    simp_all
+
+@[simp] lemma Env.substNames_of_not_mem {Γ : Env} {x y : FPName} :
+  x ∉ Γ.names → Γ{y // x} = Γ := by
+  intro hF
+  induction Γ
+  case nil => simp
+  case cons E Γ ih =>
+    cases E
+    case mk z A =>
+      have : x ≠ z := by
+        simp at hF
+        specialize hF A
+        simp_all
+      simp
+      constructor
+      · apply FPName.subst_self_of_ne (this.symm)
+      · exact ih (hF := by simp_all)
+
+lemma Env.substNames_preserves_Types {Γ : Env} {x y : FPName} :
+  ∀ z A, (z, A) ∈ Γ → (z{y // x}, A) ∈ Γ{y // x} := by
+  simp [HasSubst.subst, Env.substNames, FPName.subst]
+  intro z A hMem
+  use z, A
+  simp_all
+  split_ifs <;> rfl
+
+lemma Env.mem_serverUsable_Types {Γ : Env} {x : FPName} {A : Types} :
+  ?ₑΓ → (x, A) ∈ Γ → A.isServerUsable := by
+  intro hServ hMem
+  simp [Env.serverUsable] at hServ
+  exact hServ x A hMem
+
+lemma Env.serverUsable_substNames {Γ : Env} {x y : FPName} :
+  ?ₑΓ → ?ₑΓ{y // x} := by
+  intro hServ
+  simp [HasSubst.subst, Env.substNames, Env.serverUsable]
+  intros z A w B hMem
+  split_ifs <;> intro h <;> (
+    simp_all
+    exact Env.mem_serverUsable_Types hServ hMem
+  )
+
+lemma Env.substNames_preserves_perm {Γ Δ : Env} {x y : FPName} :
+  Γ ~ Δ → Γ{y // x} ~ Δ{y // x} := by
+  simp_all [HasSubst.subst, Env.substNames]
+  grind
+
+@[simp] lemma Env.shiftTypes_substNames_comm {Γ : Env} {x y : FPName} :
+  (Γ{y // x})⁺ᵗ = (Γ⁺ᵗ){y // x} := by
+  simp_all [HasSubst.subst, Env.substNames, HasShiftTypes.shift, Env.shiftTypes]
+  intros ; split_ifs <;> rfl
+
+lemma Env.mem_shiftTypes_iff {Γ : Env} {y : FPName} {T : Types} :
+  (y, T) ∈ Γ⁺ᵗ ↔ ∃ A, (y, A) ∈ Γ ∧ T = A⁺ᵗ := by
+  induction Γ
+  case nil => simp
+  case cons hd tl ih =>
+    match hd with
+    | (x, B) => simp_all ; grind
+
+
+macro "fresh_substNames_binary_aux"
+  z:term ", " C:term ", " Γ:term ", " Δ:term ", " huniq:term: tactic =>
+  `(tactic| (
+    intro Ξ hin T hMem
+    simp at hin; subst hin
+    simp at hMem
+    rcases hMem with ⟨hyz, rfl⟩ | hin
+    · exact $huniq ($z ∶ $C :: $Γ ++ $Δ) (by simp) $C (by simp [hyz])
+    · apply $huniq ($z ∶ $C :: $Γ ++ $Δ) (by simp) T
+      simp
+      right ; left ; exact hin
+      simp
+  ))
+
+lemma Env.fresh_substNames_binary {Γ Δ : Env} {x y z : FPName} {C : Types}
+  (hF : z ∉ Γ.names ∧ z ∉ Δ.names)
+  (huniq : ∀ Γ_1 ∈ [z ∶ C :: Γ ++ Δ], ∀ (T : Types), (y, T) ∈ Γ_1 → y = x) :
+  z{y // x} ∉ Γ{y // x}.names ∧ z{y // x} ∉ Δ{y // x}.names := by
+  cases hF
+  case intro hFΓ hFΔ =>
+  constructor
+  · exact Env.fresh_substNames hFΓ (A := C) (by simp_all ; grind)
+  · exact Env.fresh_substNames hFΔ (A := C) (by simp_all ; grind)
+
+@[simp] lemma Env.serverUsable_substTypes {Γ : Env} {A : Types} {k : Nat} (h : ?ₑΓ) :
+  (Γ.substTypes A k).serverUsable := by
+  induction Γ
+  case nil => intro p hp ; contradiction
+  case cons hd tl ih =>
+    match hd with
+    | (x, T) =>
+      intro p hp
+      have hxT := by apply h (x, T) ; simp
+      have htl : ?ₑtl := by intro q hq ; apply h q ; simp [hq]
+      simp [Env.substTypes] at hp
+      cases hp with
+      | inl hphd =>
+        rw [hphd] ; simp
+        apply Types.isServerUsable_subst hxT
+      | inr hptl =>
+        apply ih htl
+        simp [Env.substTypes]
+        exact hptl
+
+@[simp] lemma Env.substTypes_singleton {x : FPName} {A : Types} {k : Nat} :
+  ([x ∶ A] : Env){A // k} = [x ∶ A{A // k}] := by simp [HasSubst.subst, Env.substTypes]
+
+@[simp] lemma Env.substTypes_distributes {Γ : Env} {x : FPName} {A B : Types} {k : Nat} :
+  (x ∶ B :: Γ){A // k} = x ∶ B{A // k} :: Γ{A // k} := by simp [HasSubst.subst, Env.substTypes]
+
+@[simp] lemma Env.substTypes_merge {Γ Δ : Env} {A : Types} {k : Nat} :
+  (Γ ++ Δ){A // k} =  Γ{A // k} ++ Δ{A // k} := by simp [HasSubst.subst, Env.substTypes]
+
+@[simp] lemma Env.substTypes_nil {A : Types} {k : Nat} :
+  ([] : Env){A // k} = [] := by simp [HasSubst.subst, Env.substTypes]
+
+@[simp] lemma Env.substTypes_preserves_names {Γ : Env} {A : Types} {k : Nat} :
+  Γ{A // k}.names = Γ.names := by
+  simp [HasSubst.subst, Env.substTypes, Env.names]
+  rfl
+
+@[simp] lemma Env.substTypes_preserves_disjoint {Γ Δ : Env} {A : Types} {k : Nat} :
+  Γ.disjoint Δ → Γ{A // k}.disjoint Δ{A // k} := by
+  simp [Env.disjoint]
+
+@[simp] lemma Env.substTypes_preserves_perm {Γ Δ : Env} {A : Types} {k : Nat} :
+  (Γ ~ Δ) → (Γ{A // k} ~ Δ{A // k}) := by
+  simp [HasSubst.subst]
+  apply List.Perm.map
+
+-- Γ{A // k}⁺ᵗ = Γ⁺ᵗ{A⁺ᵗ // k + 1}
+@[simp] lemma Env.shiftTypes_substTypes_comm {Γ : Env} {A : Types} {k : Nat} :
+  (Γ.substTypes A k).shiftTypes 0 1 = (Γ.shiftTypes 0 1).substTypes (A.shift 0 1) (k + 1) := by
+  induction Γ <;> simp [Env.substTypes, Env.shiftTypes, Types.shift_0_subst_comm]
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
@@ -681,3 +966,167 @@ lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
     | inr hΓ =>
       apply Finset.Subset.trans (ih hΓ)
       apply Finset.subset_union_right
+
+@[simp] lemma HyperEnv.substNames_singleton {Γ : Env} {x y : FPName} :
+  ([Γ] : HyperEnv){y // x} = [Γ{y // x}] := by simp [HasSubst.subst, HyperEnv.substNames]
+
+@[simp] lemma HyperEnv.substNames_distributes {𝒢 : HyperEnv} {Γ : Env} {x y : FPName} :
+  (Γ :: 𝒢){y // x} = Γ{y // x} :: 𝒢{y // x} := by simp [HasSubst.subst, HyperEnv.substNames]
+
+@[simp] lemma HyperEnv.substNames_merge {𝒢 ℋ : HyperEnv} {x y : FPName} :
+  (𝒢 |ₕ ℋ){y // x} = 𝒢{y // x} |ₕ ℋ{y // x} := by
+  simp [HasSubst.subst, HyperEnv.substNames]
+
+@[simp] lemma HyperEnv.substNames_nil {x y : FPName} :
+  ([] : HyperEnv){y // x} = [] := by simp [HasSubst.subst, HyperEnv.substNames]
+
+@[simp] lemma HyperEnv.shiftTypes_empty {d c : Nat} :
+  ([] : HyperEnv) ↑ᵗ d, c = ([] : HyperEnv) := by
+  simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+
+@[simp] lemma HyperEnv.shiftTypes_singleton {d c : Nat} {Γ : Env} :
+  [Γ] ↑ᵗ d, c = [Γ ↑ᵗ d, c] := by
+    simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+
+@[simp] lemma HyperEnv.shiftTypes_cons {d k : Nat} {𝒢 : HyperEnv} {Γ : Env} :
+  (Γ :: 𝒢) ↑ᵗ d, k = Γ ↑ᵗ d, k :: 𝒢 ↑ᵗ d, k := by
+    simp [HasShiftTypes.shift, HyperEnv.shiftTypes, Env.shiftTypes]
+
+@[simp] lemma HyperEnv.shiftTypes_append {d k : Nat} {𝒢 ℋ : HyperEnv} :
+  (𝒢 ++ ℋ) ↑ᵗ d, k = 𝒢 ↑ᵗ d, k ++ ℋ ↑ᵗ d, k := by
+    simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+
+@[simp] lemma HyperEnv.namesTypes_cons {Γ : Env} {𝒢 : HyperEnv} :
+  HyperEnv.names (Γ :: 𝒢) = Γ.names ∪ 𝒢.names := by simp [HyperEnv.names]
+
+@[simp] lemma HyperEnv.shiftTypes_preserves_names {d c : Nat} {𝒢 : HyperEnv} :
+  (𝒢 ↑ᵗ d, c).names = 𝒢.names := by
+  induction 𝒢 <;> simp_all
+
+@[simp] lemma HyperEnv.shiftTypes_preserves_disjoint {d c : Nat} {𝒢 ℋ : HyperEnv} :
+  (𝒢.disjoint ℋ) → ((𝒢 ↑ᵗ d, c).disjoint (ℋ ↑ᵗ d, c)) := by simp
+
+@[simp] lemma HyperEnv.shiftTypes_preserves_perm {d c : Nat} {𝒢 ℋ : HyperEnv} :
+  (𝒢 ~ ℋ) → (𝒢 ↑ᵗ d, c ~ ℋ ↑ᵗ d, c) := by
+  simp [HasShiftTypes.shift]
+  apply List.Perm.map
+
+@[simp] lemma HyperEnv.substNames_self {𝒢 : HyperEnv} {x : FPName} :
+  𝒢{x // x} = 𝒢 := by induction 𝒢 generalizing x <;> simp_all
+
+@[simp] lemma HyperEnv.substNames_of_not_mem {𝒢 : HyperEnv} {x : FPName} :
+  x ∉ 𝒢.names → (𝒢{x // x} = 𝒢) := by induction 𝒢 <;> simp
+
+lemma HyperEnv.substNames_preserves_perm {𝒢 ℋ : HyperEnv} {x y : FPName} :
+  𝒢 ~ ℋ → 𝒢{y // x} ~ ℋ{y // x} := by
+  simp_all [HasSubst.subst, HyperEnv.substNames]
+  grind
+
+lemma HyperEnv.mem_pair_fst_in_names {𝒢 : HyperEnv} {x : FPName} :
+   x ∈ 𝒢.names ↔ ∃ A Γ, (x, A) ∈ Γ ∧ Γ ∈ 𝒢 := by
+   induction 𝒢
+   case nil => simp_all [HyperEnv.names]
+   case cons hd tl ih =>
+    constructor
+    case mp =>
+      intro h
+      simp at h
+      cases h
+      case inl hL =>
+        cases hL
+        case intro T hin =>
+          use T, hd
+          exact ⟨hin, by simp⟩
+      case inr hR =>
+        have := ih.mp hR
+        simp_all
+        obtain ⟨T, Γ, hinΓ, hinℋ⟩ := this
+        use T, Γ
+        exact ⟨hinΓ, by apply Or.inr ; exact hinℋ⟩
+    case mpr =>
+      intro h
+      obtain ⟨T, Γ, hinΓ, hOr⟩ := h
+      cases hOr
+      case head =>
+        simp_all
+        apply Or.inl
+        use T
+      case tail hMem =>
+        simp_all
+        apply Or.inr
+        use T, Γ
+        constructor
+        · exact hinΓ
+        · apply hMem
+
+lemma HyperEnv.mem_names_substNames {𝒢 : HyperEnv} {x y z : FPName} :
+  z ∈ (𝒢{y // x}).names ↔ (z = y ∧ x ∈ 𝒢.names) ∨ (z ∈ 𝒢.names ∧ z ≠ x) := by
+  induction 𝒢 <;> simp_all [HasSubst.subst, HyperEnv.substNames]
+  case nil => simp [HyperEnv.names]
+  case cons hd tl ih =>
+    constructor
+    case mp => grind [Env.substNames, Env.mem_pair_fst_in_names_iff]
+    case mpr =>
+      intro h
+      cases h with
+      | inl h' =>
+        cases h'
+        case inl.intro heq hin =>
+          cases hin with
+          | inl hin =>
+            cases hin
+            case inl.intro T hin =>
+              apply Or.inl
+              use T
+              subst heq
+              apply Env.mem_substNames hin
+          | inr hin => grind
+      | inr h' =>
+        cases h'
+        case inr.intro h1 hneq =>
+          cases h1
+          case inl hin =>
+            cases hin
+            case intro T hin =>
+              apply Or.inl
+              use T
+              exact Env.mem_substNames_of_ne hin hneq (y := y)
+          case inr => grind
+
+
+lemma HyperEnv.substNames_preserves_disjoint {𝒢 ℋ : HyperEnv} {x y : FPName}
+  (hD : 𝒢.disjoint ℋ) (huniq : ∀ Γ ∈ 𝒢 |ₕ ℋ, ∀ A, (y, A) ∈ Γ → y = x) :
+  𝒢{y // x}.disjoint ℋ{y // x} := by
+  simp_all only [HyperEnv.disjoint]
+  grind [HyperEnv.mem_names_substNames, Finset.disjoint_left, HyperEnv.mem_pair_fst_in_names]
+
+@[simp] lemma HyperEnv.substTypes_singleton {Γ : Env} {A : Types} {k : Nat} :
+  ([Γ] : HyperEnv){A // k} = [Γ{A // k}] := by simp [HasSubst.subst, HyperEnv.substTypes]
+
+@[simp] lemma HyperEnv.substTypes_distributes {𝒢 : HyperEnv} {Γ : Env} {A : Types} {k : Nat} :
+  (Γ :: 𝒢){A // k} = Γ{A // k} :: 𝒢{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
+
+@[simp] lemma HyperEnv.substTypes_merge {𝒢 ℋ : HyperEnv} {A : Types} {k : Nat} :
+  (𝒢 |ₕ ℋ){A // k} =  𝒢{A // k} |ₕ ℋ{A // k} := by simp [HasSubst.subst, HyperEnv.substTypes]
+
+@[simp] lemma HyperEnv.substTypes_nil {A : Types} {k : Nat} :
+  ([] : HyperEnv){A // k} = [] := by simp [HasSubst.subst, HyperEnv.substTypes]
+
+@[simp] lemma HyperEnv.substTypes_preserves_names {𝒢 : HyperEnv} {A : Types} {k : Nat} :
+  𝒢{A // k}.names = 𝒢.names := by
+  induction 𝒢 <;> simp_all
+
+@[simp] lemma HyperEnv.substTypes_preserves_disjoint {𝒢 ℋ : HyperEnv} {A : Types} {k : Nat} :
+  𝒢.disjoint ℋ → 𝒢{A // k}.disjoint ℋ{A // k} := by simp
+
+@[simp] lemma HyperEnv.substTypes_preserves_perm {𝒢 ℋ : HyperEnv} {A : Types} {k : Nat} :
+  (𝒢 ~ ℋ) → (𝒢{A // k} ~ ℋ{A // k}) := by
+  simp [HasSubst.subst]
+  apply List.Perm.map
+
+-- 𝒢{A // k}⁺ᵗ = 𝒢⁺ᵗ{A⁺ᵗ // k + 1}
+@[simp] lemma HyperEnv.shiftTypes_subst_comm {𝒢 : HyperEnv} {A : Types} {k : Nat} :
+  (𝒢.substTypes A k).shiftTypes 0 1 = (𝒢.shiftTypes 0 1).substTypes (A.shift 0 1) (k + 1) := by
+  induction 𝒢 <;>
+    simp [HyperEnv.substTypes, HyperEnv.shiftTypes, Env.substTypes,
+      Env.shiftTypes, Types.shift_0_subst_comm]
