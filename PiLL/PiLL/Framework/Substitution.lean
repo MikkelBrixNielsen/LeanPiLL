@@ -734,11 +734,19 @@ macro "simp_Proc_substNames" : tactic =>
   (#w⟷ₚ#z){y // x} = (#w{y // x}⟷ₚ#z{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.open_substNames_comm {Q : Proc} {x' x y : FPName} (hneq : x' ≠ x) :
-  Q⸨#x'⸩{y // x} = Q{y // x}⸨#x'⸩ := by
-  induction Q
+
+
+
+lemma Proc.open_substNames_comm {P : Proc} {x y z : FPName} (hneq : z ≠ x) :
+  P⸨#z⸩{y // x} = P{y // x}⸨#z⸩ := by
+  induction P
   case nil => simp [Proc.open0, Proc.open, HasSubst.subst, Proc.substNames]
   case one => sorry
+  all_goals sorry
+
+lemma Proc.openCut_substNames_comm {P : Proc} {x y z w : FPName} (hFz : z ≠ x) (hFw : w ≠ x) :
+  P⸨#z, #w⸩{y // x} = P{y // x}⸨#z, #w⸩ := by
+  induction P
   all_goals sorry
 
 
@@ -747,8 +755,6 @@ macro "simp_Proc_substNames" : tactic =>
 
 
 
--- @[simp] lemma Proc.open_substTypes_comm_notation {P : Proc} {u : Channel} {A : Types} {i : Nat} :
---   P⸨u⸩{A // i} = P{A // i}⸨u⸩ := Proc.open_substTypes_comm
 
 
 
@@ -840,6 +846,30 @@ lemma Env.mem_shiftTypes_iff {Γ : Env} {y : FPName} {T : Types} :
     | (x, B) => simp_all ; grind
 
 
+macro "fresh_substNames_binary_aux"
+  z:term ", " C:term ", " Γ:term ", " Δ:term ", " huniq:term: tactic =>
+  `(tactic| (
+    intro Ξ hin T hMem
+    simp at hin; subst hin
+    simp at hMem
+    rcases hMem with ⟨hyz, rfl⟩ | hin
+    · exact $huniq ($z ∶ $C :: $Γ ++ $Δ) (by simp) $C (by simp [hyz])
+    · apply $huniq ($z ∶ $C :: $Γ ++ $Δ) (by simp) T
+      simp
+      right ; left ; exact hin
+      simp
+  ))
+
+lemma Env.fresh_substNames_binary {Γ Δ : Env} {x y z : FPName} {C : Types}
+  (hF : z ∉ Γ.names ∧ z ∉ Δ.names)
+  (huniq : ∀ Γ_1 ∈ [z ∶ C :: Γ ++ Δ], ∀ (T : Types), (y, T) ∈ Γ_1 → y = x) :
+  z{y // x} ∉ Γ{y // x}.names ∧ z{y // x} ∉ Δ{y // x}.names := by
+  cases hF
+  case intro hFΓ hFΔ =>
+  constructor
+  · exact Env.fresh_substNames hFΓ (A := C) (by simp_all ; grind)
+  · exact Env.fresh_substNames hFΔ (A := C) (by simp_all ; grind)
+
 
 
 
@@ -872,6 +902,7 @@ macro "split_names " x:term " eq " y:term " using " ih:ident : tactic =>
         Env.shiftTypes_substNames_comm]
   ))
 
+-- FIXME: Stop relying on tactic using grind due to recursion / heartbeat problem
 
 -- Condition: y is not already in G (unless y = x, which is a no-op)
 lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
@@ -898,20 +929,64 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
     · exact Env.fresh_substNames hF huniq
     · apply ih (by grind)
 
+-- FIXME: letting the proof run breaks proofs for later cases
+  case cut Γ Δ _ A _ L _ ih => sorry
+  --   apply Typing.cut (A := A) (L ∪ {x} ∪ {y})
+  --   intros z w hz hw hneq
+  --   simp at hz hw
+  --   specialize ih z w hz.2.2 hw.2.2 hneq
+  --   · exact x
+  --   · exact y
+  --   · by_cases h : x = y
+  --     case pos =>
+  --       simp_all
+  --     case neg =>
+  --       simp [HyperEnv.merge] at ih ⊢
+  --       rw [FPName.subst_self_of_ne hz.2.1, FPName.subst_self_of_ne hw.2.1,
+  --           Proc.openCut_substNames_comm hz.2.1 hw.2.1] at ih
+  --       apply ih
+  --       simp at huniq
+  --       intros Ξ hOr B hinΞ
+  --       cases hOr with
+  --       | inl hL => grind
+  --       | inr hR =>
+  --         simp at hR
+  --         rcases hR with rfl | rfl <;> (
+  --           simp at hinΞ
+  --           cases hinΞ with
+  --           | inl => grind
+  --           | inr =>
+  --             exact huniq (Γ‚ Δ) (Or.inr rfl) B (by grind)
+  --           )
 
-  case cut =>
-    -- apply Typing.cut
-    sorry
+  case tensor A B hF _ L _ ih =>
+    apply Typing.tensor (L ∪ {x} ∪ {y})
+    · intros z hz
+      simp at hz
+      specialize ih z hz.2.2
+      · exact x
+      · exact y
+      by_cases h : x = y
+      case pos => simp_all
+      case neg =>
+        simp at huniq
+        have := huniq (B ⨂ A)
+        simp [HyperEnv.merge] at ih ⊢
+        grind [FPName.subst_self_of_ne, Proc.open_substNames_comm]
+    · exact Env.fresh_substNames_binary hF huniq
 
-  case tensor =>
-    -- apply Typing.tensor
-    sorry
+-- FIXME: letting the proof run breaks proofs for later cases
+  case parr A B hF _ L _ ih => sorry
+  --   apply Typing.parr (L ∪ {x} ∪ {y})
+  --   · intros z hz
+  --     simp at hz
+  --     specialize ih z hz.2.2
+  --     · exact x
+  --     · exact y
+  --     split_names x eq y using ih
+  --   · exact Env.fresh_substNames hF huniq
 
-  case parr =>
-    -- apply Typing.parr
-    sorry
-
-  case oplus₁ Γ _ z T1 T2 _ hlc _ ih =>
+  case oplus₁ hlc _ ih =>
     apply Typing.oplus₁
     · exact hlc
     · split_names x eq y using ih
@@ -941,28 +1016,23 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
     · exact hlc
     · split_names x eq y using ih
 
-  case c Γ Q z A n' L hT ih =>
+  case c L _ ih =>
     apply Typing.c (L ∪ {x} ∪ {y})
     · intro w hin
       specialize ih w (by simp at hin ; exact hin.2.2) (x := x) (y := y)
       split_names x eq y using ih
-
-
-
-
 
   case exists_ hlc _ ih =>
     apply Typing.exists_
     · exact hlc
     · split_names x eq y using ih
 
-
-
+-- FIXME: Try and make more compact
   case forall_ ih =>
     apply Typing.forall_
     have := ih (x := x) (y := y)
     rw [Env.shiftTypes_substNames_comm]
-    simp only [HyperEnv.substnames_distributes, Env.substNames_distributes,
+    simp only [HyperEnv.substNames_distributes, Env.substNames_distributes,
       HyperEnv.substNames_nil] at this
     apply this
     simp at ⊢ huniq this
@@ -976,19 +1046,9 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
       obtain ⟨A, hL, hR⟩ := Env.mem_shiftTypes_iff.mp hin
       exact huniq A (Or.inr hL)
 
-
-
-
-
   case exchange_env hP ih =>
     apply Typing.exchange_env
     · apply ih ; grind
-      -- intros Ξ hin B hinΞ
-      -- simp at hin
-      -- grind
-      -- rcases hin with rfl | hin𝒢
-      -- · exact huniq Δ (by simp) B (hP.mem_iff.mp hinΞ)
-      -- · apply huniq Ξ (by simp ; apply Or.inr hin𝒢) B hinΞ
     · exact Env.substNames_preserves_perm hP
 
   case exchange_hyper hP ih =>
