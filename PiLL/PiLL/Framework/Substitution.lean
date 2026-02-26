@@ -891,18 +891,20 @@ lemma HyperEnv.substNames_preserves_perm {𝒢 ℋ : HyperEnv} {x y : FPName} :
   grind
 
 
-macro "split_names " x:term " eq " y:term " using " ih:ident : tactic =>
-  `(tactic| (
-    by_cases hxy : $x = $y
-    case pos =>
-      simp_all
-    case neg =>
-      simp at $ih:ident
-      grind [FPName.subst_self_of_ne, Proc.open_substNames_comm,
-        Env.shiftTypes_substNames_comm]
-  ))
+-- macro "split_names " x:term " eq " y:term " using " ih:ident : tactic =>
+--   `(tactic| (
+--     by_cases hxy : $x = $y
+--     case pos =>
+--       simp_all
+--     case neg =>
+--       simp at $ih:ident
+--       grind [FPName.subst_self_of_ne, Proc.open_substNames_comm,
+--         Env.shiftTypes_substNames_comm]
+--   ))
 
--- FIXME: Stop relying on tactic using grind due to recursion / heartbeat problem
+
+-- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
+
 
 -- Condition: y is not already in G (unless y = x, which is a no-op)
 lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
@@ -918,46 +920,72 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
     · apply HyperEnv.substNames_preserves_disjoint
       · exact hD
       · exact huniq
-    · exact ihP (by grind)
-    · exact ihQ (by grind)
+    · apply ihP
+      intros Γ hin𝒢 T hinΓ
+      exact huniq Γ (by simp ; apply Or.inl hin𝒢) T hinΓ
+    · apply ihQ
+      intros Γ hin𝒢 T hinΓ
+      exact huniq Γ (by simp ; apply Or.inr hin𝒢) T hinΓ
 
   case one ih =>
-    exact Typing.one (ih (by simp))
+    apply Typing.one
+    apply ih
+    simp
 
   case bot Γ' P' z hF n' hT ih =>
     apply Typing.bot
     · exact Env.fresh_substNames hF huniq
-    · apply ih (by grind)
+    · apply ih
+      intros Γ hΓ T hinΓ
+      simp at huniq hΓ
+      subst hΓ
+      exact huniq T (Or.inr hinΓ)
 
--- FIXME: letting the proof run breaks proofs for later cases
-  case cut Γ Δ _ A _ L _ ih => sorry
-  --   apply Typing.cut (A := A) (L ∪ {x} ∪ {y})
-  --   intros z w hz hw hneq
-  --   simp at hz hw
-  --   specialize ih z w hz.2.2 hw.2.2 hneq
-  --   · exact x
-  --   · exact y
-  --   · by_cases h : x = y
-  --     case pos =>
-  --       simp_all
-  --     case neg =>
-  --       simp [HyperEnv.merge] at ih ⊢
-  --       rw [FPName.subst_self_of_ne hz.2.1, FPName.subst_self_of_ne hw.2.1,
-  --           Proc.openCut_substNames_comm hz.2.1 hw.2.1] at ih
-  --       apply ih
-  --       simp at huniq
-  --       intros Ξ hOr B hinΞ
-  --       cases hOr with
-  --       | inl hL => grind
-  --       | inr hR =>
-  --         simp at hR
-  --         rcases hR with rfl | rfl <;> (
-  --           simp at hinΞ
-  --           cases hinΞ with
-  --           | inl => grind
-  --           | inr =>
-  --             exact huniq (Γ‚ Δ) (Or.inr rfl) B (by grind)
-  --           )
+  case cut Γ Δ _ A _ L _ ih =>
+    apply Typing.cut (A := A) (L ∪ {x} ∪ {y})
+    intros z w hz hw hneq
+    simp at hz hw
+    specialize ih z w hz.2.2 hw.2.2 hneq
+    · exact x
+    · exact y
+    · by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp at ⊢ ih
+        exact ih
+      case neg =>
+        simp [HyperEnv.merge] at ⊢ ih huniq
+        rw [FPName.subst_self_of_ne hz.2.1, FPName.subst_self_of_ne hw.2.1,
+            Proc.openCut_substNames_comm hz.2.1 hw.2.1] at ih
+        apply ih
+        intros Ξ hOr B hinΞ
+        cases hOr with
+        | inl hL => exact huniq Ξ (Or.inl hL) B hinΞ
+        | inr hR =>
+          simp at hR
+          cases hR with
+          | inl h =>
+            subst h
+            simp at hinΞ
+            cases hinΞ with
+            | inl h =>
+              obtain ⟨hL, hR⟩ := h
+              subst hL hR
+              exfalso
+              apply hz.1 rfl
+            | inr h =>
+              exact huniq (Γ‚ Δ) (Or.inr rfl) B (by simp ; exact Or.inl h)
+          | inr h =>
+            subst h
+            simp at hinΞ
+            cases hinΞ with
+            | inl h =>
+              obtain ⟨hL, hR⟩ := h
+              subst hL hR
+              exfalso
+              apply hw.1 rfl
+            | inr h =>
+              exact huniq (Γ‚ Δ) (Or.inr rfl) B (by simp ; apply Or.inr h)
 
   case tensor A B hF _ L _ ih =>
     apply Typing.tensor (L ∪ {x} ∪ {y})
@@ -966,68 +994,231 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
       specialize ih z hz.2.2
       · exact x
       · exact y
-      by_cases h : x = y
-      case pos => simp_all
+      by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp at ⊢ ih
+        exact ih
       case neg =>
-        simp at huniq
-        have := huniq (B ⨂ A)
-        simp [HyperEnv.merge] at ih ⊢
-        grind [FPName.subst_self_of_ne, Proc.open_substNames_comm]
+        simp at ⊢ ih huniq
+        rw [Proc.open_substNames_comm hz.2.1, FPName.subst_self_of_ne hz.2.1] at ih
+        apply ih
+        · intros T h
+          cases h with
+          | inl h =>
+            rw [h.1] at hz
+            exfalso
+            apply hz.1 rfl
+          | inr h => exact huniq T (Or.inr (Or.inl h))
+        · intros T h
+          cases h with
+          | inl h =>
+            obtain ⟨hL, hR⟩ := h
+            subst hL hR
+            exact huniq (B ⨂ T) (Or.inl (And.intro rfl rfl))
+          | inr h => exact huniq T (Or.inr (Or.inr h))
     · exact Env.fresh_substNames_binary hF huniq
 
--- FIXME: letting the proof run breaks proofs for later cases
-  case parr A B hF _ L _ ih => sorry
-  --   apply Typing.parr (L ∪ {x} ∪ {y})
-  --   · intros z hz
-  --     simp at hz
-  --     specialize ih z hz.2.2
-  --     · exact x
-  --     · exact y
-  --     split_names x eq y using ih
-  --   · exact Env.fresh_substNames hF huniq
+  case parr A B hF _ L _ ih =>
+    apply Typing.parr (L ∪ {x} ∪ {y})
+    · intros z hz
+      simp at hz
+      specialize ih z hz.2.2
+      · exact x
+      · exact y
+      by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp at ⊢ ih
+        exact ih
+      case neg =>
+        simp at ih huniq
+        rw [Proc.open_substNames_comm hz.2.1, FPName.subst_self_of_ne hz.2.1] at ih
+        apply ih
+        intros T h
+        cases h with
+        | inl h =>
+          obtain ⟨hL, hR⟩ := h
+          subst hL hR
+          exact  huniq (A ⅋ T) (Or.inl (And.intro rfl rfl))
+        | inr h =>
+          cases h with
+          | inl h =>
+            obtain ⟨hL, hR⟩ := h
+            subst hL hR
+            exfalso
+            apply hz.1 rfl
+          | inr h => exact huniq T (Or.inr h)
+    · exact Env.fresh_substNames hF huniq
 
-  case oplus₁ hlc _ ih =>
+  case oplus₁ B _ hlc hT ih =>
     apply Typing.oplus₁
     · exact hlc
-    · split_names x eq y using ih
+    · by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp
+        exact hT
+      case neg =>
+        simp at ih huniq
+        apply ih
+        intros T h
+        obtain ⟨hL, hR⟩ := h
+        case inl =>
+          subst hL hR
+          exact huniq (T ⊕ B) (Or.inl (And.intro rfl rfl))
+        case inr h => exact huniq T (Or.inr h)
 
-  case oplus₂ hlc _ ih =>
+  case oplus₂ A _ _ hlc hT ih =>
     apply Typing.oplus₂
     · exact hlc
-    · split_names x eq y using ih
+    · by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp
+        exact hT
+      case neg =>
+        simp at ih huniq
+        apply ih
+        intros T h
+        obtain ⟨hL, hR⟩ := h
+        case inl =>
+          subst hL hR
+          exact huniq (A ⊕ T) (Or.inl (And.intro rfl rfl))
+        case inr h => exact huniq T (Or.inr h)
 
-  case amp ihP ihQ =>
+  case amp A B _ hTP hTQ ihP ihQ =>
     apply Typing.amp
-    · split_names x eq y using ihP
-    · split_names x eq y using ihQ
+    · by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp
+        exact hTP
+      case neg =>
+        simp at ihP huniq
+        apply ihP
+        intros T h
+        cases h with
+        | inl h =>
+          obtain ⟨hL, hR⟩ := h
+          subst hL hR
+          exact huniq (T & B) (Or.inl (And.intro rfl rfl))
+        | inr h => exact huniq T (Or.inr h)
+    · by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp
+        exact hTQ
+      case neg =>
+        simp at ihQ huniq
+        apply ihQ
+        intros T h
+        cases h with
+        | inl h =>
+          obtain ⟨hL, hR⟩ := h
+          subst hL hR
+          exact huniq (A & T) (Or.inl (And.intro rfl rfl))
+        | inr h => exact huniq T (Or.inr h)
 
-  case quest ih =>
+  case quest hT ih =>
     apply Typing.quest
-    split_names x eq y using ih
+    by_cases hxy : x = y
+    case pos =>
+      subst hxy
+      simp
+      exact hT
+    case neg =>
+      simp at ih huniq
+      apply ih
+      intros T h
+      obtain ⟨hL, hR⟩ := h
+      case inl =>
+        subst hL hR
+        exact huniq (??T) (Or.inl (And.intro rfl rfl))
+      case inr h =>
+        exact huniq T (Or.inr h)
 
-  case bang hServ _ ih =>
+  case bang hServ hT ih =>
     apply Typing.bang
     · exact Env.serverUsable_substNames hServ
-    · split_names x eq y using ih
+    · by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp
+        exact hT
+      case neg =>
+        simp at ih huniq
+        apply ih
+        intros T h
+        obtain ⟨hL, hR⟩ := h
+        case inl =>
+          subst hL hR
+          exact huniq (!!T) (Or.inl (And.intro rfl rfl))
+        case inr h => exact huniq T (Or.inr h)
 
-  case w hF _ hlc _ ih=>
+  case w hF _ hlc hT ih =>
     apply Typing.w
     · exact Env.fresh_substNames hF huniq
     · exact hlc
-    · split_names x eq y using ih
+    · by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp
+        exact hT
+      case neg =>
+        simp at ih huniq
+        apply ih
+        intros T h
+        exact huniq T (Or.inr h)
 
-  case c L _ ih =>
+  case c A _ L hT ih =>
     apply Typing.c (L ∪ {x} ∪ {y})
-    · intro w hin
-      specialize ih w (by simp at hin ; exact hin.2.2) (x := x) (y := y)
-      split_names x eq y using ih
+    · intro w hw
+      simp at hw
+      specialize ih w hw.2.2 (x := x) (y := y)
+      by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp
+        exact hT w hw.2.2
+      case neg =>
+        simp at ih huniq
+        rw [Proc.open_substNames_comm hw.2.1, FPName.subst_self_of_ne hw.2.1] at ih
+        apply ih
+        intros T h
+        cases h
+        case inl h =>
+          obtain ⟨hL, hR⟩ := h
+          subst hL hR
+          exact huniq (??A) (Or.inl (And.intro rfl rfl))
+        case inr h =>
+          cases h
+          case inl h =>
+            obtain ⟨hL, hR⟩ := h
+            subst hL hR
+            exfalso
+            apply hw.1 rfl
+          case inr h => exact huniq T (Or.inr h)
 
-  case exists_ hlc _ ih =>
+  case exists_ B _ hlc hT ih =>
     apply Typing.exists_
     · exact hlc
-    · split_names x eq y using ih
+    · by_cases hxy : x = y
+      case pos =>
+        subst hxy
+        simp
+        exact hT
+      case neg =>
+        simp at ih huniq
+        apply ih
+        intros T h
+        cases h
+        case inl h =>
+          obtain ⟨hL, hR⟩ := h
+          subst hL hR
+          exact huniq (∃․B) (Or.inl (And.intro rfl rfl))
+        case inr h => exact huniq T (Or.inr h)
 
--- FIXME: Try and make more compact
   case forall_ ih =>
     apply Typing.forall_
     have := ih (x := x) (y := y)
@@ -1048,16 +1239,36 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
 
   case exchange_env hP ih =>
     apply Typing.exchange_env
-    · apply ih ; grind
+    · apply ih
+      intros Γ hΓ T hinΓ
+      simp at huniq
+      cases hΓ with
+      | head => exact huniq.1 T ((List.Perm.mem_iff (a := (y, T)) hP).mp hinΓ)
+      | tail _ hin𝒢 => exact huniq.2 Γ hin𝒢 T hinΓ
     · exact Env.substNames_preserves_perm hP
 
   case exchange_hyper hP ih =>
     apply Typing.exchange_hyper
-    · apply ih ; grind
+    · apply ih
+      intros Γ hΓ T hinΓ
+      exact huniq Γ ((List.Perm.mem_iff (a := Γ) hP).mp hΓ) T hinΓ
     · apply HyperEnv.substNames_preserves_perm hP
 
-  case ax hlc =>
+  case ax A hneq _ hlc =>
     apply Typing.ax
     · simp [HasSubst.subst, FPName.subst]
-      split_ifs <;> (by_contra ; simp_all)
+      split_ifs <;> (by_contra ; simp at huniq)
+      case pos h1 h2 h3 =>
+        subst h1 h2
+        apply hneq rfl
+      case neg h1 h2 h3 =>
+        have := huniq A (Or.inr (And.intro h3 rfl))
+        subst this
+        exact h2 h3.symm
+      case pos h1 h2 h3 =>
+        have := huniq Aᗮ (Or.inl (And.intro h3.symm rfl))
+        subst this
+        exact h1 h3
+      case neg h1 h2 h3 =>
+        exact hneq h3
     · exact hlc
