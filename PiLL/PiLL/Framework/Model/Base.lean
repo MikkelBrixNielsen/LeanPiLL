@@ -27,11 +27,28 @@ class HasSubst (Subject Replacement Target : Type) where
 
 notation:max S "{" R " // " T "}" => HasSubst.subst S R T
 
+class HasOpen (Subject Replacement Target : Type) where
+  open_ : Subject → Replacement → Target → Subject
+
+notation:max S:max "⸨" T " | " R "⸩" => HasOpen.open_ S R T
+notation:max S:max "⸨" R "⸩" => HasOpen.open_ S R 0
+
+class HasOpenTwo (Subject Replacement_1 Replacement_2 Target : Type) where
+  open_ : Subject → Replacement_1 → Replacement_2 → Target → Subject
+
+notation:max S:max "⸨" T " | " R1 ", " R2 "⸩" => HasOpenTwo.open_ S R1 R2 T
+notation:max S:max "⸨" R1 ", " R2 "⸩" => HasOpenTwo.open_ S R1 R2 0
+
 class HasBracket (Subject Content Result : Type) where
    brack : Subject → Content → Result
 
 class HasParen (Subject Content Result : Type) where
    paren : Subject → Content → Result
+
+notation:80 x"⟦⟧" => HasBracket.brack x ()
+notation:80 x"⟦"y"⟧" => HasBracket.brack x y
+notation:80 x"⸨⸩" => HasParen.paren x ()
+notation:80 x"⸨"y"⸩" => HasParen.paren x y
 
 ------------------------------- ADDITIONAL FINSET THEOREMS --------------------------------
 

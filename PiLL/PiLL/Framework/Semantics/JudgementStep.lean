@@ -4,88 +4,23 @@ import PiLL.Framework.Semantics.ProcStep
 import PiLL.Framework.Semantics.EnvStep
 
 
-lemma Env.merge_eq_singleton_iff {Γ Δ : Env} {x : PName} {A : Types} :
-  Γ‚ Δ = x ∶ A ↔ (Γ = x ∶ A ∧ Δ = ∅) ∨ (Γ = ∅ ∧ Δ = x ∶ A) ∨ (Γ = x ∶ A ∧ Δ = x ∶ A) := by
-  constructor
-  · intro h
-    have hΓ : Γ ⊆ x ∶ A := by rw [← h] ; exact Finset.subset_union_left
-    have hΔ : Δ ⊆ x ∶ A := by rw [← h] ; exact Finset.subset_union_right
-    rw [Env.mk, Finset.subset_singleton_iff] at hΓ hΔ
-    rcases hΓ with rfl | rfl <;> rcases hΔ with rfl | rfl <;> simp_all [Env.merge]
-  · intro h
-    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp_all [Env.merge]
-
-lemma HyperEnv.merge_eq_singleton_iff {Γ : Env} {𝒢 ℋ : HyperEnv} :
-  𝒢 |ₕ ℋ = {Γ} ↔ (𝒢 = Γ ∧ ℋ = ∅) ∨ (𝒢 = ∅ ∧ ℋ = Γ) ∨ (𝒢 = Γ ∧ ℋ = Γ) := by
-  constructor
-  · intro h
-    have h𝒢 : 𝒢 ⊆ Γ := by rw [← h] ; exact Finset.subset_union_left
-    have hℋ : ℋ ⊆ Γ := by rw [← h] ; exact Finset.subset_union_right
-    rw [Finset.subset_singleton_iff] at h𝒢 hℋ
-    rcases h𝒢 with rfl | rfl <;> rcases hℋ with rfl | rfl <;> simp_all
-  · intro h
-    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp_all
-
-lemma EnvStep.no_step_empty {l : Lbl} {𝒢 : HyperEnv} (h : EnvStep ∅ l 𝒢) : False := by
-  generalize hℰ : (∅ : HyperEnv) = ℰ at h
-  induction h
-  all_goals simp only [Env.mk, HyperEnv.merge] at hℰ ; symm at hℰ ; simp_all
 
 
+-- FIXME: Fix ProcStep, EnvStep and TypingStep
+-- FIXME: Typing_preserves_proc_congr
 
+-- FIXME: Instantiation / Opening Lemma
+  -- ⊢ P⸨#w⸩ ∷ 𝒢 → ⊢ P⸨#w⸩{z // w} :: 𝒢{z // w} by Typing_substNames (or similar)
+-- FIXME: Subject reduction / simulation proof
 
+-- FIXME: Proof showing substitution avoids capture
+-- FIXME: Check possibility of no having exchange rules
+-- FIXME: Proof of HyperEnv.names only having free names
+-- FIXME: Proof that HyperEnv.names = Proc.f
+-- FIXME: Something regarding Name substitution only being applied to free names?
+-- FIXME: Find different syntax for open?
 
-
-
-
--- lemma EnvStep.one_inv'
---   {𝒢 𝒢' : HyperEnv} {x : PName} (h : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
---   ∃ ℋ₁ ℋ₂, 𝒢  = ℋ₁ |ₕ {x ∶ 1} |ₕ ℋ₂ ∧ 𝒢' = ℋ₁ |ₕ ℋ₂ := by
---   generalize hl : (x⟦⟧ : Lbl) = l at h
---   induction h with
-
-
---   | one =>
---       refine ⟨∅, ∅, ?_, ?_⟩ <;> simp_all
-
---   | par₁ _ ih =>
---       rename_i ℋ _ _
---       specialize ih hl
---       rcases ih with ⟨ℋ₁, ℋ₂, _, _⟩
---       refine ⟨ℋ₁, ℋ₂ |ₕ ℋ, ?_, ?_⟩ <;> simp_all
-
---   | par₂ _ ih =>
---     rename_i 𝒢 _ _ _ _
---     specialize ih hl
---     rcases ih with ⟨ℋ₁, ℋ₂, h𝒢, h𝒢'⟩
---     refine ⟨ℋ₁, ℋ₂ |ₕ 𝒢, ?_, ?_⟩
---     · rw [h𝒢, ← HyperEnv.merge_assoc (ℋ₁ |ₕ x ∶ 1) ℋ₂ 𝒢, HyperEnv.merge_comm]
---     · rw [h𝒢', ← HyperEnv.merge_assoc ℋ₁ _ _, HyperEnv.merge_comm]
-
---   | res step ih =>
---     rename_i ℋ ℋ' Γ Γ' Δ Δ' a b A B lbl
---     have h' := ih hl
---     rcases h' with ⟨ℋ₁, ℋ₂, hL, hR⟩
---     refine ⟨ℋ₁, ℋ₂, ?_, ?_⟩
---     · cases step
-
-
---       sorry
---     · sorry
-
---   | _ => simp_all
-
-
--- theorem TypingStep {𝒢 ℋ : HyperEnv} {P Q : Proc} {l : Lbl}
---   (hT : ⊢ P ∷ 𝒢) (hPS : P -[l]->ₚ Q) (hES : 𝒢 -[l]->ₑ ℋ) : ⊢ Q ∷ ℋ := by sorry
-
-
-
-
-
-
-
-
+-- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
 
 
 

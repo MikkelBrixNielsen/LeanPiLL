@@ -659,48 +659,67 @@ import PiLL.Framework.Model.Judgement
 
 
 
--- FIXME: Notation for opening a proc at some depth not just 0
--- FIXME: Typing_preserves_proc_congr
-
--- FIXME: Fix ProcStep, EnvStep and TypingStep
--- FIXME: Instantiation / Opening Lemma
-  -- ⊢ P⸨#w⸩ ∷ 𝒢 → ⊢ P⸨#w⸩{z // w} :: 𝒢{w // z} by Typing_substNames (or similar)
--- FIXME: Subject reduction / simulation proof
-
--- FIXME: Proof showing substitution avoids capture
--- FIXME: Check possibility of no having exchange rules
-
--- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
 
 
 
--- #FIXME: Needs to be proven
+
+
+macro "simp_Proc_substNames_open": tactic =>
+  `(tactic| (
+    simp [Proc.open0, Proc.open, Proc.openCut, Channel.open, HasSubst.subst,
+      Proc.substNames, Channel.subst]
+  ))
+
+macro "solve_single_ih" ih:ident : tactic =>
+  `(tactic| (
+    simp_Proc_substNames_open
+    constructor
+    · intro ; contradiction
+    · exact $ih
+  ))
+
+macro "solve_double_ih" ih1:ident ", " ih2:ident : tactic =>
+  `(tactic| (
+    simp_Proc_substNames_open
+    constructor
+    · intro ; contradiction
+    exact ⟨$ih1, $ih2⟩
+  ))
+
+lemma Proc.open_substNames_comm_gen {P : Proc} {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
+  (P⸨k | #z⸩){y // x} = P{y // x}⸨k | #z⸩ := by
+  induction P generalizing k
+
+  case nil => simp [Proc.open, HasSubst.subst, Proc.substNames]
+
+  case one ih | bot ih | selectL ih | selectR ih | output ih | input ih |
+    server ih | consume ih | duplicate ih | dispose ih | tensor ih | parr ih =>
+    solve_single_ih ih
+
+  case cut ih =>
+    simp_Proc_substNames_open
+    exact ih
+
+  case amp ihP ihQ  =>
+    solve_double_ih ihP, ihQ
+
+  case par ihP ihQ =>
+    simp_Proc_substNames_open
+    constructor
+    · exact ihP
+    · exact ihQ
+
+  case link =>
+    simp_Proc_substNames_open
+    intro ; contradiction
+
 lemma Proc.open_substNames_comm {P : Proc} {x y z : FPName} (hneq : z ≠ x) :
-  P⸨#z⸩{y // x} = P{y // x}⸨#z⸩ := by
-  induction P
-  case nil => simp [Proc.open0, Proc.open, HasSubst.subst, Proc.substNames]
-  case one => sorry
-  all_goals sorry
+  (P⸨#z⸩){y // x} = (P{y // x})⸨#z⸩ := Proc.open_substNames_comm_gen (k := 0) hneq
 
-lemma Proc.openCut_substNames_comm {P : Proc} {x y z w : FPName} (hFz : z ≠ x) (hFw : w ≠ x) :
+lemma Proc.openCut_substNames_comm {P : Proc} {x y z w : FPName}
+  (hFz : z ≠ x) (hFw : w ≠ x) :
   P⸨#z, #w⸩{y // x} = P{y // x}⸨#z, #w⸩ := by
-  induction P
-  all_goals sorry
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  grind [Proc.openCut, Proc.open_substNames_comm_gen]
 
 macro "split_names_pos " hxy:ident ", " proof:ident : tactic =>
 `(tactic| (

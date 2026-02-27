@@ -375,6 +375,8 @@ def Channel.open (k : Nat) (u : Channel) : Channel → Channel
   | Channel.bound i => if i == k then u else Channel.bound i
   | c => c
 
+instance : HasOpen Channel Channel Nat where open_ u v k := Channel.open k v u
+
 def Proc.open (k : Nat) (u : Channel) : Proc → Proc
   | .nil              => .nil
   | .one x P          => .one (x.open k u) (P.open k u)
@@ -394,13 +396,10 @@ def Proc.open (k : Nat) (u : Channel) : Proc → Proc
   | .input x P        => .input (x.open k u) (P.open k u)
   | .link x y         => .link (x.open k u) (y.open k u)
 
-def Proc.open0 (u : Channel) (P : Proc) : Proc :=
-  Proc.open 0 u P
-notation:max P:max "⸨" x "⸩" => Proc.open0 x P
+instance : HasOpen Proc Channel Nat where open_ P v k := Proc.open k v P
 
-def Proc.openCut (x y : Channel) (P : Proc) : Proc :=
-  Proc.open 0 x (Proc.open 1 y P)
-notation:max P:max "⸨" x ", " y "⸩" => Proc.openCut x y P
+instance : HasOpenTwo Proc Channel Channel Nat where open_ P u v k :=
+  (Proc.open k u (Proc.open (k + 1) v P))
 
 -- def openProcTVar (k : Nat) (u : TVar) : Proc → Proc
 --   | .nil => .nil
@@ -743,7 +742,7 @@ lemma Proc.shiftTypes_open0_comm {d c : Nat} {P : Proc} {u : Channel} :
 
 lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
   (P⸨x, y⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨x, y⸩ := by
-  simp [Proc.openCut, Proc.shiftTypes_open_comm]
+  simp [HasOpenTwo.open_, Proc.shiftTypes_open_comm]
 
 @[simp] lemma Proc.substTypes_ax {u v : Channel} {A : Types} {k : Nat} :
   (u ⟷ₚ v){A // k} = (u ⟷ₚ v) := by simp [HasSubst.subst, Proc.substTypes]
@@ -759,10 +758,29 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
   P⸨u⸩{A // i} = P{A // i}⸨u⸩ := Proc.open_substTypes_comm
 
 @[simp] lemma Proc.openCut_substTypes_comm {P : Proc} {u v : Channel} {A : Types} {i : Nat} :
-  (P.openCut u v).substTypes A i = (P.substTypes A i).openCut u v := by
+  (P⸨u, v⸩).substTypes A i = (P.substTypes A i)⸨u, v⸩:= by
   induction P generalizing A i u <;>
-    simp_all [Proc.openCut, Proc.open, Channel.open, Proc.substTypes]
+    simp_all [HasOpenTwo.open_, Proc.open, Channel.open, Proc.substTypes]
 
 @[simp] lemma Proc.openCut_substTypes_comm_notation
   {P : Proc} {u v : Channel} {A : Types} {i : Nat} :
   (P⸨u, v⸩){A // i} = (P{A // i})⸨u, v⸩ := Proc.openCut_substTypes_comm
+
+lemma Proc.open_subst_intro_gen (P : Proc) (k : Nat) {w z : FPName} (hF : w ∉ P.f) :
+  P⸨k | #z⸩ = P⸨k | #w⸩{z // w} := by
+  induction P generalizing k <;> (
+    try simp [Proc.f, HasOpen.open_, HasSubst.subst, Proc.open, Proc.substNames,
+      Channel.open, Channel.subst] at ⊢ hF
+  )
+
+  case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih
+    | input ih | server ih | consume ih | duplicate ih | dispose ih =>
+    exact ih _ hF.2
+
+  case cut ih => apply ih _ hF
+  case par ihP ihQ => exact ⟨ihP k hF.1, ihQ k hF.2⟩
+  case amp ihP ihQ => exact ⟨ihP k hF.2.1, ihQ k hF.2.2⟩
+
+lemma Proc.open_subst_intro {P : Proc} {w z : FPName} (hF : w ∉ P.f) :
+  P⸨#z⸩ = P⸨#w⸩{z // w} := by
+  exact Proc.open_subst_intro_gen P 0 hF

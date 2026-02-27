@@ -75,17 +75,10 @@ notation "USE"  => Mu.USE
 notation "DUP"  => Mu.DUP
 notation "DISP" => Mu.DISP
 
-notation:80 x"⟦⟧" => HasBracket.brack x ()
-notation:80 x"⟦"y"⟧" => HasBracket.brack x y
-
 @[simp] instance : HasBracket FPName Unit Act where brack x _ := Act.one x
 @[simp] instance : HasBracket FPName FPName Act where brack x y := Act.tensor x y
 @[simp] instance : HasBracket FPName Types Act where brack x A := Act.output x A
 @[simp] instance : HasBracket FPName Mu Act where brack x μ := Act.muBrack x μ
-
-notation:80 x"⸨⸩" => HasParen.paren x ()
-notation:80 x"⸨"y"⸩" => HasParen.paren x y
-
 @[simp] instance : HasParen FPName Unit Act where paren x _ := Act.bot x
 @[simp] instance : HasParen FPName FPName Act where paren x y := Act.parr x y
 @[simp] instance : HasParen FPName Types Act where paren x A := Act.input x A
