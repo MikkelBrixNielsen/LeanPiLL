@@ -352,17 +352,17 @@ inductive Proc : Type where
 deriving DecidableEq, BEq, Repr
 
 notation:80 x "⟦⟧․" P => Proc.one x P
-notation:80 x "⟦#N⟧․" P => Proc.tensor x P
+notation:80 x "⟦$N⟧․" P => Proc.tensor x P
 notation:80 x "⟦" A "⟧․" P => Proc.output x P A
 notation:80 x "⸨⸩․" P => Proc.bot x P
-notation:80 x "⸨#N⸩․" P => Proc.parr x P
-notation:80 x "⸨#T⸩․" P => Proc.input x P
+notation:80 x "⸨$N⸩․" P => Proc.parr x P
+notation:80 x "⸨$T⸩․" P => Proc.input x P
 
-notation:75 "𝑣⸨#,#⸩" P:80 => Proc.cut P
+notation:75 "𝑣⸨$N,$N⸩" P:80 => Proc.cut P
 notation:80 x "⟦𝐋⟧․" P:80 => Proc.selectL x P
 notation:80 x "⟦𝐑⟧․" P:80 => Proc.selectR x P
 notation:80 x "⟦USE⟧․" P:80 => Proc.consume x P
-notation:80 x "⟦DUP⟧⸨#N⸩․" P:80 => Proc.duplicate x P
+notation:80 x "⟦DUP⟧⸨$N⸩․" P:80 => Proc.duplicate x P
 notation:80 x "⟦DISP⟧․" P:80 => Proc.dispose x P
 notation:80 "!" x "․{" P:80 "}" => Proc.server x P
 notation:80 x "․case{𝐋" " : " P:80 ", " "𝐑" " : " Q :80"}" => Proc.amp x P Q
@@ -679,15 +679,15 @@ macro "simp_Proc_substNames" : tactic =>
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_cut {P : Proc} {x y : FPName} :
-  (𝑣⸨#,#⸩P){y // x} = 𝑣⸨#,#⸩P{y // x} := by
+  (𝑣⸨$N,$N⸩P){y // x} = 𝑣⸨$N,$N⸩P{y // x} := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_tensor {P : Proc} {x y z : FPName} :
-  (#z⟦#N⟧․P){y // x} = #z{y // x}⟦#N⟧․P{y // x} := by
+  (#z⟦$N⟧․P){y // x} = #z{y // x}⟦$N⟧․P{y // x} := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_parr {P : Proc} {x y z : FPName} :
-  (#z⸨#N⸩․P){y // x} = #z{y // x}⸨#N⸩․P{y // x} := by
+  (#z⸨$N⸩․P){y // x} = #z{y // x}⸨$N⸩․P{y // x} := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_oplus₁ {P : Proc} {x y z : FPName} :
@@ -715,7 +715,7 @@ macro "simp_Proc_substNames" : tactic =>
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_c {P : Proc} {x y z : FPName} :
-  (#z⟦DUP⟧⸨#N⸩․P){y // x} = (#z{y // x}⟦DUP⟧⸨#N⸩․P{y // x}) := by
+  (#z⟦DUP⟧⸨$N⸩․P){y // x} = (#z{y // x}⟦DUP⟧⸨$N⸩․P{y // x}) := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_exists {P : Proc} {x y z : FPName} {A : Types} :
@@ -723,7 +723,7 @@ macro "simp_Proc_substNames" : tactic =>
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_forall {P : Proc} {x y z : FPName} :
-  (#z⸨#T⸩․P){y // x} = (#z{y // x}⸨#T⸩․P{y // x}) := by
+  (#z⸨$T⸩․P){y // x} = (#z{y // x}⸨$T⸩․P{y // x}) := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_ax {w x y z : FPName} :
