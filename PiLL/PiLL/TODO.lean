@@ -33,10 +33,6 @@
 
 
 
-/- TODO:
-  Fix Env -> HyperEnv coercion and Env.mk / merge + HyperEnv merge syntax binding
-  and producing weird results
--/
 
 
 /- TODO: Make process parallel with 𝟘 act as an abelian monoid under (strong) bisimilarity.
@@ -55,83 +51,13 @@
     · Show simulation thingy
 -/
 
-/- TODO:
-  · Check correctness of ProcStep and EnvStep
-  · Show that for any valid typing if the process can make a step, then the environment can
-    also make a step.
--/
-
--- TODO: Make lean print the notation for the Has_ Type Classes
-
--- TODO: Fix some processes bindnig weirdly (par, cut, etc.)
-
-
-
-
-
-
-
---------- Might be doing something different now ---------
-
-/- TODO: Extend TypingStep and fix rules
-  · If not remade as theorem instead of actual rules then fix
-    · input : Types subst for derivations (𝒟{A // X})
-    · axcut : PName subst for derivations (𝒟{x // z})
-    · dup₂ : n-expansion rule + sigma substitution (𝒟σ)
-    · dispose₂ : Make it an n expansion of the c rule (n >= 0)
-  · Remove unnecessary @[simp] tags
--/
-
-/- TODO:
-  · Depending on Marcos response define alternate version of c- and w-rule which
-    also work on thier dependencies.
-
-  · If not and depending on whether or not the current implementations of rules needing
-    to apply a substitution work or not - Make it possible to apply a σ to Env and Proc
-    just like a PName.
-
-  · Correct the rules using this as needed.
--/
-
-----------------------------------------------------------
-
-
-
---------- This behaves differently due to de Bruijn  ---------
-
-
-/- TODO: Check if substitution avoids capture as they are
-  · if not:
-    · implicitly pick freshname / TVar
-      · Probably need AlphaEq to do renaming
-      · May need pick fresh function for TVar
-  · Make a proof that replacement avoids capture
-  · NOTE: Currently baked into Typing rules / theorems due to restrictions, if this had to
-    change AlphaEq and De Bruijn indices probably needs to be used.
+/- TODO: Substitution
+  · Proof showing it avoids capture and is safe.
 -/
 
 /- TODO: AlphaEQ
-  · Extend to full πLL
-  · Transitivity proof -> Equivalence relation
-  · Check rules depending on AlphaEq work as expected (Don't get stuck)
-  · Check if HyperEnv also needs renaming when Proc is renamed
-    · No it doesn't, renaming only affects bound names, environment only contains free names
+  · Proof showing an explicit relation does not need to exist-
 -/
-
-/- TODO:
-  · Finish type substitution theorem on judgements.
-    · Currently works modulo not prooving it handles renaming correctly
-    · If possible get it to work without assuming Barendregt's variable convetion
-  · Remove hFresh and hSafe from name substitution proof and use aplha equivalence
-    to show it is possible to pick a freshname and get an equivalent process
--/
-
---------------------------------------------------------------
-
-
-
-
-
 
 /- TODO: show erasure for processes and environments / hyperenvironments
   · if 𝒟 -[l]-> 𝒟' then proc(𝒟) -[l]-> proc(𝒟'), and
@@ -147,11 +73,14 @@
   · Both of the above are related to question (4)
 -/
 
+-- TODO: Make lean print the notation for the Has_ Type Classes
+
+-- TODO: Fix some processes bindnig weirdly (par, cut, etc.)
 
 
 
 
-
+-- TODO: Fix TypingStep
 
 /- TODO: Create examples / test usage of:
   · ProcStep
@@ -191,15 +120,10 @@
 
 -- TODO: Remove unused lemmas
 
+-- TODO: Remove unnecessary / disruptive  @[simp] tags from theorems
+
 -- TODO: Ensure consistency in using {} and for lemma and theorem arguments use () for
 --       associativity, commutivity etc
-
-/- TODO: Look over the proof for judgement name replacement
-  · Shorten it if possible
-  · Check whether hFresh is needed the in definiton or if the ones from the Typing
-    rule are enough
-  · Probably ask about whether the current version is fine or if it is too cluttered
--/
 
 /- TODO:
   WF for _Step without having WF hyp in .syn rule. Side condition seems to weak, so
@@ -211,23 +135,13 @@
   · Check if possible for ⟷  -- stick with subscripts
 -/
 
+
 --------------------------------------- QUESTIONS ---------------------------------------
-/-
-  Ask about the two unsolved cases in Typing.subst_types, should I keep them as sorry,
-  or can I simply restrict substitution to only handle closed types, or should I
-  implement alpha equivalence and use that to solve the cases.
--/
 
 /-
   Ask about whether I should keep TypingStep as its own inductive definiton, or
   if it should use ProcStep and EnvStep and just become a Theorem stating the
   validity of derivation after having done a step.
--/
-
-/-
-  Is it the typing rules which ensure that a single name cannot be used by multiple
-  environments otherwise how is 𝒢(x) supposed to be defined and is it correctly
-  understood that typing rules ensure name linearity in environments.
 -/
 
 /-

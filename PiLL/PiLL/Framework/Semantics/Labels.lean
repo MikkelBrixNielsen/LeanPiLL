@@ -65,6 +65,7 @@ def Lbl.i : Lbl → Finset FPName
   | .act a      => iNamesAct a
   | .par l l'   => iNamesAct l ∪ iNamesAct l'
 
+-- FIXME: Unused
 @[simp]
 def Lbl.fresh (xs : List FPName) (l : Lbl) :=
   ∀ n ∈ xs, n ∉ l.f ∪ l.i

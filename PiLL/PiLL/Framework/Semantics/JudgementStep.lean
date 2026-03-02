@@ -4,55 +4,33 @@ import PiLL.Framework.Semantics.Labels
 
 
 
--- FIXME: Fix ProcStep, EnvStep and TypingStep
--- FIXME: Typing_preserves_proc_congr
-
-
--- FIXME: Subject reduction / simulation proof
-
--- FIXME: Proof showing substitution avoids capture
--- FIXME: Check possibility of no having exchange rules
--- FIXME: Proof of HyperEnv.names only having free names
--- FIXME: Proof that HyperEnv.names = Proc.f
--- FIXME: Something regarding Name substitution only being applied to free names?
--- FIXME: Find different syntax for open?
-
--- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
 
 
 
 
--- FIXME: Change bound name syntax to differ from free name in fixed notation
 
+-- inductive TypingStep : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typing n P 𝒢 →
+--   Lbl → {n' : Nat} → {𝒢' : HyperEnv} → {P' : Proc} → Typing n' P' 𝒢' → Prop where
 
-inductive TypingStep : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typing n P 𝒢 →
-  Lbl → {n' : Nat} → {𝒢' : HyperEnv} → {P' : Proc} → Typing n' P' 𝒢' → Prop where
+--   | one
+--       {P : Proc} {x : FPName} {n : Nat} {𝒟 : n ⊢ P ∷ ∅} :
+--       TypingStep (Typing.one (x := x) 𝒟) (x⟦⟧) 𝒟
 
-  | one
-      {P : Proc} {x : FPName} {n : Nat} {𝒟 : n ⊢ P ∷ ∅} :
-      TypingStep (Typing.one (x := x) 𝒟) (x⟦⟧) 𝒟
+--   | tensor
+--       {Γ Δ : Env} {P : Proc} {x y : FPName} {A B : Types} {n : Nat}
+--       {𝒟 : n ⊢ P ∷ [y ∶ A :: Γ] |ₕ [x ∶ B :: Δ]} {hF: x ∉ Γ.names ∧ x ∉ Δ.names}
+--       (L : Finset FPName) (huniq : (∀ y ∉ L, n ⊢ P⸨#y⸩ ∷ [y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) :
+--       TypingStep (Typing.tensor (hF := hF) (L := L) huniq) (x⟦y⟧) 𝒟
 
-  | tensor
-      {Γ Δ : Env} {P : Proc} {x y : FPName} {A B : Types} {n : Nat}
-      {𝒟 : n ⊢ P ∷ [y ∶ A :: Γ] |ₕ [x ∶ B :: Δ]} {hF: x ∉ Γ.names ∧ x ∉ Δ.names}
-      (L : Finset FPName) (huniq : (∀ y ∉ L, n ⊢ P⸨#y⸩ ∷ [y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) :
-      TypingStep (Typing.tensor (hF := hF) (L := L) huniq) (x⟦y⟧) 𝒟
+--   | bot
+--       {Γ : Env} {P : Proc} {x : FPName} {n : Nat} {𝒟 : n ⊢ P ∷ [Γ]} {hF : x ∉ Γ.names} :
+--       TypingStep (Typing.bot (hF := hF) 𝒟) (x⸨⸩) 𝒟
 
-  | bot
-      {Γ : Env} {P : Proc} {x : FPName} {n : Nat} {𝒟 : n ⊢ P ∷ [Γ]} {hF : x ∉ Γ.names} :
-      TypingStep (Typing.bot (hF := hF) 𝒟) (x⸨⸩) 𝒟
-
-
-
-
-  | parr
-      {Γ : Env} {P : Proc} {x y : FPName} {A B : Types} {n : Nat} {hF : x ∉ Γ.names}
-      {𝒟' : n ⊢ P ∷ [x ∶ B :: y ∶ A :: Γ]} {L : Finset FPName}
-      (𝒟 : ∀ y ∉ L, n ⊢ P⸨#y⸩ ∷ [x ∶ B :: y ∶ A :: Γ]) :
-      TypingStep (Typing.parr (hF := hF) (L := L) 𝒟) (x⸨y⸩) 𝒟'
-
-
-
+--   | parr
+--       {Γ : Env} {P : Proc} {x y : FPName} {A B : Types} {n : Nat} {hF : x ∉ Γ.names}
+--       {𝒟' : n ⊢ P ∷ [x ∶ B :: y ∶ A :: Γ]} {L : Finset FPName}
+--       (𝒟 : ∀ y ∉ L, n ⊢ P⸨#y⸩ ∷ [x ∶ B :: y ∶ A :: Γ]) :
+--       TypingStep (Typing.parr (hF := hF) (L := L) 𝒟) (x⸨y⸩) 𝒟'
 
   -- | par₁
   --     {𝒢 ℋ 𝒢': HyperEnv} {P Q P' : Proc} {l : Lbl}

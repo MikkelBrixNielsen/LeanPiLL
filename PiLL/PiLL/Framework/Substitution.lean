@@ -688,7 +688,6 @@ macro "split_names " x:term " eq " y:term " using "
     case neg => split_names_neg $ih, $huniq
   ))
 
-
 -- Condition: y is not already in G (unless y = x, which is a no-op)
 lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
   Typing n P 𝒢 → (∀ Γ ∈ 𝒢, ∀ A, (y, A) ∈ Γ → y = x) →

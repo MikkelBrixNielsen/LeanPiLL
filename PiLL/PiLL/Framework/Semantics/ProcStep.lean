@@ -1,33 +1,50 @@
 import PiLL.Framework.Model.Process
-import PiLL.Framework.Model.Alpha
+-- import PiLL.Framework.Model.Alpha
 import PiLL.Framework.Semantics.Labels
 
-def Proc.close (P : Proc) (names : List PName) : Proc :=
-  match P with
-  | .server x _ => names.foldr (fun n acc => Proc.dispose n acc) (x⟦⟧․𝟘)
-  | _ => P
+-- Helper for being able to dynamically build a dispose process
+def buildDisp (names : List FPName) (x : FPName) : Proc :=
+  match names with
+  | [] => #x⟦⟧․𝟘
+  | z :: zs => #z⟦DISP⟧․(buildDisp zs x)
 
-def Proc.open (P : Proc) (names : List PName) (σ : Renaming) : Proc :=
-  match P with
-  | .server _ _  => names.foldr (fun n acc => Proc.duplicate n (σ n) acc) ((rename σ P) |ₚ P)
-  | _ => P
+
+-- Helpers for being able to dynamically build the duplicate process
+def closeAll (P : Proc) (idx : Nat) (names : List FPName) : Proc :=
+  match names with
+  | [] => P
+  | z :: zs => closeAll (Proc.close idx z P) (idx + 1) zs
+
+def wrapDup (P : Proc) (names : List FPName) : Proc :=
+  match names with
+  | [] => P
+  | z :: zs => Proc.duplicate #z (wrapDup P zs)
+
+-- NOTE: Names should be (P.f.erase x).toList and P should be based proccess
+def buildDup (P : Proc) (names : List FPName) (x : FPName) : Proc :=
+  -- use closeAll to replace free names with De Bruijn indices to get duplicate server
+  -- x :: names has names reversed to have x be innermost binder (bound 0) and zₙ (bound 1)
+  let P' := closeAll (Proc.server #x P) 0 (x :: names.reverse)
+
+  -- Wrap x with tensor, and the rest with duplicate
+  wrapDup (#x⟦$N⟧․(P' |ₚ (Proc.server #x P))) names
 
 inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | one
-      {P : Proc} {x : PName} :
-      ProcStep (x⟦⟧․P) (x⟦⟧) P
+      {P : Proc} {x : FPName} :
+      ProcStep (#x⟦⟧․P) (x⟦⟧) P
 
   | tensor
-      {P : Proc} {x x' : PName} :
-      ProcStep (x⟦x'⟧․P) (x⟦x'⟧) P
+      {P : Proc} {x y : FPName} :
+      ProcStep (#x⟦$N⟧․P) (x⟦y⟧) P⸨#y⸩
 
   | bot
-      {P : Proc} {x : PName} :
-      ProcStep (x⸨⸩․P) (x⸨⸩) P
+      {P : Proc} {x : FPName} :
+      ProcStep (#x⸨⸩․P) (x⸨⸩) P
 
   | parr
-      {P : Proc} {x x' : PName} :
-      ProcStep (x⸨x'⸩․P) (x⸨x'⸩) P
+      {P : Proc} {x y : FPName} :
+      ProcStep (#x⸨$N⸩․P) (x⸨y⸩) P⸨#y⸩
 
   | par₁
       {P P' Q : Proc} {l : Lbl} :
@@ -48,107 +65,134 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ---------------------------------------------
       ProcStep (P |ₚ Q) (l |ₗ l') (P' |ₚ Q')
 
-  | alpha_equiv
-      {P Q Q' : Proc} {l : Lbl} :
-      (P =ₐ Q) → ProcStep Q l Q' →
-      -------------------------------
-      ProcStep P l Q'
+-- FIXME: Delete, and make theorem stating AlphaEq is handled by LN
+--   | alpha_equiv
+--       {P Q Q' : Proc} {l : Lbl} :
+--       (P =ₐ Q) → ProcStep Q l Q' →
+--       -------------------------------
+--       ProcStep P l Q'
 
+-- NOTE: P' defined outside forall → x y cannot be in P'
   | one_bot
-      {P P' : Proc} {x y : PName} :
-      ProcStep P (x⟦⟧ |ₗ y⸨⸩) P' →
+      {P P' : Proc} (L : Finset FPName) :
+      (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
+      ProcStep P⸨#x, #y⸩ (x⟦⟧ |ₗ y⸨⸩) P') →
       ----------------------------
-      ProcStep (𝑣⸨x, y⸩ P) (τ) P'
+      ProcStep (𝑣⸨$N,$N⸩ P) (τ) P'
 
   | tensor_parr
-      {P P' : Proc} {x x' y y' : PName} :
-      ProcStep P (x⟦x'⟧ |ₗ y⸨y'⸩) P' →
-      -------------------------------------------------
-      ProcStep (𝑣⸨x, y⸩ P) (τ) (𝑣⸨x, y⸩ (𝑣⸨x', y'⸩ P'))
+      {P P' : Proc} {x x' y y' : FPName} {L : Finset FPName} :
+      (∀ x ∉ L, ∀ x' ∉ L, ∀ y ∉ L, ∀ y' ∉ L,
+      x ≠ x' → x ≠ y → x ≠ y' → y ≠ x' → y ≠ y' → x' ≠ y' →
+      ProcStep P⸨#x, #y⸩ (x⟦x'⟧ |ₗ y⸨y'⸩) P'⸨#x, #y⸩⸨#x', #y'⸩) →
+      ---------------------------------------------------------
+      ProcStep (𝑣⸨$N,$N⸩ P) (τ) (𝑣⸨$N,$N⸩ (𝑣⸨$N,$N⸩ P'))
 
+/- NOTE: x y are fresh from L, so they avoid l.f and l.i, with L = P.f.
+         Thus, x, y ∉ l.f ∪ l.i follows automatically -/
   | res
-      {P P' : Proc} {x y : PName} {l : Lbl} :
-      ProcStep P l P' → l.fresh [x, y] →
+      {P P' : Proc} {l : Lbl} {L : Finset FPName} :
+      (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
+      ProcStep P⸨#x, #y⸩ l P'⸨#x, #y⸩) →
       -------------------------------------
-      ProcStep (𝑣⸨x, y⸩ P) (l) (𝑣⸨x, y⸩ P')
+      ProcStep (𝑣⸨$N,$N⸩ P) (l) (𝑣⸨$N,$N⸩ P')
 
   | disp₁
-      {P : Proc} {x : PName} :
-      ProcStep (x⟦DISP⟧․P) (x⟦DISP⟧) (x⸨⸩․P)
+      {P : Proc} {x : FPName} :
+      ProcStep (#x⟦DISP⟧․P) (x⟦DISP⟧) (#x⸨⸩․P)
 
   | disp₂
-      {P : Proc} {x : PName} {names : List PName} :
-      (P.f \ {x}).toList.mergeSort (· ≤ ·) = names →
-      --------------------------------------------------
-      ProcStep (!x․{P}) (x⸨DISP⸩) ((!x․{P}).close names)
+      {P : Proc} {x : FPName} :
+      ---------------------------------------------------------------
+      ProcStep (!#x․{P}) (x⸨DISP⸩) (buildDisp (P.f.erase x).toList x)
 
   | dup₁
-      {P : Proc} {x x' : PName} :
-      ProcStep (x⟦DUP⟧⸨x'⸩․P) (x⟦DUP⟧) (x⸨x'⸩․P)
+      {P : Proc} {x x' : FPName} :
+      ProcStep (#x⟦DUP⟧⸨$N⸩․P) (x⟦DUP⟧) ((#x⸨$N⸩․P))
 
   | dup₂
-      {P : Proc} {x x' : PName} {names : List PName} {σ : Renaming} :
-      P.f ∩ (P.f.image σ) = ∅ → names = (P.f \ {x}).toList.mergeSort (· ≤ ·) →
-      -------------------------------------------------------------------------
-      ProcStep (!x․{P}) (x⸨DUP⸩) ((!x․{P}).open names σ)
+      {P : Proc} {x : FPName} :
+      -----------------------------------------------------------------
+      ProcStep (!#x․{P}) (x⸨DUP⸩) (buildDup P ((P.f.erase x).toList) x)
 
   | use₁
-      {P : Proc} {x : PName} :
-      ProcStep (x⟦USE⟧․P) (x⟦USE⟧) P
+      {P : Proc} {x : FPName} :
+      ProcStep (#x⟦USE⟧․P) (x⟦USE⟧) P
 
   | use₂
-      {P : Proc} {x : PName} :
-      ProcStep (!x․{P}) (x⸨USE⸩) P
+      {P : Proc} {x : FPName} :
+      ProcStep (!#x․{P}) (x⸨USE⸩) P
 
   | output
-      {P : Proc} {x : PName} {A : Types} :
-      ProcStep (x⟦A⟧․P) (x⟦A⟧) P
+      {P : Proc} {x : FPName} {A : Types} :
+      ProcStep (#x⟦A⟧․P) (x⟦A⟧) P
 
   | input
-      {P : Proc} {x : PName} {A : Types} {X : TVar}:
-      ProcStep (x⸨X⸩․P) (x⸨A⸩) (P{A // X})
+      {P : Proc} {x : FPName} {A : Types} {X : TVar} :
+      ProcStep (#x⸨$T⸩․P) (x⸨A⸩) (P{A // 0})
 
   | selectL
-      {P : Proc} {x : PName} :
-      ProcStep (x⟦𝐋⟧․P) (x⟦𝐋⟧) P
+      {P : Proc} {x : FPName} :
+      ProcStep (#x⟦𝐋⟧․P) (x⟦𝐋⟧) P
 
   | ampL
-      {P Q : Proc} {x : PName} :
-      ProcStep (x․case{𝐋 : P, 𝐑 : Q}) (x⸨𝐋⸩) P
+      {P Q : Proc} {x : FPName} :
+      ProcStep (#x․case{𝐋 : P, 𝐑 : Q}) (x⸨𝐋⸩) P
 
   | selectR
-      {P : Proc} {x : PName} :
-      ProcStep (x⟦𝐑⟧․P) (x⟦𝐑⟧) P
+      {P : Proc} {x : FPName} :
+      ProcStep (#x⟦𝐑⟧․P) (x⟦𝐑⟧) P
 
   | ampR
-      {P Q : Proc} {x : PName} :
-      ProcStep (x․case{𝐋 : P, 𝐑 : Q}) (x⸨𝐑⸩) Q
+      {P Q : Proc} {x : FPName} :
+      ProcStep (#x․case{𝐋 : P, 𝐑 : Q}) (x⸨𝐑⸩) Q
 
   | link₁
-      {x y : PName} :
-      ProcStep (x ⟷ₚ y) (x ⟷ₗ y) 𝟘
+      {x y : FPName} :
+      ProcStep (#x ⟷ₚ #y) (x ⟷ₗ y) 𝟘
 
   | link₂
-      {x y : PName} :
-      ProcStep (x ⟷ₚ y) (y ⟷ₗ x) 𝟘
+      {x y : FPName} :
+      ProcStep (#x ⟷ₚ #y) (y ⟷ₗ x) 𝟘
 
-  | com {P P' : Proc} {x y : PName} {μ : Mu} :
-      ProcStep P (x⟦μ⟧ |ₗ y⟦μ⟧) P' →
-      -------------------------------------
-      ProcStep (𝑣⸨x, y⸩ P) (τ) (𝑣⸨x, y⸩ P')
+  | com {P P' : Proc} {μ : Mu} {L : Finset FPName} :
+      (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
+      ProcStep P⸨#x, #y⸩ (x⟦μ⟧ |ₗ y⟦μ⟧) P'⸨#x, #y⸩) →
+      ----------------------------------------------
+      ProcStep (𝑣⸨$N,$N⸩ P) (τ) (𝑣⸨$N,$N⸩ P')
 
+/- NOTE: y is consumed by link → y = x, and z is being replaced by x, thus
+         the process can be opened with x for both y and z -/
   | axcut
-      {P P' : Proc} {x y z : PName} :
-      ProcStep P (x ⟷ₗ y) P' →
-      --------------------------------------
-      ProcStep (𝑣⸨y, z⸩ P) (τ) (P'{x // z})
+      {P P' : Proc} {x : FPName} {L : Finset FPName} :
+      (∀ y ∉ L, ∀ z ∉ L, y ≠ z →
+      ProcStep P⸨#y, #z⸩ (x ⟷ₗ y) P'⸨#y, #z⸩) →
+      -----------------------------------------
+      ProcStep (𝑣⸨$N,$N⸩ P) (τ) (P'⸨#x, #x⸩)
+
+-- FIXME: Might need this for symmetry depending on how cogruence works out
+--   | axcut₂
+--       {P P' : Proc} {x : FPName} {L : Finset FPName} :
+--       (∀ y ∉ L, ∀ z ∉ L, y ≠ z →
+--       ProcStep P⸨#z, #y⸩ (x ⟷ₗ z) P'⸨#z, #y⸩) →
+--       -----------------------------------------
+--       ProcStep (𝑣⸨$N,$N⸩ P) (τ) (P'⸨#x, #x⸩)
+
+
 
 notation:50 P " -[" l "]->ₚ " P' => ProcStep P l P'
 
 theorem ProcStep.preserves_WF (P P' : Proc) (l : Lbl) :
   ProcStep P l P' → l.WF := by
   intro h
-  induction h <;> simp_all [Lbl.WF]
+  induction h
+
+  case res L _ ih =>
+    obtain ⟨x, hx, y, hy, hneq⟩ := exists_two_fresh L
+    exact ih x y hx hy hneq
+
+  all_goals
+    simp_all [Lbl.WF]
 
 inductive MPST : (P : Proc) → Lbls → (P' : Proc) → Prop where
   | refl
