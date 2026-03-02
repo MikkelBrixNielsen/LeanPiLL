@@ -35,7 +35,7 @@ def iNamesAct : Act → Finset FPName -- introduced names
 
 inductive Lbl : Type
   | tau                   -- τ
-  | link  (x y : FPName)   -- x ⟷ y
+  | link  (x y : FPName)  -- x ⟷ y
   | act   (p : Act)       -- l, for l ∈ Act
   | par   (l l' : Act)    -- l | l' for l, l' ∈ Act, i(l) ∩ i(l') = ∅ (.WF)
 deriving Repr, DecidableEq

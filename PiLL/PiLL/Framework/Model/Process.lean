@@ -784,3 +784,63 @@ lemma Proc.open_subst_intro_gen (P : Proc) (k : Nat) {w z : FPName} (hF : w ∉ 
 lemma Proc.open_subst_intro {P : Proc} {w z : FPName} (hF : w ∉ P.f) :
   P⸨#z⸩ = P⸨#w⸩{z // w} := by
   exact Proc.open_subst_intro_gen P 0 hF
+
+macro "simp_Proc_substNames_open": tactic =>
+  `(tactic| (
+    simp [HasOpen.open_, Proc.open, Channel.open, HasSubst.subst,
+      Proc.substNames, Channel.subst]
+  ))
+
+macro "solve_single_ih" ih:ident : tactic =>
+  `(tactic| (
+    simp_Proc_substNames_open
+    constructor
+    · intro ; contradiction
+    · exact $ih
+  ))
+
+macro "solve_double_ih" ih1:ident ", " ih2:ident : tactic =>
+  `(tactic| (
+    simp_Proc_substNames_open
+    constructor
+    · intro ; contradiction
+    exact ⟨$ih1, $ih2⟩
+  ))
+
+lemma Proc.open_substNames_comm_gen {P : Proc} {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
+  (P⸨k | #z⸩){y // x} = P{y // x}⸨k | #z⸩ := by
+  induction P generalizing k
+
+  case nil => simp [HasOpen.open_, Proc.open, HasSubst.subst, Proc.substNames]
+
+  case one ih | bot ih | selectL ih | selectR ih | output ih | input ih |
+    server ih | consume ih | duplicate ih | dispose ih | tensor ih | parr ih =>
+    solve_single_ih ih
+
+  case cut ih =>
+    simp_Proc_substNames_open
+    exact ih
+
+  case amp ihP ihQ  =>
+    solve_double_ih ihP, ihQ
+
+  case par ihP ihQ =>
+    simp_Proc_substNames_open
+    constructor
+    · exact ihP
+    · exact ihQ
+
+  case link =>
+    simp_Proc_substNames_open
+    intro ; contradiction
+
+lemma Proc.open_substNames_comm {P : Proc} {x y z : FPName} (hF : z ≠ x) :
+  (P⸨#z⸩){y // x} = (P{y // x})⸨#z⸩ := Proc.open_substNames_comm_gen (k := 0) hF
+
+lemma Proc.openCut_substNames_comm {P : Proc} {x y z w : FPName}
+  (hFz : z ≠ x) (hFw : w ≠ x) :
+  P⸨#z, #w⸩{y // x} = P{y // x}⸨#z, #w⸩ := by
+  simp [HasOpenTwo.open_, HasSubst.subst]
+  change ((P⸨1 | #w⸩)⸨#z⸩){y // x} = P{y // x}⸨1 | #w⸩⸨#z⸩
+  rw [Proc.open_substNames_comm_gen (k := 0) hFz]
+  rw [Proc.open_substNames_comm_gen (k := 1) hFw]
