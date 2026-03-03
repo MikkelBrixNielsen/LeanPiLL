@@ -803,18 +803,6 @@ import PiLL.Framework.Model.Environment
 
 
 inductive Typing : Nat → Proc → HyperEnv → Prop where
-  ------ Additional Structural and Exchange Rules ------
-
-  | exchange_env {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {n : Nat} :
-      Typing n P (Γ :: 𝒢) → Γ ~ Δ →
-      -----------------------------
-      Typing n P (Δ :: 𝒢)
-
-  | exchange_hyper {𝒢 ℋ : HyperEnv} {P : Proc} {n : Nat} :
-      Typing n P 𝒢 → 𝒢 ~ ℋ →
-      -----------------------
-      Typing n P ℋ
-
   ----------------- Actual Typing Rules -----------------
 
   | mix₀ {n : Nat} :
@@ -916,6 +904,18 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       A.lc n →
       Typing n (#x ⟷ₚ #y) [x ∶ Aᗮ :: [y ∶ A]]
 
+  ------- Additional Structural / Exchange Rules -------
+
+  | exchange_env {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {n : Nat} :
+      Typing n P (Γ :: 𝒢) → Γ ~ Δ →
+      -----------------------------
+      Typing n P (Δ :: 𝒢)
+
+  | exchange_hyper {𝒢 ℋ : HyperEnv} {P : Proc} {n : Nat} :
+      Typing n P 𝒢 → 𝒢 ~ ℋ →
+      -----------------------
+      Typing n P ℋ
+
 notation:45 n " ⊢ " P " ∷ " 𝒢 => Typing n P 𝒢
 
 -- Projection of a Judgement to its process
@@ -947,6 +947,12 @@ def env {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : HyperEnv
 -- lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
 --   (⊢ P ∷ 𝒢 |ₕ ℋ) → (⊢ P ∷ ℋ |ₕ 𝒢) :=
 --   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
+
+
+
+
+
+
 
 
 
@@ -1010,12 +1016,8 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
     · exact ih.2
 
   case exchange_hyper hP ih =>
-    rw [HyperEnv.PairwiseDisjoint, ← List.Perm.pairwise_iff _ hP]
-    · exact ih
-    · intro x y hD
-      simp at hD ⊢
-      apply Disjoint.symm
-      exact hD
+    rw [HyperEnv.PairwiseDisjoint, ← HyperEnv.Perm_pairwise_disjoint hP]
+    exact ih
 
 lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   (n ⊢ P ∷ 𝒢) → ∀ Γ ∈ 𝒢, Γ.lc n := by
@@ -1078,8 +1080,9 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
     | inl => simp_all [(Env.lc_perm hP).mp]
     | inr => simp_all
 
-  case exchange_hyper hP _ =>
-    simp_all [List.Perm.mem_iff hP]
+  case exchange_hyper hP ih =>
+    obtain ⟨Ξ, hin𝒢, hPΞ⟩ := HyperEnv.Perm_mem (Γ := E) hP hE𝒢
+    exact (Env.lc_perm hPΞ).mp (ih Ξ hin𝒢)
 
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by

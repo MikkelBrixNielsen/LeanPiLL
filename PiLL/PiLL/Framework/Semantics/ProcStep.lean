@@ -1,5 +1,4 @@
 import PiLL.Framework.Model.Process
--- import PiLL.Framework.Model.Alpha
 import PiLL.Framework.Semantics.Labels
 
 -- Helper for being able to dynamically build a dispose process
@@ -7,7 +6,6 @@ def buildDisp (names : List FPName) (x : FPName) : Proc :=
   match names with
   | [] => #x⟦⟧․𝟘
   | z :: zs => #z⟦DISP⟧․(buildDisp zs x)
-
 
 -- Helpers for being able to dynamically build the duplicate process
 def closeAll (P : Proc) (idx : Nat) (names : List FPName) : Proc :=

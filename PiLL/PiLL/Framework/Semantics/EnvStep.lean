@@ -2,20 +2,24 @@ import PiLL.Framework.Model.Judgement
 import PiLL.Framework.Semantics.Labels
 
 inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
+  ------------------ Actual Step Rules ------------------
+
   | one
       {x : FPName} :
       EnvStep [[x ∶ 1]] (x⟦⟧) ∅
 
   | tensor
-      {Γ Δ : Env} {x x' : FPName} {A B : Types} :
-      EnvStep [x ∶ A ⨂ B :: Γ‚ Δ] (x⟦x'⟧) ([x'∶ A :: Γ] |ₕ [x ∶ B :: Δ])
+      {Γ Δ : Env} {x x' : FPName} {A B : Types}
+      (hF : x' ∉ HyperEnv.names [x ∶ A ⨂ B :: Γ‚ Δ]) :
+      EnvStep [x ∶ A ⨂ B :: Γ‚ Δ] (x⟦x'⟧) ([x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ])
 
   | bot
       {Γ : Env} {x : FPName} :
       EnvStep [x ∶ ⊥ :: Γ] (x⸨⸩) [Γ]
 
   | parr
-      {Γ : Env} {x x' : FPName} {A B : Types} :
+      {Γ : Env} {x x' : FPName} {A B : Types}
+      (hF : x' ∉ HyperEnv.names [x ∶ A ⅋ B :: Γ]) :
       EnvStep [x ∶ A ⅋ B :: Γ] (x⸨x'⸩) [x ∶ B :: x' ∶ A :: Γ]
 
   | par₁
@@ -112,6 +116,13 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
   | input
       {Γ : Env} {x : FPName} {A B : Types} {X : TVar} :
       EnvStep [x ∶ ∀․B :: Γ] (x⸨A⸩) [x ∶ B{A // 0} :: Γ]
+
+------- Additional Structural / Exchange Rules -------
+
+    | perm {𝒢 𝒢' ℋ ℋ' : HyperEnv} {l : Lbl} :
+      𝒢 ~ ℋ → EnvStep 𝒢 l 𝒢' → 𝒢' ~ ℋ' →
+      ------------------------------------
+      EnvStep ℋ l ℋ'
 
 notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
 

@@ -484,9 +484,9 @@ abbrev Elem := (FPName × Types)
 abbrev Elem.mk (x : FPName) (A : Types) : Elem := (x, A)
 infixr:68 " ∶ " => Elem.mk
 
-infixl:50 " ~ " => List.Perm
-
 abbrev Env := List Elem
+
+instance : HasPerm Env where perm := List.Perm
 
 def Env.names (Γ : Env) : Finset FPName :=
   (Γ.map Prod.fst).toFinset
@@ -811,7 +811,7 @@ lemma Env.serverUsable_substNames {Γ : Env} {x y : FPName} :
 
 lemma Env.substNames_preserves_perm {Γ Δ : Env} {x y : FPName} :
   Γ ~ Δ → Γ{y // x} ~ Δ{y // x} := by
-  simp_all [HasSubst.subst, Env.substNames]
+  simp_all [HasPerm.perm, HasSubst.subst, Env.substNames]
   grind
 
 @[simp] lemma Env.shiftTypes_substNames_comm {Γ : Env} {x y : FPName} :
@@ -895,7 +895,7 @@ lemma Env.fresh_substNames_binary {Γ Δ : Env} {x y z : FPName} {C : Types}
 
 @[simp] lemma Env.substTypes_preserves_perm {Γ Δ : Env} {A : Types} {k : Nat} :
   (Γ ~ Δ) → (Γ{A // k} ~ Δ{A // k}) := by
-  simp [HasSubst.subst]
+  simp [HasPerm.perm, HasSubst.subst]
   apply List.Perm.map
 
 -- Γ{A // k}⁺ᵗ = Γ⁺ᵗ{A⁺ᵗ // k + 1}
@@ -903,10 +903,47 @@ lemma Env.fresh_substNames_binary {Γ Δ : Env} {x y z : FPName} {C : Types}
   (Γ.substTypes A k).shiftTypes 0 1 = (Γ.shiftTypes 0 1).substTypes (A.shift 0 1) (k + 1) := by
   induction Γ <;> simp [Env.substTypes, Env.shiftTypes, Types.shift_0_subst_comm]
 
+lemma Env.perm_disjoint {Γ Δ Ξ : Env} (hP : Γ ~ Δ) :
+  Γ.disjoint Ξ ↔ Δ.disjoint Ξ := by
+  simp [Env.disjoint]
+  rw [← Env.names_eq_of_perm hP]
+
+lemma Env.disjoint_symm {Γ Δ : Env} : Env.disjoint Γ Δ ↔ Env.disjoint Δ Γ := by
+  exact disjoint_comm
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
 -- instance : Coe Env HyperEnv := ⟨fun Γ => ([Γ] : HyperEnv)⟩
+
+-- Deep version of List.Perm, where nil, swap and trans mimic List.Perm, but cons
+-- allows exchanging the head element with another permutation equivalent element
+inductive HyperEnv.Perm : HyperEnv → HyperEnv → Prop where
+  | nil : Perm [] []
+
+  | cons {Γ Δ : Env} {𝒢 ℋ : HyperEnv} : (Γ ~ Δ) → Perm 𝒢 ℋ → Perm (Γ :: 𝒢) (Δ :: ℋ)
+
+  | swap (Γ Δ : Env) (𝒢 : HyperEnv) : Perm (Γ :: Δ :: 𝒢) (Δ :: Γ :: 𝒢)
+
+  | trans {𝒢 ℋ 𝒥 : HyperEnv} : Perm 𝒢 ℋ → Perm ℋ 𝒥 → Perm 𝒢 𝒥
+
+instance : HasPerm HyperEnv where perm := HyperEnv.Perm
+
+@[simp] lemma HyperEnv.Perm.refl (𝒢 : HyperEnv) : Perm 𝒢 𝒢 := by
+  induction 𝒢 with
+  | nil => exact Perm.nil
+  | cons Γ 𝒢 ih => exact Perm.cons (List.Perm.refl _) ih
+
+lemma HyperEnv.Perm.rfl {𝒢 : HyperEnv} : 𝒢 ~ 𝒢 := .refl _
+
+lemma HyperEnv.Perm.symm {𝒢 ℋ : HyperEnv} (hP : 𝒢 ~ ℋ) : ℋ ~ 𝒢 := by
+  induction hP with
+  | nil => exact nil
+  | cons hPE hPH ih => exact Perm.cons (hPE.symm) ih
+  | swap Γ Δ ℋ => exact Perm.swap ..
+  | trans _ _ ih1 ih2 => exact Perm.trans ih2 ih1
+
+lemma HyperEnv.Perm.comm {𝒢 ℋ : HyperEnv} : 𝒢 ~ ℋ ↔ ℋ ~ 𝒢 := ⟨Perm.symm, Perm.symm⟩
 
 def HyperEnv.names (𝒢 : HyperEnv) : Finset FPName :=
   𝒢.foldr (fun Γ acc => Γ.names ∪ acc) ∅
@@ -1008,8 +1045,12 @@ lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
 
 @[simp] lemma HyperEnv.shiftTypes_preserves_perm {d c : Nat} {𝒢 ℋ : HyperEnv} :
   (𝒢 ~ ℋ) → (𝒢 ↑ᵗ d, c ~ ℋ ↑ᵗ d, c) := by
-  simp [HasShiftTypes.shift]
-  apply List.Perm.map
+  intro h
+  induction h with
+  | nil => exact HyperEnv.Perm.nil
+  | cons hPE _ ih => exact HyperEnv.Perm.cons (Env.shiftTypes_preserves_perm hPE) ih
+  | swap Γ Δ 𝒢 => exact HyperEnv.Perm.swap ..
+  | trans _ _ ih1 ih2 => exact HyperEnv.Perm.trans ih1 ih2
 
 @[simp] lemma HyperEnv.substNames_self {𝒢 : HyperEnv} {x : FPName} :
   𝒢{x // x} = 𝒢 := by induction 𝒢 generalizing x <;> simp_all
@@ -1019,8 +1060,12 @@ lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
 
 lemma HyperEnv.substNames_preserves_perm {𝒢 ℋ : HyperEnv} {x y : FPName} :
   𝒢 ~ ℋ → 𝒢{y // x} ~ ℋ{y // x} := by
-  simp_all [HasSubst.subst, HyperEnv.substNames]
-  grind
+  intro h
+  induction h with
+  | nil => exact HyperEnv.Perm.nil
+  | cons hPE _ ih => exact HyperEnv.Perm.cons (Env.substNames_preserves_perm hPE) ih
+  | swap => exact HyperEnv.Perm.swap ..
+  | trans _ _ ih1 ih2 => exact HyperEnv.Perm.trans ih1 ih2
 
 lemma HyperEnv.mem_pair_fst_in_names {𝒢 : HyperEnv} {x : FPName} :
    x ∈ 𝒢.names ↔ ∃ A Γ, (x, A) ∈ Γ ∧ Γ ∈ 𝒢 := by
@@ -1093,7 +1138,6 @@ lemma HyperEnv.mem_names_substNames {𝒢 : HyperEnv} {x y z : FPName} :
               exact Env.mem_substNames_of_ne hin hneq (y := y)
           case inr => grind
 
-
 lemma HyperEnv.substNames_preserves_disjoint {𝒢 ℋ : HyperEnv} {x y : FPName}
   (hD : 𝒢.disjoint ℋ) (huniq : ∀ Γ ∈ 𝒢 |ₕ ℋ, ∀ A, (y, A) ∈ Γ → y = x) :
   𝒢{y // x}.disjoint ℋ{y // x} := by
@@ -1121,8 +1165,12 @@ lemma HyperEnv.substNames_preserves_disjoint {𝒢 ℋ : HyperEnv} {x y : FPName
 
 @[simp] lemma HyperEnv.substTypes_preserves_perm {𝒢 ℋ : HyperEnv} {A : Types} {k : Nat} :
   (𝒢 ~ ℋ) → (𝒢{A // k} ~ ℋ{A // k}) := by
-  simp [HasSubst.subst]
-  apply List.Perm.map
+  intro h
+  induction h with
+  | nil => exact HyperEnv.Perm.nil
+  | cons hPE _ ih => exact HyperEnv.Perm.cons (Env.substTypes_preserves_perm hPE) ih
+  | swap => exact HyperEnv.Perm.swap ..
+  | trans _ _ ih1 ih2 => exact HyperEnv.Perm.trans ih1 ih2
 
 -- 𝒢{A // k}⁺ᵗ = 𝒢⁺ᵗ{A⁺ᵗ // k + 1}
 @[simp] lemma HyperEnv.shiftTypes_subst_comm {𝒢 : HyperEnv} {A : Types} {k : Nat} :
@@ -1130,3 +1178,86 @@ lemma HyperEnv.substNames_preserves_disjoint {𝒢 ℋ : HyperEnv} {x y : FPName
   induction 𝒢 <;>
     simp [HyperEnv.substTypes, HyperEnv.shiftTypes, Env.substTypes,
       Env.shiftTypes, Types.shift_0_subst_comm]
+
+lemma HyperEnv.Perm_mem {𝒢 ℋ : HyperEnv} {Γ : Env} (h : 𝒢 ~ ℋ) (hΓ : Γ ∈ ℋ) :
+  ∃ Γ', Γ' ∈ 𝒢 ∧ Γ' ~ Γ := by
+  induction h generalizing Γ with
+
+  | nil => contradiction
+
+  | cons hHead _ ih =>
+    simp only [List.mem_cons] at hΓ
+    rcases hΓ with rfl | hTail
+    · simp_all
+    · obtain ⟨Γ', hMem, hP⟩ := ih hTail
+      use Γ'
+      constructor
+      · exact List.mem_cons_of_mem _ hMem
+      · exact hP
+
+  | swap Γ Δ 𝒢 =>
+    simp only [List.mem_cons] at hΓ
+    rcases hΓ with rfl | rfl | hTail
+    · use Γ
+      rw [List.mem_cons]
+      constructor
+      · apply Or.inr
+        rw [List.mem_cons]
+        exact Or.inl (rfl)
+      · simp [HasPerm.perm]
+    · use Γ
+      constructor
+      · rw [List.mem_cons]
+        exact Or.inl (rfl)
+      · exact List.Perm.refl Γ
+    · use Γ
+      constructor
+      · rw [List.mem_cons]
+        apply Or.inr
+        rw [List.mem_cons]
+        exact Or.inr (hTail)
+      · exact List.Perm.refl Γ
+
+  | trans _ _ ih1 ih2 =>
+    obtain ⟨Ξ, hΞ, hPΞ⟩ := ih2 hΓ
+    obtain ⟨Ξ', hΞ', hPΞ'⟩ := ih1 hΞ
+    use Ξ'
+    constructor
+    · exact hΞ'
+    · exact List.Perm.trans hPΞ' hPΞ
+
+lemma HyperEnv.Perm_pairwise_disjoint {𝒢 ℋ : HyperEnv} :
+  (𝒢 ~ ℋ) → (List.Pairwise Env.disjoint 𝒢 ↔ List.Pairwise Env.disjoint ℋ) := by
+  intro h
+  induction h with
+  | nil => simp
+
+  | cons hPE hPH ih =>
+    rename_i Γ Δ 𝒢' ℋ'
+    constructor
+    · intro h
+      rw [List.pairwise_cons] at ⊢ h
+      obtain ⟨h1, h2⟩ := h
+      constructor
+      · intros Ξ hΞ
+        obtain ⟨Ξ', hMemΞ', hPΞ'⟩ := HyperEnv.Perm_mem hPH hΞ
+        have hDΔΞ' := (Env.perm_disjoint hPE).mp (h1 Ξ' hMemΞ')
+        exact ((Env.perm_disjoint (Ξ := Δ) hPΞ').mp hDΔΞ'.symm).symm
+      · exact ih.mp h2
+    · intro h
+      rw [List.pairwise_cons] at ⊢ h
+      obtain ⟨h1, h2⟩ := h
+      constructor
+      · intros Ξ hΞ
+        obtain ⟨Ξ', hMemΞ', hPΞ'⟩ := HyperEnv.Perm_mem hPH.symm hΞ
+        have hDΓΞ' := (Env.perm_disjoint hPE).mpr (h1 Ξ' hMemΞ')
+        exact ((Env.perm_disjoint (Ξ := Γ) hPΞ').mp hDΓΞ'.symm).symm
+      · apply ih.mpr h2
+
+  | swap =>
+    rename_i Γ Δ 𝒢'
+    simp only [List.pairwise_cons, List.mem_cons, forall_eq_or_imp]
+    rw [Env.disjoint_symm]
+    tauto
+
+  | trans _ _ ih1 ih2 => exact Iff.trans ih1 ih2

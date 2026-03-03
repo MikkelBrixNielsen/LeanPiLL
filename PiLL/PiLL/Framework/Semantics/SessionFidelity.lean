@@ -3,8 +3,20 @@ import PiLL.Framework.Semantics.ProcStep
 
 
 
+
+
+
+
+
 -- FIXME: Fix TypingStep
 -- FIXME: Typing_preserves_proc_congr
+
+-- FIXME: Move exchange rules to the bottom of Typing, revise substNames / Types
+--        Can probably combine a lot of cases using constructor doing this
+
+-- FIXME: Use NameSpaces instead of having e.g. HyperEnv._____ everywhere
+-- FIXME: Check possibility of removing exchange_env typing rule
+
 
 
 -- FIXME: Proof showing substitution avoids capture
@@ -21,60 +33,81 @@ import PiLL.Framework.Semantics.ProcStep
 
 
 
-lemma typing_inv_one {n : ℕ} {P : Proc} {x : FPName} {𝒢 : HyperEnv}
+lemma typing_inv_one {n : Nat} {P : Proc} {x : FPName} {𝒢 : HyperEnv}
   (hT : Typing n (#x⟦⟧․P) 𝒢) :
   (𝒢 ~ [[x ∶ 1]]) ∧ Typing n P ∅ := by
   generalize heq : (#x⟦⟧․P) = P' at hT
   induction hT generalizing P x <;> try contradiction
 
-  case exchange_env ih =>
-    have := ih (P := P) (x := x) heq
-    simp_all
+  case exchange_env ℋ _ _ _ _ _ hP ih =>
+    have ⟨h1, h2⟩ := ih (P := P) (x := x) heq
+    constructor
+    · have := HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl ℋ)
+      exact HyperEnv.Perm.trans this h1
+    · exact h2
 
-  case exchange_hyper ih =>
-    have := ih (P := P) (x := x)
-    simp at this
-    simp_all
+  case exchange_hyper hP ih =>
+    have ⟨h1, h2⟩ := ih (P := P) (x := x) heq
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm h1
+    · exact h2
 
   case one hT _ =>
     simp at heq
     constructor
-    · simp [heq.1]
+    · simp [heq.1, HasPerm.perm]
     · simp [heq.2]
       exact hT
 
+lemma typing_inv_tensor {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
+  (hT : Typing n (#x⟦$N⟧․P) 𝒢) :
+  ∃ (A B : Types) (Γ Δ : Env) (L : Finset FPName),
+    (𝒢 ~ [x ∶ A ⨂ B :: Γ‚ Δ]) ∧
+    (∀ z ∉ L, Typing n (P⸨#z⸩) ([z ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) := by
+  generalize heq : (#x⟦$N⟧․P) = P' at hT
+  induction hT generalizing P <;> try contradiction
 
+  case exchange_env 𝒢' _ _ _ _ _ hP ih =>
+    obtain ⟨A, B, Γ, Δ, L, hP', hT⟩ := ih (P := P) heq
+    use A, B, Γ, Δ, L
 
-
-
-lemma EnvStep_equiv {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl} :
-  EnvStep 𝒢 l 𝒢' → (𝒢 ~ ℋ) →
-  ∃ ℋ', EnvStep ℋ l ℋ' ∧ (𝒢' ~ ℋ') := by
-  intros hE
-  induction hE
-  case one | bot | selectL | selectR | ampL | ampR =>
-    intros h
-    simp_all
-    subst h
     constructor
-
-  case input X | output X =>
-    intros h
-    simp_all
-    subst h
-    constructor
-    exact X
-
-  all_goals sorry
+    · have h_cong : Δ :: 𝒢' ~ Γ :: 𝒢' := by sorry
 
 
 
 
 
 
+      sorry
+    · exact hT
+
+  case exchange_hyper ih =>
+    sorry
+
+  case tensor ih =>
+    sorry
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- FIXME: Add freshness contraints to ProcStep and EnvStep s.t. the dynamic part of the Typing
+-- follows the same contraints as the static part (i.e. Typing relation)
 
 
 -- FIXME: Subject reduction / simulation proof
@@ -85,7 +118,33 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
   induction hPS generalizing n 𝒢
 
   case one =>
-    obtain ⟨hPerm, 𝒟⟩ := typing_inv_one hT
+    obtain ⟨hP, 𝒟⟩ := typing_inv_one hT
+    use ∅
+    constructor
+    · apply EnvStep.perm hP.symm
+      · exact EnvStep.one
+      · exact HyperEnv.Perm.nil
+    · exact 𝒟
+
+  -- case tensor x y =>
+  --   obtain ⟨A, B, Γ, Δ, L, hP, 𝒟⟩ := typing_inv_tensor hT
+  --   use ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])
+
+  --   constructor
+  --   · exact EnvStep.perm hP.symm (EnvStep.tensor) (by simp [HasPerm.perm])
+  --   · apply 𝒟
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

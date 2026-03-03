@@ -863,7 +863,9 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
     apply Typing.exchange_hyper
     · apply ih
       intros Γ hΓ T hinΓ
-      exact huniq Γ ((List.Perm.mem_iff (a := Γ) hP).mp hΓ) T hinΓ
+      obtain ⟨Δ, hΔ, hPΔ⟩ := HyperEnv.Perm_mem hP.symm hΓ
+      have hinΔ := (List.Perm.mem_iff hPΔ).mpr hinΓ
+      exact huniq Δ hΔ T hinΔ
     · apply HyperEnv.substNames_preserves_perm hP
 
   case ax A hneq _ hlc =>

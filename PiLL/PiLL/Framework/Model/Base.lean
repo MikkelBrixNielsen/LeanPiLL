@@ -50,6 +50,11 @@ notation:80 x"⟦"y"⟧" => HasBracket.brack x y
 notation:80 x"⸨⸩" => HasParen.paren x ()
 notation:80 x"⸨"y"⸩" => HasParen.paren x y
 
+class HasPerm (α : Type) where
+  perm : α → α → Prop
+
+infixr:54 " ~ " => HasPerm.perm
+
 ------------------------------- ADDITIONAL FINSET THEOREMS --------------------------------
 
 lemma Finset.biUnion_union {α β : Type _} [DecidableEq α] [DecidableEq β]
