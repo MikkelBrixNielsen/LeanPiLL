@@ -105,9 +105,9 @@ lemma typing_inv_tensor {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
 
 
 
+-- FIXME: Lemma : n ⊢ P ∷ 𝒢 → (P.f = 𝒢.names)
 
--- FIXME: Add freshness contraints to ProcStep and EnvStep s.t. the dynamic part of the Typing
--- follows the same contraints as the static part (i.e. Typing relation)
+
 
 
 -- FIXME: Subject reduction / simulation proof
@@ -126,13 +126,13 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
       · exact HyperEnv.Perm.nil
     · exact 𝒟
 
-  -- case tensor x y =>
-  --   obtain ⟨A, B, Γ, Δ, L, hP, 𝒟⟩ := typing_inv_tensor hT
-  --   use ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])
+  case tensor x y hF =>
+    obtain ⟨A, B, Γ, Δ, L, hP, 𝒟⟩ := typing_inv_tensor hT
+    use ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])
 
-  --   constructor
-  --   · exact EnvStep.perm hP.symm (EnvStep.tensor) (by simp [HasPerm.perm])
-  --   · apply 𝒟
+    constructor
+    · exact EnvStep.perm hP.symm (EnvStep.tensor hF) (by simp [HasPerm.perm])
+    · apply 𝒟 hF
 
 
 
