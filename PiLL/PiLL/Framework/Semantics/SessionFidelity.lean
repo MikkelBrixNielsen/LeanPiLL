@@ -107,9 +107,137 @@ lemma typing_inv_tensor {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
 
 -- FIXME: Lemma : n ⊢ P ∷ 𝒢 → (P.f = 𝒢.names)
 
+-- lemma Typing.f_subset_names {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
+--   P.f ⊆ 𝒢.names := by
+--   induction h
 
 
 
+-- lemma Typing.names_subset_f {P : Proc} {𝒢 : HyperEnv} (h : ⊢ P ∷ 𝒢) :
+--   𝒢.names ⊆ P.f := by
+--   induction h
+
+
+@[simp] lemma Env.names_nil :
+  Env.names [] = ∅ := by simp [Env.names]
+
+@[simp] lemma Env.names_singleton {x : FPName} {A : Types} :
+  Env.names [x ∶ A] = {x} := by simp [Env.names]
+
+@[simp] lemma Env.names_distributes {Γ : Env} {x : FPName} {A : Types} :
+  Env.names (x ∶ A :: Γ) = {x} ∪ Γ.names := by simp [Env.names]
+
+@[simp] lemma Env.names_merge {Γ Δ : Env} :
+  (Γ‚ Δ).names = Γ.names ∪ Δ.names := by simp [Env.names]
+
+
+
+
+
+@[simp] lemma HyperEnv.names_nil :
+  HyperEnv.names [] = ∅ := by simp [HyperEnv.names]
+
+@[simp] lemma HyperEnv.names_singleton (Γ : Env) :
+  HyperEnv.names [Γ] = Γ.names := by
+  simp [HyperEnv.names, Env.names, List.foldr]
+
+@[simp] lemma HyperEnv.names_distributes {𝒢 : HyperEnv} {Γ : Env} :
+  HyperEnv.names (Γ :: 𝒢) = Γ.names ∪ 𝒢.names := by simp [HyperEnv.names, Env.names]
+
+@[simp] lemma HyperEnv.names_merge (𝒢 ℋ : HyperEnv) :
+  (𝒢 |ₕ ℋ).names = 𝒢.names ∪ ℋ.names := by
+  induction 𝒢
+  case nil => simp [HyperEnv.names]
+  case cons _ _ ih => simp ; rw [ih]
+
+
+
+
+
+
+
+@[simp] lemma Proc.f_one {P : Proc} {u : Channel} :
+  (u⟦⟧․P).f = u.f ∪ P.f := by simp [Proc.f]
+
+@[simp] lemma Proc.f_bot {P : Proc} {u : Channel} :
+  (u⸨⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
+
+@[simp] lemma Proc.f_tensor {P : Proc} {u : Channel} :
+  (u⟦$N⟧․P).f = u.f ∪ P.f := by simp [Proc.f]
+
+@[simp] lemma Proc.f_parr {P : Proc} {u : Channel} :
+  (u⸨$N⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
+
+
+
+@[simp] lemma Proc.f_open_nil {u : Channel} :
+  𝟘⸨u⸩.f = ∅ := by simp [HasOpen.open_, Proc.open, Proc.f]
+
+
+
+
+@[simp] lemma Channel.f_open_erase {k : ℕ} {x : Channel} {y : FPName} (hy : y ∉ x.f) :
+  (Channel.open k #y x).f.erase y = x.f := by
+  cases x with
+  | bound =>
+    simp [Channel.open]
+    split_ifs <;> simp
+  | free z => simp [-Channel.f, Channel.open, hy]
+
+
+
+
+@[simp] lemma Proc.f_open_erase {P : Proc} {y : FPName} (hy : y ∉ P.f) :
+  (P⸨#y⸩.f).erase y = P.f := by
+  induction P
+
+  case nil => simp [HasOpen.open_, Proc.open, Proc.f]
+
+  case one x _ ih =>
+    simp [- channelHasOpen.open_ ]
+
+
+
+
+
+
+
+
+
+
+lemma Typing.f_eq_names {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
+  (n ⊢ P ∷ 𝒢) → P.f = 𝒢.names := by
+  intro h
+  induction h
+
+  case mix₀ => simp [Proc.f]
+
+  case mix ih1 ih2 =>
+    simp [Proc.f]
+    rw [ih1, ih2]
+
+  case one ih | bot ih => simp [ih] at ⊢ ih
+
+  case cut => sorry
+
+  case tensor Γ Δ P x _ _ _ _ L _ ih =>
+    simp at ⊢ ih
+    have ⟨y, hy⟩ := exists_one_fresh (L ∪ Γ.names ∪ Δ.names)
+    simp at hy
+    have := ih y hy.1
+
+
+
+
+
+
+
+
+  sorry
+
+
+
+-- FIXME: Check that this covers all rules mentioned in the paper
 -- FIXME: Subject reduction / simulation proof
 theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
   Typing n P 𝒢 → ProcStep P l P' →

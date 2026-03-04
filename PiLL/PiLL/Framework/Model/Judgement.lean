@@ -916,7 +916,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       -----------------------
       Typing n P ℋ
 
-notation:45 n " ⊢ " P " ∷ " 𝒢 => Typing n P 𝒢
+notation:50 n " ⊢ " P " ∷ " 𝒢 => Typing n P 𝒢
 
 -- Projection of a Judgement to its process
 def proc {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : Proc := P

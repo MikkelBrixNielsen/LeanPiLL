@@ -371,35 +371,37 @@ notation:80 x "⟷ₚ" y => Proc.link x y
 infixr:70 " |ₚ " => Proc.par
 notation "𝟘" => Proc.nil
 
-def Channel.open (k : Nat) (u : Channel) : Channel → Channel
-  | Channel.bound i => if i == k then u else Channel.bound i
+def Channel.open (u v : Channel) (k : Nat) : Channel :=
+  match u with
+  | Channel.bound i => if i == k then v else Channel.bound i
   | c => c
 
-instance : HasOpen Channel Channel Nat where open_ u v k := Channel.open k v u
+instance : HasOpen Channel Channel Nat where open_ u v k := Channel.open u v k
 
-def Proc.open (k : Nat) (u : Channel) : Proc → Proc
+def Proc.open (P : Proc) (u : Channel) (k : Nat) : Proc :=
+  match P with
   | .nil              => .nil
-  | .one x P          => .one (x.open k u) (P.open k u)
-  | .bot x P          => .bot (x.open k u) (P.open k u)
-  | .tensor x P       => .tensor (x.open k u) (P.open (k + 1) u)
-  | .parr x P         => .parr (x.open k u) (P.open (k + 1) u)
-  | .cut P            => .cut (P.open (k + 2) u)
-  | .par P Q          => .par (P.open k u) (Q.open k u)
-  | .server x P       => .server (x.open k u) (P.open k u)
-  | .duplicate x P    => .duplicate (x.open k u) (P.open (k + 1) u)
-  | .consume x P      => .consume (x.open k u) (P.open k u)
-  | .dispose x P      => .dispose (x.open k u) (P.open k u)
-  | .selectL x P      => .selectL (x.open k u) (P.open k u)
-  | .selectR x P      => .selectR (x.open k u) (P.open k u)
-  | .amp x P Q        => .amp (x.open k u) (P.open k u) (Q.open k u)
-  | .output x P A     => .output (x.open k u) (P.open k u) A
-  | .input x P        => .input (x.open k u) (P.open k u)
-  | .link x y         => .link (x.open k u) (y.open k u)
+  | .one x P          => .one (x.open u k) (P.open u k)
+  | .bot x P          => .bot (x.open u k) (P.open u k)
+  | .tensor x P       => .tensor (x.open u k) (P.open u (k + 1))
+  | .parr x P         => .parr (x.open u k) (P.open u (k + 1))
+  | .cut P            => .cut (P.open u (k + 2))
+  | .par P Q          => .par (P.open u k) (Q.open u k)
+  | .server x P       => .server (x.open u k) (P.open u k)
+  | .duplicate x P    => .duplicate (x.open u k) (P.open u (k + 1))
+  | .consume x P      => .consume (x.open u k) (P.open u k)
+  | .dispose x P      => .dispose (x.open u k) (P.open u k)
+  | .selectL x P      => .selectL (x.open u k) (P.open u k)
+  | .selectR x P      => .selectR (x.open u k) (P.open u k)
+  | .amp x P Q        => .amp (x.open u k) (P.open u k) (Q.open u k)
+  | .output x P A     => .output (x.open u k) (P.open u k) A
+  | .input x P        => .input (x.open u k) (P.open u k)
+  | .link x y         => .link (x.open u k) (y.open u k)
 
-instance : HasOpen Proc Channel Nat where open_ P v k := Proc.open k v P
+instance : HasOpen Proc Channel Nat where open_ P v k := Proc.open P v k
 
 instance : HasOpenTwo Proc Channel Channel Nat where open_ P u v k :=
-  (Proc.open k u (Proc.open (k + 1) v P))
+  (Proc.open (Proc.open P v (k + 1)) u k)
 
 -- def openProcTVar (k : Nat) (u : TVar) : Proc → Proc
 --   | .nil => .nil
@@ -731,7 +733,7 @@ macro "simp_Proc_substNames" : tactic =>
   simp_Proc_substNames
 
 lemma Proc.shiftTypes_open_comm {n d c : Nat} {P : Proc} {u : Channel} :
-  (P.open n u) ↑ᵗ d, c = (P ↑ᵗ d, c).open n u := by
+  (P.open u n) ↑ᵗ d, c = (P ↑ᵗ d, c).open u n := by
   induction P generalizing d n <;> simp_all [Proc.open, HasShiftTypes.shift, Proc.shiftTypes]
 
 lemma Proc.shiftTypes0_open0_comm {c : Nat} {P : Proc} {u : Channel} :
@@ -751,7 +753,7 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
   (P |ₚ Q){A // k} = P{A // k} |ₚ Q{A // k} := by simp [HasSubst.subst, Proc.substTypes]
 
 @[simp] lemma Proc.open_substTypes_comm {P : Proc} {u : Channel} {A : Types} {d i : Nat} :
-  (P.open d u).substTypes A i = (P.substTypes A i).open d u := by
+  (P.open u d).substTypes A i = (P.substTypes A i).open u d := by
   induction P generalizing A i d u <;> simp_all [Proc.open, Channel.open, Proc.substTypes]
 
 @[simp] lemma Proc.open_substTypes_comm_notation {P : Proc} {u : Channel} {A : Types} {i : Nat} :
@@ -766,73 +768,71 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
   {P : Proc} {u v : Channel} {A : Types} {i : Nat} :
   (P⸨u, v⸩){A // i} = (P{A // i})⸨u, v⸩ := Proc.openCut_substTypes_comm
 
+@[simp] lemma Channel.open_subst_intro_gen (x : Channel) (k : Nat) {w z : FPName} (hF : w ∉ x.f) :
+  x.open (#z) k = (x.open (#w) k){z // w} := by
+  cases x with
+  | bound i =>
+    simp [Channel.open, HasSubst.subst, Channel.subst]
+    split_ifs <;> simp
+  | free f =>
+    simp [Channel.open, HasSubst.subst, Channel.subst, Channel.f] at ⊢ hF
+    intro h
+    exfalso
+    exact hF h.symm
+
 lemma Proc.open_subst_intro_gen (P : Proc) (k : Nat) {w z : FPName} (hF : w ∉ P.f) :
   P⸨k | #z⸩ = P⸨k | #w⸩{z // w} := by
   induction P generalizing k <;> (
-    try simp [Proc.f, HasOpen.open_, HasSubst.subst, Proc.open, Proc.substNames,
-      Channel.open, Channel.subst] at ⊢ hF
+    try simp [Proc.f, HasOpen.open_, HasSubst.subst, Proc.open, Proc.substNames] at ⊢ hF
   )
 
   case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih
     | input ih | server ih | consume ih | duplicate ih | dispose ih =>
-    exact ih _ hF.2
+    exact ⟨Channel.open_subst_intro_gen _ _ hF.1, ih _ hF.2⟩
 
   case cut ih => apply ih _ hF
   case par ihP ihQ => exact ⟨ihP k hF.1, ihQ k hF.2⟩
-  case amp ihP ihQ => exact ⟨ihP k hF.2.1, ihQ k hF.2.2⟩
+  case amp ihP ihQ => exact ⟨Channel.open_subst_intro_gen _ _ hF.1, ihP _ hF.2.1, ihQ _ hF.2.2⟩
+  case link => exact ⟨Channel.open_subst_intro_gen _ _ hF.1, Channel.open_subst_intro_gen _ _ hF.2⟩
+
 
 lemma Proc.open_subst_intro {P : Proc} {w z : FPName} (hF : w ∉ P.f) :
   P⸨#z⸩ = P⸨#w⸩{z // w} := by
   exact Proc.open_subst_intro_gen P 0 hF
 
-macro "simp_Proc_substNames_open": tactic =>
-  `(tactic| (
-    simp [HasOpen.open_, Proc.open, Channel.open, HasSubst.subst,
-      Proc.substNames, Channel.subst]
-  ))
+-- macro "simp_Proc_substNames_open": tactic =>
+--   `(tactic| (
+--     simp [HasOpen.open_, Proc.open, Channel.open, HasSubst.subst,
+--       Proc.substNames, Channel.subst]
+--   ))
 
-macro "solve_single_ih" ih:ident : tactic =>
-  `(tactic| (
-    simp_Proc_substNames_open
-    constructor
-    · intro ; contradiction
-    · exact $ih
-  ))
+-- macro "solve_single_ih" ih:ident : tactic =>
+--   `(tactic| (
+--     simp_Proc_substNames_open
+--     constructor
+--     · intro ; contradiction
+--     · exact $ih
+--   ))
 
-macro "solve_double_ih" ih1:ident ", " ih2:ident : tactic =>
-  `(tactic| (
-    simp_Proc_substNames_open
-    constructor
-    · intro ; contradiction
-    exact ⟨$ih1, $ih2⟩
-  ))
+-- macro "solve_double_ih" ih1:ident ", " ih2:ident : tactic =>
+--   `(tactic| (
+--     simp_Proc_substNames_open
+--     constructor
+--     · intro ; contradiction
+--     exact ⟨$ih1, $ih2⟩
+--   ))
 
+
+
+-- FIXME:
 lemma Proc.open_substNames_comm_gen {P : Proc} {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
   (P⸨k | #z⸩){y // x} = P{y // x}⸨k | #z⸩ := by
   induction P generalizing k
+  all_goals sorry
 
-  case nil => simp [HasOpen.open_, Proc.open, HasSubst.subst, Proc.substNames]
 
-  case one ih | bot ih | selectL ih | selectR ih | output ih | input ih |
-    server ih | consume ih | duplicate ih | dispose ih | tensor ih | parr ih =>
-    solve_single_ih ih
 
-  case cut ih =>
-    simp_Proc_substNames_open
-    exact ih
 
-  case amp ihP ihQ  =>
-    solve_double_ih ihP, ihQ
-
-  case par ihP ihQ =>
-    simp_Proc_substNames_open
-    constructor
-    · exact ihP
-    · exact ihQ
-
-  case link =>
-    simp_Proc_substNames_open
-    intro ; contradiction
 
 lemma Proc.open_substNames_comm {P : Proc} {x y z : FPName} (hF : z ≠ x) :
   (P⸨#z⸩){y // x} = (P{y // x})⸨#z⸩ := Proc.open_substNames_comm_gen (k := 0) hF
