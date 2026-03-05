@@ -1,322 +1,5 @@
 import PiLL.Framework.Model.STypes
 
--- abbrev PName := Nat
-
--- inductive Proc : Type where
---   | tensor    (x y : PName) (P : Proc)            -- x[y].P
---   | parr      (x y : PName) (P : Proc)            -- x(y).P
---   | one       (x : PName) (P : Proc)              -- x[].P
---   | bot       (x : PName) (P : Proc)              -- x().P
---   | cut       (x y : PName) (P : Proc)            -- 𝒗xy P
---   | par       (P Q : Proc)                        -- P | Q
---   | nil                                           -- 𝟘
---   | selectL   (x : PName) (P : Proc)              -- x[L].P
---   | selectR   (x : PName) (P : Proc)              -- x[R].P
---   | amp       (x : PName) (P Q : Proc)            -- x.case{L : P, R : Q}
---   | output    (x : PName) (P : Proc) (A : Types)  -- x[A].P
---   | input     (x : PName) (P : Proc) (X : TVar)   -- x(X).P
---   | server    (x : PName) (P : Proc)              -- !x.{P}
---   | consume   (x : PName) (P : Proc)              -- x[USE].P
---   | duplicate (x y : PName) (P : Proc)            -- x[DUP](y).P
---   | dispose   (x : PName) (P : Proc)              -- x[DISP].P
---   | link      (x y : PName)                       -- x ⟷ y
--- deriving DecidableEq
-
--- notation:80 x "⟦⟧․" P => (HasBracket.brack x () : Proc → Proc) P
--- notation:80 x "⟦"y"⟧․" P => (HasBracket.brack x y : Proc → Proc) P
-
--- instance : HasBracket PName Unit (Proc → Proc) where
---   brack x _ P := Proc.one x P
--- instance : HasBracket PName PName (Proc → Proc) where
---   brack x y := Proc.tensor x y
--- instance : HasBracket PName Types (Proc → Proc) where
---   brack x T P := Proc.output x P T
-
--- notation:80 x "⸨⸩․" P => (HasParen.paren x () : Proc → Proc) P
--- notation:80 x "⸨"y"⸩․" P => (HasParen.paren x y : Proc → Proc) P
-
--- instance : HasParen PName Unit (Proc → Proc) where
---   paren x _ P := Proc.bot x P
--- instance : HasParen PName PName (Proc → Proc) where
---   paren := Proc.parr
--- instance : HasParen PName TVar (Proc → Proc) where
---   paren x T P := Proc.input x P T
-
--- notation:75 "𝑣" "⸨" x ", " y "⸩ " P:80 => Proc.cut x y P
--- notation:80 x "⟦𝐋⟧․" P:80 => Proc.selectL x P
--- notation:80 x "⟦𝐑⟧․" P:80 => Proc.selectR x P
--- notation:80 x "⟦USE⟧․" P:80 => Proc.consume x P
--- notation:80 x "⟦DUP⟧⸨" y "⸩․" P:80 => Proc.duplicate x y P
--- notation:80 x "⟦DISP⟧․" P:80 => Proc.dispose x P
--- notation:80 "!" x "․{" P:80 "}" => Proc.server x P
--- notation:80 x "․case{𝐋" " : " P:80 ", " "𝐑" " : " Q :80"}" => Proc.amp x P Q
-
--- notation:80 x "⟷ₚ" y => Proc.link x y
--- infixr:70 " |ₚ " => Proc.par
--- notation "𝟘" => Proc.nil
-
--- private def reprProcAux : Proc → Nat → String
---   | .nil, _ => "𝟘"
---   | .tensor x y P, _ => s!"{x}⟦{y}⟧.{reprProcAux P 0}"
---   | .one x P, _ => s!"{x}⟦⟧.{reprProcAux P 0}"
---   | .parr x y P, _ => s!"{x}⸨{y}⸩.{reprProcAux P 0}"
---   | .bot x P, _ => s!"{x}⸨⸩.{reprProcAux P 0}"
---   | .cut x y P, _ => s!"𝑣⸨{x}, {y}⸩ {reprProcAux P 0}"
---   | .par P Q, _ => s!"({reprProcAux P 0} |ₚ {reprProcAux Q 0})"
---   | .selectL x P, _ => s!"{x}⟦𝐋⟧.{reprProcAux P 0}"
---   | .selectR x P, _ => s!"{x}⟦𝐑⟧.{reprProcAux P 0}"
---   | .amp x P Q, _ =>
---       s!"{x}:case" ++ "{" ++ s!" 𝐋 : {reprProcAux P 0}, 𝐑 : {reprProcAux Q 0}" ++ "}"
---   | .output x P A, _ => s!"{x}⟦{A}⟧.{reprProcAux P 0}"
---   | .input x P X, _ => s!"{x}⟦{X}⟧.{reprProcAux P 0}"
---   | .server x P, _ => s!"!{x}:" ++ "{" ++ s!"{reprProcAux P 0}" ++ "}"
---   | .consume x P, _ => s!"{x}⟦USE⟧.{reprProcAux P 0}"
---   | .duplicate x y P, _ => s!"{x}⟦DUP⟧⸨{y}⸩.{reprProcAux P 0}"
---   | .dispose x P, _ => s!"{x}⟦DISP⟧.{reprProcAux P 0}"
---   | .link x y, _ => s!"{x}⟷{y}"
-
--- instance : Repr Proc where
---   reprPrec P _ := reprProcAux P 0
-
--- instance : ToString Proc where
---   toString p := reprStr p
-
--- def Proc.f : Proc → Finset PName
---   | .tensor x y P         => {x} ∪ (P.f \ {y})
---   | .parr x y P           => {x} ∪ (P.f \ {y})
---   | .one x P              => {x} ∪ P.f
---   | .bot x P              => {x} ∪ P.f
---   | .cut x y P            => P.f \ {x, y}
---   | .par P Q              => P.f ∪ Q.f
---   | .nil                  => {}
---   | .selectL x P          => {x} ∪ P.f
---   | .selectR x P          => {x} ∪ P.f
---   | .amp x P Q            => {x} ∪ (P.f ∪ Q.f)
---   | .output x P _         => {x} ∪ P.f
---   | .input  x P _         => {x} ∪ P.f
---   | .server x P           => {x} ∪ P.f
---   | .consume x P          => {x} ∪ P.f
---   | .duplicate x y P      => {x} ∪ (P.f \ {y})
---   | .dispose x P          => {x} ∪ P.f
---   | .link x y             => {x, y}
-
--- def Proc.names : Proc → Finset PName
---   | .tensor x y P         => {x, y} ∪ P.names
---   | .parr x y P           => {x, y} ∪ P.names
---   | .one x P              => {x} ∪ P.names
---   | .bot x P              => {x} ∪ P.names
---   | .cut x y P            => {x, y} ∪ P.names
---   | .par P Q              => P.names ∪ Q.names
---   | .nil                  => {}
---   | .selectL x P          => {x} ∪ P.names
---   | .selectR x P          => {x} ∪ P.names
---   | .amp x P Q            => {x} ∪ (P.names ∪ Q.names)
---   | .output x P _         => {x} ∪ P.names
---   | .input  x P _         => {x} ∪ P.names
---   | .server x P           => {x} ∪ P.names
---   | .consume x P          => {x} ∪ P.names
---   | .duplicate x y P      => {x, y} ∪ P.names
---   | .dispose x P          => {x} ∪ P.names
---   | .link x y             => {x, y}
-
--- def Proc.boundNames (P : Proc) : Finset PName :=
---   P.names \ P.f
-
--- def Proc.substTypes (P : Proc) (A : Types) (X : TVar) : Proc :=
---   match P with
---   | .nil => .nil
---   | .one x P => .one x (P.substTypes A X)
---   | .bot x P => .bot x (P.substTypes A X)
---   | .tensor x y P => .tensor x y (P.substTypes A X)
---   | .parr x y P => .parr x y (P.substTypes A X)
---   | .cut x y P => .cut x y (P.substTypes A X)
---   | .par P Q => .par (P.substTypes A X) (Q.substTypes A X)
---   | .selectL x P => .selectL x (P.substTypes A X)
---   | .selectR x P => .selectR x (P.substTypes A X)
---   | .amp x P Q => .amp x (P.substTypes A X) (Q.substTypes A X)
---   | .server x P => .server x (P.substTypes A X)
---   | .dispose x P => .dispose x (P.substTypes A X)
---   | .duplicate x y P => .duplicate x y (P.substTypes A X)
---   | .consume x P => .consume x (P.substTypes A X)
---   | .link x y => .link x y
---   | .output x P B => .output x (P.substTypes A X) (B.subst A X)
---   | .input x P Y => if Y = X then .input x P Y else .input x (P.substTypes A X) Y
-
--- instance : HasSubst Proc Types TVar where subst := Proc.substTypes
-
--- def Proc.substName (P : Proc) (x z : PName) : Proc :=
---   let sub := fun (c : PName) => if c = z then x else c
---   match P with
---   | .nil => .nil
---   | .one a P => .one (sub a) (P.substName x z)
---   | .bot a P => .bot (sub a) (P.substName x z)
---   | .tensor a b P =>
---       if b = z then .tensor (sub a) b P
---       else .tensor (sub a) b (P.substName x z)
---   | .parr a b P =>
---       if b = z then .parr (sub a) b P
---       else .parr (sub a) b (P.substName x z)
---   | .cut a b P =>
---       if a = z ∨ b = z then .cut a b P
---       else .cut (sub a) (sub b) (P.substName x z)
---   | .par P Q => .par (P.substName x z) (Q.substName x z)
---   | .selectL a P => .selectL (sub a) (P.substName x z)
---   | .selectR a P => .selectR (sub a) (P.substName x z)
---   | .amp a P Q => .amp (sub a) (P.substName x z) (Q.substName x z)
---   | .server a P => .server (sub a) (P.substName x z)
---   | .dispose a P => .dispose (sub a) (P.substName x z)
---   | .duplicate a b P =>
---       if b = z then .duplicate (sub a) b P
---       else .duplicate (sub a) (sub b) (P.substName x z)
---   | .consume a P => .consume (sub a) (P.substName x z)
---   | .link a b => .link (sub a) (sub b)
---   | .output a P A => .output (sub a) (P.substName x z) A
---   | .input a P X => .input (sub a) (P.substName x z) X
-
--- instance : HasSubst Proc PName PName where subst := Proc.substName
-
--- @[simp]
--- lemma Proc.substName_par (P Q : Proc) (x z : PName) :
---   P{x // z} |ₚ Q{x // z} = (P |ₚ Q){x // z} := by rfl
-
--- @[simp] lemma Proc.substname_nil (x z : PName) : 𝟘{x // z} = 𝟘 := by
---   rfl
-
--- @[simp] lemma Proc.substName_link (a b x z : PName) :
---   (a⟷ₚb){x // z} = (if a = z then x else a)⟷ₚ(if b = z then x else b) := by
---   rfl
-
--- macro "solve_bound" : tactic =>
---   `(tactic| { simp [Proc.boundNames, Proc.names, Proc.f]; ext; simp; tauto })
-
--- @[simp] lemma Proc.boundNames_one (x : PName) (P : Proc) :
---   ((x⟦⟧․P).boundNames) = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_bot (x : PName) (P : Proc) :
---   ((x⸨⸩․P).boundNames) = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_selectL (x : PName) (P : Proc) :
---   (x⟦𝐋⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_selectR (x : PName) (P : Proc) :
---   (x⟦𝐑⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_amp (x : PName) (P Q : Proc) :
---   (x․case{𝐋 : P, 𝐑 : Q}).boundNames =
---   (P.boundNames ∪ Q.boundNames) \ (P.f ∪ Q.f ∪ {x}) := by solve_bound
-
--- @[simp] lemma Proc.boundNames_use (x : PName) (P : Proc) :
---   (x⟦USE⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_bang (x : PName) (P : Proc) :
---   (!x․{P}).boundNames = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_disp (x : PName) (P : Proc) :
---   (x⟦DISP⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_dup (x y : PName) (P : Proc) :
---   (x⟦DUP⟧⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_output (x : PName) (A : Types) (P : Proc) :
---   (x⟦A⟧․P).boundNames = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_input (x : PName) (A : TVar) (P : Proc) :
---   (x⸨A⸩․P).boundNames = P.boundNames \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_tensor (x y : PName) (P : Proc) :
---   (x⟦y⟧․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_parr (x y : PName) (P : Proc) :
---   (x⸨y⸩․P).boundNames = (P.boundNames ∪ {y}) \ {x} := by solve_bound
-
--- @[simp] lemma Proc.boundNames_cut (x y : PName) (P : Proc) :
---   (𝑣⸨x, y⸩ P).boundNames = (P.boundNames ∪ {y, x}) := by solve_bound
-
--- @[simp] lemma Proc.f_subset_names (P : Proc) : P.f ⊆ P.names := by
---   induction P <;> simp only [Proc.f, Proc.names]
-
---   case nil | link | par | one | bot | selectL | selectR | amp | output
---     | input | server | consume | dispose => gcongr
-
---   case tensor ih | parr ih | duplicate ih =>
---     intro a ha
---     simp at ha ⊢
---     rcases ha with rfl | ⟨hf, _⟩
---     · left ; rfl
---     · right ; right ; apply ih ; exact hf
-
---   case cut ih =>
---     intro a ha
---     simp_all
---     apply ih ; exact ha.1
-
--- @[simp] lemma Proc.not_mem_names_not_bound_free (x : PName) (P : Proc) (h : x ∉ P.names) :
---   x ∉ P.boundNames ∪ P.f := by
---   simp only [Proc.boundNames, Finset.sdiff_union_self_eq_union, Finset.notMem_union]
---   apply And.intro
---   · exact h
---   · intro hf
---     apply h
---     apply Proc.f_subset_names
---     exact hf
-
--- lemma Proc.boundNames_par_subset_left (P Q : Proc) (x : PName)
---   (hxBP : x ∈ P.boundNames) (hNotQf : x ∉ Q.f) :
---   x ∈ (P |ₚ Q).boundNames := by
---   simp only [Proc.boundNames, Proc.names, Proc.f] at *
---   simp at hxBP
---   rcases hxBP with ⟨hxP, hxNotPf⟩
---   simp
---   apply And.intro
---   · left ; exact hxP
---   · simp [hxNotPf, hNotQf]
-
--- lemma Proc.not_bound_par_left {P Q : Proc} {x : PName}
---   (hSafe : x ∉ (P |ₚ Q).boundNames) (hNotQf : x ∉ Q.f) :
---   x ∉ P.boundNames := by
---   intro h_contra
---   apply hSafe
---   exact Proc.boundNames_par_subset_left P Q x h_contra hNotQf
-
--- lemma Proc.not_bound_par_right {P Q : Proc} {x : PName}
---   (hSafe : x ∉ (P |ₚ Q).boundNames) (hxNotPf : x ∉ P.f) :
---   x ∉ Q.boundNames := by
---   intro h_contra
---   apply hSafe
---   simp only [Proc.boundNames, Proc.names, Proc.f] at *
---   simp at h_contra
---   rcases h_contra with ⟨hxQ, hxNotQf⟩
---   simp
---   apply And.intro
---   · right ; exact hxQ
---   · simp [hxNotPf, hxNotQf]
-
--- @[simp] lemma Proc.substTypes_nil {A : Types} {X : TVar} : 𝟘{A // X} = 𝟘 := by rfl
-
--- @[simp] lemma Proc.substTypes_link {x y : PName} {A : Types} {X : TVar} :
---   (x⟷ₚy){A // X} = x⟷ₚy := by rfl
-
--- @[simp] lemma Proc.substTypes_par {P Q : Proc} {A : Types} {X : TVar} :
---   (P |ₚ Q){A // X} = P{A // X} |ₚ Q{A // X} := by rfl
-
--- @[simp] lemma Proc.substTypes_one {x : PName} {P : Proc} {A : Types} {X : TVar} :
---   (x⟦⟧․P){A // X} = x⟦⟧․(P{A // X}) := by rfl
-
--- @[simp] lemma Proc.substTypes_bot {x : PName} {P : Proc} {A : Types} {X : TVar} :
---   (x⸨⸩․P){A // X} = x⸨⸩․(P{A // X}) := by rfl
-
--- @[simp] lemma Proc.substTypes_output {x : PName} {P : Proc} {T A : Types} {X : TVar} :
---   (x⟦T⟧․P){A // X} = x⟦T{A // X}⟧․(P{A // X}) := by rfl
-
-
--- @[simp] lemma Proc.substTypes_input_match {x : PName} {P : Proc} {A : Types} {X : TVar} :
---   (x⸨X⸩․P){A // X} = x⸨X⸩․P := by
---   simp [HasSubst.subst, Proc.substTypes, HasParen.paren]
-
--- @[simp] lemma Proc.substTypes_input_diff {x : PName} {P : Proc} {A : Types} {X Y : TVar}
---   (hneq : Y ≠ X) : (x⸨Y⸩․P){A // X} = x⸨Y⸩․P{A // X} := by
---   simp_all [HasSubst.subst, Proc.substTypes, HasParen.paren]
-
 abbrev FPName := Nat
 abbrev BPName := Nat
 
@@ -651,6 +334,21 @@ instance : HasSubst Proc Types Nat where subst P A k := Proc.substTypes A k P
   intro h
   contradiction
 
+lemma FPName.subst_preserves_neq {w x y z : FPName}
+  (hab : w ≠ z) (hya : y = w → y = x) (hyb : y = z → y = x) :
+  w{y // x} ≠ z{y // x} := by
+  simp only [HasSubst.subst, FPName.subst]
+  split_ifs <;> simp_all
+  all_goals {
+    intro heq
+    exact hya heq.symm
+  }
+
+@[simp] lemma Channel.subst_singleton_free {x y z : FPName} :
+  (#z){y // x} = #(z{y // x}) := by
+  simp [HasSubst.subst, Channel.subst, FPName.subst]
+  split_ifs <;> simp
+
 @[simp] lemma Channel.subst_self {u : Channel} {x : FPName} :
   u.subst x x = u := by
   induction u generalizing x <;> simp_all [Channel.subst]
@@ -672,64 +370,67 @@ macro "simp_Proc_substNames" : tactic =>
     (simp [HasSubst.subst, Proc.substNames, Channel.subst, FPName.subst] ;
       try (split_ifs <;> try constructor <;> rfl)))
 
-@[simp] lemma Proc.substNames_one {P : Proc} {x y z : FPName} :
-  (#z⟦⟧․P){y // x} = (#z{y // x}⟦⟧․P{y // x}) := by
+@[simp] lemma Proc.substNames_nil {x y : FPName} :
+  𝟘{y // x} = 𝟘 := by simp_Proc_substNames
+
+@[simp] lemma Proc.substNames_one {P : Proc} {u : Channel} {x y : FPName} :
+  (u⟦⟧․P){y // x} = (u{y // x}⟦⟧․P{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_bot {P : Proc} {x y z : FPName} :
-  (#z⸨⸩․P){y // x} = (#z{y // x}⸨⸩․P{y // x}) := by
+@[simp] lemma Proc.substNames_bot {P : Proc} {u : Channel} {x y : FPName} :
+  (u⸨⸩․P){y // x} = (u{y // x}⸨⸩․P{y // x}) := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_cut {P : Proc} {x y : FPName} :
   (𝑣⸨$N,$N⸩P){y // x} = 𝑣⸨$N,$N⸩P{y // x} := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_tensor {P : Proc} {x y z : FPName} :
-  (#z⟦$N⟧․P){y // x} = #z{y // x}⟦$N⟧․P{y // x} := by
+@[simp] lemma Proc.substNames_tensor {P : Proc} {u : Channel} {x y : FPName} :
+  (u⟦$N⟧․P){y // x} = u{y // x}⟦$N⟧․P{y // x} := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_parr {P : Proc} {x y z : FPName} :
-  (#z⸨$N⸩․P){y // x} = #z{y // x}⸨$N⸩․P{y // x} := by
+@[simp] lemma Proc.substNames_parr {P : Proc} {u : Channel} {x y : FPName} :
+  (u⸨$N⸩․P){y // x} = u{y // x}⸨$N⸩․P{y // x} := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_oplus₁ {P : Proc} {x y z : FPName} :
-  (#z⟦𝐋⟧․P){y // x} = (#z{y // x}⟦𝐋⟧․P{y // x}) := by
+@[simp] lemma Proc.substNames_oplus₁ {P : Proc} {u : Channel} {x y : FPName} :
+  (u⟦𝐋⟧․P){y // x} = (u{y // x}⟦𝐋⟧․P{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_oplus₂ {P : Proc} {x y z : FPName} :
-  (#z⟦𝐑⟧․P){y // x} = (#z{y // x}⟦𝐑⟧․P{y // x}) := by
+@[simp] lemma Proc.substNames_oplus₂ {P : Proc} {u : Channel} {x y : FPName} :
+  (u⟦𝐑⟧․P){y // x} = (u{y // x}⟦𝐑⟧․P{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_amp {P Q : Proc} {x y z : FPName} :
-  #z․case{𝐋 : P, 𝐑 : Q}{y // x} = #z{y // x}․case{𝐋 : P{y // x}, 𝐑 : Q{y // x}} := by
+@[simp] lemma Proc.substNames_amp {P Q : Proc} {u : Channel} {x y : FPName} :
+  u․case{𝐋 : P, 𝐑 : Q}{y // x} = u{y // x}․case{𝐋 : P{y // x}, 𝐑 : Q{y // x}} := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_quest {P : Proc} {x y z : FPName} :
-  (#z⟦USE⟧․P){y // x} = (#z{y // x}⟦USE⟧․P{y // x}) := by
+@[simp] lemma Proc.substNames_quest {P : Proc} {u : Channel} {x y : FPName} :
+  (u⟦USE⟧․P){y // x} = (u{y // x}⟦USE⟧․P{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_bang {P : Proc} {x y z : FPName} :
-  !#z․{P}{y // x} = !#z{y // x}․{P{y // x}} := by
+@[simp] lemma Proc.substNames_bang {P : Proc} {u : Channel} {x y : FPName} :
+  !u․{P}{y // x} = !u{y // x}․{P{y // x}} := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_w {P : Proc} {x y z : FPName} :
-  (#z⟦DISP⟧․P){y // x} = (#z{y // x}⟦DISP⟧․P{y // x}) := by
+@[simp] lemma Proc.substNames_w {P : Proc} {u : Channel} {x y : FPName} :
+  (u⟦DISP⟧․P){y // x} = (u{y // x}⟦DISP⟧․P{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_c {P : Proc} {x y z : FPName} :
-  (#z⟦DUP⟧⸨$N⸩․P){y // x} = (#z{y // x}⟦DUP⟧⸨$N⸩․P{y // x}) := by
+@[simp] lemma Proc.substNames_c {P : Proc} {u : Channel} {x y : FPName} :
+  (u⟦DUP⟧⸨$N⸩․P){y // x} = (u{y // x}⟦DUP⟧⸨$N⸩․P{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_exists {P : Proc} {x y z : FPName} {A : Types} :
-  (#z⟦A⟧․P){y // x} = (#z{y // x}⟦A⟧․P{y // x}) := by
+@[simp] lemma Proc.substNames_exists {P : Proc} {u : Channel} {x y : FPName} {A : Types} :
+  (u⟦A⟧․P){y // x} = (u{y // x}⟦A⟧․P{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_forall {P : Proc} {x y z : FPName} :
-  (#z⸨$T⸩․P){y // x} = (#z{y // x}⸨$T⸩․P{y // x}) := by
+@[simp] lemma Proc.substNames_forall {P : Proc} {u : Channel} {x y : FPName} :
+  (u⸨$T⸩․P){y // x} = (u{y // x}⸨$T⸩․P{y // x}) := by
   simp_Proc_substNames
 
-@[simp] lemma Proc.substNames_ax {w x y z : FPName} :
-  (#w⟷ₚ#z){y // x} = (#w{y // x}⟷ₚ#z{y // x}) := by
+@[simp] lemma Proc.substNames_ax {u v : Channel} {x y : FPName} :
+  (u⟷ₚv){y // x} = (u{y // x}⟷ₚv{y // x}) := by
   simp_Proc_substNames
 
 lemma Proc.shiftTypes_open_comm {n d c : Nat} {P : Proc} {u : Channel} :
@@ -795,44 +496,101 @@ lemma Proc.open_subst_intro_gen (P : Proc) (k : Nat) {w z : FPName} (hF : w ∉ 
   case amp ihP ihQ => exact ⟨Channel.open_subst_intro_gen _ _ hF.1, ihP _ hF.2.1, ihQ _ hF.2.2⟩
   case link => exact ⟨Channel.open_subst_intro_gen _ _ hF.1, Channel.open_subst_intro_gen _ _ hF.2⟩
 
-
 lemma Proc.open_subst_intro {P : Proc} {w z : FPName} (hF : w ∉ P.f) :
   P⸨#z⸩ = P⸨#w⸩{z // w} := by
   exact Proc.open_subst_intro_gen P 0 hF
 
--- macro "simp_Proc_substNames_open": tactic =>
---   `(tactic| (
---     simp [HasOpen.open_, Proc.open, Channel.open, HasSubst.subst,
---       Proc.substNames, Channel.subst]
---   ))
+lemma Channel.open_substNames_comm_gen {u : Channel} {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
+  (u⸨k | #z⸩){y // x} = u{y // x}⸨k | #z⸩ := by
+  induction u
+  case free =>
+    simp [HasOpen.open_, Channel.open, HasSubst.subst, Channel.subst]
+    split_ifs <;> simp
+  case bound =>
+    simp [HasOpen.open_, Channel.open, HasSubst.subst, Channel.subst]
+    split_ifs
+    case pos => simp ; intro ; contradiction
+    case neg => rfl
 
--- macro "solve_single_ih" ih:ident : tactic =>
---   `(tactic| (
---     simp_Proc_substNames_open
---     constructor
---     · intro ; contradiction
---     · exact $ih
---   ))
+@[simp] lemma Proc.open_nil {x : FPName} {k : Nat} :
+  𝟘⸨k | #x⸩ = 𝟘 := by simp [HasOpen.open_, Proc.open]
 
--- macro "solve_double_ih" ih1:ident ", " ih2:ident : tactic =>
---   `(tactic| (
---     simp_Proc_substNames_open
---     constructor
---     · intro ; contradiction
---     exact ⟨$ih1, $ih2⟩
---   ))
+@[simp] lemma Proc.open_one {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⟦⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦⟧․P⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
 
+@[simp] lemma Proc.open_bot {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⸨⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⸨⸩․P⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
 
+@[simp] lemma Proc.open_tensor {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⟦$N⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦$N⟧․P⸨k + 1 | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
 
--- FIXME:
+@[simp] lemma Proc.open_parr {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⸨$N⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⸨$N⸩․P⸨k + 1 | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_cut {P : Proc} {x : FPName} {k : Nat} :
+  (𝑣⸨$N,$N⸩ P)⸨k | #x⸩ = 𝑣⸨$N,$N⸩ P⸨k + 2 | #x⸩ := by
+  simp [HasOpen.open_ , Proc.open]
+
+@[simp] lemma Proc.open_par {P Q : Proc} {x : FPName} {k : Nat} :
+  (P |ₚ Q)⸨k | #x⸩ = P⸨k | #x⸩ |ₚ Q⸨k | #x⸩:= by
+  simp [HasOpen.open_, Proc.open]
+
+@[simp] lemma Proc.open_selectL {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⟦𝐋⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦𝐋⟧․P⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_selectR {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⟦𝐑⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦𝐑⟧․P⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_amp {P Q : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u․case{𝐋 : P, 𝐑 : Q})⸨k | #x⸩ = u⸨k | #x⸩․case{𝐋 : P⸨k | #x⸩, 𝐑 : Q⸨k | #x⸩} := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_output {P : Proc} {u : Channel} {x : FPName} {A : Types} {k : Nat} :
+  (u⟦A⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦A⟧․P⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_input {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⸨$T⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⸨$T⸩․P⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_server {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (!u․{P})⸨k | #x⸩ = !u⸨k | #x⸩․{P⸨k | #x⸩} := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_consume {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⟦USE⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦USE⟧․P⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_duplicate {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⟦DUP⟧⸨$N⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⟦DUP⟧⸨$N⸩․P⸨k + 1 | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_dispose {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
+  (u⟦DISP⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦DISP⟧․P⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
+@[simp] lemma Proc.open_link {u v : Channel} {x : FPName} {k : Nat} :
+  (u⟷ₚv)⸨k | #x⸩ = u⸨k | #x⸩⟷ₚv⸨k | #x⸩ := by
+  simp [HasOpen.open_, Channel.open, Proc.open]
+
 lemma Proc.open_substNames_comm_gen {P : Proc} {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
   (P⸨k | #z⸩){y // x} = P{y // x}⸨k | #z⸩ := by
-  induction P generalizing k
-  all_goals sorry
+  induction P generalizing k <;> try simp
 
+  case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih | input ih
+    | server ih | consume ih | duplicate ih | dispose ih =>
+    exact ⟨Channel.open_substNames_comm_gen hneq, ih⟩
 
-
-
+  case cut ih => exact ih
+  case par ihP ihQ => exact ⟨ihP, ihQ⟩
+  case amp ihP ihQ => exact ⟨Channel.open_substNames_comm_gen hneq, ⟨ihP, ihQ⟩⟩
+  case link => simp [Channel.open_substNames_comm_gen hneq]
 
 lemma Proc.open_substNames_comm {P : Proc} {x y z : FPName} (hF : z ≠ x) :
   (P⸨#z⸩){y // x} = (P{y // x})⸨#z⸩ := Proc.open_substNames_comm_gen (k := 0) hF

@@ -33,7 +33,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep (#x⟦⟧․P) (x⟦⟧) P
 
   | tensor
-      {P : Proc} {x y : FPName} (hF : y ∉ P.f) :
+      {P : Proc} {x y : FPName} (hF : y ∉ {x} ∪ P.f) :
       ProcStep (#x⟦$N⟧․P) (x⟦y⟧) P⸨#y⸩
 
   | bot
@@ -41,7 +41,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep (#x⸨⸩․P) (x⸨⸩) P
 
   | parr
-      {P : Proc} {x y : FPName} (hF: y ∉ P.f) :
+      {P : Proc} {x y : FPName} (hF: y ∉ {x} ∪ P.f) :
       ProcStep (#x⸨$N⸩․P) (x⸨y⸩) P⸨#y⸩
 
   | par₁
