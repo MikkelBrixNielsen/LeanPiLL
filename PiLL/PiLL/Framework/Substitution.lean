@@ -23,10 +23,11 @@ macro "split_names_neg_triple " ih:ident ", " huniq:ident ", " hneq:ident : tact
     rw [Proc.open_substNames_comm $hneq, FPName.subst_self_of_ne $hneq] at $ih:ident
     apply $ih
     intros T h
-    rcases h with ⟨hLL, hLR⟩ | ⟨hRL, hRR⟩ | h
-    · exact $huniq _ (Or.inl ⟨hLL, rfl⟩)
-    · subst hRL hRR ; contradiction
-    · exact $huniq _ (Or.inr h)
+    rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩ | h <;> (
+      try exact $huniq _ (Or.inl ⟨h1, rfl⟩)
+      try subst h1 h2 ; contradiction
+      try exact $huniq _ (Or.inr h)
+    )
   ))
 
 macro "split_names " x:term " eq " y:term " using "
@@ -129,6 +130,8 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
       by_cases hxy : x = y
       case pos => split_names_pos hxy, ih
       case neg => split_names_neg_triple ih, huniq, hz2
+
+
     · exact Env.fresh_substNames hF huniq
 
   case oplus₁ hlc hT ih =>

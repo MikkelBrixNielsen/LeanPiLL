@@ -29,7 +29,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       ----------------------------------------------------------
       Typing n (𝑣⸨$N,$N⸩P) (𝒢 |ₕ [Γ‚ Δ])
 
-  | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {B A : Types}
+  | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {A B : Types}
       {hF : x ∉ Γ.names ∧ x ∉ Δ.names} {n : Nat} (L : Finset FPName) :
       (∀ y, y ∉ L → Typing n (P⸨#y⸩) ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) →
       ---------------------------------------------------------------
@@ -37,7 +37,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
 
   | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types}
       {hF : x ∉ Γ.names} {n : Nat} (L : Finset FPName) :
-      (∀ y, y ∉ L → Typing n (P⸨#y⸩) [x ∶ B :: y ∶ A :: Γ]) →
+      (∀ y, y ∉ L → Typing n (P⸨#y⸩) [y ∶ A :: x ∶ B :: Γ]) →
       -------------------------------------------------------
       Typing n (#x⸨$N⸩․P) [x ∶ A ⅋ B :: Γ]
 

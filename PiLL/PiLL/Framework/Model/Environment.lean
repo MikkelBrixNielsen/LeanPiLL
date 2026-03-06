@@ -452,7 +452,7 @@ inductive HyperEnv.Perm : HyperEnv → HyperEnv → Prop where
 
 instance : HasPerm HyperEnv where perm := HyperEnv.Perm
 
-@[simp] lemma HyperEnv.Perm.refl (𝒢 : HyperEnv) : Perm 𝒢 𝒢 := by
+@[simp, refl] lemma HyperEnv.Perm.refl (𝒢 : HyperEnv) : Perm 𝒢 𝒢 := by
   induction 𝒢 with
   | nil => exact Perm.nil
   | cons Γ 𝒢 ih => exact Perm.cons (List.Perm.refl _) ih
