@@ -369,7 +369,7 @@ lemma Typing_inv_par {n : Nat} {P Q : Proc} {𝒢 : HyperEnv} (hT : n ⊢ P |ₚ
     rw [hP, hQ]
     exact ⟨by simp, ⟨hTP, hTQ⟩⟩
 
-lemma Typing_inv_link {n : ℕ} {x y : FPName} {𝒢 : HyperEnv}
+lemma Typing_inv_link {n : Nat} {x y : FPName} {𝒢 : HyperEnv}
   (hT : n ⊢ #x⟷ₚ#y ∷ 𝒢) :
   ∃ A, 𝒢 ~ [x ∶ Aᗮ :: [y ∶ A]] := by
   generalize heq : (#x⟷ₚ#y) = P at hT
@@ -390,6 +390,93 @@ lemma Typing_inv_link {n : ℕ} {x y : FPName} {𝒢 : HyperEnv}
     simp at h1 h2
     subst h1 h2
     use A
+
+lemma Typing_inv_amp {n : ℕ} {x : FPName} {P Q : Proc} {𝒢 : HyperEnv}
+  (hT : n ⊢ #x․case{𝐋 : P, 𝐑 : Q} ∷ 𝒢) :
+  ∃ Γ A B, (𝒢 ~ [x ∶ A & B :: Γ]) ∧ (n ⊢ P ∷ [x ∶ A :: Γ]) ∧ (n ⊢ Q ∷ [x ∶ B :: Γ]) := by
+
+  generalize heq : (#x․case{𝐋 : P, 𝐑 : Q}) = PQ at hT
+  induction hT generalizing P Q x <;> try contradiction
+
+  case exchange_env hP ih =>
+    obtain ⟨𝒢', A, B, hP', hT'⟩ := ih heq
+    use 𝒢', A, B
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl _)) hP'
+    · exact hT'
+
+  case exchange_hyper hP ih =>
+    obtain ⟨𝒢', A, B, hP', hT'⟩ := ih heq
+    use 𝒢', A, B
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm hP'
+    · exact hT'
+
+  case amp Γ _ _ x A B _ hTP hTQ ihP ihQ =>
+    simp at heq
+    obtain ⟨hx, hP, hQ⟩ := heq
+    subst hx hP hQ
+    use Γ, A, B
+
+lemma Typing_inv_selectL {n : ℕ} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
+  (hT : n ⊢ #x⟦𝐋⟧․P ∷ 𝒢) :
+  ∃ Γ A B, (𝒢 ~ [x ∶ A ⊕ B :: Γ]) ∧ (n ⊢ P ∷ [x ∶ A :: Γ]) := by
+
+  generalize heq : (#x⟦𝐋⟧․P) = PsL at hT
+  induction hT generalizing P x <;> try contradiction
+
+  case exchange_env hP ih =>
+    obtain ⟨Γ, A, B, hP', hT'⟩ := ih heq
+    use Γ, A, B
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl _)) hP'
+    · exact hT'
+
+  case exchange_hyper hP ih =>
+    obtain ⟨Γ, A, B, hP', hT'⟩ := ih heq
+    use Γ, A, B
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm hP'
+    · exact hT'
+
+  case oplus₁ Γ _ _ A B  _ hlc hPT ih =>
+    simp at heq
+    obtain ⟨hx, hP⟩ := heq
+    subst hx hP
+    use Γ, A, B
+
+lemma Typing_inv_selectR {n : ℕ} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
+  (hT : n ⊢ #x⟦𝐑⟧․P ∷ 𝒢) :
+  ∃ Γ A B, (𝒢 ~ [x ∶ A ⊕ B :: Γ]) ∧ (n ⊢ P ∷ [x ∶ B :: Γ]) := by
+
+  generalize heq : (#x⟦𝐑⟧․P) = PsR at hT
+  induction hT generalizing P x <;> try contradiction
+
+  case exchange_env hP ih =>
+    obtain ⟨Γ, A, B, hP', hT'⟩ := ih heq
+    use Γ, A, B
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl _)) hP'
+    · exact hT'
+
+  case exchange_hyper hP ih =>
+    obtain ⟨Γ, A, B, hP', hT'⟩ := ih heq
+    use Γ, A, B
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm hP'
+    · exact hT'
+
+  case oplus₂ Γ _ _ A B  _ hlc hPT ih =>
+    simp at heq
+    obtain ⟨hx, hP⟩ := heq
+    subst hx hP
+    use Γ, A, B
+
+
+
+
+
+
 
 
 
@@ -606,13 +693,33 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
   case output => sorry
   case input => sorry
 
-  case selectL => sorry
-  case selectR => sorry
+  case selectL x =>
+    obtain ⟨Γ, A, B, hP, hT⟩ := Typing_inv_selectL hT
+    use [x ∶ A :: Γ]
+    constructor
+    · exact EnvStep.perm hP.symm EnvStep.selectL (by simp)
+    · exact hT
 
-  case ampL => sorry
-  case ampR => sorry
+  case selectR x =>
+    obtain ⟨Γ, A, B, hP, hT⟩ := Typing_inv_selectR hT
+    use [x ∶ B :: Γ]
+    constructor
+    · exact EnvStep.perm hP.symm EnvStep.selectR (by simp)
+    · exact hT
 
+  case ampL x =>
+    obtain ⟨Γ, A, B, hP, hTP, hTQ⟩ := Typing_inv_amp hT
+    use [x ∶ A :: Γ]
+    constructor
+    · exact EnvStep.perm hP.symm EnvStep.ampL (by simp)
+    · exact hTP
 
+  case ampR x =>
+    obtain ⟨Γ, A, B, hP, hTP, hTQ⟩ := Typing_inv_amp hT
+    use [x ∶ B :: Γ]
+    constructor
+    · exact EnvStep.perm hP.symm EnvStep.ampR (by simp)
+    · exact hTQ
 
   case link₁ =>
     obtain ⟨A, hP⟩ := Typing_inv_link hT
@@ -625,15 +732,13 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
     obtain ⟨A, hP⟩ := Typing_inv_link hT
     use ∅
     constructor
-    sorry
-    -- · -- apply EnvStep.perm hP.symm
-      -- · sorry
-        -- apply EnvStep.link₁
-        -- exact A
-      -- · sorry ;-- imp
-    -- · apply Typing.mix₀
-
-
+    · have := HyperEnv.swap_two_inner (x := y) (y := x) (A := Aᗮᗮ) (B := Aᗮ)
+      conv at this => rhs ; rw [Types.dual_involution]
+      have := HyperEnv.Perm.trans hP this.symm
+      apply EnvStep.perm this.symm
+      · exact EnvStep.link₁
+      · simp [HasPerm.perm]
+    · apply Typing.mix₀
 
   case com => sorry
   case axcut => sorry
