@@ -434,6 +434,18 @@ lemma Env.perm_disjoint {Γ Δ Ξ : Env} (hP : Γ ~ Δ) :
 lemma Env.disjoint_symm {Γ Δ : Env} : Env.disjoint Γ Δ ↔ Env.disjoint Δ Γ := by
   exact disjoint_comm
 
+@[simp] lemma Env.names_nil :
+  Env.names [] = ∅ := by simp [Env.names]
+
+@[simp] lemma Env.names_singleton {x : FPName} {A : Types} :
+  Env.names [x ∶ A] = {x} := by simp [Env.names]
+
+@[simp] lemma Env.names_distributes {Γ : Env} {x : FPName} {A : Types} :
+  Env.names (x ∶ A :: Γ) = {x} ∪ Γ.names := by simp [Env.names]
+
+@[simp] lemma Env.names_merge {Γ Δ : Env} :
+  (Γ‚ Δ).names = Γ.names ∪ Δ.names := by simp [Env.names]
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
@@ -784,3 +796,30 @@ lemma HyperEnv.Perm_pairwise_disjoint {𝒢 ℋ : HyperEnv} :
     tauto
 
   | trans _ _ ih1 ih2 => exact Iff.trans ih1 ih2
+
+@[simp] lemma HyperEnv.names_nil :
+  HyperEnv.names [] = ∅ := by simp [HyperEnv.names]
+
+@[simp] lemma HyperEnv.names_singleton (Γ : Env) :
+  HyperEnv.names [Γ] = Γ.names := by
+  simp [HyperEnv.names, Env.names, List.foldr]
+
+@[simp] lemma HyperEnv.names_distributes {𝒢 : HyperEnv} {Γ : Env} :
+  HyperEnv.names (Γ :: 𝒢) = Γ.names ∪ 𝒢.names := by simp [HyperEnv.names, Env.names]
+
+@[simp] lemma HyperEnv.names_merge (𝒢 ℋ : HyperEnv) :
+  (𝒢 |ₕ ℋ).names = 𝒢.names ∪ ℋ.names := by
+  induction 𝒢
+  case nil => simp [HyperEnv.names]
+  case cons _ _ ih => simp ; rw [ih]
+
+lemma HyperEnv.names_eq_of_perm {𝒢 ℋ : HyperEnv} (h : 𝒢 ~ ℋ) :
+  𝒢.names = ℋ.names := by
+  induction h with
+  | nil => simp
+  | cons hPE _ ih => simp ; rw [Env.names_eq_of_perm hPE, ih]
+  | swap Γ Δ => simp ; rw [← Finset.union_assoc, Finset.union_comm Γ.names _, Finset.union_assoc]
+  | trans _ _ ih1 ih2 => apply Eq.trans ih1 ih2
+
+@[simp, refl] lemma HyperEnv.Perm_refl {𝒢 : HyperEnv} :
+  𝒢 ~ 𝒢 := by simp [HasPerm.perm]

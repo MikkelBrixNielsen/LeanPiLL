@@ -56,7 +56,8 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       EnvStep (𝒢 |ₕ [Γ‚ Δ‚ Ξ]) (τ) (𝒢 |ₕ [Γ‚ Δ‚ Ξ])
 
   | res
-      {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : FPName} {A B : Types} {l : Lbl} :
+      {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : FPName} {A B : Types} {l : Lbl}
+      {hFx : x ∉ (𝒢' |ₕ [Γ'‚ Δ']).names} {hFy : y ∉ (𝒢' |ₕ [Γ'‚ Δ']).names} :
       EnvStep (𝒢 |ₕ [x ∶ Aᗮ :: Γ] |ₕ [y ∶ A :: Δ]) (l) (𝒢' |ₕ [x ∶ Aᗮ :: Γ'] |ₕ [y ∶ A :: Δ']) →
       -------------------------------------------------------------------------------------
       EnvStep (𝒢 |ₕ [Γ‚ Δ]) l (𝒢' |ₕ [Γ'‚ Δ'])
@@ -144,113 +145,46 @@ inductive MEST : (𝒢 : HyperEnv) → Lbls → (𝒢' : HyperEnv) → Prop wher
 
 notation:50 𝒢 " -[" ls "]->>ₑ " 𝒢' => MEST 𝒢 ls 𝒢'
 
+@[simp] lemma EnvStep.names_subset {𝒢 𝒢' : HyperEnv} {l : Lbl} :
+  (𝒢 -[l]->ₑ 𝒢') → 𝒢'.names ⊆ 𝒢.names ∪ l.i := by
+  intro h
+  induction h
+  case tensor | parr =>
+    simp ; rw [Finset.insert_comm]
 
-@[simp] lemma Env.names_nil :
-  Env.names [] = ∅ := by simp [Env.names]
+  case par₁ | par₂ =>
+    grind [HyperEnv.names_merge]
 
-@[simp] lemma Env.names_singleton {x : FPName} {A : Types} :
-  Env.names [(x ∶ A)] = {x} := by simp [Env.names]
+  case syn =>
+    grind [HyperEnv.names_merge, Lbl.i]
 
-@[simp] lemma Env.names_distributes {Γ : Env} {x : FPName} {A : Types} :
-  Env.names ((x ∶ A) :: Γ) = {x} ∪ Γ.names := by simp [Env.names]
+  case res 𝒢 𝒢' Γ Γ' Δ Δ' x y _ _  l hFx hFy  _ ih =>
+    simp_all only [HyperEnv.names_merge, HyperEnv.names_singleton, Env.names_merge,
+      Env.names_distributes, Lbl.i, Finset.mem_union]
+    intro n hn
 
-@[simp] lemma Env.names_merge {Γ Δ : Env} :
-  Env.names (Γ‚ Δ) = Γ.names ∪ Δ.names := by simp [Env.names]
+    simp only [Finset.mem_union] at hn
 
+    have hnx : n ≠ x := by rintro rfl ; exact hFx hn
+    have hny : n ≠ y := by rintro rfl ; exact hFy hn
 
+    have hinLHS : n ∈ 𝒢'.names ∪ ({x} ∪ Γ'.names) ∪ ({y} ∪ Δ'.names) := by
+      simp only [Finset.mem_union, Finset.mem_singleton]
+      rcases hn with h𝒢 | hΓ | hΔ <;> grind
 
+    have hPrev:= ih hinLHS
+    simp only [Finset.mem_union, Finset.mem_singleton] at ⊢ hPrev
+    rcases hPrev with ((h𝒢 | (hx | hΓ)) | (hy | hΔ)) | hM <;> grind
 
-@[simp] lemma HyperEnv.names_nil :
-  HyperEnv.names [] = ∅ := by simp [HyperEnv.names]
+  case perm hP _ hP' ih =>
+    have heq := HyperEnv.names_eq_of_perm hP
+    have heq' := HyperEnv.names_eq_of_perm hP'
+    rw [← heq, ← heq']
+    exact ih
 
-@[simp] lemma HyperEnv.names_singleton {Γ : Env} :
-  HyperEnv.names [Γ] = Γ.names := by simp [HyperEnv.names]
-
-@[simp] lemma HyperEnv.names_distributes {𝒢 : HyperEnv} {Γ : Env} :
-  HyperEnv.names (Γ :: 𝒢) = Γ.names ∪ 𝒢.names := by simp [HyperEnv.names]
-
-@[simp] lemma HyperEnv.names_merge {𝒢 ℋ : HyperEnv} :
-  HyperEnv.names (𝒢 |ₕ ℋ) = 𝒢.names ∪ ℋ.names := by
-  induction 𝒢 with
-  | nil => simp
-  | cons Γ 𝒢' ih =>
-    simp only [HyperEnv.names_distributes]
-    simp [HyperEnv.names] at ⊢ ih
-    rw [ih]
+  all_goals simp
 
 lemma EnvStep.preserves_disjoint {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl}
-  (hES : 𝒢 -[l]->ₑ 𝒢') (hD : 𝒢.names ∩ ℋ.names = ∅) (hFl : l.i ∩ ℋ.names = ∅) :
-  𝒢'.names ∩ ℋ.names = ∅ := by
-  induction hES
-
-  case one => simp [HyperEnv.names, Env.names]
-
-  case bot =>
-    rw [← Finset.disjoint_iff_inter_eq_empty] at hD ⊢
-    simp only [HyperEnv.names, Env.names] at hD ⊢
-    simp only [List.foldr, List.map, List.toFinset_cons, Finset.union_empty] at hD ⊢
-    exact (Finset.disjoint_insert_left.mp hD).right
-
-  case tensor =>
-    rw [← Finset.disjoint_iff_inter_eq_empty] at hD hFl ⊢
-    rw [Finset.disjoint_left] at hD hFl ⊢
-    intro n hn
-    simp only [HyperEnv.names_merge, Finset.mem_union] at hn
-    simp [Finset.mem_insert] at hn
-    rcases hn with h1 | h2
-    · rcases h1 with rfl | _ <;> simp_all
-    · rcases h2 with rfl | _ <;> simp_all
-
-  case parr B _ =>
-    rw [← Finset.disjoint_iff_inter_eq_empty] at hD hFl ⊢
-    rw [Finset.disjoint_left] at hD hFl ⊢
-    intro n hn
-    simp only [HyperEnv.names_distributes, Finset.mem_union] at hn
-    simp [Finset.mem_insert] at hn
-    rcases hn with h1 | h2
-    · simp_all
-    · rcases h2 with rfl | h
-      · simp_all
-      · simp at hD
-        cases h with
-        | intro T hin =>
-          exact hD.2 n T hin
-
-  case par₁ 𝒢 𝒢' _ l _ ih =>
-    rw [← Finset.disjoint_iff_inter_eq_empty] at hD hFl ⊢
-    rw [Finset.disjoint_left] at hD hFl ⊢
-    intro n hn
-    simp only [HyperEnv.names_merge, Finset.mem_union] at hn
-    cases hn
-    case inl h =>
-      have hD : 𝒢.names ∩ ℋ.names = ∅ := by
-        rw [← Finset.disjoint_iff_inter_eq_empty, Finset.disjoint_left]
-        intro a ha
-        apply hD
-        rw [HyperEnv.names_merge, Finset.mem_union]
-        left
-        exact ha
-
-      have hDl : l.i ∩ ℋ.names = ∅ := by
-        rw [← Finset.disjoint_iff_inter_eq_empty, Finset.disjoint_left]
-        exact hFl
-
-      have hD' : 𝒢'.names ∩ ℋ.names = ∅ := ih hD hDl
-      rw [← Finset.disjoint_iff_inter_eq_empty, Finset.disjoint_left] at hD'
-      exact hD' h
-
-    case inr hin =>
-      apply hD
-      simp
-      apply Or.inr (hin)
-
-  case par₂ _ 𝒢 𝒢' l _ ih =>
-    rw [← Finset.disjoint_iff_inter_eq_empty] at hD hFl ⊢
-    rw [Finset.disjoint_left] at hD hFl ⊢
-    intro n hn
-    simp only [HyperEnv.names_merge, Finset.mem_union] at hn
-    cases hn
-
-
-
-  all_goals sorry
+  (hES : 𝒢 -[l]->ₑ 𝒢') (hD : 𝒢.disjoint ℋ) (hFl : Disjoint l.i ℋ.names) :
+  𝒢'.disjoint ℋ := by
+  exact Disjoint.mono_left (EnvStep.names_subset hES) (Finset.disjoint_union_left.mpr ⟨hD, hFl⟩)
