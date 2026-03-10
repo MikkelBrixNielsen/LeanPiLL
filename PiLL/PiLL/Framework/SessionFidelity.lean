@@ -622,19 +622,21 @@ lemma Typing_inv_dup₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
 
 
 
-@[simp] lemma Env.names_empty_nil {Γ : Env} (h : Γ.names = ∅) :
+lemma Env.names_empty_nil {Γ : Env} (h : Γ.names = ∅) :
   Γ = [] := by
   induction Γ
   case nil => simp
   case cons E htl ih => cases E ; simp [Env.names_distributes] at h
 
-lemma Env.extract_exp {Γ : Env} {z : FPName} (hz : z ∈ Γ.names) (hServ : ?ₑΓ) :
-  ∃ A Γ', (Γ ~ z ∶ A :: Γ') ∧ (?ₑΓ') ∧ (Env.names Γ' = Γ.names \ {z}) ∧ A.isServerUsable := by
+lemma Env.extract_exp {Γ : Env} {z : FPName}
+  (hz : z ∈ Γ.names) (hServ : ?ₑΓ) :
+  ∃ A Γ', (Γ ~ z ∶ ??A :: Γ') ∧ (?ₑΓ') ∧ (Env.names Γ' = Γ.names \ {z}) := by
   induction Γ
   case nil => contradiction
   case cons E Γ ih =>
     obtain ⟨x, A⟩ := E
-    simp at hz
+
+    simp [- Env.mem_pair_fst_in_names_iff] at hz
 
     have hTail : ?ₑΓ := by
       intro p hp
@@ -643,9 +645,34 @@ lemma Env.extract_exp {Γ : Env} {z : FPName} (hz : z ∈ Γ.names) (hServ : ?�
     have hHead : A.isServerUsable := by
       exact hServ (x, A) (List.Mem.head _)
 
+
     cases A <;> try contradiction
-    case bang => sorry
-    case quest => sorry
+    case quest A =>
+      rcases hz with (rfl | hz_tail)
+      · use A, Γ
+        refine ⟨List.Perm.refl _, hTail, ?_⟩
+        simp ; rw [← Finset.erase_eq, Finset.erase_insert]
+        sorry
+      · obtain ⟨B, Γ', hP', hServ', hNames'⟩ := ih hz_tail hTail
+        use B, (x, ??A) :: Γ'
+        constructor
+        · apply List.Perm.trans (List.Perm.cons _ hP')
+          apply List.Perm.swap
+        · constructor
+          · rw [Env.serverUsable]
+            intro p hp
+            simp at hp
+            cases hp
+            case inl h => subst h ; simp ; exact hHead
+            case inr h =>
+              cases p
+              case mk x T =>
+                exact Env.mem_serverUsable_Types hServ' h
+          · simp [Env.names_distributes]
+            rw [hNames']
+            simp_all
+            sorry
+
 
 
 
@@ -663,65 +690,30 @@ lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
   case cons z zs ih =>
     simp [buildDisp]
     have hzΓ: z ∈ Γ.names := by simp_all
-    obtain ⟨A, Γ', hP, hServ', hNames', hAServ⟩ := Env.extract_exp hzΓ hServ
+    obtain ⟨A, Γ', hP, hServ', hNames'⟩ := Env.extract_exp hzΓ hServ
     obtain ⟨hlcB, hlcΓ'⟩ := (Env.lc_cons.mp ((Env.lc_perm hP).mp hlc))
-
-    cases A <;> try contradiction
-    case quest A =>
-      apply Typing.exchange_hyper (𝒢 := [z ∶ ??A :: x ∶ 1 :: Γ'])
-      · apply Typing.w
+    apply Typing.exchange_hyper (𝒢 := [z ∶ ??A :: x ∶ 1 :: Γ'])
+    · apply Typing.w
+      · simp_all
+        have : x ≠ z := (hxΓ.1)
+        exact this.symm
+      · exact hlcB
+      · apply ih
+        · exact hServ'
+        · simp at hNodup
+          exact hNodup.2
+        · rw [heq] at hNames'
+          rw [← Finset.erase_eq] at hNames'
+          simp_all
         · simp_all
-          have : x ≠ z := (hxΓ.1)
-          exact this.symm
-        · exact hlcB
-        · apply ih
-          · exact hServ'
-          · simp at hNodup
-            exact hNodup.2
-          · rw [heq] at hNames'
-            rw [← Finset.erase_eq] at hNames'
-            simp_all
-          · simp_all
-          · exact hlcΓ'
-      · apply HyperEnv.Perm.cons
-        · simp [HasPerm.perm]
-          apply List.Perm.trans
-          · apply List.Perm.swap
-          · apply List.Perm.cons
-            exact hP.symm
-        · simp
-
-    case bang A =>
-      apply Typing.exchange_hyper (𝒢 := [z ∶ !!A :: x ∶ 1 :: Γ'])
-      · apply Typing.bang
-
-        · simp_all
-          have : x ≠ z := (hxΓ.1)
-          exact this.symm
-        · exact hlcB
-        · apply ih
-          · exact hServ'
-          · simp at hNodup
-            exact hNodup.2
-          · rw [heq] at hNames'
-            rw [← Finset.erase_eq] at hNames'
-            simp_all
-          · simp_all
-          · exact hlcΓ'
-      · apply HyperEnv.Perm.cons
-        · simp [HasPerm.perm]
-          apply List.Perm.trans
-          · apply List.Perm.swap
-          · apply List.Perm.cons
-            exact hP.symm
-        · simp
-      sorry
-
-
-
-
-
-
+        · exact hlcΓ'
+    · apply HyperEnv.Perm.cons
+      · simp [HasPerm.perm]
+        apply List.Perm.trans
+        · apply List.Perm.swap
+        · apply List.Perm.cons
+          exact hP.symm
+      · simp
 
 
 

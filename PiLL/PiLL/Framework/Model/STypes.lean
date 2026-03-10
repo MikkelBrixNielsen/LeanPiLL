@@ -171,7 +171,6 @@ attribute [simp] Types.freeTypes
 
 def Types.isServerUsable : Types → Prop
   | .quest _  => True
-  | .bang _   => True
   | _         => False
 
 -- d used as cutoff depth, variables < d are locally bound
