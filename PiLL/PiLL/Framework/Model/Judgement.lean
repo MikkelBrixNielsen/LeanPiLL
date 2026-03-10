@@ -8,7 +8,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
   | mix₀ {n : Nat} :
       Typing n 𝟘 ∅
 
-  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} {hD : 𝒢.disjoint ℋ} {n : Nat} :
+  | mix {𝒢 ℋ : HyperEnv} {P Q : Proc} {n : Nat} (hD : 𝒢.disjoint ℋ) :
       Typing n P 𝒢 → Typing n Q ℋ →
       ------------------------------
       Typing n (P |ₚ Q) (𝒢 |ₕ ℋ)
@@ -18,7 +18,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       ---------------------------
       Typing n (#x⟦⟧․P) [[x ∶ 1]]
 
-  | bot {Γ : Env} {P : Proc} {x : FPName} {hF : x ∉ Γ.names} {n : Nat} :
+  | bot {Γ : Env} {P : Proc} {x : FPName} {n : Nat} (hF : x ∉ Γ.names) :
       Typing n P [Γ] →
       ------------------------------
       Typing n (#x⸨⸩․P) [x ∶ ⊥ :: Γ]
@@ -30,13 +30,13 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       Typing n (𝑣⸨$N,$N⸩P) (𝒢 |ₕ [Γ‚ Δ])
 
   | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {A B : Types}
-      {hF : x ∉ Γ.names ∧ x ∉ Δ.names} {n : Nat} (L : Finset FPName) :
+      {n : Nat} (hF : x ∉ Γ.names ∧ x ∉ Δ.names) (L : Finset FPName) :
       (∀ y, y ∉ L → Typing n (P⸨#y⸩) ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) →
       ---------------------------------------------------------------
       Typing n (#x⟦$N⟧․P) [x ∶ A ⨂ B :: Γ‚ Δ]
 
   | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types}
-      {hF : x ∉ Γ.names} {n : Nat} (L : Finset FPName) :
+       {n : Nat} (hF : x ∉ Γ.names) (L : Finset FPName) :
       (∀ y, y ∉ L → Typing n (P⸨#y⸩) [y ∶ A :: x ∶ B :: Γ]) →
       -------------------------------------------------------
       Typing n (#x⸨$N⸩․P) [x ∶ A ⅋ B :: Γ]
@@ -74,16 +74,16 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       Typing n (!#x․{P}) [x ∶ !!A :: Γ]
 
   | w
-      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {hF : x ∉ Γ.names} {n : Nat} :
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} (hF : x ∉ Γ.names) :
       A.lc n → Typing n P [Γ] →
       -----------------------------------
       Typing n (#x⟦DISP⟧․P) [x ∶ ??A :: Γ]
 
   | c
-      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} (L : Finset FPName) :
-      (∀ x', x' ∉ L →
-      Typing n P⸨#x'⸩ [x ∶ ??A :: x' ∶ ??A :: Γ]) →
-      --------------------------------------------
+      {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat}
+      (hF : x ∉ Γ.names) (L : Finset FPName) :
+      (∀ x', x' ∉ L → Typing n P⸨#x'⸩ [x ∶ ??A :: x' ∶ ??A :: Γ]) →
+      -------------------------------------------------------------
       Typing n (#x⟦DUP⟧⸨$N⸩․P) [x ∶ ??A :: Γ]
 
   | exists_
@@ -100,7 +100,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       Typing n (#x⸨$T⸩․P) [x ∶ ∀․B :: Γ]
 
   | ax
-      {x y : FPName} {A : Types} {hneq : x ≠ y} {n : Nat} :
+      {x y : FPName} {A : Types} {n : Nat} (hneq : x ≠ y):
       A.lc n →
       Typing n (#x ⟷ₚ #y) [x ∶ Aᗮ :: [y ∶ A]]
 
@@ -165,7 +165,7 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
 
   case mix₀ => constructor
 
-  case mix hD _ _ _ ih𝒢 ihℋ =>
+  case mix hD _ _ ih𝒢 ihℋ =>
     rw [HyperEnv.PairwiseDisjoint, List.pairwise_append]
     refine ⟨ih𝒢, ihℋ, ?_⟩
     intros Γ hΓin𝒢 Δ hΔinℋ
@@ -317,21 +317,19 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     rw [Proc.shiftTypes_openCut_comm] at ih
     exact ih
 
-  case tensor L _ _ ih =>
-    apply Typing.tensor L
+  case tensor L hF _ ih =>
+    apply Typing.tensor (by simp_all) L
     · intro y hy
       specialize ih y hy d c
       rw [Proc.shiftTypes_open0_comm] at ih
       exact ih
-    · simp_all
 
   case parr L _ _ ih =>
-    apply Typing.parr L
+    apply Typing.parr (by simp_all) L
     · intro y hy
       specialize ih y hy d c
       rw [Proc.shiftTypes_open0_comm] at ih
       exact ih
-    · simp_all
 
   case oplus₁ hlc _ ih =>
     apply Typing.oplus₁
@@ -360,8 +358,8 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     · exact Types.lc_shift hlc
     · exact ih d c
 
-  case c L _ ih =>
-    apply Typing.c L
+  case c L _ _ ih =>
+    apply Typing.c (by simp_all) L
     intro x hx
     specialize ih x hx d c
     rw [Proc.shiftTypes_open0_comm] at ih

@@ -105,7 +105,7 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep (!#x․{P}) (x⸨DISP⸩) (buildDisp (P.f.erase x).toList x)
 
   | dup₁
-      {P : Proc} {x x' : FPName} :
+      {P : Proc} {x : FPName} :
       ProcStep (#x⟦DUP⟧⸨$N⸩․P) (x⟦DUP⟧) ((#x⸨$N⸩․P))
 
   | dup₂

@@ -47,7 +47,7 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
 
   case mix₀ => apply Typing.mix₀
 
-  case mix hD _ _ _ ihP ihQ =>
+  case mix hD _ _ ihP ihQ =>
     apply Typing.mix
     · apply HyperEnv.substNames_preserves_disjoint
       · exact hD
@@ -62,7 +62,7 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
   case one ih =>
     apply Typing.one (ih (by simp))
 
-  case bot hF _ _ ih =>
+  case bot hF _ ih =>
     apply Typing.bot
     · exact Env.fresh_substNames hF huniq
     · apply ih
@@ -99,8 +99,8 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
             · contradiction
             · exact huniq (Γ‚ Δ) (Or.inr rfl) T (by grind)
 
-  case tensor hF _ L _ ih =>
-    apply Typing.tensor (L ∪ {x} ∪ {y})
+  case tensor hF L _ ih =>
+    apply Typing.tensor (Env.fresh_substNames_binary hF huniq) (L ∪ {x} ∪ {y})
     · intros z hz
       simp at hz
       obtain ⟨hz1, hz2, hz3⟩ := hz
@@ -117,10 +117,9 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
         · exact huniq _ (Or.inr (Or.inl h))
         · exact huniq _ (Or.inl ⟨rfl, rfl⟩)
         · exact huniq _ (Or.inr (Or.inr h))
-    · exact Env.fresh_substNames_binary hF huniq
 
-  case parr A B hF _ L _ ih =>
-    apply Typing.parr (L ∪ {x} ∪ {y})
+  case parr A B _ hF L _ ih =>
+    apply Typing.parr (Env.fresh_substNames hF huniq) (L ∪ {x} ∪ {y})
     · intros z hz
       simp at hz
       obtain ⟨hz1, hz2, hz3⟩ := hz
@@ -130,7 +129,6 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
       by_cases hxy : x = y
       case pos => split_names_pos hxy, ih
       case neg => split_names_neg_triple ih, huniq, hz2
-    · exact Env.fresh_substNames hF huniq
 
   case oplus₁ hlc hT ih =>
     apply Typing.oplus₁
@@ -156,7 +154,7 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
     · exact Env.serverUsable_substNames hServ
     · split_names x eq y using hT, ih, huniq
 
-  case w hF _ hlc hT ih =>
+  case w hF hlc hT ih =>
     apply Typing.w
     · exact Env.fresh_substNames hF huniq
     · exact hlc
@@ -168,8 +166,8 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
         intros T h
         exact huniq T (Or.inr h)
 
-  case c A _ L hT ih =>
-    apply Typing.c (L ∪ {x} ∪ {y})
+  case c A hF L hT ih =>
+    apply Typing.c ?_ (L ∪ {x} ∪ {y})
     · intro w hw
       simp at hw
       obtain ⟨hw1, hw2, hw3⟩ := hw
@@ -178,6 +176,7 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
       by_cases hxy : x = y
       case pos => split_names_pos hxy, hT
       case neg => split_names_neg_triple ih, huniq, hw2
+    · exact Env.fresh_substNames hF huniq
 
   case exists_ B _ hlc hT ih =>
     apply Typing.exists_
@@ -217,7 +216,7 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
       exact huniq Δ hΔ T hinΔ
     · apply HyperEnv.substNames_preserves_perm hP
 
-  case ax A hneq _ hlc =>
+  case ax A _ hneq hlc =>
     apply Typing.ax
     · apply FPName.subst_preserves_neq
       · exact hneq
@@ -240,7 +239,7 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
   case mix₀ =>
     exact Typing.mix₀
 
-  case mix hD _ _ _ ihP ihQ =>
+  case mix hD _ _ ihP ihQ =>
     apply Typing.mix
     · exact HyperEnv.substTypes_preserves_disjoint hD
     · exact ihP hlcA hk heq
@@ -249,7 +248,7 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
   case one ih =>
     exact Typing.one (ih hlcA hk heq)
 
-  case bot hF _ _ ih =>
+  case bot hF _ ih =>
     apply Typing.bot
     · rw [Env.substTypes_preserves_names]
       exact hF
@@ -265,17 +264,15 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
 
   case tensor L _ ih =>
     simp at ih
-    apply Typing.tensor L
+    apply Typing.tensor (by simp_all) L
     · intro y hy
       exact ih y hy hlcA hk heq
-    · simp_all
 
   case parr L _ ih =>
     simp at ih
-    apply Typing.parr L
+    apply Typing.parr (by simp_all) L
     · intro y hy
       exact ih y hy hlcA hk heq
-    · simp_all
 
   case oplus₁ hlcB _ ih =>
     have 𝒟 := ih hlcA hk heq
@@ -302,7 +299,7 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
     · exact Env.serverUsable_substTypes his
     · exact (ih hlcA hk heq)
 
-  case w hF _ hlc _ ih =>
+  case w hF hlc _ ih =>
     have 𝒟 := ih hlcA hk heq
     subst heq
     apply Typing.w
@@ -313,7 +310,7 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
 
   case c L _ ih =>
     simp at ih
-    apply Typing.c L
+    apply Typing.c (by simp_all) L
     intro x hx
     exact ih x hx hlcA hk heq
 
@@ -346,7 +343,7 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
     · exact ih hlcA hk heq
     · exact HyperEnv.substTypes_preserves_perm hP
 
-  case ax hneq _ hlcB =>
+  case ax hneq hlcB =>
     subst heq
     apply Typing.ax
     · exact hneq
