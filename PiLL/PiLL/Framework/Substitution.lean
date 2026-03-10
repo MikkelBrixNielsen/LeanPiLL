@@ -130,8 +130,6 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
       by_cases hxy : x = y
       case pos => split_names_pos hxy, ih
       case neg => split_names_neg_triple ih, huniq, hz2
-
-
     · exact Env.fresh_substNames hF huniq
 
   case oplus₁ hlc hT ih =>

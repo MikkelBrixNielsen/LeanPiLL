@@ -126,7 +126,8 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep (#x⟦A⟧․P) (x⟦A⟧) P
 
   | input
-      {P : Proc} {x : FPName} {A : Types} {X : TVar} :
+      {P : Proc} {x : FPName} {A : Types} :
+      A.lc 0 →
       ProcStep (#x⸨$T⸩․P) (x⸨A⸩) (P{A // 0})
 
   | selectL

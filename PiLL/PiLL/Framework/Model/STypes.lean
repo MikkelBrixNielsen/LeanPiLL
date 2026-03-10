@@ -243,6 +243,11 @@ lemma Types.lc_le {n m : Nat} {A : Types} (h : n ≤ m) :
   A.lc n → A.lc m := by
   induction A generalizing n m <;> simp_all [Types.lc, TVar.lc] <;> grind
 
+lemma Types.lc_mono {n : Nat} {A : Types} :
+  A.lc 0 → A.lc n := by
+  intro hlc
+  exact Types.lc_le (n := 0) (m := n) (by simp) hlc
+
 -- A.lc n → (A ↑ᵗ d, c).lc (n + c)
 lemma Types.lc_shift {n d c : Nat} {A : Types} :
   A.lc n → (A.shift d c).lc (n + c) := by
@@ -398,10 +403,13 @@ lemma Types.subst_dual_comm {A B : Types} {k : Nat} :
   case var v |varDual v =>
     cases v <;> grind [Types.subst, Types.dual, Types.dual_involution]
 
-lemma Types.shift_subst_cancel {A B : Types} {d : Nat} :
+@[simp] lemma Types.shift_subst_cancel {A B : Types} {d : Nat} :
   (A.shift d 1).subst B d = A := by
   induction A generalizing d B <;> simp_all [Types.shift, Types.subst]
   case var v | varDual v => cases v <;> grind [TVar.shift, Types.subst]
+
+@[simp] lemma Types.shiftTypes_substTypes_cancel_0 {A B : Types} :
+  B⁺ᵗ{A // 0} = B := Types.shift_subst_cancel (A := B) (B := A) (d := 0)
 
 -- B{A' // d}{A // i} = B{A ↑ᵗ d, 1 // i + 1}{A'{A // i} // d}
 lemma Types.subst_comm {A A' B : Types} {d i : Nat} (hle : d ≤ i) :
@@ -423,7 +431,7 @@ lemma Types.subst_comm_0 {A A' B : Types} {i : Nat} :
   (B.subst A' 0).subst A i = (B.subst (A.shift 0 1) (i + 1)).subst (A'.subst A i) 0 :=
     Types.subst_comm (by simp)
 
-@[simp] lemma Types.subst_comm_notation {A B : Types} {i : Nat} :
+@[simp] lemma Types.subst_dual_comm_notation {A B : Types} {i : Nat} :
   Bᗮ{A // i} = B{A // i}ᗮ := by
   simp [HasSubst.subst]
   rw [Types.subst_dual_comm]

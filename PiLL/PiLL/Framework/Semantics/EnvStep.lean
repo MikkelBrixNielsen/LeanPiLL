@@ -111,11 +111,12 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       EnvStep [x ∶ !!A :: Γ] (x⸨DUP⸩) [x ∶ !!A ⨂ !!A :: Γ]
 
   | output
-      {Γ : Env} {x : FPName} {A B : Types} {X : TVar} :
+      {Γ : Env} {x : FPName} {A B : Types} :
       EnvStep [x ∶ ∃․B :: Γ] (x⟦A⟧) [x ∶ B{A // 0} :: Γ]
 
   | input
-      {Γ : Env} {x : FPName} {A B : Types} {X : TVar} :
+      {Γ : Env} {x : FPName} {A B : Types} :
+      A.lc 0 →
       EnvStep [x ∶ ∀․B :: Γ] (x⸨A⸩) [x ∶ B{A // 0} :: Γ]
 
 ------- Additional Structural / Exchange Rules -------

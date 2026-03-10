@@ -12,9 +12,6 @@ import PiLL.Framework.Substitution
 -- FIXME: Fix TypingStep
 -- FIXME: Typing_preserves_proc_congr
 
--- FIXME: Move exchange rules to the bottom of Typing, revise substNames / Types
---        Can probably combine a lot of cases using constructor doing this
-
 -- FIXME: Use NameSpaces instead of having e.g. HyperEnv._____ everywhere
 -- FIXME: Check possibility of removing exchange_env typing rule
 
@@ -22,12 +19,8 @@ import PiLL.Framework.Substitution
 
 -- FIXME: Proof showing substitution avoids capture
 -- FIXME: Proof showing AlphaEq is equivalent to = between Procs
--- FIXME: Check possibility of no having exchange rules
 -- FIXME: Find different syntax for open?
-
--- FIXME: Proof of HyperEnv.names only having free names
--- FIXME: Proof that HyperEnv.names = Proc.f
--- FIXME: Something regarding Name substitution only being applied to free names?
+-- FIXME: Prove name substitution only being applied to free names?
 
 
 -- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
@@ -282,8 +275,7 @@ lemma Typing_inv_bot {n : Nat} {P : Proc} {x : FPName} {𝒢 : HyperEnv}
 lemma Typing_inv_tensor {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
   (hT : Typing n (#x⟦$N⟧․P) 𝒢) :
   ∃ (A B : Types) (Γ Δ : Env) (L : Finset FPName),
-    (𝒢 ~ [x ∶ A ⨂ B :: Γ‚ Δ]) ∧
-    (∀ z ∉ L, Typing n (P⸨#z⸩) ([z ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) := by
+    (𝒢 ~ [x ∶ A ⨂ B :: Γ‚ Δ]) ∧ (∀ z ∉ L, Typing n (P⸨#z⸩) ([z ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) := by
   generalize heq : (#x⟦$N⟧․P) = P' at hT
   induction hT generalizing P <;> try contradiction
 
@@ -314,8 +306,7 @@ lemma Typing_inv_tensor {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
 lemma Typing_inv_parr {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
   (hT : Typing n (#x⸨$N⸩․P) 𝒢) :
   ∃ (A B : Types) (Γ : Env) (L : Finset FPName),
-    (𝒢 ~ [x ∶ A ⅋ B :: Γ]) ∧
-    (∀ z ∉ L, Typing n (P⸨#z⸩) ([z ∶ A :: x ∶ B :: Γ])) := by
+    (𝒢 ~ [x ∶ A ⅋ B :: Γ]) ∧ (∀ z ∉ L, Typing n (P⸨#z⸩) ([z ∶ A :: x ∶ B :: Γ])) := by
   generalize heq : (#x⸨$N⸩․P) = P' at hT
   induction hT generalizing P <;> try contradiction
 
@@ -391,10 +382,9 @@ lemma Typing_inv_link {n : Nat} {x y : FPName} {𝒢 : HyperEnv}
     subst h1 h2
     use A
 
-lemma Typing_inv_amp {n : ℕ} {x : FPName} {P Q : Proc} {𝒢 : HyperEnv}
+lemma Typing_inv_amp {n : Nat} {x : FPName} {P Q : Proc} {𝒢 : HyperEnv}
   (hT : n ⊢ #x․case{𝐋 : P, 𝐑 : Q} ∷ 𝒢) :
   ∃ Γ A B, (𝒢 ~ [x ∶ A & B :: Γ]) ∧ (n ⊢ P ∷ [x ∶ A :: Γ]) ∧ (n ⊢ Q ∷ [x ∶ B :: Γ]) := by
-
   generalize heq : (#x․case{𝐋 : P, 𝐑 : Q}) = PQ at hT
   induction hT generalizing P Q x <;> try contradiction
 
@@ -418,10 +408,9 @@ lemma Typing_inv_amp {n : ℕ} {x : FPName} {P Q : Proc} {𝒢 : HyperEnv}
     subst hx hP hQ
     use Γ, A, B
 
-lemma Typing_inv_selectL {n : ℕ} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
+lemma Typing_inv_selectL {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
   (hT : n ⊢ #x⟦𝐋⟧․P ∷ 𝒢) :
   ∃ Γ A B, (𝒢 ~ [x ∶ A ⊕ B :: Γ]) ∧ (n ⊢ P ∷ [x ∶ A :: Γ]) := by
-
   generalize heq : (#x⟦𝐋⟧․P) = PsL at hT
   induction hT generalizing P x <;> try contradiction
 
@@ -445,10 +434,9 @@ lemma Typing_inv_selectL {n : ℕ} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
     subst hx hP
     use Γ, A, B
 
-lemma Typing_inv_selectR {n : ℕ} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
+lemma Typing_inv_selectR {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
   (hT : n ⊢ #x⟦𝐑⟧․P ∷ 𝒢) :
   ∃ Γ A B, (𝒢 ~ [x ∶ A ⊕ B :: Γ]) ∧ (n ⊢ P ∷ [x ∶ B :: Γ]) := by
-
   generalize heq : (#x⟦𝐑⟧․P) = PsR at hT
   induction hT generalizing P x <;> try contradiction
 
@@ -472,17 +460,111 @@ lemma Typing_inv_selectR {n : ℕ} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
     subst hx hP
     use Γ, A, B
 
+lemma Typing_inv_output {n : Nat} {x : FPName} {A : Types} {P : Proc} {𝒢 : HyperEnv}
+  (hT : n ⊢ #x⟦A⟧․P ∷ 𝒢) :
+  ∃ (Γ : Env) (B : Types),
+  (𝒢 ~ [x ∶ ∃․B :: Γ]) ∧ n ⊢ P ∷ [x ∶ B{A // 0} :: Γ] := by
+  generalize heq : (#x⟦A⟧․P) = Pout at hT
+  induction hT generalizing P x <;> try contradiction
 
+  case exchange_env hP ih =>
+    obtain ⟨Γ, B, hP', hT'⟩ := ih heq
+    use Γ, B
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl _)) hP'
+    · exact hT'
 
+  case exchange_hyper hP ih =>
+    obtain ⟨Γ, A, hP', hT'⟩ := ih heq
+    use Γ, A
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm hP'
+    · exact hT'
 
+  case exists_ Γ _ _ _ B _ hlc hT ih =>
+    simp at heq
+    obtain ⟨hx, hP, hA⟩ := heq
+    subst hx hP hA
+    use Γ, B
 
+lemma Typing_inv_input {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
+  (hT : n ⊢ #x⸨$T⸩․P ∷ 𝒢) :
+  ∃ (Γ : Env) (B : Types),
+  (𝒢 ~ [x ∶ ∀․B :: Γ]) ∧ (n + 1 ⊢ P ∷ [x ∶ B :: Γ⁺ᵗ]) := by
+  generalize heq : (#x⸨$T⸩․P) = Pin at hT
+  induction hT generalizing P x <;> try contradiction
 
+  case exchange_env hP ih =>
+    obtain ⟨Γ, B, hP', hT'⟩ := ih heq
+    use Γ, B
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl _)) hP'
+    · exact hT'
 
+  case exchange_hyper hP ih =>
+    obtain ⟨Γ, B, hP', hT'⟩ := ih heq
+    use Γ, B
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm hP'
+    · exact hT'
 
+  case forall_ Γ _ _ B _ _ ih  =>
+    simp at heq
+    obtain ⟨hx, hP⟩ := heq
+    subst hx hP
+    use Γ, B
 
+lemma Typing_inv_use₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
+  (hT : n ⊢ #x⟦USE⟧․P ∷ 𝒢) :
+  ∃ Γ A, (𝒢 ~ [x ∶ ??A :: Γ]) ∧ (n ⊢ P ∷ [x ∶ A :: Γ]) := by
+  generalize heq : (#x⟦USE⟧․P) = Puse at hT
+  induction hT generalizing P x <;> try contradiction
 
+  case exchange_env 𝒢 _ _ _ _ _ hP ih =>
+    obtain ⟨Γ, A, hP', hT'⟩ := ih heq
+    use Γ, A
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl 𝒢)) hP'
+    · exact hT'
 
+  case exchange_hyper hP ih =>
+    obtain ⟨Γ, A, hP', hT'⟩ := ih heq
+    use Γ, A
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm hP'
+    · exact hT'
 
+  case quest Γ _ _ A _ _ ih =>
+    simp at heq
+    obtain ⟨hx, hP⟩ := heq
+    subst hx hP
+    use Γ, A
+
+lemma Typing_inv_use₂ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
+  (hT : n ⊢ !#x․{P} ∷ 𝒢) :
+  ∃ Γ A, (𝒢 ~ [x ∶ !!A :: Γ]) ∧ (n ⊢ P ∷ [x ∶ A :: Γ]) := by
+  generalize heq : (!#x․{P}) = Puse at hT
+  induction hT generalizing P x <;> try contradiction
+
+  case exchange_env 𝒢 _ _ _ _ _ hP ih =>
+    obtain ⟨Γ, A, hP', hT'⟩ := ih heq
+    use Γ, A
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl 𝒢)) hP'
+    · exact hT'
+
+  case exchange_hyper hP ih =>
+    obtain ⟨Γ, A, hP', hT'⟩ := ih heq
+    use Γ, A
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm hP'
+    · exact hT'
+
+  case bang Γ _ _ A _ _ _ _ =>
+    simp at heq
+    obtain ⟨hx, hP⟩ := heq
+    subst hx hP
+    use Γ, A
 
 
 
@@ -684,14 +766,43 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 
   case disp₁ => sorry
   case disp₂ => sorry
+
   case dup₁ => sorry
   case dup₂ => sorry
 
-  case use₁ => sorry
-  case use₂ => sorry
+  case use₁ x =>
+    obtain ⟨Γ, A, hP', hT'⟩ := Typing_inv_use₁ hT
+    use [x ∶ A :: Γ]
+    constructor
+    · exact EnvStep.perm hP'.symm EnvStep.use₁ (by simp)
+    · exact hT'
 
-  case output => sorry
-  case input => sorry
+  case use₂ x =>
+    obtain ⟨Γ, A, hP', hT'⟩ := Typing_inv_use₂ hT
+    use [x ∶ A :: Γ]
+    constructor
+    · apply EnvStep.perm hP'.symm
+      · apply EnvStep.use₂
+        · sorry -- FIXME: Needs serverusability
+      · simp
+    · exact hT'
+
+
+  case output x A =>
+    obtain ⟨Γ, B, hP', hT'⟩ := Typing_inv_output hT
+    use [x ∶ B{A // 0} :: Γ]
+    constructor
+    · exact EnvStep.perm hP'.symm EnvStep.output (by simp)
+    · exact hT'
+
+  case input x A hlc =>
+    obtain ⟨Γ, B, hP', hT'⟩ := Typing_inv_input hT
+    use [x ∶ B{A // 0} :: Γ]
+    constructor
+    · exact EnvStep.perm hP'.symm (EnvStep.input hlc) (by simp)
+    · have := Typing_substTypes hT' (k := 0) (A := A)
+      simp at this
+      exact this (Types.lc_mono hlc)
 
   case selectL x =>
     obtain ⟨Γ, A, B, hP, hT⟩ := Typing_inv_selectL hT

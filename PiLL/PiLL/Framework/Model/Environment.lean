@@ -426,6 +426,16 @@ lemma Env.fresh_substNames_binary {Γ Δ : Env} {x y z : FPName} {C : Types}
   (Γ.substTypes A k).shiftTypes 0 1 = (Γ.shiftTypes 0 1).substTypes (A.shift 0 1) (k + 1) := by
   induction Γ <;> simp [Env.substTypes, Env.shiftTypes, Types.shift_0_subst_comm]
 
+@[simp] lemma Env.shiftTypes_substTypes_cancel {Γ : Env} {A : Types} :
+  Γ⁺ᵗ{A // 0} = Γ := by
+  induction Γ
+  case nil => simp
+  case cons E Γ ih =>
+    cases E with
+    | mk x T =>
+      simp
+      exact ih
+
 lemma Env.perm_disjoint {Γ Δ Ξ : Env} (hP : Γ ~ Δ) :
   Γ.disjoint Ξ ↔ Δ.disjoint Ξ := by
   simp [Env.disjoint]
