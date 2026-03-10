@@ -9,21 +9,7 @@ import PiLL.Framework.Substitution
 
 
 
--- FIXME: Fix TypingStep
--- FIXME: Typing_preserves_proc_congr
 
--- FIXME: Use NameSpaces instead of having e.g. HyperEnv._____ everywhere
--- FIXME: Check possibility of removing exchange_env typing rule
-
-
-
--- FIXME: Proof showing substitution avoids capture
--- FIXME: Proof showing AlphaEq is equivalent to = between Procs
--- FIXME: Find different syntax for open?
--- FIXME: Prove name substitution only being applied to free names?
-
-
--- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
 
 
 
@@ -622,6 +608,28 @@ lemma Typing_inv_dup₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
 
 
 
+
+
+-- FIXME: Fix TypingStep
+-- FIXME: Typing_preserves_proc_congr
+
+-- FIXME: Use NameSpaces instead of having e.g. HyperEnv._____ everywhere
+-- FIXME: Check possibility of removing exchange_env typing rule
+
+
+
+-- FIXME: proof of Typing n P 𝒢 → 𝒢 is pairwise disjoint and nodup
+
+
+-- FIXME: Proof showing substitution avoids capture
+-- FIXME: Proof showing AlphaEq is equivalent to = between Procs
+-- FIXME: Find different syntax for open?
+-- FIXME: Prove name substitution only being applied to free names?
+
+
+-- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
+
+
 lemma Env.names_empty_nil {Γ : Env} (h : Γ.names = ∅) :
   Γ = [] := by
   induction Γ
@@ -629,7 +637,7 @@ lemma Env.names_empty_nil {Γ : Env} (h : Γ.names = ∅) :
   case cons E htl ih => cases E ; simp [Env.names_distributes] at h
 
 lemma Env.extract_exp {Γ : Env} {z : FPName}
-  (hz : z ∈ Γ.names) (hServ : ?ₑΓ) :
+  (hz : z ∈ Γ.names) (hServ : ?ₑΓ) (hNodup : Env.Nodup Γ) :
   ∃ A Γ', (Γ ~ z ∶ ??A :: Γ') ∧ (?ₑΓ') ∧ (Env.names Γ' = Γ.names \ {z}) := by
   induction Γ
   case nil => contradiction
@@ -638,22 +646,22 @@ lemma Env.extract_exp {Γ : Env} {z : FPName}
 
     simp [- Env.mem_pair_fst_in_names_iff] at hz
 
-    have hTail : ?ₑΓ := by
+    have hServΓ : ?ₑΓ := by
       intro p hp
       exact hServ p (List.Mem.tail _ hp)
 
-    have hHead : A.isServerUsable := by
+    have hServA : A.isServerUsable := by
       exact hServ (x, A) (List.Mem.head _)
-
 
     cases A <;> try contradiction
     case quest A =>
-      rcases hz with (rfl | hz_tail)
+      rcases hz with (rfl | hzΓ)
       · use A, Γ
-        refine ⟨List.Perm.refl _, hTail, ?_⟩
+        refine ⟨List.Perm.refl _, hServΓ, ?_⟩
         simp ; rw [← Finset.erase_eq, Finset.erase_insert]
-        sorry
-      · obtain ⟨B, Γ', hP', hServ', hNames'⟩ := ih hz_tail hTail
+        have this := (List.nodup_cons.mp hNodup).1
+        simp_all
+      · obtain ⟨B, Γ', hP', hServ', hNames'⟩ := ih hzΓ hServΓ ((Env.nodup_cons.mp hNodup).2)
         use B, (x, ??A) :: Γ'
         constructor
         · apply List.Perm.trans (List.Perm.cons _ hP')
@@ -663,7 +671,7 @@ lemma Env.extract_exp {Γ : Env} {z : FPName}
             intro p hp
             simp at hp
             cases hp
-            case inl h => subst h ; simp ; exact hHead
+            case inl h => subst h ; simp ; exact hServA
             case inr h =>
               cases p
               case mk x T =>
@@ -671,16 +679,28 @@ lemma Env.extract_exp {Γ : Env} {z : FPName}
           · simp [Env.names_distributes]
             rw [hNames']
             simp_all
-            sorry
 
+            have h1 : x ∉ names Γ := by
+              have := (List.nodup_cons.mp hNodup).1
+              simp at this
+              exact Env.not_mem_names_iff.mpr this
 
+            have h2 : z ∈ names Γ := by
+              obtain ⟨T, hT⟩ := hzΓ
+              simp
+              exact ⟨T, hT⟩
 
+            have hneq : z ≠ x := by
+              intro rfl
+              exact h1 h2
 
-
+            ext a
+            simp only [Finset.mem_sdiff, Finset.mem_singleton, Finset.mem_insert]
+            grind
 
 lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
   (hServ : ?ₑΓ) (hNodup : names.Nodup) (heq : Γ.names = names.toFinset)
-  (hxΓ : x ∉ Γ.names) (hlc : Γ.lc n)
+  (hxΓ : x ∉ Γ.names) (hlc : Γ.lc n) (hNodupΓ : Env.Nodup Γ)
   : n ⊢ buildDisp names x ∷ [x ∶ 1 :: Γ] := by
   induction names generalizing Γ
   case nil =>
@@ -690,8 +710,11 @@ lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
   case cons z zs ih =>
     simp [buildDisp]
     have hzΓ: z ∈ Γ.names := by simp_all
-    obtain ⟨A, Γ', hP, hServ', hNames'⟩ := Env.extract_exp hzΓ hServ
+    obtain ⟨A, Γ', hP, hServ', hNames'⟩ := Env.extract_exp hzΓ hServ hNodupΓ
     obtain ⟨hlcB, hlcΓ'⟩ := (Env.lc_cons.mp ((Env.lc_perm hP).mp hlc))
+    have hPMap : (Γ.map Prod.fst).Perm (z :: (Γ'.map Prod.fst)) := List.Perm.map _ hP
+    have hNodupCons : (z :: (Γ'.map Prod.fst)).Nodup := (List.Perm.nodup_iff hPMap).mp hNodupΓ
+    have hNodupΓ' : Env.Nodup Γ' := (List.nodup_cons.mp hNodupCons).2
     apply Typing.exchange_hyper (𝒢 := [z ∶ ??A :: x ∶ 1 :: Γ'])
     · apply Typing.w
       · simp_all
@@ -707,6 +730,7 @@ lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
           simp_all
         · simp_all
         · exact hlcΓ'
+        · exact hNodupΓ'
     · apply HyperEnv.Perm.cons
       · simp [HasPerm.perm]
         apply List.Perm.trans

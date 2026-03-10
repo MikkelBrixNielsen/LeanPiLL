@@ -14,6 +14,12 @@ instance : HasPerm Env where perm := List.Perm
 def Env.names (Γ : Env) : Finset FPName :=
   (Γ.map Prod.fst).toFinset
 
+def Env.Nodup (Γ : Env) : Prop := (Γ.map Prod.fst).Nodup
+
+lemma Env.nodup_cons {x : FPName} {A : Types} {Γ : Env} :
+  Env.Nodup ((x, A) :: Γ) ↔ x ∉ Γ.names ∧ Env.Nodup Γ := by
+  simp [Env.Nodup, Env.names]
+
 @[simp] def Env.disjoint (Δ Γ : Env) : Prop :=
   Disjoint Δ.names Γ.names
 
