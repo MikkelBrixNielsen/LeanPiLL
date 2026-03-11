@@ -661,7 +661,7 @@ lemma Env.extract_exp {Γ : Env} {z : FPName}
         simp ; rw [← Finset.erase_eq, Finset.erase_insert]
         have this := (List.nodup_cons.mp hNodup).1
         simp_all
-      · obtain ⟨B, Γ', hP', hServ', hNames'⟩ := ih hzΓ hServΓ ((Env.nodup_cons.mp hNodup).2)
+      · obtain ⟨B, Γ', hP', hServ', hNames'⟩ := ih hzΓ hServΓ ((Env.Nodup_cons.mp hNodup).2)
         use B, (x, ??A) :: Γ'
         constructor
         · apply List.Perm.trans (List.Perm.cons _ hP')
@@ -703,6 +703,7 @@ lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
   (hxΓ : x ∉ Γ.names) (hlc : Γ.lc n) (hNodupΓ : Env.Nodup Γ)
   : n ⊢ buildDisp names x ∷ [x ∶ 1 :: Γ] := by
   induction names generalizing Γ
+
   case nil =>
     rw [Env.names_empty_nil heq]
     exact Typing.one Typing.mix₀
@@ -738,8 +739,6 @@ lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
         · apply List.Perm.cons
           exact hP.symm
       · simp
-
-
 
 -- FIXME: Check that this covers all rules mentioned in the paper
 -- FIXME: Subject reduction / simulation proof
@@ -932,9 +931,12 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 
       exact (EnvStep.preserves_disjoint hStepQ hD𝒢'ℋ.symm hDl'𝒢').symm
 
+
+
   case res => sorry
   case one_bot => sorry
   case tensor_parr => sorry
+
 
 
   case disp₁ x =>
@@ -944,12 +946,46 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
     · exact EnvStep.perm hP'.symm EnvStep.disp₁ (by simp)
     · exact Typing.bot hF hT'
 
-
-
-  case disp₂ =>
+  case disp₂ P x =>
     obtain ⟨Γ, A, hP', hT', hServ⟩ := Typing_inv_use₂ hT
+    use [x ∶ 1 :: Γ]
+    constructor
+    · exact EnvStep.perm hP'.symm EnvStep.disp₂ (by simp)
+    · have ⟨hNodup, _ ⟩:= Typing_preserves_linearity hT'
+      have hNodupxΓ := hNodup (x ∶ A :: Γ) (by simp)
+      obtain ⟨hxΓ, hNodupΓ⟩:= (Env.Nodup_cons.mp hNodupxΓ)
+      have hNodup_names : ((P.f.erase x).toList).Nodup := Finset.nodup_toList _
 
-    sorry
+      have heq : Env.names Γ = ((P.f.erase x).toList).toFinset := by
+        ext a
+        simp only [List.mem_toFinset, Finset.mem_toList, Finset.mem_erase]
+
+        have hPf : P.f = Env.names (x ∶ A :: Γ) := by
+          have := Typing.f_eq_names hT'
+          simp only [HyperEnv.names_singleton] at this
+          exact this
+
+        rw [hPf]
+        simp only [Env.names, List.map_cons, List.toFinset_cons, Finset.mem_insert]
+        constructor
+        · intro ha
+          have h_neq : a ≠ x := by
+            rintro rfl
+            exact hxΓ ha
+          exact ⟨h_neq, Or.inr ha⟩
+        · rintro ⟨hneq, rfl | ha⟩
+          · contradiction
+          · exact ha
+
+      have hlc : Env.lc n Γ := by
+        have h_in_singleton : (x ∶ !!A :: Γ) ∈ [x ∶ !!A :: Γ] := by simp
+        obtain ⟨Γ', hin𝒢, hP''⟩ := HyperEnv.Perm_mem hP' h_in_singleton
+        have hlcΓ := Typing_preserves_lc hT Γ' hin𝒢
+        have hlcAΓ := (Env.lc_perm hP'').mp hlcΓ
+        have := (Env.lc_cons.mp hlcAΓ).2
+        exact this
+
+      exact Typing_buildDisp Γ _ hServ hNodup_names heq hxΓ hlc hNodupΓ
 
   case dup₁ x =>
     obtain ⟨Γ, A, L, hP', hF, hT'⟩ := Typing_inv_dup₁ hT

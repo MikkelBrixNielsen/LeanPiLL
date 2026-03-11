@@ -153,12 +153,6 @@ def env {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : HyperEnv
 
 
 
-
-
-
-
-
-
 theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
   (h : n ⊢ P ∷ 𝒢) : 𝒢.PairwiseDisjoint := by
   induction h
@@ -216,7 +210,7 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
     · exact ih.2
 
   case exchange_hyper hP ih =>
-    rw [HyperEnv.PairwiseDisjoint, ← HyperEnv.Perm_pairwise_disjoint hP]
+    rw [HyperEnv.PairwiseDisjoint, ← HyperEnv.Perm_PairwiseDisjoint_iff hP]
     exact ih
 
 lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
@@ -388,3 +382,146 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     apply Typing.exchange_hyper
     · exact ih d c
     · simp_all
+
+lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
+  (n ⊢ P ∷ 𝒢) → HyperEnv.Nodup 𝒢 ∧ 𝒢.PairwiseDisjoint := by
+  intro hT
+  induction hT <;> try simp
+
+  case mix hD _ _ ihP ihQ =>
+    constructor
+    · exact ⟨ihP.1, ihQ.1⟩
+    · exact ⟨ihP.2, ihQ.2, HyperEnv.mem_of_disjoint hD⟩
+
+  case bot hF _ ih | w hF _ _ ih =>
+    apply (HyperEnv.Nodup_cons_iff hF).mpr
+    exact ⟨by simp, ih.1⟩
+
+  case cut Γ Δ _ A _ L _ ih =>
+    obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
+    specialize ih x y hx hy hneq
+    simp [HyperEnv.Nodup_merge] at ih
+    obtain ⟨ih1, ih2⟩ := ih
+    obtain ⟨hNodup𝒢, hNodupxy⟩ := ih1
+    obtain ⟨hPW𝒢, hPWxy, hGlue⟩ := ih2
+
+    have hNodupΓ : Env.Nodup Γ :=
+      (Env.Nodup_cons.mp (hNodupxy (x ∶ A :: Γ) (by simp))).2
+
+    have hNodupΔ : Env.Nodup Δ :=
+      (Env.Nodup_cons.mp (hNodupxy (y ∶ Aᗮ :: Δ) (by simp))).2
+
+    refine ⟨⟨hNodup𝒢, ?_⟩, hPW𝒢, ?_⟩
+    · intro E hE
+      simp only [List.mem_cons] at hE
+      rcases hE with rfl | h
+      · have hDxy : Disjoint (Env.names (x ∶ A :: Γ)) (Env.names (y ∶ Aᗮ :: Δ)) := by
+          unfold HyperEnv.PairwiseDisjoint at hPWxy
+          have := (List.pairwise_cons.mp hPWxy).1
+          exact this (y ∶ Aᗮ :: Δ) (by simp)
+        have hDΓΔ : Disjoint Γ.names Δ.names := by
+          apply Disjoint.mono _ _ hDxy <;> simp
+        simp [Env.Nodup]
+        rw [List.nodup_append]
+        constructor
+        · exact hNodupΓ
+        · constructor
+          · exact hNodupΔ
+          · intro a ha b hb heq
+            subst heq
+            have haΓ : a ∈ Γ.names := by simp [Env.names, ha]
+            have haΔ : a ∈ Δ.names := by simp [Env.names, hb]
+            have hanΔ := Finset.disjoint_left.mp hDΓΔ haΓ
+            contradiction
+      · simp at h
+    · intro a ha
+      have := hGlue a ha
+      exact ⟨this.1.2, this.2.2⟩
+
+  case tensor Γ Δ _ x A B _ hF L _ ih =>
+    obtain ⟨y, hy⟩ := exists_one_fresh L
+    obtain ⟨ih1, ih2⟩ := ih y hy
+    simp only [HyperEnv.Nodup_merge] at ih1
+
+    have hNodupΓ : Env.Nodup Γ :=
+      (Env.Nodup_cons.mp (ih1.1 (y ∶ A :: Γ) (by simp))).2
+
+    have hNodupΔ : Env.Nodup Δ :=
+      (Env.Nodup_cons.mp (ih1.2 (x ∶ B :: Δ) (by simp))).2
+
+    have hDΓΔ : Disjoint Γ.names Δ.names := by
+      have hDxy : Disjoint (Env.names (y ∶ A :: Γ)) (Env.names (x ∶ B :: Δ)) :=
+        ((List.pairwise_cons.mp ih2).1) (x ∶ B :: Δ) (by simp)
+      apply Disjoint.mono _ _ hDxy <;> simp
+
+    have hFxΓΔ : x ∉ (Γ‚ Δ).names := by
+      simp ; constructor
+      · exact Env.not_mem_names_iff.mp hF.1
+      · exact Env.not_mem_names_iff.mp hF.2
+
+    apply HyperEnv.Nodup_singleton
+    apply Env.Nodup_cons.mpr
+    constructor
+    · exact hFxΓΔ
+    · simp [Env.Nodup]
+      rw [List.nodup_append]
+      constructor
+      · exact hNodupΓ
+      · constructor
+        · exact hNodupΔ
+        · intro a ha b hb heq
+          subst heq
+          have haΓ : a ∈ Γ.names := by simp [Env.names, ha]
+          have haΔ : a ∈ Δ.names := by simp [Env.names, hb]
+          have hanΔ := Finset.disjoint_left.mp hDΓΔ haΓ
+          contradiction
+
+  case parr Γ _ x A B _ hF L _ ih =>
+    obtain ⟨y, hy⟩ := exists_one_fresh L
+    obtain ⟨ih1, ih2⟩ := ih y hy
+    apply HyperEnv.Nodup_singleton
+    apply Env.Nodup_cons.mpr
+    have := (Env.Nodup_cons.mp (ih1 (y ∶ A :: x ∶ B :: Γ) (by simp))).2
+    exact (Env.Nodup_cons.mp this)
+
+  case oplus₁ ih | oplus₂ ih | amp ih ih' | quest ih | bang ih =>
+    simp [HyperEnv.Nodup, Env.Nodup] at ⊢ ih
+    exact ih
+
+  case c Γ _ x _ _ hF L _ ih =>
+    obtain ⟨y, hy⟩ := exists_one_fresh (L)
+    specialize ih y hy
+    simp [HyperEnv.Nodup, Env.Nodup] at ih
+    rw [← ne_eq] at ih
+    obtain ⟨ih1, ih2, ih3⟩ := ih
+    obtain ⟨hneq, ih1⟩ := ih1
+    apply (HyperEnv.Nodup_cons_iff (Env.not_mem_names_iff.mpr ih1)).mpr
+    simp [HyperEnv.Nodup, Env.Nodup, ih3] at ⊢
+
+  case exists_ ih => simp_all [HyperEnv.Nodup, Env.Nodup]
+
+  case forall_ Γ _ x B _ _ ih =>
+    obtain ⟨ih1, ih2⟩ := ih
+    have ih1' : Env.Nodup (x ∶ B :: Γ⁺ᵗ) := ih1 _ (by simp)
+    have hFx := (Env.Nodup_cons.mp ih1').1
+    have hNodupΓ := (Env.Nodup_cons.mp ih1').2
+    rw [Env.shiftTypes_preserves_names] at hFx
+    rw [Env.Nodup_shiftTypes] at hNodupΓ
+    apply HyperEnv.Nodup_singleton
+    have :=  (Env.Nodup_cons (A := B)).mpr ⟨hFx, hNodupΓ⟩
+    simp [Env.Nodup] at this ⊢
+    exact this
+
+  case ax hneq _ => simp [HyperEnv.Nodup, Env.Nodup, hneq]
+
+  case exchange_env hP ih =>
+    obtain ⟨ih1, ih2⟩ := ih
+    constructor
+    · exact (HyperEnv.Nodup_cons_perm_iff hP).mp ih1
+    · exact (HyperEnv.PairwiseDisjoint_cons_perm_iff hP).mp ih2
+
+  case exchange_hyper hP ih =>
+    obtain ⟨ih1, ih2⟩ := ih
+    constructor
+    · exact HyperEnv.Nodup_perm hP ih1
+    · exact (HyperEnv.Perm_PairwiseDisjoint_iff hP).mp ih2

@@ -16,7 +16,7 @@ def Env.names (Γ : Env) : Finset FPName :=
 
 def Env.Nodup (Γ : Env) : Prop := (Γ.map Prod.fst).Nodup
 
-lemma Env.nodup_cons {x : FPName} {A : Types} {Γ : Env} :
+lemma Env.Nodup_cons {x : FPName} {A : Types} {Γ : Env} :
   Env.Nodup ((x, A) :: Γ) ↔ x ∉ Γ.names ∧ Env.Nodup Γ := by
   simp [Env.Nodup, Env.names]
 
@@ -462,6 +462,32 @@ lemma Env.disjoint_symm {Γ Δ : Env} : Env.disjoint Γ Δ ↔ Env.disjoint Δ �
 @[simp] lemma Env.names_merge {Γ Δ : Env} :
   (Γ‚ Δ).names = Γ.names ∪ Δ.names := by simp [Env.names]
 
+@[simp] lemma Env.Nodup_nil :
+  Env.Nodup [] := by simp [Nodup]
+
+@[simp] lemma Env.Nodup_singleton {x : FPName} {A : Types} :
+  Env.Nodup [x ∶ A] := by simp [Env.Nodup]
+lemma Env.Nodup_perm {Γ Δ : Env} (hP : Γ ~ Δ) :
+  Env.Nodup Γ → Env.Nodup Δ := by
+  intro h
+  have hPNames := List.Perm.map Prod.fst hP
+  exact (List.Perm.nodup_iff hPNames).mp h
+
+lemma Env.Perm.nodup_iff {Γ Δ : Env} (h : Γ ~ Δ) :
+  Env.Nodup Γ ↔ Env.Nodup Δ := by
+  unfold Env.Nodup
+  have hPNames := List.Perm.map Prod.fst h
+  exact List.Perm.nodup_iff hPNames
+
+@[simp] lemma Env.map_fst_shiftTypes {Γ : Env} :
+  List.map Prod.fst Γ⁺ᵗ = List.map Prod.fst Γ := by
+    simp [HasShiftTypes.shift, Env.shiftTypes]
+
+@[simp] lemma Env.Nodup_shiftTypes {Γ : Env} :
+  Env.Nodup Γ⁺ᵗ ↔ Env.Nodup Γ := by
+  unfold Env.Nodup
+  rw [Env.map_fst_shiftTypes]
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
@@ -498,6 +524,9 @@ lemma HyperEnv.Perm.comm {𝒢 ℋ : HyperEnv} : 𝒢 ~ ℋ ↔ ℋ ~ 𝒢 := �
 
 def HyperEnv.names (𝒢 : HyperEnv) : Finset FPName :=
   𝒢.foldr (fun Γ acc => Γ.names ∪ acc) ∅
+
+def HyperEnv.Nodup (𝒢 : HyperEnv) : Prop :=
+  ∀ Γ ∈ 𝒢, Env.Nodup Γ
 
 @[simp] def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
   Disjoint 𝒢.names ℋ.names
@@ -777,7 +806,7 @@ lemma HyperEnv.Perm_mem {𝒢 ℋ : HyperEnv} {Γ : Env} (h : 𝒢 ~ ℋ) (hΓ :
     · exact hΞ'
     · exact List.Perm.trans hPΞ' hPΞ
 
-lemma HyperEnv.Perm_pairwise_disjoint {𝒢 ℋ : HyperEnv} :
+lemma HyperEnv.Perm_PairwiseDisjoint_iff {𝒢 ℋ : HyperEnv} :
   (𝒢 ~ ℋ) → (List.Pairwise Env.disjoint 𝒢 ↔ List.Pairwise Env.disjoint ℋ) := by
   intro h
   induction h with
@@ -839,3 +868,159 @@ lemma HyperEnv.names_eq_of_perm {𝒢 ℋ : HyperEnv} (h : 𝒢 ~ ℋ) :
 
 @[simp, refl] lemma HyperEnv.Perm_refl {𝒢 : HyperEnv} :
   𝒢 ~ 𝒢 := by simp [HasPerm.perm]
+
+@[simp] lemma HyperEnv.Nodup_nil :
+  HyperEnv.Nodup [] := by simp [HyperEnv.Nodup]
+
+@[simp] lemma HyperEnv.Nodup_singleton {Γ : Env} (h : Env.Nodup Γ) :
+  HyperEnv.Nodup [Γ] := by simp [HyperEnv.Nodup, h]
+
+lemma HyperEnv.Nodup_distributes {𝒢 : HyperEnv} {Γ : Env} :
+  HyperEnv.Nodup (Γ :: 𝒢) ↔ HyperEnv.Nodup [Γ] ∧ HyperEnv.Nodup  𝒢 := by
+  simp [HyperEnv.Nodup]
+
+@[simp] lemma HyperEnv.Nodup_merge {𝒢 ℋ : HyperEnv} :
+  (𝒢 |ₕ ℋ).Nodup ↔ (𝒢.Nodup ∧ ℋ.Nodup) := by
+  simp [HyperEnv.merge, HyperEnv.Nodup, Env.Nodup]
+  constructor
+  · intro h
+    constructor
+    · intro Γ hin ; exact h Γ (Or.inl hin)
+    · intro Γ hin ; exact h Γ (Or.inr hin)
+  · intro h1 Γ hin
+    cases hin with
+    | inl hin => exact h1.1 Γ hin
+    | inr hin => exact h1.2 Γ hin
+
+@[simp] lemma HyperEnv.Nodup_cons_iff {Γ : Env} {x : FPName} {A : Types} (hF : x ∉ Γ.names) :
+  HyperEnv.Nodup [x ∶ A :: Γ] ↔ (HyperEnv.Nodup [[x ∶ A]] ∧ HyperEnv.Nodup [Γ]) := by
+  simp_all [HyperEnv.Nodup, Env.Nodup_cons]
+
+@[simp] lemma HyperEnv.Nodup_cons {Γ : Env} {x : FPName} {A : Types} :
+  HyperEnv.Nodup [x ∶ A :: Γ] → (HyperEnv.Nodup [[x ∶ A]] ∧ HyperEnv.Nodup [Γ]) := by
+  simp_all [HyperEnv.Nodup, Env.Nodup_cons]
+
+lemma HyperEnv.Nodup_cons_perm_iff {𝒢 : HyperEnv} {Γ Δ : Env} (hP : Γ ~ Δ) :
+  HyperEnv.Nodup (Γ :: 𝒢) ↔ HyperEnv.Nodup (Δ :: 𝒢) := by
+  constructor
+  · intros h E hE
+    simp only [List.mem_cons] at hE
+    rcases hE with rfl | h_in_G
+    · have hNodupΓ : Env.Nodup Γ := by
+        apply h
+        simp
+      exact (Env.Perm.nodup_iff hP).mp hNodupΓ
+    · apply h
+      simp [h_in_G]
+  · intros h E hE
+    simp only [List.mem_cons] at hE
+    rcases hE with rfl | h_in_G
+    · have hNodupΔ : Env.Nodup Δ := by
+        apply h
+        simp
+      exact (Env.Perm.nodup_iff hP).mpr hNodupΔ
+    · apply h
+      simp [h_in_G]
+
+lemma HyperEnv.Nodup_perm {𝒢 ℋ : HyperEnv} (hP : 𝒢 ~ ℋ) :
+  HyperEnv.Nodup 𝒢 → HyperEnv.Nodup ℋ := by
+  intro h
+  simp_all [Nodup]
+  intro E hE
+  obtain ⟨Γ, hin, hPE⟩ := (HyperEnv.Perm_mem hP hE)
+  exact Env.Nodup_perm hPE (h Γ hin)
+
+lemma HyperEnv.Nodup_perm_iff {𝒢 ℋ : HyperEnv} (hP : 𝒢 ~ ℋ) :
+  HyperEnv.Nodup 𝒢 ↔ HyperEnv.Nodup ℋ := by
+  constructor
+  · intro h ; exact HyperEnv.Nodup_perm hP h
+  · intro h ; exact HyperEnv.Nodup_perm hP.symm h
+
+@[simp] lemma HyperEnv.PairwiseDisjoint_nil :
+  HyperEnv.PairwiseDisjoint [] := by simp [HyperEnv.PairwiseDisjoint]
+
+@[simp] lemma HyperEnv.PairwiseDisjoint_singleton {Γ : Env} :
+  HyperEnv.PairwiseDisjoint [Γ] := by simp [HyperEnv.PairwiseDisjoint]
+
+@[simp] lemma HyperEnv.PairwiseDisjoint_merge {𝒢 ℋ : HyperEnv} :
+  (𝒢 |ₕ ℋ).PairwiseDisjoint ↔ (𝒢.PairwiseDisjoint ∧ ℋ.PairwiseDisjoint
+    ∧ ∀ a ∈ 𝒢, ∀ b ∈ ℋ, Disjoint a.names b.names) := by
+  simp [HyperEnv.merge, HyperEnv.PairwiseDisjoint]
+  constructor
+  · intro h
+    simp [List.pairwise_append] at h
+    exact ⟨h.1, h.2.1, h.2.2⟩
+  · intro h
+    rw [List.pairwise_append]
+    exact ⟨h.1, h.2.1, h.2.2⟩
+
+@[simp] lemma HyperEnv.PairwiseDisjoint_cons {𝒢 : HyperEnv} {Γ : Env} :
+  HyperEnv.PairwiseDisjoint (Γ :: 𝒢) → (HyperEnv.PairwiseDisjoint [Γ] ∧
+  HyperEnv.PairwiseDisjoint 𝒢) := by
+  simp [HyperEnv.PairwiseDisjoint]
+
+lemma HyperEnv.PairwiseDisjoint_cons_perm {𝒢 : HyperEnv} {Γ Δ : Env} (hP : Γ ~ Δ) :
+  HyperEnv.PairwiseDisjoint (Γ :: 𝒢) → HyperEnv.PairwiseDisjoint (Δ :: 𝒢) := by
+  intro h
+  simp [HyperEnv.PairwiseDisjoint] at h ⊢
+  obtain ⟨h1, h2⟩ := h
+  constructor
+  · intro a ha
+    have hDΓ := h1 a ha
+    have hPNames := List.Perm.map Prod.fst hP
+    have hNamesEq : Γ.names = Δ.names := by
+      ext x
+      simp [Env.names]
+      constructor
+      · intro h
+        obtain ⟨A, hinΓ⟩ := h
+        use A
+        exact (List.Perm.mem_iff (a := (x, A)) hP).mp hinΓ
+      · intro h
+        obtain ⟨A, hinΔ⟩ := h
+        use A
+        exact (List.Perm.mem_iff (a := (x, A)) hP.symm).mp hinΔ
+    rw [← hNamesEq]
+    exact hDΓ
+  · exact h2
+
+lemma HyperEnv.PairwiseDisjoint_cons_perm_iff {𝒢 : HyperEnv} {Γ Δ : Env} (hP : Γ ~ Δ) :
+  HyperEnv.PairwiseDisjoint (Γ :: 𝒢) ↔ HyperEnv.PairwiseDisjoint (Δ :: 𝒢) := by
+  constructor
+  · intro h ; exact HyperEnv.PairwiseDisjoint_cons_perm hP h
+  · intro h ; exact HyperEnv.PairwiseDisjoint_cons_perm hP.symm h
+
+lemma Env.disjoint_of_perm {Γ Δ Γ' Δ' : Env} (hP1 : Γ ~ Γ') (hP2 : Δ ~ Δ')
+  (hDisj : Env.disjoint Γ Δ) : Env.disjoint Γ' Δ' := by
+  simp only [Env.disjoint] at *
+  have h_names1 : Γ.names = Γ'.names := by
+    ext x ; simp [Env.names]
+    constructor
+    · intro h
+      obtain ⟨A, hinΓ⟩ := h
+      use A
+      exact (List.Perm.mem_iff (a := (x, A)) hP1).mp hinΓ
+    · intro h
+      obtain ⟨A, hinΓ'⟩ := h
+      use A
+      exact (List.Perm.mem_iff (a := (x, A)) hP1.symm).mp hinΓ'
+  have h_names2 : Δ.names = Δ'.names := by
+    ext x ; simp [Env.names]
+    constructor
+    · intro h
+      obtain ⟨A, hinΔ⟩ := h
+      use A
+      exact (List.Perm.mem_iff (a := (x, A)) hP2).mp hinΔ
+    · intro h
+      obtain ⟨A, hinΔ'⟩ := h
+      use A
+      exact (List.Perm.mem_iff (a := (x, A)) hP2.symm).mp hinΔ'
+  rw [← h_names1, ← h_names2]
+  exact hDisj
+
+lemma HyperEnv.mem_of_disjoint {𝒢 ℋ : HyperEnv} (hD : 𝒢.disjoint ℋ) :
+  ∀ Γ ∈ 𝒢, ∀ Δ ∈ ℋ, Γ.disjoint Δ := by
+  intro Γ hΓ Δ hΔ
+  apply Disjoint.mono _ _ hD
+  · exact HyperEnv.subset_names_of_mem hΓ
+  · exact HyperEnv.subset_names_of_mem hΔ
