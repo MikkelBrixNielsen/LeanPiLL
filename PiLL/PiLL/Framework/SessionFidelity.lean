@@ -740,6 +740,99 @@ lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
           exact hP.symm
       · simp
 
+lemma Channel.close_open_eq_substNames {u : Channel} {x y : FPName} {k : Nat}
+  (hy : y ∉ u.f) (hlc : u.lc k) :
+  (Channel.close k x u).open (#y) k = u{y // x} := by
+  cases u with
+  | bound i =>
+    simp only [Channel.close, Channel.open, HasSubst.subst, Channel.subst]
+    split_ifs
+    case pos h =>
+      simp [Channel.lc] at h hlc
+      grind
+    case neg h => rfl
+  | free z =>
+    simp only [Channel.f, Finset.mem_singleton] at hy
+    simp [Channel.close, Channel.open, HasSubst.subst, Channel.subst]
+    split_ifs <;> simp_all
+
+
+@[simp] lemma Proc.close_nil {k : Nat} {x : FPName} :
+  Proc.close k x 𝟘 = 𝟘 := by simp [Proc.close]
+
+@[simp] lemma Proc.close_nil {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  Proc.close k x (u⟦⟧․P) = 𝟘 := by simp [Proc.close]
+
+#check Proc.open_one
+
+lemma Proc.close_open_eq_substNames {P : Proc} {x y : FPName} {k n : Nat}
+  (hy : y ∉ P.f) (hlc : P.lc k n) :
+  (P.close k x)⸨k | #y⸩ = P{y // x} := by
+  induction P generalizing k <;> (
+    simp only [Proc.f, Finset.mem_union, not_or, Proc.lc] at hy hlc
+    try simp)
+
+
+
+
+
+
+
+
+  -- all_goals {
+  --   simp only [Proc.close, HasOpen.open_, Proc.open, HasSubst.subst, Proc.substNames]
+  --   try rw [Channel.close_open_eq_substNames hy.1 hlc.1]
+  --   try simp_all
+  -- }
+
+
+
+
+
+
+
+lemma Typing_buildDup {n : Nat} {P : Proc} {x : FPName} {A : Types}
+  (Γ : Env) (names : List FPName) (hT : n ⊢ P ∷ [x ∶ A :: Γ])
+  (hServ : ?ₑΓ) (hNodup : names.Nodup) (heq : Γ.names = names.toFinset)
+  (hxΓ : x ∉ Γ.names) (hlc : Γ.lc n) (hNodupΓ : Env.Nodup Γ) :
+  n ⊢ buildDup P names x ∷ [x ∶ !!A ⨂ !!A :: Γ] := by
+  induction names generalizing Γ
+  case nil =>
+    simp [buildDup, wrapDup, closeAll]
+    simp [Env.names] at heq
+    subst heq
+    apply Typing.tensor (Γ := []) (L := {x}) (by simp)
+    · intro y hy
+      simp only [Proc.open_par]
+      apply Typing.mix
+      · simp [← ne_eq] at hy
+        symm at hy
+        simp_all
+      · simp [Proc.close]
+
+        rw [Proc.open_server]
+        apply Typing.bang hServ
+
+
+        sorry
+      · apply Typing.bang hServ
+
+
+        sorry
+
+-- ⊢ n ⊢ (!$0․{Proc.close 0 x P})⸨#y⸩ |ₚ (!#x․{P})⸨#y⸩ ∷ [[y ∶ !!A]] |ₕ [x ∶ !!A :: ∅]
+
+  case cons => sorry
+
+
+
+
+
+
+
+
+
+
 -- FIXME: Check that this covers all rules mentioned in the paper
 -- FIXME: Subject reduction / simulation proof
 theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
@@ -999,7 +1092,13 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
         exact hT'
       · exact hF
 
-  case dup₂ => sorry
+  case dup₂ =>
+    obtain ⟨Γ, A, hP', hT', hServ⟩ := Typing_inv_use₂ hT
+
+
+
+
+    sorry
 
   case use₁ x =>
     obtain ⟨Γ, A, hP', hT'⟩ := Typing_inv_use₁ hT

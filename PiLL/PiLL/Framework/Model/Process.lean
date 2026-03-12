@@ -198,30 +198,40 @@ lemma exists_two_fresh (L : Finset FPName) :
 
   refine ⟨u, v, hu, hv, hneq⟩
 
-def Channel.close (k : Nat) (name : FPName) : Channel → Channel
-  | .free x   => if x == name then .bound k else .free x
+def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
+  match u with
+  | Channel.free name => if x == name then .bound k else .free x
   | .bound i  => .bound i
+
+instance : HasClose Channel FPName Nat where close_ u x k := Channel.close u x k
 
 -- parr / tensor / duplicate binds 1
 -- cut binds 2
-def Proc.close (k : Nat) (name : FPName) : Proc → Proc
+def Proc.close (P : Proc) (z : FPName) (k : Nat) : Proc :=
+  match P with
   | .nil => .nil
-  | .one x P          => .one (Channel.close k name x) (Proc.close k name P)
-  | .bot x P          => .bot (Channel.close k name x) (Proc.close k name P)
-  | .tensor x P       => .tensor (Channel.close k name x) (Proc.close (k + 1) name P)
-  | .parr x P         => .parr (Channel.close k name x) (Proc.close (k + 1) name P)
-  | .cut P            => .cut (Proc.close (k + 2) name P)
-  | .par P Q          => .par (Proc.close k name P) (Proc.close k name Q)
-  | .selectL x P      => .selectL (Channel.close k name x) (Proc.close k name P)
-  | .selectR x P      => .selectR (Channel.close k name x) (Proc.close k name P)
-  | .amp x P Q        => .amp (Channel.close k name x) (Proc.close k name P) (Proc.close k name Q)
-  | .output x P A     => .output (Channel.close k name x) (Proc.close k name P) A
-  | .input x P        => .input (Channel.close k name x) (Proc.close k name P)
-  | .server x P       => .server (Channel.close k name x) (Proc.close k name P)
-  | .consume x P      => .consume (Channel.close k name x) (Proc.close k name P)
-  | .duplicate x P    => .duplicate (Channel.close k name x) (Proc.close (k + 1) name P)
-  | .dispose x P      => .dispose (Channel.close k name x) (Proc.close k name P)
-  | .link x y         => .link (Channel.close k name x) (Channel.close k name y)
+  | .one x P          => .one (x.close z k) (P.close z k)
+  | .bot x P          => .bot (x.close z k) (P.close z k)
+  | .tensor x P       => .tensor (x.close z k) (P.close z (k + 1))
+  | .parr x P         => .parr (x.close z k) (P.close z (k + 1))
+  | .cut P            => .cut (P.close z (k + 2))
+  | .par P Q          => .par (P.close z k) (Q.close z k)
+  | .selectL x P      => .selectL (x.close z k) (P.close z k)
+  | .selectR x P      => .selectR (x.close z k) (P.close z k)
+  | .amp x P Q        => .amp (x.close z k) (P.close z k) (Q.close z k)
+  | .output x P A     => .output (x.close z k) (P.close z k) A
+  | .input x P        => .input (x.close z k) (P.close z k)
+  | .server x P       => .server (x.close z k) (P.close z k)
+  | .consume x P      => .consume (x.close z k) (P.close z k)
+  | .duplicate x P    => .duplicate (x.close z k) (P.close z (k + 1))
+  | .dispose x P      => .dispose (x.close z k) (P.close z k)
+  | .link x y         => .link (x.close z k) (y.close k z)
+
+instance : HasClose Proc FPName Nat where close_ P x k := Proc.close P x k
+
+instance : HasCloseTwo Proc FPName FPName Nat where close_ P x y k :=
+  (Proc.close (Proc.close P y (k + 1)) x k)
+
 
 def Proc.shiftNames (d c : Nat) : Proc → Proc
   | .nil              => .nil
