@@ -488,6 +488,74 @@ lemma Env.Perm.nodup_iff {Γ Δ : Env} (h : Γ ~ Δ) :
   unfold Env.Nodup
   rw [Env.map_fst_shiftTypes]
 
+lemma Env.names_empty_nil {Γ : Env} (h : Γ.names = ∅) :
+  Γ = [] := by
+  induction Γ
+  case nil => simp
+  case cons E htl ih => cases E ; simp [Env.names_distributes] at h
+
+lemma Env.extract_exp {Γ : Env} {z : FPName}
+  (hz : z ∈ Γ.names) (hServ : ?ₑΓ) (hNodup : Env.Nodup Γ) :
+  ∃ A Γ', (Γ ~ z ∶ ??A :: Γ') ∧ (?ₑΓ') ∧ (Env.names Γ' = Γ.names \ {z}) := by
+  induction Γ
+  case nil => contradiction
+  case cons E Γ ih =>
+    obtain ⟨x, A⟩ := E
+
+    simp [- Env.mem_pair_fst_in_names_iff] at hz
+
+    have hServΓ : ?ₑΓ := by
+      intro p hp
+      exact hServ p (List.Mem.tail _ hp)
+
+    have hServA : A.isServerUsable := by
+      exact hServ (x, A) (List.Mem.head _)
+
+    cases A <;> try contradiction
+    case quest A =>
+      rcases hz with (rfl | hzΓ)
+      · use A, Γ
+        refine ⟨List.Perm.refl _, hServΓ, ?_⟩
+        simp ; rw [← Finset.erase_eq, Finset.erase_insert]
+        have this := (List.nodup_cons.mp hNodup).1
+        simp_all
+      · obtain ⟨B, Γ', hP', hServ', hNames'⟩ := ih hzΓ hServΓ ((Env.Nodup_cons.mp hNodup).2)
+        use B, (x, ??A) :: Γ'
+        constructor
+        · apply List.Perm.trans (List.Perm.cons _ hP')
+          apply List.Perm.swap
+        · constructor
+          · rw [Env.serverUsable]
+            intro p hp
+            simp at hp
+            cases hp
+            case inl h => subst h ; simp ; exact hServA
+            case inr h =>
+              cases p
+              case mk x T =>
+                exact Env.mem_serverUsable_Types hServ' h
+          · simp [Env.names_distributes]
+            rw [hNames']
+            simp_all
+
+            have h1 : x ∉ names Γ := by
+              have := (List.nodup_cons.mp hNodup).1
+              simp at this
+              exact Env.not_mem_names_iff.mpr this
+
+            have h2 : z ∈ names Γ := by
+              obtain ⟨T, hT⟩ := hzΓ
+              simp
+              exact ⟨T, hT⟩
+
+            have hneq : z ≠ x := by
+              intro rfl
+              exact h1 h2
+
+            ext a
+            simp only [Finset.mem_sdiff, Finset.mem_singleton, Finset.mem_insert]
+            grind
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env

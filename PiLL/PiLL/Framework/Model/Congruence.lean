@@ -31,7 +31,7 @@ inductive StructCong : Proc → Proc → Prop where
   | par_congr {P P' Q Q' : Proc} :
       StructCong P P' → StructCong Q Q' → StructCong (P |ₚ Q) (P' |ₚ Q')
   | cut_congr {P P' : Proc} :
-      StructCong P P' → StructCong (𝑣⸨#,#⸩ P) (𝑣⸨#,#⸩ P')
+      StructCong P P' → StructCong (𝑣⸨$N,$N⸩ P) (𝑣⸨$N,$N⸩ P')
 
   | par_comm (P Q : Proc) : StructCong (P |ₚ Q) (Q |ₚ P)
   | par_assoc (P Q R : Proc) : StructCong ((P |ₚ Q) |ₚ R) (P |ₚ (Q |ₚ R))
@@ -41,8 +41,8 @@ inductive StructCong : Proc → Proc → Prop where
   -- For LN 𝒗⸨#, #⸩ (P | Q) ≡ (𝑣⸨#, #⸩ P) | Q" IF Q doesn't have dangling bound variable
   -- which could risk capturing 0 or 1 from 𝒗⸨#, #⸩. This amounts to checking lcProc Q.
   | cut_scope {P Q : Proc} :
-      lcProc0 Q →
-      StructCong ((𝑣⸨#,#⸩ P) |ₚ Q) (𝑣⸨#,#⸩ (P |ₚ Q))
+      Proc.lc_0 Q →
+      StructCong ((𝑣⸨$N,$N⸩ P) |ₚ Q) (𝑣⸨$N,$N⸩ (P |ₚ Q))
 
 infix:50 " ≡ₚ " => StructCong
 

@@ -213,7 +213,7 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
     rw [HyperEnv.PairwiseDisjoint, ← HyperEnv.Perm_PairwiseDisjoint_iff hP]
     exact ih
 
-lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
+lemma Typing_preserves_lc_context {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   (n ⊢ P ∷ 𝒢) → ∀ Γ ∈ 𝒢, Γ.lc n := by
   intro hT E hE𝒢
   induction hT generalizing E
@@ -277,6 +277,37 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   case exchange_hyper hP ih =>
     obtain ⟨Ξ, hin𝒢, hPΞ⟩ := HyperEnv.Perm_mem (Γ := E) hP hE𝒢
     exact (Env.lc_perm hPΞ).mp (ih Ξ hin𝒢)
+
+lemma Typing_preserves_lc_proc {𝒢 : HyperEnv} {P : Proc} {n : Nat}
+  (hT : n ⊢ P ∷ 𝒢) : P.lc 0 n := by
+  induction hT <;> try simp [Proc.lc, Channel.lc]
+
+  case mix ihP ihQ => exact ⟨ihP, ihQ⟩
+
+  case one ih | bot ih | oplus₁ ih | oplus₂ ih | quest ih | bang ih | w ih | forall_ ih
+    | exchange_env ih | exchange_hyper ih =>
+    exact ih
+
+  case cut L _ ih =>
+    obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
+    exact Proc.lc_of_open_two (ih x y hx hy hneq)
+
+  case amp ihP ihQ =>
+    split_ands
+    · exact ihP
+    · exact ihQ
+
+  case tensor L _ ih | parr L _ ih | c L _ ih =>
+    obtain ⟨y, hy⟩ := exists_one_fresh L
+    exact Proc.lc_of_open_gen (ih y hy)
+
+  case exists_ hlc _ ih => exact ⟨ih, hlc⟩
+
+lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat}
+  (hT : n ⊢ P ∷ 𝒢) : P.lc 0 n ∧ ∀ Γ ∈ 𝒢, Γ.lc n := by
+  constructor
+  · exact Typing_preserves_lc_proc hT
+  · intro E hE𝒢 ; exact Typing_preserves_lc_context hT E hE𝒢
 
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by

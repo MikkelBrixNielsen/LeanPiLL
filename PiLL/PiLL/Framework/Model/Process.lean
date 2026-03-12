@@ -124,7 +124,7 @@ def Proc.lc : Nat → Nat → Proc → Prop
   | k, n, .selectR x P      => x.lc k ∧ P.lc k n
   | k, n, .amp x P Q        => x.lc k ∧ P.lc k n ∧ Q.lc k n
   | k, n, .output x P A     => x.lc k ∧ P.lc k n ∧ A.lc n
-  | k, n, .input x P        => x.lc k ∧ P.lc k n
+  | k, n, .input x P        => x.lc k ∧ P.lc k (n + 1)
   | k, n, .server x P       => x.lc k ∧ P.lc k n
   | k, n, .consume x P      => x.lc k ∧ P.lc k n
   | k, n, .duplicate x P    => x.lc k ∧ P.lc (k + 1) n
@@ -200,7 +200,7 @@ lemma exists_two_fresh (L : Finset FPName) :
 
 def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
   match u with
-  | Channel.free name => if x == name then .bound k else .free x
+  | Channel.free name => if x == name then .bound k else .free name
   | .bound i  => .bound i
 
 instance : HasClose Channel FPName Nat where close_ u x k := Channel.close u x k
@@ -225,7 +225,7 @@ def Proc.close (P : Proc) (z : FPName) (k : Nat) : Proc :=
   | .consume x P      => .consume (x.close z k) (P.close z k)
   | .duplicate x P    => .duplicate (x.close z k) (P.close z (k + 1))
   | .dispose x P      => .dispose (x.close z k) (P.close z k)
-  | .link x y         => .link (x.close z k) (y.close k z)
+  | .link x y         => .link (x.close z k) (y.close z k)
 
 instance : HasClose Proc FPName Nat where close_ P x k := Proc.close P x k
 
@@ -612,3 +612,249 @@ lemma Proc.openCut_substNames_comm {P : Proc} {x y z w : FPName}
   change ((P⸨1 | #w⸩)⸨#z⸩){y // x} = P{y // x}⸨1 | #w⸩⸨#z⸩
   rw [Proc.open_substNames_comm_gen (k := 0) hFz]
   rw [Proc.open_substNames_comm_gen (k := 1) hFw]
+
+@[simp] lemma Channel.open_free_not_eq {x y : FPName} {k : Nat} :
+  (#x)⸨k | #y⸩ = (#x) := by simp [HasOpen.open_, Channel.open]
+
+
+
+
+
+
+@[simp] lemma Channel.close_open_self {x y : FPName} {k : Nat} :
+  ((#x).close x k).open #y k = #y := by
+  simp [Channel.close, Channel.open]
+
+@[simp] lemma Channel.close_open_self_notation {x y : FPName} {k : Nat} :
+  ((#x)⟪k | x⟫)⸨k | #y⸩ = #y := by
+  simp [HasClose.close_, HasOpen.open_]
+
+@[simp] lemma Channel.close_open_other {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
+  ((#z).close x k).open #y k = #z := by
+  simp [Channel.close, Channel.open]
+  split_ifs
+  case pos h => subst h ; contradiction
+  case neg h => simp
+
+@[simp] lemma Channel.close_open_other_notation {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
+  ((#z)⟪k | x⟫)⸨k | #y⸩ = #z := by
+  simp_all [HasClose.close_, HasOpen.open_]
+
+@[simp] lemma Channel.close_open_bound {i k : Nat} {x y : FPName} (hneq : i ≠ k) :
+  ((Channel.bound i).close x k).open #y k = .bound i := by
+  simp_all [Channel.close, Channel.open]
+
+@[simp] lemma Channel.close_open_bound_notation {i k : Nat} {x y : FPName} (hneq : i ≠ k) :
+  (Channel.bound i)⟪k | x⟫⸨k | #y⸩ = .bound i := by
+  simp_all [HasClose.close_, HasOpen.open_]
+
+lemma Channel.close_open_eq_substNames {u : Channel} {x y : FPName} {k : Nat}
+  (hy : y ∉ u.f) (hlc : u.lc k) : (Channel.close u x k).open (#y) k = u{y // x} := by
+  cases u with
+  | bound i =>
+    simp only [Channel.close, Channel.open, HasSubst.subst, Channel.subst]
+    split_ifs
+    case pos h =>
+      simp [Channel.lc] at h hlc
+      grind
+    case neg h => rfl
+  | free z =>
+    simp only [Channel.f, Finset.mem_singleton] at hy
+    simp [Channel.close, Channel.open, HasSubst.subst, Channel.subst]
+    split_ifs
+    case pos h1 h2 => subst h1 ; simp
+    case neg h1 h2 => subst h1 ; contradiction
+    case pos h1 h2 => subst h2 ; contradiction
+    case neg h1 h2 => simp
+
+lemma Channel.close_open_eq_substNames_notation {u : Channel} {x y : FPName} {k : Nat}
+  (hy : y ∉ u.f) (hlc : u.lc k) : u⟪k | x⟫⸨k | (#y)⸩ = u{y // x} := by
+  simp [HasClose.close_, HasOpen.open_]
+  rw [Channel.close_open_eq_substNames hy hlc]
+
+@[simp] lemma Proc.close_nil {k : Nat} {x : FPName} :
+  𝟘⟪k | x⟫ = 𝟘 := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_one {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⟦⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_bot {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⸨⸩․P)⟪k | x⟫ = u⟪k | x⟫⸨⸩․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_tensor {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⟦$N⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦$N⟧․P⟪k + 1 | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_parr {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⸨$N⸩․P)⟪k | x⟫ = u⟪k | x⟫⸨$N⸩․P⟪k + 1 | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_cut {k : Nat} {x : FPName} {P : Proc} :
+  (𝑣⸨$N,$N⸩ P)⟪k | x⟫ = 𝑣⸨$N,$N⸩ P⟪k + 2 | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_par {k : Nat} {x : FPName} {P Q : Proc} :
+  (P |ₚ Q)⟪k | x⟫ = P⟪k | x⟫ |ₚ Q⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_selectL {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⟦𝐋⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦𝐋⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_selectR {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⟦𝐑⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦𝐑⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_amp {k : Nat} {x : FPName} {u : Channel} {P Q : Proc} :
+  (u․case{𝐋 : P, 𝐑 : Q})⟪k | x⟫ = u⟪k | x⟫․case{𝐋 : P⟪k | x⟫, 𝐑 : Q⟪k | x⟫} := by
+  simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_output {k : Nat} {x : FPName} {u : Channel} {P : Proc} {A : Types} :
+  (u⟦A⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦A⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_input {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⸨$T⸩․P)⟪k | x⟫ = u⟪k | x⟫⸨$T⸩․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_server {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (!u․{P})⟪k | x⟫ = !u⟪k | x⟫․{P⟪k | x⟫} := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_consume {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⟦USE⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦USE⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_duplicate {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⟦DUP⟧⸨$N⸩․P)⟪k | x⟫ = (u⟪k | x⟫⟦DUP⟧⸨$N⸩․P⟪k + 1 | x⟫) := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_dispose {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
+  (u⟦DISP⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦DISP⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+@[simp] lemma Proc.close_link {k : Nat} {x : FPName} {u v : Channel} :
+  (u⟷ₚv)⟪k | x⟫ = u⟪k | x⟫⟷ₚv⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+
+lemma Proc.close_open_eq_substNames {P : Proc} {x y : FPName} {k n : Nat}
+  (hy : y ∉ P.f) (hlc : P.lc k n) :
+  P⟪k | x⟫⸨k | #y⸩ = P{y // x} := by
+  induction P generalizing k n <;> (
+    simp only [Proc.f, Finset.mem_union, not_or, Proc.lc] at hy hlc
+    try simp)
+
+  case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | input ih | server ih
+    | consume ih | duplicate ih | dispose ih =>
+    constructor
+    · exact Channel.close_open_eq_substNames_notation hy.1 hlc.1
+    · exact  ih hy.2 hlc.2
+
+  case cut ih => exact ih hy hlc
+
+  case par ihP ihQ =>
+    constructor
+    · exact ihP hy.1 hlc.1
+    · exact ihQ hy.2 hlc.2
+
+  case amp ihP ihQ  =>
+    split_ands
+    · exact Channel.close_open_eq_substNames_notation hy.1.1 hlc.1
+    · exact ihP hy.1.2 hlc.2.1
+    · exact ihQ hy.2 hlc.2.2
+
+  case output ih =>
+    constructor
+    · exact Channel.close_open_eq_substNames_notation hy.1 hlc.1
+    · exact ih hy.2 hlc.2.1
+
+  case link u v =>
+    constructor
+    · exact Channel.close_open_eq_substNames_notation hy.1 hlc.1
+    · exact Channel.close_open_eq_substNames_notation hy.2 hlc.2
+
+lemma Channel.open_lc {u : Channel} {x : FPName} {k : Nat}
+  (h : x ∉ u.f) (hlc : u.lc k) :
+  u⸨k | #x⸩ = u := by
+  cases u
+  case free => simp [HasOpen.open_, Channel.open]
+  case bound =>
+    simp [Channel.lc] at hlc
+    simp [HasOpen.open_, Channel.open]
+    grind
+
+lemma Proc.open_lc {P : Proc} {x : FPName} {k n : Nat} (hF : x ∉ P.f) (hlc : P.lc k n) :
+  P⸨k | #x⸩ = P := by
+  induction P generalizing k n <;> (
+    simp only [Proc.lc, Proc.f, Finset.notMem_union] at hlc hF
+    try simp
+  )
+
+  case one ih | bot ih | tensor ih | parr ih |selectL ih | selectR ih | input ih | server ih
+    | consume ih | duplicate ih | dispose ih =>
+    constructor
+    · exact Channel.open_lc hF.1 hlc.1
+    · exact ih hF.2 hlc.2
+
+  case cut ih => exact ih hF hlc
+
+  case par ihP ihQ =>
+    constructor
+    · exact ihP hF.1 hlc.1
+    · exact ihQ hF.2 hlc.2
+
+  case amp ihP ihQ =>
+    split_ands
+    · exact Channel.open_lc hF.1.1 hlc.1
+    · exact ihP hF.1.2 hlc.2.1
+    · exact ihQ hF.2 hlc.2.2
+
+  case output ih =>
+    constructor
+    · exact Channel.open_lc hF.1 hlc.1
+    · apply ih hF.2 hlc.2.1
+
+  case link =>
+    constructor
+    · exact Channel.open_lc hF.1 hlc.1
+    · exact Channel.open_lc hF.2 hlc.2
+
+lemma Proc.open_lc_0 {P : Proc} {x : FPName} {n : Nat} (hF : x ∉ P.f) (hlc : P.lc 0 n) :
+  P⸨#x⸩ = P := Proc.open_lc (k := 0) hF hlc
+
+lemma Channel.lc_of_open {u : Channel} {x : FPName} {k : Nat} :
+  (u⸨k | #x⸩).lc k → u.lc (k + 1) := by
+  cases u with
+  | free => simp [Channel.lc]
+  | bound =>
+    simp [HasOpen.open_, Channel.open, Channel.lc]
+    split_ifs
+    case pos h => simp [h]
+    case neg h => grind
+
+lemma Proc.lc_of_open_gen {P : Proc} {x : FPName} {k n : Nat} :
+  P⸨k | #x⸩.lc k n → P.lc (k + 1) n := by
+  induction P generalizing n k <;> (
+    try simp [HasOpen.open_, Proc.open, Proc.lc]
+  )
+
+  case one ih | bot ih | selectL ih | selectR ih | input ih | server ih | consume ih | duplicate ih
+    | dispose ih =>
+    intros hlc1 hlc2
+    exact ⟨Channel.lc_of_open hlc1, ih hlc2⟩
+
+  case tensor ih | parr ih =>
+    intros hlc1 hlc2
+    exact ⟨Channel.lc_of_open hlc1, ih hlc2⟩
+
+  case cut ih =>
+    intros hlc ; exact ih hlc
+
+  case par ihP ihQ =>
+    intros hlc1 hlc2
+    exact ⟨ihP hlc1, ihQ hlc2⟩
+
+  case amp ihP ihQ =>
+    intros hlc1 hlc2 hlc3
+    exact ⟨Channel.lc_of_open hlc1, ihP hlc2, ihQ hlc3⟩
+
+  case output ih =>
+    intros hlc1 hlc2 hlc3
+    exact ⟨Channel.lc_of_open hlc1, ih hlc2, hlc3⟩
+
+  case link =>
+    intros hlc1 hlc2
+    exact ⟨Channel.lc_of_open hlc1, Channel.lc_of_open hlc2⟩
+
+lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
+  Proc.lc k n P⸨k | #x, #y⸩ → Proc.lc (k + 2) n P := by
+  simp [HasOpenTwo.open_]
+  intro h
+  exact Proc.lc_of_open_gen (Proc.lc_of_open_gen h)

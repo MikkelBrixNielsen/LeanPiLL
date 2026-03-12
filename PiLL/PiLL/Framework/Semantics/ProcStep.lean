@@ -11,7 +11,7 @@ def buildDisp (names : List FPName) (x : FPName) : Proc :=
 def closeAll (P : Proc) (idx : Nat) (names : List FPName) : Proc :=
   match names with
   | [] => P
-  | z :: zs => closeAll (Proc.close idx z P) (idx + 1) zs
+  | z :: zs => closeAll (P⟪idx | z⟫) (idx + 1) zs
 
 def wrapDup (P : Proc) (names : List FPName) : Proc :=
   match names with

@@ -173,11 +173,6 @@ lemma Typing.f_eq_names {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case exchange_hyper hP ih =>
     simp [ih, HyperEnv.names_eq_of_perm hP]
 
-
-
-
-
-
 @[simp] lemma Env.swap_two {x y : FPName} {A B : Types} :
   [x ∶ A, y ∶ B] ~ [y ∶ B, x ∶ A] := by
   exact List.Perm.swap ..
@@ -630,73 +625,7 @@ lemma Typing_inv_dup₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
 -- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
 
 
-lemma Env.names_empty_nil {Γ : Env} (h : Γ.names = ∅) :
-  Γ = [] := by
-  induction Γ
-  case nil => simp
-  case cons E htl ih => cases E ; simp [Env.names_distributes] at h
 
-lemma Env.extract_exp {Γ : Env} {z : FPName}
-  (hz : z ∈ Γ.names) (hServ : ?ₑΓ) (hNodup : Env.Nodup Γ) :
-  ∃ A Γ', (Γ ~ z ∶ ??A :: Γ') ∧ (?ₑΓ') ∧ (Env.names Γ' = Γ.names \ {z}) := by
-  induction Γ
-  case nil => contradiction
-  case cons E Γ ih =>
-    obtain ⟨x, A⟩ := E
-
-    simp [- Env.mem_pair_fst_in_names_iff] at hz
-
-    have hServΓ : ?ₑΓ := by
-      intro p hp
-      exact hServ p (List.Mem.tail _ hp)
-
-    have hServA : A.isServerUsable := by
-      exact hServ (x, A) (List.Mem.head _)
-
-    cases A <;> try contradiction
-    case quest A =>
-      rcases hz with (rfl | hzΓ)
-      · use A, Γ
-        refine ⟨List.Perm.refl _, hServΓ, ?_⟩
-        simp ; rw [← Finset.erase_eq, Finset.erase_insert]
-        have this := (List.nodup_cons.mp hNodup).1
-        simp_all
-      · obtain ⟨B, Γ', hP', hServ', hNames'⟩ := ih hzΓ hServΓ ((Env.Nodup_cons.mp hNodup).2)
-        use B, (x, ??A) :: Γ'
-        constructor
-        · apply List.Perm.trans (List.Perm.cons _ hP')
-          apply List.Perm.swap
-        · constructor
-          · rw [Env.serverUsable]
-            intro p hp
-            simp at hp
-            cases hp
-            case inl h => subst h ; simp ; exact hServA
-            case inr h =>
-              cases p
-              case mk x T =>
-                exact Env.mem_serverUsable_Types hServ' h
-          · simp [Env.names_distributes]
-            rw [hNames']
-            simp_all
-
-            have h1 : x ∉ names Γ := by
-              have := (List.nodup_cons.mp hNodup).1
-              simp at this
-              exact Env.not_mem_names_iff.mpr this
-
-            have h2 : z ∈ names Γ := by
-              obtain ⟨T, hT⟩ := hzΓ
-              simp
-              exact ⟨T, hT⟩
-
-            have hneq : z ≠ x := by
-              intro rfl
-              exact h1 h2
-
-            ext a
-            simp only [Finset.mem_sdiff, Finset.mem_singleton, Finset.mem_insert]
-            grind
 
 lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
   (hServ : ?ₑΓ) (hNodup : names.Nodup) (heq : Γ.names = names.toFinset)
@@ -740,37 +669,6 @@ lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
           exact hP.symm
       · simp
 
-lemma Channel.close_open_eq_substNames {u : Channel} {x y : FPName} {k : Nat}
-  (hy : y ∉ u.f) (hlc : u.lc k) :
-  (Channel.close k x u).open (#y) k = u{y // x} := by
-  cases u with
-  | bound i =>
-    simp only [Channel.close, Channel.open, HasSubst.subst, Channel.subst]
-    split_ifs
-    case pos h =>
-      simp [Channel.lc] at h hlc
-      grind
-    case neg h => rfl
-  | free z =>
-    simp only [Channel.f, Finset.mem_singleton] at hy
-    simp [Channel.close, Channel.open, HasSubst.subst, Channel.subst]
-    split_ifs <;> simp_all
-
-
-@[simp] lemma Proc.close_nil {k : Nat} {x : FPName} :
-  Proc.close k x 𝟘 = 𝟘 := by simp [Proc.close]
-
-@[simp] lemma Proc.close_nil {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
-  Proc.close k x (u⟦⟧․P) = 𝟘 := by simp [Proc.close]
-
-#check Proc.open_one
-
-lemma Proc.close_open_eq_substNames {P : Proc} {x y : FPName} {k n : Nat}
-  (hy : y ∉ P.f) (hlc : P.lc k n) :
-  (P.close k x)⸨k | #y⸩ = P{y // x} := by
-  induction P generalizing k <;> (
-    simp only [Proc.f, Finset.mem_union, not_or, Proc.lc] at hy hlc
-    try simp)
 
 
 
@@ -779,11 +677,8 @@ lemma Proc.close_open_eq_substNames {P : Proc} {x y : FPName} {k n : Nat}
 
 
 
-  -- all_goals {
-  --   simp only [Proc.close, HasOpen.open_, Proc.open, HasSubst.subst, Proc.substNames]
-  --   try rw [Channel.close_open_eq_substNames hy.1 hlc.1]
-  --   try simp_all
-  -- }
+
+
 
 
 
@@ -804,23 +699,26 @@ lemma Typing_buildDup {n : Nat} {P : Proc} {x : FPName} {A : Types}
     apply Typing.tensor (Γ := []) (L := {x}) (by simp)
     · intro y hy
       simp only [Proc.open_par]
+      have hFy : y ∉ P.f := by simp [Typing.f_eq_names hT, hy]
+      have hlc := Typing_preserves_lc hT
       apply Typing.mix
       · simp [← ne_eq] at hy
         symm at hy
         simp_all
-      · simp [Proc.close]
-
-        rw [Proc.open_server]
-        apply Typing.bang hServ
-
-
-        sorry
-      · apply Typing.bang hServ
-
-
-        sorry
-
--- ⊢ n ⊢ (!$0․{Proc.close 0 x P})⸨#y⸩ |ₚ (!#x․{P})⸨#y⸩ ∷ [[y ∶ !!A]] |ₕ [x ∶ !!A :: ∅]
+      · simp
+        rw [Proc.close_open_eq_substNames hFy]
+        · apply Typing.bang hServ
+          have hTy := Typing_substNames (x := x) (y := y) hT (by simp)
+          simp at hTy
+          exact hTy
+        · exact hlc.1
+      · rw [Proc.open_lc_0]
+        · apply Typing.bang hServ
+          exact hT
+        · simp [Channel.f, ← ne_eq] at ⊢ hy
+          exact ⟨hy, hFy⟩
+        · simp [Proc.lc, Channel.lc]
+          exact hlc.1
 
   case cons => sorry
 
@@ -1073,7 +971,7 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
       have hlc : Env.lc n Γ := by
         have h_in_singleton : (x ∶ !!A :: Γ) ∈ [x ∶ !!A :: Γ] := by simp
         obtain ⟨Γ', hin𝒢, hP''⟩ := HyperEnv.Perm_mem hP' h_in_singleton
-        have hlcΓ := Typing_preserves_lc hT Γ' hin𝒢
+        have hlcΓ := Typing_preserves_lc_context hT Γ' hin𝒢
         have hlcAΓ := (Env.lc_perm hP'').mp hlcΓ
         have := (Env.lc_cons.mp hlcAΓ).2
         exact this
