@@ -800,6 +800,7 @@ lemma Proc.closeAll_open_subst {P : Proc} {names : List FPName} {y z : FPName} {
 
   case cons z zs ih =>
     simp [closeAll]
+    sorry
 
 
 
@@ -819,7 +820,7 @@ lemma Typing_buildDup_aux {n : Nat} {Q : Proc} {x : FPName} {A : Types}
       [x ∶ !!A ⨂ !!A :: Γ_curr] := by
 
   -- We generalize Q, because Q will accumulate substitutions!
-  induction names generalizing Γ_curr Q
+  -- induction names generalizing Γ_curr Q
   sorry
 
 
