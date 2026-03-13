@@ -672,55 +672,168 @@ lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
 
 
 
+@[simp] lemma Env.serverUsable_nil :
+  ?ₑ[] := by simp [Env.serverUsable]
 
 
 
+@[simp] lemma Channel.open_bound_zero {x : FPName} :
+  ($0)⸨#x⸩ = (#x) := by simp [HasOpen.open_, Channel.open]
 
+@[simp] lemma Channel.f_bound {i : Nat} :
+  (Channel.bound i).f = ∅ := by simp [Channel.f]
 
+@[simp] lemma Channel.close_free_self {x : FPName} :
+  (#x)⟪x⟫ = (.bound 0) := by simp [HasClose.close_, Channel.close]
 
+@[simp] lemma Channel.close_free_other {x y : FPName} (hneq : x ≠ y) :
+  (#y)⟪x⟫ = (#y) := by simp_all [HasClose.close_, Channel.close]
 
+@[simp] lemma Channel.close_self_bound {x : FPName} {i : Nat} :
+  (Channel.bound i)⟪x⟫ = (.bound i) := by simp [HasClose.close_, Channel.close]
 
+lemma Channel.close_not_mem {u : Channel} {z : FPName} {k : Nat} (h : z ∉ u.f) :
+  u⟪k | z⟫ = u := by
+  cases u <;> simp [HasClose.close_, Channel.close, Channel.f] at *
+  case free f => apply h
 
+lemma Proc.close_not_mem {P : Proc} {z : FPName} {k : Nat} (h : z ∉ P.f) :
+  P⟪k | z⟫ = P := by
+  induction P generalizing k <;> (
+    simp only [Proc.f, Finset.mem_union, not_or] at h
+    try simp
+  )
+  case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih | input ih
+  | server ih | consume ih | dispose ih | duplicate ih => exact ⟨Channel.close_not_mem h.1, ih h.2⟩
+  case cut ih => exact ih h
+  case par ihP ihQ => exact ⟨ihP h.1, ihQ h.2⟩
+  case amp ihP ihQ => exact ⟨Channel.close_not_mem h.1.1, ihP h.1.2, ihQ h.2⟩
+  case link => exact ⟨Channel.close_not_mem h.1, Channel.close_not_mem h.2⟩
 
+lemma Proc.closeAll_not_mem {P : Proc} {L : List FPName} {k : Nat}
+  (h : P.f = ∅) : closeAll P k L = P := by
+  induction L generalizing k P
+  case nil => unfold closeAll ; simp
+  case cons x Γ ih =>
+    unfold closeAll
+    rw [Proc.close_not_mem]
+    · exact ih h
+    · rw [h] ; simp
 
+@[simp] lemma Channel.f_close {u : Channel} {x : FPName} {k : Nat} :
+  (u⟪k | x⟫).f = u.f \ {x} := by
+  cases u <;> simp [HasClose.close_, Channel.close, Channel.f]
+  case free f =>
+    split_ifs with heq
+    case pos => subst heq ; simp
+    case neg =>
+      ext y
+      simp_all [← ne_eq]
+      intro h
+      subst h
+      exact heq.symm
 
+@[simp] lemma Proc.f_close {P : Proc} {x : FPName} {k : Nat} :
+  (P⟪k | x⟫).f = P.f \ {x} := by
+  induction P generalizing k <;>
+    simp_all [← Finset.erase_eq, Finset.erase_union_distrib]
 
-
-lemma Typing_buildDup {n : Nat} {P : Proc} {x : FPName} {A : Types}
-  (Γ : Env) (names : List FPName) (hT : n ⊢ P ∷ [x ∶ A :: Γ])
+lemma Typing_buildDup_aux' {n : Nat} {P : Proc} {x : FPName} {A : Types}
+  (names : List FPName) (acc : List FPName) (Γ : Env) (hT : n ⊢ P ∷ [x ∶ A :: Γ])
   (hServ : ?ₑΓ) (hNodup : names.Nodup) (heq : Γ.names = names.toFinset)
   (hxΓ : x ∉ Γ.names) (hlc : Γ.lc n) (hNodupΓ : Env.Nodup Γ) :
-  n ⊢ buildDup P names x ∷ [x ∶ !!A ⨂ !!A :: Γ] := by
-  induction names generalizing Γ
+  n ⊢ wrapDup (#x⟦$N⟧․closeAll (!(#x)⟪x⟫․{P⟪x⟫}) 1 acc.reverse |ₚ !#x․{P}) names ∷
+    [x ∶ !!A ⨂ !!A :: Γ] := by
+  induction names generalizing Γ acc
+
   case nil =>
-    simp [buildDup, wrapDup, closeAll]
+    simp [wrapDup]
     simp [Env.names] at heq
     subst heq
     apply Typing.tensor (Γ := []) (L := {x}) (by simp)
-    · intro y hy
-      simp only [Proc.open_par]
-      have hFy : y ∉ P.f := by simp [Typing.f_eq_names hT, hy]
-      have hlc := Typing_preserves_lc hT
-      apply Typing.mix
-      · simp [← ne_eq] at hy
-        symm at hy
-        simp_all
-      · simp
-        rw [Proc.close_open_eq_substNames hFy]
-        · apply Typing.bang hServ
-          have hTy := Typing_substNames (x := x) (y := y) hT (by simp)
-          simp at hTy
-          exact hTy
-        · exact hlc.1
-      · rw [Proc.open_lc_0]
-        · apply Typing.bang hServ
-          exact hT
-        · simp [Channel.f, ← ne_eq] at ⊢ hy
-          exact ⟨hy, hFy⟩
-        · simp [Proc.lc, Channel.lc]
-          exact hlc.1
+    intro y hy
+    simp only [Proc.open_par]
+    have hFy : y ∉ P.f := by simp [Typing.f_eq_names hT, hy]
+    have hlc' := Typing_preserves_lc hT
+    apply Typing.mix
+    · simp [← ne_eq] at hy ⊢
+      exact hy.symm
+    · have hPf := Typing.f_eq_names hT
+      have hSE : (!$0․{P⟪x⟫}).f = ∅ := by simp [hPf]
+      have hTy := Typing_substNames (x := x) (y := y) hT (by simp)
+      simp [Proc.closeAll_not_mem hSE]
+      rw [Proc.close_open_eq_substNames hFy hlc'.1]
+      exact Typing.bang (by simp) (by simp at hTy ; exact hTy)
+    · rw [Proc.open_lc_0]
+      · exact Typing.bang (by simp) hT
+      · simp [Channel.f] at ⊢ hy
+        exact ⟨hy, hFy⟩
+      · simp [Proc.lc, Channel.lc] ; exact hlc'.1
 
-  case cons => sorry
+  case cons y names ih => sorry
+
+
+
+
+
+lemma Proc.open_wrapDup {P : Proc} {names : List FPName} {z : FPName} {k : Nat} :
+  (wrapDup P names)⸨k | #z⸩ = wrapDup (P⸨k + names.length | #z⸩) names := by
+  induction names generalizing k
+  case nil =>
+    simp [wrapDup]
+  case cons y ys ih =>
+    simp only [wrapDup, HasOpen.open_, Proc.open, List.length_cons] at ⊢ ih
+    rw [ih]
+    congr 2
+    grind
+
+
+lemma Proc.closeAll_open_subst {P : Proc} {names : List FPName} {y z : FPName} {k n : Nat}
+  (hF : z ∉ P.f) (hlc : lc k n P):
+  (closeAll P k (names ++ [y]))⸨k + names.length | #z⸩ = closeAll (P{z // y}) k names := by
+  induction names generalizing k
+  case nil =>
+    simp [closeAll]
+    rw [Proc.close_open_eq_substNames]
+    · exact hF
+    · exact hlc
+
+  case cons z zs ih =>
+    simp [closeAll]
+
+
+
+lemma Typing_buildDup_aux {n : Nat} {Q : Proc} {x : FPName} {A : Types}
+  (names : List FPName) (Γ_curr : Env)
+
+  -- Q is our active server, typed by the shrinking environment!
+  (hT_Q : n ⊢ Q ∷ [x ∶ A :: Γ_curr])
+  (hEq : Γ_curr.names = names.toFinset)
+
+  -- Structural properties
+  (hServ : ?ₑΓ_curr) (hx : x ∉ Γ_curr.names)
+  (hNodup : Γ_curr.Nodup) (hlc : Env.lc n Γ_curr) :
+
+  -- Notice both wrapDup and closeAll use EXACTLY `names`
+  n ⊢ wrapDup (#x⟦$N⟧․closeAll (!(#x)⟪x⟫․{Q⟪x⟫}) 1 names.reverse |ₚ !#x․{Q}) names ∷
+      [x ∶ !!A ⨂ !!A :: Γ_curr] := by
+
+  -- We generalize Q, because Q will accumulate substitutions!
+  induction names generalizing Γ_curr Q
+  sorry
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -990,7 +1103,7 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
         exact hT'
       · exact hF
 
-  case dup₂ =>
+  case dup₂ Q z =>
     obtain ⟨Γ, A, hP', hT', hServ⟩ := Typing_inv_use₂ hT
 
 

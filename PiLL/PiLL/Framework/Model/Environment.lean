@@ -328,6 +328,20 @@ lemma Env.mem_serverUsable_Types {Γ : Env} {x : FPName} {A : Types} :
   simp [Env.serverUsable] at hServ
   exact hServ x A hMem
 
+lemma Env.serverUsable_cons_mp {Γ : Env} {x : FPName} {A : Types} :
+  A.isServerUsable ∧ ?ₑΓ → ?ₑ(x ∶ A :: Γ) := by
+  simp [Env.serverUsable, Types.isServerUsable]
+
+lemma Env.serverUsable_cons_mpr {Γ : Env} {x : FPName} {A : Types} :
+  ?ₑ(x ∶ A :: Γ) → A.isServerUsable ∧ ?ₑΓ := by
+  simp [Env.serverUsable, Types.isServerUsable]
+
+lemma Env.serverUsable_cons_iff {Γ : Env} {x : FPName} {A : Types} :
+  A.isServerUsable ∧ ?ₑΓ ↔ ?ₑ(x ∶ A :: Γ) := by
+  constructor
+  · exact Env.serverUsable_cons_mp
+  · exact Env.serverUsable_cons_mpr
+
 lemma Env.serverUsable_substNames {Γ : Env} {x y : FPName} :
   ?ₑΓ → ?ₑΓ{y // x} := by
   intro hServ
