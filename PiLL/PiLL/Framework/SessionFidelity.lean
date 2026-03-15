@@ -1000,7 +1000,7 @@ lemma Typing_buildDup_aux {n : Nat} {QL QR : Proc} {x : FPName} {A : Types}
     have hin : ∃ B Δ, Γ ~ w ∶ ??B :: Δ := by use B, Δ
 
     apply Typing.exchange_env (Γ := w ∶ ??B :: x ∶ !!A ⨂ !!A :: Δ ++ Γ')
-    · refine Typing.c ?_ ∅ ?_
+    · refine Typing.c ?_ ws.reverse.toFinset ?_
       · simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
         split_ands
         · by_contra
@@ -1010,18 +1010,32 @@ lemma Typing_buildDup_aux {n : Nat} {QL QR : Proc} {x : FPName} {A : Types}
         · grind
         · exact Disjoint.notMem_of_mem_left_finset hD hwΓ
       ·
-        intro x hx
+        intro z hz
         rw [Proc.open_wrapDup]
         simp only [Proc.open_tensor, Channel.open_free_not_eq, Proc.open_par, Proc.open_server]
+        have h_close :
+          (closeAll (!$0․{QL⟪x⟫}) 1 (ws.reverse ++ [w]))⸨0 + ws.length + 1 | #z⸩ =
+            closeAll (!$0․{QL⟪x⟫}){z // w} 1 ws.reverse := by
+          have h_idx : 0 + ws.length + 1 = 1 + ws.reverse.length := by
+            rw [List.length_reverse]
+            omega
+          rw [h_idx]
+          apply Proc.closeAll_open_substNames
+          · sorry
+          · sorry
+          · grind
+          · simp_all
+          · sorry -- nat for Proc.lc
+
+        rw [h_close]
 
 
-        simp
-
-        rw [Proc.closeAll_open_substNames]
 
 
 
         sorry
+
+
     · simp [HasPerm.perm] at ⊢ hP
       apply List.Perm.trans
       · apply List.Perm.swap
