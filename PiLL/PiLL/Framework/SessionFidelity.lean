@@ -944,6 +944,7 @@ lemma Typing_buildDup_aux {n : Nat} {QL QR : Proc} {x : FPName} {A : Types}
   (hNames : ∀ z ∈ names, z ∈ Γ.names)
 
   (hNodup : Γ.Nodup)
+  (hD : Γ.disjoint Γ')
 
   (hServΓ : ?ₑΓ) (hServΓ' : ?ₑΓ')
   (hxΓ : x ∉ Γ.names) (hxΓ' : x ∉ Γ'.names)
@@ -1000,17 +1001,27 @@ lemma Typing_buildDup_aux {n : Nat} {QL QR : Proc} {x : FPName} {A : Types}
 
     apply Typing.exchange_env (Γ := w ∶ ??B :: x ∶ !!A ⨂ !!A :: Δ ++ Γ')
     · refine Typing.c ?_ ∅ ?_
-      · simp
+      · simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
         split_ands
         · by_contra
           rename_i h
           subst h
           exact hxΓ hwΓ
-        · sorry -- w ∉ Δ, since Δ.names = Γ.names \ {w}
-        · sorry -- w ∈ Γ → w ∉ Γ' by linearity
+        · grind
+        · exact Disjoint.notMem_of_mem_left_finset hD hwΓ
+      ·
+        intro x hx
+        rw [Proc.open_wrapDup]
+        simp only [Proc.open_tensor, Channel.open_free_not_eq, Proc.open_par, Proc.open_server]
 
 
-      · sorry
+        simp
+
+        rw [Proc.closeAll_open_substNames]
+
+
+
+        sorry
     · simp [HasPerm.perm] at ⊢ hP
       apply List.Perm.trans
       · apply List.Perm.swap
