@@ -354,10 +354,14 @@ lemma FPName.subst_preserves_neq {w x y z : FPName}
     exact hya heq.symm
   }
 
-@[simp] lemma Channel.subst_singleton_free {x y z : FPName} :
+@[simp] lemma Channel.subst_free {x y z : FPName} :
   (#z){y // x} = #(z{y // x}) := by
   simp [HasSubst.subst, Channel.subst, FPName.subst]
   split_ifs <;> simp
+
+@[simp] lemma Channel.subst_bound {x y : FPName} {i : Nat} :
+  (Channel.bound i){y // x} = Channel.bound i := by
+  simp [HasSubst.subst, Channel.subst]
 
 @[simp] lemma Channel.subst_self {u : Channel} {x : FPName} :
   u.subst x x = u := by
@@ -479,7 +483,8 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
   {P : Proc} {u v : Channel} {A : Types} {i : Nat} :
   (P⸨u, v⸩){A // i} = (P{A // i})⸨u, v⸩ := Proc.openCut_substTypes_comm
 
-@[simp] lemma Channel.open_subst_intro_gen (x : Channel) (k : Nat) {w z : FPName} (hF : w ∉ x.f) :
+@[simp] lemma Channel.open_substNames_intro_gen (x : Channel) (k : Nat) {w z : FPName}
+  (hF : w ∉ x.f) :
   x.open (#z) k = (x.open (#w) k){z // w} := by
   cases x with
   | bound i =>
@@ -491,7 +496,7 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
     exfalso
     exact hF h.symm
 
-lemma Proc.open_subst_intro_gen (P : Proc) (k : Nat) {w z : FPName} (hF : w ∉ P.f) :
+lemma Proc.open_substNames_intro_gen (P : Proc) (k : Nat) {w z : FPName} (hF : w ∉ P.f) :
   P⸨k | #z⸩ = P⸨k | #w⸩{z // w} := by
   induction P generalizing k <;> (
     try simp [Proc.f, HasOpen.open_, HasSubst.subst, Proc.open, Proc.substNames] at ⊢ hF
@@ -499,16 +504,17 @@ lemma Proc.open_subst_intro_gen (P : Proc) (k : Nat) {w z : FPName} (hF : w ∉ 
 
   case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih
     | input ih | server ih | consume ih | duplicate ih | dispose ih =>
-    exact ⟨Channel.open_subst_intro_gen _ _ hF.1, ih _ hF.2⟩
+    exact ⟨Channel.open_substNames_intro_gen _ _ hF.1, ih _ hF.2⟩
 
   case cut ih => apply ih _ hF
   case par ihP ihQ => exact ⟨ihP k hF.1, ihQ k hF.2⟩
-  case amp ihP ihQ => exact ⟨Channel.open_subst_intro_gen _ _ hF.1, ihP _ hF.2.1, ihQ _ hF.2.2⟩
-  case link => exact ⟨Channel.open_subst_intro_gen _ _ hF.1, Channel.open_subst_intro_gen _ _ hF.2⟩
+  case amp ihP ihQ => exact ⟨Channel.open_substNames_intro_gen _ _ hF.1, ihP _ hF.2.1, ihQ _ hF.2.2⟩
+  case link =>
+    exact ⟨Channel.open_substNames_intro_gen _ _ hF.1, Channel.open_substNames_intro_gen _ _ hF.2⟩
 
-lemma Proc.open_subst_intro {P : Proc} {w z : FPName} (hF : w ∉ P.f) :
+lemma Proc.open_substNames_intro {P : Proc} {w z : FPName} (hF : w ∉ P.f) :
   P⸨#z⸩ = P⸨#w⸩{z // w} := by
-  exact Proc.open_subst_intro_gen P 0 hF
+  exact Proc.open_substNames_intro_gen P 0 hF
 
 lemma Channel.open_substNames_comm_gen {u : Channel} {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
   (u⸨k | #z⸩){y // x} = u{y // x}⸨k | #z⸩ := by
@@ -615,11 +621,6 @@ lemma Proc.openCut_substNames_comm {P : Proc} {x y z w : FPName}
 
 @[simp] lemma Channel.open_free_not_eq {x y : FPName} {k : Nat} :
   (#x)⸨k | #y⸩ = (#x) := by simp [HasOpen.open_, Channel.open]
-
-
-
-
-
 
 @[simp] lemma Channel.close_open_self {x y : FPName} {k : Nat} :
   ((#x).close x k).open #y k = #y := by
