@@ -954,8 +954,11 @@ lemma HyperEnv.names_eq_of_perm {𝒢 ℋ : HyperEnv} (h : 𝒢 ~ ℋ) :
 @[simp] lemma HyperEnv.Nodup_nil :
   HyperEnv.Nodup [] := by simp [HyperEnv.Nodup]
 
-@[simp] lemma HyperEnv.Nodup_singleton {Γ : Env} (h : Env.Nodup Γ) :
+@[simp] lemma HyperEnv.Nodup_singleton_from_env {Γ : Env} (h : Env.Nodup Γ) :
   HyperEnv.Nodup [Γ] := by simp [HyperEnv.Nodup, h]
+
+@[simp] lemma HyperEnv.Nodup_singleton {Γ : Env} :
+  HyperEnv.Nodup [Γ] → Env.Nodup Γ := by simp [HyperEnv.Nodup]
 
 lemma HyperEnv.Nodup_distributes {𝒢 : HyperEnv} {Γ : Env} :
   HyperEnv.Nodup (Γ :: 𝒢) ↔ HyperEnv.Nodup [Γ] ∧ HyperEnv.Nodup  𝒢 := by

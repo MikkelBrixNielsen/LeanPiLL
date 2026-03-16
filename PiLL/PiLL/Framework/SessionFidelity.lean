@@ -1071,19 +1071,13 @@ lemma Env.mem_unique {Γ : Env} {x : FPName} {A B : Types}
     grind [mem_pair_fst_in_names_iff]
 
 lemma Typing_buildDup_aux {n : Nat} {QL QR : Proc} {x : FPName} {A : Types}
-  (names : List FPName) (Γ Γ' ΓL : Env)
-  (hTL : n ⊢ QL ∷ [x ∶ A :: ΓL])
-  (hTR : n ⊢ QR ∷ [x ∶ A :: Γ])
-
-  (h_valid_names : ∀ z ∈ names, z ∈ Γ.names)
+  (names : List FPName) (Γ Γ' ΓL : Env) (hTL : n ⊢ QL ∷ [x ∶ A :: ΓL])
+  (hTR : n ⊢ QR ∷ [x ∶ A :: Γ]) (h_valid_names : ∀ z ∈ names, z ∈ Γ.names)
   (h_sync_types : ∀ z A, z ∈ names → (z, A) ∈ Γ → (z, A) ∈ ΓL)
-
-  (hNodup : Γ.Nodup) (hD : Γ.disjoint Γ')
-  (hServΓ : ?ₑΓ) (hServΓ' : ?ₑΓ') (hServL : ?ₑΓL)
+  (hNodup : Γ.Nodup) (hD : Γ.disjoint Γ') (hServΓ : ?ₑΓ) (hServΓ' : ?ₑΓ') (hServL : ?ₑΓL)
   (hxΓ : x ∉ Γ.names) (hxΓ' : x ∉ Γ'.names) (hxΓL : x ∉ ΓL.names)
   (hlcΓ : Env.lc n Γ) (hlcΓ' : Env.lc n Γ') (hlcΓL : Env.lc n ΓL)
-  (hNodup_names : names.Nodup)
-  (h_part : ∃ Δ, ΓL ~ Δ ++ Γ' ∧ Δ.names = names.toFinset) :
+  (hNodup_names : names.Nodup) (h_part : ∃ Δ, ΓL ~ Δ ++ Γ' ∧ Δ.names = names.toFinset) :
 
   n ⊢ wrapDup (#x⟦$N⟧․closeAll (!(#x)⟪x⟫․{QL⟪x⟫}) 1 names.reverse |ₚ !#x․{QR}) names ∷
       [x ∶ !!A ⨂ !!A :: Γ ++ Γ'] := by
@@ -1230,56 +1224,83 @@ lemma Typing_buildDup_aux {n : Nat} {QL QR : Proc} {x : FPName} {A : Types}
             rw [heqBT] at hPE
             use E
 
-          obtain ⟨Ξ', hP⟩ := hExt
+          obtain ⟨Ξ', hPΞ⟩ := hExt
 
-          -- FIXME: apply ih
+          apply ih (z ∶ ??B :: Γ') (ΓL{z // w}) (x := Ξ')
+          · have := Typing_substNames hTL (y := z) (x := w)
+            simp [FPName.subst_self_of_ne hwx.symm] at this
+            apply this
+            intro A h
+            cases h with
+            | inl h => exfalso ; exact hz.1 h.1
+            | inr h => exfalso ; apply hz.2.2.2.1 A h
+          · intros a ha
+            exact h_valid_names a ((List.mem_cons).mpr (Or.inr ha))
+          · intros y T hyws hyΓ
+            have := h_sync_types y T ((List.mem_cons).mpr (Or.inr hyws)) hyΓ
+            have hnyw : y ≠ w := by
+              simp [List.nodup_cons] at hNodup_names
+              intro hc
+              subst hc
+              exact hNodup_names.1 hyws
+            exact Env.mem_substNames_of_ne this hnyw
+          · simp_all
+          · exact Env.serverUsable_cons_iff.mp ⟨by simp [Types.isServerUsable], hServΓ'⟩
+          · exact Env.serverUsable_substNames hServL
+          · simp [- Env.mem_pair_fst_in_names_iff, -Env.not_mem_names_iff]
+            exact ⟨hz.1.symm, hxΓ'⟩
+          · exact Env.not_mem_names_substNames hz.1.symm hxΓL
+          · have := (Env.lc_perm hP).mp hlcΓ
+            simp [Env.lc_cons] at ⊢ this
+            exact ⟨this.1, hlcΓ'⟩
+          · exact Env.substNames_preserves_lc hlcΓL
+          · simp at hNodup_names
+            exact hNodup_names.2
+          · have h1: Ξ ++ Γ' ~ w ∶ ??B :: Ξ' ++ Γ' := by
+              apply List.Perm.append
+              · simp [HasPerm.perm] at hPΞ
+                exact hPΞ
+              · rfl
 
-          sorry
+            have hnwΓ':= Disjoint.notMem_of_mem_left_finset hD hwΓ
 
+            have hnwΞ := by
+              have hndΓL := by
+                have := (HyperEnv.Nodup_cons (Typing_preserves_linearity hTL).1).2
+                simp [HyperEnv.Nodup] at this
+                exact this
+              have := Env.Nodup_perm hPΞ (Env.Nodup_merge_iff.mp (Env.Nodup_perm hPΓL hndΓL)).1
+              simp only [Env.Nodup_cons] at this
+              exact this.1
 
+            have := Env.substNames_preserves_perm (x := w) (y := z)
+              (List.Perm.trans (List.Perm.trans hPΓL h1) List.perm_middle.symm)
+            simp at this hNodup_names
 
+            rw [Env.substNames_of_not_mem hnwΓ', Env.substNames_of_not_mem hnwΞ] at this
 
+            exact this
 
+          · have hnwΞ := by
+              have hndΓL := by
+                have := (HyperEnv.Nodup_cons (Typing_preserves_linearity hTL).1).2
+                simp [HyperEnv.Nodup] at this
+                exact this
+              have := Env.Nodup_perm hPΞ (Env.Nodup_merge_iff.mp (Env.Nodup_perm hPΓL hndΓL)).1
+              simp only [Env.Nodup_cons] at this
+              exact this.1
 
+            simp at hNodup_names
+            have := Env.names_eq_of_perm hPΞ
+            rw [hNamesΞ] at this
+            simp at this
+            have hnwws: w ∉ ws.toFinset := by simp [hNodup_names.1]
 
-    --       apply ih (z ∶ ??B :: Γ') (ΓL{z // w}) (x := Ξ')
-    --       · have := Typing_substNames hTL (y := z) (x := w)
-    --         simp [FPName.subst_self_of_ne hwx.symm] at this
-    --         apply this
-    --         intro A h
-    --         cases h with
-    --         | inl h => exfalso ; exact hz.1 h.1
-    --         | inr h => exfalso ; apply hz.2.2.2.1 A h
-    --       · intros a ha
-    --         obtain ⟨haΓ, T, haΓL⟩ := hNames.2 a ha
-    --         constructor
-    --         · simp [haΓ]
-    --         · exact Env.mem_names_substNames_iff.mpr
-    --             (Or.inr ⟨Env.mem_pair_fst_in_names T haΓL, by grind⟩)
-    --       · simp_all
-    --       · exact Env.serverUsable_cons_iff.mp ⟨by simp [Types.isServerUsable], hServΓ'⟩
-    --       · exact Env.serverUsable_substNames hServL
-    --       · simp [- Env.mem_pair_fst_in_names_iff, -Env.not_mem_names_iff]
-    --         constructor
-    --         · exact hz.1.symm
-    --         · exact hxΓ'
-    --       · exact Env.not_mem_names_substNames hz.1.symm hxΓL
-    --       · have := (Env.lc_perm hP).mp hlcΓ
-    --         simp [Env.lc_cons] at ⊢ this
-    --         constructor
-    --         · exact this.1
-    --         · exact hlcΓ'
-    --       · exact Env.substNames_preserves_lc hlcΓL
-    --       · simp at hNodup_names
-    --         exact hNodup_names.2
-    --       ·
+            have h : (insert w ws.toFinset).erase w = (insert w (Env.names Ξ')).erase w := by
+              rw [this]
 
-
-
-    --         sorry
-    --       · sorry
-
-
+            rw [Finset.erase_insert hnwws, Finset.erase_insert hnwΞ] at h
+            exact h.symm
 
         · simp [HasPerm.perm] at ⊢ hP
           apply List.Perm.trans
@@ -1300,31 +1321,45 @@ lemma Typing_buildDup_aux {n : Nat} {QL QR : Proc} {x : FPName} {A : Types}
       · apply List.Perm.cons
         apply List.Perm.append_right _ hP.symm
 
+lemma Typing_buildDup {n : Nat} {P : Proc} {x : FPName} {A : Types} {Γ : Env}
+  {names : List FPName} (hServ : ?ₑΓ) (heq_names : names.toFinset = Γ.names)
+  (hnd_names : names.Nodup) (hT : n ⊢ P ∷ [x ∶ A :: Γ]) :
+  n ⊢ buildDup P names x ∷ [x ∶ !!A ⨂ !!A :: Γ] := by
+  rw [← Env.merge_unitR Γ]
+  change n ⊢ wrapDup (#x⟦$N⟧․closeAll (!(#x)⟪x⟫․{P⟪x⟫}) 1 names.reverse |ₚ !#x․{P}) names ∷
+    [x ∶ !!A ⨂ !!A :: Γ ++ []]
 
+  have hlin := Typing_preserves_linearity hT
+  have hndΓ := (HyperEnv.Nodup_cons hlin.1).2
+  have hlcT := Typing_preserves_lc hT
+  have hlcΓx := hlcT.2 (x ∶ A :: Γ)
+  simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff,
+    HyperEnv.Nodup, Env.Nodup_cons, Env.lc_cons] at hndΓ hlin hlcΓx
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  apply Typing_buildDup_aux names Γ [] Γ
+  · exact hT
+  · exact hT
+  · intro z hz
+    have hznames : z ∈ names.toFinset := by simp [hz]
+    rw [heq_names] at hznames
+    exact hznames
+  · intros z A hznames hzΓ ; exact hzΓ
+  · exact hndΓ
+  · simp
+  · exact hServ
+  · simp
+  · exact hServ
+  · have := (Typing_preserves_linearity hT).1
+    apply HyperEnv.Nodup_singleton at this
+    rw [Env.Nodup_cons] at this
+    exact this.1
+  · simp
+  · exact hlin.1
+  · exact hlcΓx.2
+  · simp
+  · exact hlcΓx.2
+  · exact hnd_names
+  · use Γ ; simp [HasPerm.perm, heq_names]
 
 
 
@@ -1592,12 +1627,18 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 
   case dup₂ Q z =>
     obtain ⟨Γ, A, hP', hT', hServ⟩ := Typing_inv_use₂ hT
-
-
-
-
-
-    sorry
+    use [z ∶ !!A ⨂ !!A :: Γ]
+    · constructor
+      · exact EnvStep.perm hP'.symm (EnvStep.dup₂ hServ) (by rfl)
+      · apply Typing_buildDup (names := (Q.f.erase z).toList)
+        · exact hServ
+        · simp
+          rw [Typing.f_eq_names hT']
+          have hnd := (Typing_preserves_linearity hT').1
+          simp [HyperEnv.Nodup, Env.Nodup_cons] at ⊢ hnd
+          exact hnd.1
+        · exact Finset.nodup_toList _
+        · exact hT'
 
   case use₁ x =>
     obtain ⟨Γ, A, hP', hT'⟩ := Typing_inv_use₁ hT

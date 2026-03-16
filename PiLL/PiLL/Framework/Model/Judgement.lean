@@ -490,7 +490,7 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
       · exact Env.not_mem_names_iff.mp hF.1
       · exact Env.not_mem_names_iff.mp hF.2
 
-    apply HyperEnv.Nodup_singleton
+    apply HyperEnv.Nodup_singleton_from_env
     apply Env.Nodup_cons.mpr
     constructor
     · exact hFxΓΔ
@@ -510,7 +510,7 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case parr Γ _ x A B _ hF L _ ih =>
     obtain ⟨y, hy⟩ := exists_one_fresh L
     obtain ⟨ih1, ih2⟩ := ih y hy
-    apply HyperEnv.Nodup_singleton
+    apply HyperEnv.Nodup_singleton_from_env
     apply Env.Nodup_cons.mpr
     have := (Env.Nodup_cons.mp (ih1 (y ∶ A :: x ∶ B :: Γ) (by simp))).2
     exact (Env.Nodup_cons.mp this)
@@ -538,7 +538,7 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     have hNodupΓ := (Env.Nodup_cons.mp ih1').2
     rw [Env.shiftTypes_preserves_names] at hFx
     rw [Env.Nodup_shiftTypes] at hNodupΓ
-    apply HyperEnv.Nodup_singleton
+    apply HyperEnv.Nodup_singleton_from_env
     have :=  (Env.Nodup_cons (A := B)).mpr ⟨hFx, hNodupΓ⟩
     simp [Env.Nodup] at this ⊢
     exact this
