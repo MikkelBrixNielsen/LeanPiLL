@@ -789,7 +789,7 @@ lemma Proc.open_wrapDup {P : Proc} {names : List FPName} {z : FPName} {k : Nat} 
 
 
 lemma Proc.closeAll_open_subst {P : Proc} {names : List FPName} {y z : FPName} {k n : Nat}
-  (hF : z ∉ P.f) (hlc : lc k n P):
+  (hF : z ∉ P.f) (hlc : lc k n P) :
   (closeAll P k (names ++ [y]))⸨k + names.length | #z⸩ = closeAll (P{z // y}) k names := by
   induction names generalizing k
   case nil =>
