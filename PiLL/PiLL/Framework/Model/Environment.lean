@@ -11,6 +11,29 @@ abbrev Env := List Elem
 
 instance : HasPerm Env where perm := List.Perm
 
+@[simp] lemma Env.Perm.nil :
+  ([] : Env) ~ ([] : Env) := by simp [HasPerm.perm]
+
+@[simp, refl] lemma Env.Perm.refl (Γ : Env) : Γ ~ Γ := by
+  simp [HasPerm.perm]
+
+lemma Env.Perm.rfl {Γ : Env} : Γ ~ Γ := .refl _
+
+lemma Env.Perm.symm {Γ Δ : Env} (hP : Γ ~ Δ) : Δ ~ Γ := by
+  simp [HasPerm.perm] at ⊢ hP ; exact hP.symm
+
+lemma Env.Perm.comm {Γ Δ : Env} : Γ ~ Δ ↔ Δ ~ Γ :=
+  ⟨Env.Perm.symm, Env.Perm.symm⟩
+
+lemma Env.Perm.cons {a : Elem} {Γ Δ : Env} : Γ ~ Δ → (a :: Γ) ~ (a :: Δ) := by
+  simp [HasPerm.perm]
+
+lemma Env.Perm.swap {a b : Elem} {Γ : Env} : (a :: b :: Γ) ~ (b :: a :: Γ) := by
+  simp [HasPerm.perm] ; apply List.Perm.swap
+
+lemma Env.Perm.trans {Γ Δ Ξ : Env} : Γ ~ Δ → Δ ~ Ξ → Γ ~ Ξ := by
+  simp [HasPerm.perm] ; intros h1 h2 ; exact List.Perm.trans h1 h2
+
 def Env.names (Γ : Env) : Finset FPName :=
   (Γ.map Prod.fst).toFinset
 
@@ -595,7 +618,7 @@ instance : HasPerm HyperEnv where perm := HyperEnv.Perm
 
 lemma HyperEnv.Perm.rfl {𝒢 : HyperEnv} : 𝒢 ~ 𝒢 := .refl _
 
-lemma HyperEnv.Perm.symm {𝒢 ℋ : HyperEnv} (hP : 𝒢 ~ ℋ) : ℋ ~ 𝒢 := by
+@[symm] lemma HyperEnv.Perm.symm {𝒢 ℋ : HyperEnv} (hP : 𝒢 ~ ℋ) : ℋ ~ 𝒢 := by
   induction hP with
   | nil => exact nil
   | cons hPE hPH ih => exact Perm.cons (hPE.symm) ih
@@ -607,9 +630,11 @@ lemma HyperEnv.Perm.comm {𝒢 ℋ : HyperEnv} : 𝒢 ~ ℋ ↔ ℋ ~ 𝒢 := �
 def HyperEnv.names (𝒢 : HyperEnv) : Finset FPName :=
   𝒢.foldr (fun Γ acc => Γ.names ∪ acc) ∅
 
+-- intra-component uniqueness
 def HyperEnv.Nodup (𝒢 : HyperEnv) : Prop :=
   ∀ Γ ∈ 𝒢, Env.Nodup Γ
 
+-- inter-component uniqueness
 @[simp] def HyperEnv.disjoint (𝒢 ℋ : HyperEnv) : Prop :=
   Disjoint 𝒢.names ℋ.names
 
@@ -640,19 +665,19 @@ lemma HyperEnv.merge_unitL (𝒢 : HyperEnv) : ∅ |ₕ 𝒢 = 𝒢 := by simp
 
 lemma HyperEnv.merge_unitR (𝒢 : HyperEnv) : 𝒢 |ₕ ∅ = 𝒢 := by simp
 
-lemma HyperEnv.merge_comm (𝒢 ℋ : HyperEnv) : List.Perm (𝒢 |ₕ ℋ) (ℋ |ₕ 𝒢) := by
-  exact List.perm_append_comm
+-- FIXME: Adapt to use current Deep perm
+-- lemma HyperEnv.merge_comm (𝒢 ℋ : HyperEnv) : (𝒢 |ₕ ℋ) ~ (ℋ |ₕ 𝒢) := by sorry
 
-lemma HyperEnv.merge_assoc (𝒢 ℋ ℐ : HyperEnv) : 𝒢 |ₕ ℋ |ₕ ℐ = 𝒢 |ₕ (ℋ |ₕ ℐ) := by
-  simp [HyperEnv.merge]
+-- lemma HyperEnv.merge_assoc (𝒢 ℋ ℐ : HyperEnv) : 𝒢 |ₕ ℋ |ₕ ℐ = 𝒢 |ₕ (ℋ |ₕ ℐ) := by
+  -- simp [HyperEnv.merge]
 
-lemma HyperEnv.merge_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
-  (Γ :: 𝒢).Perm (𝒢 |ₕ [Γ]) := by
-  symm ; apply List.perm_append_singleton
+-- lemma HyperEnv.merge_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
+--   (Γ :: 𝒢).Perm (𝒢 |ₕ [Γ]) := by
+--   symm ; apply List.perm_append_singleton
 
-lemma HyperEnv.merge_swap (𝒢 : HyperEnv) (Γ Δ : Env) :
-  List.Perm (Γ :: Δ :: 𝒢) (Δ :: Γ :: 𝒢) := by
-  symm ; simpa using List.Perm.swap Γ Δ 𝒢
+-- lemma HyperEnv.merge_swap (𝒢 : HyperEnv) (Γ Δ : Env) :
+--   List.Perm (Γ :: Δ :: 𝒢) (Δ :: Γ :: 𝒢) := by
+--   symm ; simpa using List.Perm.swap Γ Δ 𝒢
 
 lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
   Γ.names ⊆ G.names := by

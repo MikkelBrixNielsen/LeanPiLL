@@ -41,7 +41,7 @@ notation:80 x "⸨⸩․" P => Proc.bot x P
 notation:80 x "⸨$N⸩․" P => Proc.parr x P
 notation:80 x "⸨$T⸩․" P => Proc.input x P
 
-notation:75 "𝑣⸨$N,$N⸩" P:80 => Proc.cut P
+notation:75 "𝑣⸨$N,$N⸩ " P:80 => Proc.cut P
 notation:80 x "⟦𝐋⟧․" P:80 => Proc.selectL x P
 notation:80 x "⟦𝐑⟧․" P:80 => Proc.selectR x P
 notation:80 x "⟦USE⟧․" P:80 => Proc.consume x P

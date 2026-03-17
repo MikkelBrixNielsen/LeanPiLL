@@ -539,7 +539,6 @@ lemma Typing_inv_use₂ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
     obtain ⟨rfl, rfl⟩ := heq
     use Γ, A
 
-
 lemma Typing_inv_disp₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
   (hT : n ⊢ #x⟦DISP⟧․P ∷ 𝒢) :
   ∃ Γ A, (𝒢 ~ [x ∶ ??A :: Γ]) ∧ (n ⊢ P ∷ [Γ]) ∧ x ∉ Env.names Γ := by
@@ -547,7 +546,7 @@ lemma Typing_inv_disp₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
   induction hT generalizing P x <;> try contradiction
 
   case exchange_env hP ih =>
-    obtain ⟨Γ, A, hP', hT'⟩:= ih heq
+    obtain ⟨Γ, A, hP', hT'⟩ := ih heq
     use Γ, A
     constructor
     · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl _)) hP'
@@ -568,14 +567,13 @@ lemma Typing_inv_disp₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
 lemma Typing_inv_dup₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
   (hT : n ⊢ #x⟦DUP⟧⸨$N⸩․P ∷ 𝒢) :
   ∃ (Γ : Env) (A : Types) (L : Finset FPName),
-    (𝒢 ~ [x ∶ ??A :: Γ]) ∧
-    x ∉ Γ.names ∧
+    (𝒢 ~ [x ∶ ??A :: Γ]) ∧ x ∉ Γ.names ∧
     (∀ x' ∉ L, x' ≠ x → n ⊢ P⸨#x'⸩ ∷ [x' ∶ ??A :: x ∶ ??A :: Γ]) := by
   generalize heq : (#x⟦DUP⟧⸨$N⸩․P) = Pdup at hT
   induction hT generalizing P x <;> try contradiction
 
   case exchange_env hP ih =>
-    obtain ⟨Γ, A, x', hP', hT'⟩:= ih heq
+    obtain ⟨Γ, A, x', hP', hT'⟩ := ih heq
     use Γ, A, x'
     constructor
     · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (HyperEnv.Perm.refl _)) hP'
@@ -599,32 +597,6 @@ lemma Typing_inv_dup₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
       · intros x' hin hneq
         apply Typing.exchange_hyper (hT x' hin)
         exact HyperEnv.Perm.cons (List.Perm.swap (x' ∶ ??A) (x ∶ ??A) Γ) (by simp)
-
-
-
-
-
-
--- FIXME: Fix TypingStep
--- FIXME: Typing_preserves_proc_congr
-
--- FIXME: Use NameSpaces instead of having e.g. HyperEnv._____ everywhere
--- FIXME: Check possibility of removing exchange_env typing rule
-
-
-
--- FIXME: proof of Typing n P 𝒢 → 𝒢 is pairwise disjoint and nodup
-
-
--- FIXME: Proof showing substitution avoids capture
--- FIXME: Proof showing AlphaEq is equivalent to = between Procs
--- FIXME: Find different syntax for open?
--- FIXME: Prove name substitution only being applied to free names?
-
-
--- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
-
-
 
 
 lemma Typing_buildDisp {n : Nat} {x : FPName} (Γ : Env) (names : List FPName)
@@ -1364,6 +1336,387 @@ lemma Typing_buildDup {n : Nat} {P : Proc} {x : FPName} {A : Types} {Γ : Env}
 
 
 
+lemma Typing_inv_res {n : ℕ} {P : Proc} {𝒢 : HyperEnv}
+  (hT : n ⊢ 𝑣⸨$N,$N⸩ P ∷ 𝒢) :
+  ∃ (A : Types) (Γ Δ : Env) (𝒢' : HyperEnv) (L : Finset FPName),
+    (𝒢 ~ 𝒢' |ₕ [Γ‚ Δ]) ∧
+    (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
+      n ⊢ P⸨#x, #y⸩ ∷ 𝒢' |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ]) := by
+
+  generalize heq : (𝑣⸨$N,$N⸩ P) = P' at hT
+  induction hT generalizing P <;> try contradiction
+
+  case exchange_env hP ih =>
+    obtain ⟨A, Γ, Δ, 𝒢, L, hP', hT'⟩ := ih heq
+    use A, Γ, Δ, 𝒢, L
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.cons hP.symm (by rfl)) hP'
+    · intros x hx y hy hneq
+      exact hT' x hx y hy hneq
+
+  case exchange_hyper hP ih =>
+    obtain ⟨A, Γ, Δ, 𝒢, L, hP', hT'⟩ := ih heq
+    use A, Γ, Δ, 𝒢, L
+    constructor
+    · exact HyperEnv.Perm.trans hP.symm hP'
+    · intros x hx y hy hneq
+      exact hT' x hx y hy hneq
+
+  case cut 𝒢 Γ Δ _ A _ L hT ih =>
+    use A, Γ, Δ, 𝒢, L
+    constructor
+    · rfl
+    · injection heq with heq
+      subst heq
+      intros x hx y hy hneq
+      exact hT x y hx hy hneq
+
+
+
+
+lemma HyperEnv.merge_nilL (𝒢 : HyperEnv) : [] |ₕ 𝒢 = 𝒢 := by simp
+
+lemma HyperEnv.merge_nilR (𝒢 : HyperEnv) : 𝒢 |ₕ [] = 𝒢 := by simp
+
+lemma HyperEnv.Perm.merge_right {𝒢 ℋ : HyperEnv} (p : 𝒢 ~ ℋ) : ∀ 𝒥, 𝒢 |ₕ 𝒥 ~ ℋ |ₕ 𝒥 := by
+  induction p
+  case nil => simp
+  case cons hPE hPH ih => intro 𝒥 ; exact HyperEnv.Perm.cons hPE (ih 𝒥)
+  case swap => intro 𝒥 ; exact HyperEnv.Perm.swap ..
+  case trans ih1 ih2 => intro 𝒥 ; exact HyperEnv.Perm.trans (ih1 𝒥) (ih2 𝒥)
+
+theorem HyperEnv.Perm.merge_left {𝒢 ℋ : HyperEnv} : 𝒢 ~ ℋ → ∀ 𝒥, 𝒥 |ₕ 𝒢 ~ 𝒥 |ₕ ℋ := by
+  intro h 𝒥
+  induction 𝒥
+  case nil => exact h
+  case cons Γ ℐ ih => apply HyperEnv.Perm.cons (.refl _) ih
+
+theorem HyperEnv.Perm.merge {𝒢 𝒢' ℋ ℋ' : HyperEnv} (p₁ : 𝒢 ~ 𝒢') (p₂ : ℋ ~ ℋ') :
+  𝒢 |ₕ ℋ ~ 𝒢' |ₕ ℋ' := (p₁.merge_right ℋ).trans (p₂.merge_left _)
+
+@[simp] lemma HyperEnv.Perm_middle {Γ : Env} : ∀ {𝒢 ℋ : HyperEnv}, 𝒢 |ₕ Γ :: ℋ ~ Γ :: (𝒢 |ₕ ℋ)
+  | [], _ => .refl _
+  | Δ :: _, _ =>
+    (HyperEnv.Perm.cons (.refl _) Perm_middle).trans (HyperEnv.Perm.swap Δ Γ _)
+
+lemma HyperEnv.Perm.merge_exchange_right {𝒢 ℋ 𝒥 : HyperEnv} :
+  ℋ ~ 𝒥 → (𝒢 |ₕ ℋ ~ 𝒢 |ₕ 𝒥) := by
+  intro h
+  induction 𝒢
+  case nil => simp ; exact h
+  case cons ih => apply HyperEnv.Perm.cons (by rfl) ih
+
+lemma HyperEnv.Perm.merge_exchange_left {𝒢 ℋ 𝒥 : HyperEnv} :
+  ℋ ~ 𝒥 → (ℋ |ₕ 𝒢 ~ 𝒥 |ₕ 𝒢 ) := by
+  intro h
+  induction h
+  case nil => simp
+  case cons hPE hPH ih => exact HyperEnv.Perm.cons hPE ih
+  case swap => exact HyperEnv.Perm.swap ..
+  case trans ih1 ih2 => exact HyperEnv.Perm.trans ih1 ih2
+
+lemma HyperEnv.Perm.merge_comm : ∀ {𝒢 ℋ : HyperEnv}, 𝒢 |ₕ ℋ ~ ℋ |ₕ 𝒢
+  | [], _ => by simp
+  | _ :: _, _ => (HyperEnv.Perm.merge_comm.cons (.refl _)).trans HyperEnv.Perm_middle.symm
+
+lemma HyperEnv.merge_assoc (𝒢 ℋ ℐ : HyperEnv) : 𝒢 |ₕ ℋ |ₕ ℐ = 𝒢 |ₕ (ℋ |ₕ ℐ) := by
+  simp only [List.append_assoc]
+
+lemma HyperEnv.Perm.merge_assoc (𝒢 ℋ ℐ : HyperEnv) :
+  (𝒢 |ₕ (ℋ |ₕ ℐ)) ~ (ℋ |ₕ (𝒢 |ₕ ℐ)) := by
+  repeat rw [← HyperEnv.merge_assoc]
+  apply HyperEnv.Perm.merge_right HyperEnv.Perm.merge_comm
+
+lemma HyperEnv.Perm.merge_cons {Γ : Env} {𝒢 𝒢' ℋ ℋ' : HyperEnv} (p₁ : 𝒢 ~ 𝒢') (p₂ : ℋ ~ ℋ') :
+    𝒢 |ₕ Γ :: ℋ ~ 𝒢' |ₕ Γ :: ℋ' := p₁.merge (p₂.cons (.refl _))
+
+@[simp] lemma HyperEnv.Perm_merge_singleton (Γ : Env) (𝒢 : HyperEnv) : 𝒢 |ₕ [Γ] ~ Γ :: 𝒢 :=
+  HyperEnv.Perm_middle.trans <| by rw [HyperEnv.merge_nilR]
+
+lemma HyperEnv.Perm_merge_comm : ∀ {𝒢 ℋ : HyperEnv}, 𝒢 |ₕ ℋ ~ ℋ |ₕ 𝒢
+  | [], _ => by simp
+  | _ :: _, _ => (HyperEnv.Perm_merge_comm.cons (.refl _)).trans HyperEnv.Perm_middle.symm
+
+theorem HyperEnv.Perm_merge_comm_assoc (𝒢 ℋ 𝒥 : HyperEnv) :
+    (𝒢 |ₕ (ℋ |ₕ 𝒥)) ~ (ℋ |ₕ (𝒢 |ₕ 𝒥)) := by
+  simpa only [List.append_assoc] using HyperEnv.Perm_merge_comm.merge_right _
+
+lemma HyperEnv.cons_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
+  (Γ :: 𝒢) ~ (𝒢 |ₕ [Γ]) := by
+  symm ; apply HyperEnv.Perm_merge_singleton
+
+
+
+
+
+-- FIXME: Fix TypingStep
+-- FIXME: Typing_preserves_proc_congr
+-- FIXME: Use NameSpaces instead of having e.g. HyperEnv._____ everywhere
+
+
+
+
+
+
+-- FIXME: Proof showing substitution avoids capture
+-- FIXME: Proof showing AlphaEq is equivalent to = between Procs
+-- FIXME: Find different syntax for open?
+-- FIXME: Prove name substitution only being applied to free names?
+
+
+-- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
+
+
+
+
+-- FIXME: Currently HyperEnv.Nodup is only internal for each parallel componenet
+--        and PairwiseDisjoint checks intra disjointess for components.
+--        Change this to have global no duplicates predicate using current Nodup
+--        and PairwiseDisjoint.
+
+
+def HyperEnv.Linear (𝒢 : HyperEnv) : Prop :=
+  𝒢.Nodup ∧ 𝒢.PairwiseDisjoint
+
+lemma HyperEnv.Perm_preserves_linearity {𝒢 ℋ : HyperEnv} :
+  𝒢 ~ ℋ → (𝒢.Linear ↔ ℋ.Linear) := by
+  intro h
+  simp [HyperEnv.Linear, HyperEnv.PairwiseDisjoint]
+  rw [HyperEnv.Nodup_perm_iff h, HyperEnv.Perm_PairwiseDisjoint_iff h]
+
+lemma HyperEnv.Perm.preserves_GlobalNodup {𝒢 ℋ : HyperEnv}
+  (hP : 𝒢 ~ ℋ) (h : 𝒢.Linear) : ℋ.Linear :=
+  (HyperEnv.Perm_preserves_linearity hP).mp h
+
+lemma HyperEnv.Perm.preserves_GlobalNodup_symm {𝒢 ℋ : HyperEnv}
+  (hP : 𝒢 ~ ℋ) (h : ℋ.Linear) : 𝒢.Linear :=
+  (HyperEnv.Perm_preserves_linearity hP).mpr h
+
+@[simp] lemma HyperEnv.Linear_nil :
+  HyperEnv.Linear [] := by simp [HyperEnv.Linear]
+
+
+
+
+
+
+
+lemma EnvStep.preserves_linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
+  (hlin : 𝒢.Linear) (hES : 𝒢 -[l]->ₑ 𝒢') : 𝒢'.Linear:= by
+  induction hES <;> try simp at hnd
+
+  case one => simp
+  all_goals sorry
+
+  -- case one => simp
+
+  -- case tensor hF =>
+  --   simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hF
+  --   simp [HyperEnv.Nodup, Env.Nodup_cons, Env.Nodup_merge_iff,
+  --       - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hnd
+
+  --   simp only [HyperEnv.Nodup_merge]
+  --   constructor
+  --   · apply HyperEnv.Nodup_singleton_from_env
+  --     exact Env.Nodup_cons.mpr ⟨hF.2.1, hnd.2.1⟩
+  --   · apply HyperEnv.Nodup_singleton_from_env
+  --     exact Env.Nodup_cons.mpr ⟨hnd.1.2, hnd.2.2.1⟩
+
+  -- case bot =>
+  --   simp [HyperEnv.Nodup, Env.Nodup_cons] at hnd
+  --   exact HyperEnv.Nodup_singleton_from_env hnd.2
+
+  -- case parr hF =>
+  --   simp at hF
+  --   simp [HyperEnv.Nodup, Env.Nodup_cons] at hnd
+  --   apply HyperEnv.Nodup_singleton_from_env
+  --   simp [Env.Nodup_cons]
+  --   constructor
+  --   · exact hF
+  --   · exact hnd
+
+  -- case par₁ ih => simp ; exact ⟨ih hnd.1, hnd.2⟩
+
+  -- case par₂ ih => simp ; exact ⟨hnd.1, ih hnd.2⟩
+
+  -- case syn ihP ihQ => simp ; exact ⟨ihP hnd.1, ihQ hnd.2⟩
+
+  -- case one_bot | tensor_parr => simp [hnd]
+
+  -- case res Γ _ Δ _ x y A _ _ hFx hFy _ ih =>
+  --   have := HyperEnv.Nodup_singleton hnd.2
+  --   simp [Env.Nodup_merge_iff] at this ⊢
+  --   simp at hFx hFy
+
+  --   have hndΓu: HyperEnv.Nodup [x ∶ Aᗮ :: Γ] := by
+  --     apply HyperEnv.Nodup_singleton_from_env
+  --     simp [Env.Nodup_cons]
+  --     exact ⟨hFx.2.1, this.1⟩
+
+  --   have hndΔv : HyperEnv.Nodup [y ∶ A :: Δ] := by
+  --     apply HyperEnv.Nodup_singleton_from_env
+  --     simp [Env.Nodup_cons]
+  --     exact ⟨hFy.2.2, this.2.1⟩
+
+  --   have hnd' := And.intro (And.intro hnd.1 hndΓu) hndΔv
+  --   simp only [HyperEnv.Nodup_merge] at ih
+  --   have := ih hnd'
+  --   simp [HyperEnv.Nodup, Env.Nodup_cons] at this
+  --   simp [HyperEnv.Nodup, Env.Nodup_merge_iff]
+  --   split_ands
+  --   · exact this.1.1
+  --   · exact this.1.2.2
+  --   · exact this.2.2
+  --   · sorry
+
+  -- all_goals sorry
+
+-- lemma EnvStep.preserves_PairwiseDisjoint
+
+
+
+@[simp] lemma EnvStep.names_subset {𝒢 𝒢' : HyperEnv} {l : Lbl} :
+  (𝒢 -[l]->ₑ 𝒢') → 𝒢'.names ⊆ 𝒢.names ∪ l.i := by sorry
+
+
+
+lemma EnvStep.preserves_disjoint {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl}
+  (hES : 𝒢 -[l]->ₑ 𝒢') (hD : 𝒢.disjoint ℋ) (hFl : Disjoint l.i ℋ.names) :
+  𝒢'.disjoint ℋ := by sorry
+
+
+
+
+
+
+
+
+lemma EnvStep_inv_one {𝒢 𝒢' : HyperEnv} {x : FPName}
+  (hES : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
+  ∃ 𝒢_rest, (𝒢 ~ 𝒢_rest |ₕ [[x ∶ 1]]) ∧ (𝒢' ~ 𝒢_rest) := by
+  generalize h_lbl : (x⟦⟧ : Lbl) = lbl at hES
+  induction hES <;> try contradiction
+  all_goals sorry
+
+
+
+lemma HyperEnv.Perm.extract_bot_res
+  {𝒢 ℋ 𝒢ᵣ : HyperEnv} {Γ Γ' Δ Δ' Ξ : Env} {x y z : FPName} {A : Types}
+  (h_pre : 𝒢 |ₕ [x ∶ Aᗮ :: Γ] |ₕ [y ∶ A :: Δ] ~ 𝒢ᵣ |ₕ [z ∶ ⊥ :: Ξ])
+  (h_post : ℋ |ₕ [x ∶ Aᗮ :: Γ'] |ₕ [y ∶ A :: Δ'] ~ 𝒢ᵣ |ₕ [Ξ])
+  (h_zx : z ≠ x) (h_zy : z ≠ y) :
+  ∃ 𝒢ᵣ_new Γ_1_new,
+    𝒢 |ₕ [Γ‚ Δ] ~ 𝒢ᵣ_new |ₕ [z ∶ ⊥ :: Γ_1_new] ∧
+    ℋ |ₕ [Γ'‚ Δ'] ~ 𝒢ᵣ_new |ₕ [Γ_1_new] := by sorry
+
+lemma EnvStep_hygiene_bot {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {u v y : FPName} {A : Types}
+  (hnd : (𝒢 |ₕ [u ∶ Aᗮ :: Γ] |ₕ [v ∶ A :: Δ]).Nodup)
+  (hES : 𝒢 |ₕ [u ∶ Aᗮ :: Γ] |ₕ [v ∶ A :: Δ] -[Act.bot y]->ₑ 𝒢' |ₕ [u ∶ Aᗮ :: Γ'] |ₕ [v ∶ A :: Δ']) :
+  y ≠ u ∧ y ≠ v := by sorry
+
+
+
+lemma EnvStep_inv_bot {𝒢 𝒢' : HyperEnv} {y : FPName}
+  (hnd : 𝒢.Nodup) (hES : 𝒢 -[y⸨⸩]->ₑ 𝒢') :
+  ∃ 𝒢ᵣ Γ, (𝒢 ~ 𝒢ᵣ |ₕ [y ∶ ⊥ :: Γ]) ∧ (𝒢' ~ 𝒢ᵣ |ₕ [Γ]) := by
+  generalize hl : (y⸨⸩ : Lbl) = l at hES
+  induction hES <;> try contradiction
+  all_goals simp at hl
+
+  case bot Γ _ =>
+    subst hl
+    use ∅, Γ
+    simp
+
+  case par₁ ℋ ℋ' 𝒥 l hES ih =>
+    simp at hnd
+    obtain ⟨𝒢ᵣ_ih, Γ_ih, h_pre_ih, h_post_ih⟩ := ih hnd.1 hl
+    use (𝒢ᵣ_ih |ₕ 𝒥), Γ_ih
+    constructor
+    · have h1 := HyperEnv.Perm.merge_right h_pre_ih 𝒥
+      have h2 : 𝒢ᵣ_ih |ₕ [y ∶ ⊥ :: Γ_ih] |ₕ 𝒥 ~ 𝒢ᵣ_ih |ₕ 𝒥 |ₕ [y ∶ ⊥ :: Γ_ih] := by
+        repeat rw [HyperEnv.merge_assoc]
+        apply HyperEnv.Perm.merge_left
+        apply HyperEnv.Perm.merge_comm
+      exact HyperEnv.Perm.trans h1 h2
+    · have h1 := HyperEnv.Perm.merge_right h_post_ih 𝒥
+      have h2 : 𝒢ᵣ_ih |ₕ [Γ_ih] |ₕ 𝒥 ~ 𝒢ᵣ_ih |ₕ 𝒥 |ₕ [Γ_ih] := by
+        repeat rw [HyperEnv.merge_assoc]
+        apply HyperEnv.Perm.merge_left
+        apply HyperEnv.Perm.merge_comm
+      exact h1.trans h2
+
+  case par₂ 𝒥 ℋ ℋ' l hES ih =>
+    simp at hnd
+    obtain ⟨𝒢ᵣ_ih, Γ_ih, h_pre_ih, h_post_ih⟩ := ih hnd.2 hl
+    use (𝒢ᵣ_ih |ₕ 𝒥), Γ_ih
+    constructor
+    · have h1 := HyperEnv.Perm.merge_left h_pre_ih 𝒥
+      have h2 : 𝒥 |ₕ (𝒢ᵣ_ih |ₕ [y ∶ ⊥ :: Γ_ih]) ~ 𝒢ᵣ_ih |ₕ 𝒥 |ₕ [y ∶ ⊥ :: Γ_ih] := by
+        repeat rw [HyperEnv.merge_assoc]
+        apply HyperEnv.Perm.merge_assoc
+      exact h1.trans h2
+    · have h1 := HyperEnv.Perm.merge_left h_post_ih 𝒥
+      have h2 : 𝒥 |ₕ (𝒢ᵣ_ih |ₕ [Γ_ih]) ~ 𝒢ᵣ_ih |ₕ 𝒥 |ₕ [Γ_ih] := by
+        repeat rw [HyperEnv.merge_assoc]
+        apply HyperEnv.Perm.merge_assoc
+      exact h1.trans h2
+
+  case res 𝒢 ℋ Γ Γ' Δ Δ' u v A B l hFu hFv hES ih =>
+    simp at hnd
+    have := HyperEnv.Nodup_singleton hnd.2
+    simp [Env.Nodup_merge_iff] at this
+    simp at hFu hFv
+
+    have hndΓu: HyperEnv.Nodup [u ∶ Aᗮ :: Γ] := by
+      apply HyperEnv.Nodup_singleton_from_env
+      simp [Env.Nodup_cons]
+      exact ⟨hFu.2.1, this.1⟩
+
+    have hndΔv : HyperEnv.Nodup [v ∶ A :: Δ] := by
+      apply HyperEnv.Nodup_singleton_from_env
+      simp [Env.Nodup_cons]
+      exact ⟨hFv.2.2, this.2.1⟩
+
+    have hnd' := And.intro (And.intro hnd.1 hndΓu) hndΔv
+
+    simp only [HyperEnv.Nodup_merge] at ih
+    obtain ⟨𝒢ᵣ_ih, Γ_ih, h_pre_ih, h_post_ih⟩ := ih hnd' hl
+
+    have hnyu : y ≠ u := by sorry
+    have hnyv: y ≠ v := by sorry
+
+    exact HyperEnv.Perm.extract_bot_res h_pre_ih h_post_ih hnyu hnyv
+
+  case perm 𝒢 𝒢' ℋ ℋ' _ hP _ hP' ih =>
+    have := HyperEnv.Nodup_perm hP.symm hnd
+    obtain ⟨𝒥, Γ, h_pre_ih, h_post_ih⟩ := ih this hl
+    use 𝒥, Γ
+    constructor
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.symm hP) h_pre_ih
+    · exact HyperEnv.Perm.trans (HyperEnv.Perm.symm hP') h_post_ih
+
+
+
+
+
+
+
+lemma EnvStep_inv_one_bot {𝒢 ℋ : HyperEnv} {x y : FPName}
+  (hES : 𝒢 -[x⟦⟧ |ₗ y⸨⸩]->ₑ ℋ) :
+  ∃ 𝒢' Γ,
+    (𝒢 ~ 𝒢' |ₕ [[x ∶ 1]] |ₕ [y ∶ ⊥ :: Γ]) ∧
+    (ℋ ~ 𝒢 |ₕ [Γ]) := by sorry
+
+  -- generalize h_lbl : (x⟦⟧ |ₗ y⸨⸩) = lbl at hES
+  -- induction hES <;> try contradiction
+
+
+
+
+
+
+
 
 
 -- FIXME: Check that this covers all rules mentioned in the paper
@@ -1560,7 +1913,24 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 
 
   case res => sorry
-  case one_bot => sorry
+
+  case one_bot Q Q' L hQS ih =>
+    obtain ⟨A, Γ, Δ, 𝒢, L', hP', hT'⟩ := Typing_inv_res hT
+    obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh (L ∪ L')
+    simp at hx hy
+
+    obtain ⟨ℋ, hES, hTg⟩ := ih x hx.1 y hy.1 hneq (hT' x hx.2 y hy.2 hneq)
+
+    use ℋ
+
+    constructor
+    · apply EnvStep.perm hP'.symm
+      · apply EnvStep.one_bot (x := x) (y := y)
+        sorry
+      · sorry
+    · exact hTg
+
+
   case tensor_parr => sorry
 
 
