@@ -312,7 +312,7 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat}
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by
   intro h
-  induction h <;> try simp_all ; intro d c
+  induction h <;> try simp_all [Env.mem_pair_fst_in_names_iff] ; intro d c
 
   case mix₀ => exact Typing.mix₀
 
@@ -332,7 +332,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     exact Typing.one (ih d c)
 
   case bot hF _ ih =>
-    exact Typing.bot (hF := by simp [hF]) (ih d c)
+    exact Typing.bot (hF := by simp [Env.mem_pair_fst_in_names_iff, hF]) (ih d c)
 
   case cut A _ L _ ih =>
     apply Typing.cut L (A := A ↑ᵗ d, c)
@@ -343,14 +343,14 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     exact ih
 
   case tensor L hF _ ih =>
-    apply Typing.tensor (by simp_all) L
+    apply Typing.tensor (by simp_all [Env.mem_pair_fst_in_names_iff]) L
     · intro y hy
       specialize ih y hy d c
       rw [Proc.shiftTypes_open0_comm] at ih
       exact ih
 
   case parr L _ _ ih =>
-    apply Typing.parr (by simp_all) L
+    apply Typing.parr (by simp_all [Env.mem_pair_fst_in_names_iff]) L
     · intro y hy
       specialize ih y hy d c
       rw [Proc.shiftTypes_open0_comm] at ih
@@ -379,12 +379,12 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 
   case w hlc _ ih =>
     apply Typing.w
-    · simp_all
+    · simp_all [Env.mem_pair_fst_in_names_iff]
     · exact Types.lc_shift hlc
     · exact ih d c
 
   case c L _ _ ih =>
-    apply Typing.c (by simp_all) L
+    apply Typing.c (by simp_all [Env.mem_pair_fst_in_names_iff]) L
     intro x hx
     specialize ih x hx d c
     rw [Proc.shiftTypes_open0_comm] at ih

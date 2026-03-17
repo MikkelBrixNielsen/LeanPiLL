@@ -193,9 +193,9 @@ lemma Env.lc_perm {n : Nat} {Γ Δ : Env} :
    ∀ A, (x, A) ∈ Γ → x ∈ Γ.names := by
    intro A hin
    cases hin
-   case head => simp_all
+   case head => simp_all [Env.mem_pair_fst_in_names_iff]
    case tail hd tl hin =>
-    simp_all
+    simp_all [Env.mem_pair_fst_in_names_iff]
     use A
     exact Or.inr hin
 
@@ -329,7 +329,7 @@ lemma Env.shiftTypes_comm {Γ : Env} {d c : Nat} :
     cases E
     case mk z A =>
       have : x ≠ z := by
-        simp at hF
+        simp [Env.mem_pair_fst_in_names_iff] at hF
         specialize hF A
         simp_all
       simp
@@ -539,7 +539,7 @@ lemma Env.extract_exp {Γ : Env} {z : FPName}
   case cons E Γ ih =>
     obtain ⟨x, A⟩ := E
 
-    simp [- Env.mem_pair_fst_in_names_iff] at hz
+    simp [- mem_pair_fst_in_names_iff] at hz
 
     have hServΓ : ?ₑΓ := by
       intro p hp
@@ -555,7 +555,7 @@ lemma Env.extract_exp {Γ : Env} {z : FPName}
         refine ⟨List.Perm.refl _, hServΓ, ?_⟩
         simp ; rw [← Finset.erase_eq, Finset.erase_insert]
         have this := (List.nodup_cons.mp hNodup).1
-        simp_all
+        simp_all [Env.mem_pair_fst_in_names_iff]
       · obtain ⟨B, Γ', hP', hServ', hNames'⟩ := ih hzΓ hServΓ ((Env.Nodup_cons.mp hNodup).2)
         use B, (x, ??A) :: Γ'
         constructor
@@ -580,14 +580,9 @@ lemma Env.extract_exp {Γ : Env} {z : FPName}
               simp at this
               exact Env.not_mem_names_iff.mpr this
 
-            have h2 : z ∈ names Γ := by
-              obtain ⟨T, hT⟩ := hzΓ
-              simp
-              exact ⟨T, hT⟩
-
             have hneq : z ≠ x := by
               intro rfl
-              exact h1 h2
+              exact h1 (by simp [hzΓ])
 
             ext a
             simp only [Finset.mem_sdiff, Finset.mem_singleton, Finset.mem_insert]
@@ -762,7 +757,7 @@ lemma HyperEnv.mem_pair_fst_in_names {𝒢 : HyperEnv} {x : FPName} :
     constructor
     case mp =>
       intro h
-      simp at h
+      simp [Env.mem_pair_fst_in_names_iff] at h
       cases h
       case inl hL =>
         cases hL
@@ -780,7 +775,7 @@ lemma HyperEnv.mem_pair_fst_in_names {𝒢 : HyperEnv} {x : FPName} :
       obtain ⟨T, Γ, hinΓ, hOr⟩ := h
       cases hOr
       case head =>
-        simp_all
+        simp_all [Env.mem_pair_fst_in_names_iff]
         apply Or.inl
         use T
       case tail hMem =>
@@ -793,7 +788,7 @@ lemma HyperEnv.mem_pair_fst_in_names {𝒢 : HyperEnv} {x : FPName} :
 
 lemma HyperEnv.mem_names_substNames {𝒢 : HyperEnv} {x y z : FPName} :
   z ∈ (𝒢{y // x}).names ↔ (z = y ∧ x ∈ 𝒢.names) ∨ (z ∈ 𝒢.names ∧ z ≠ x) := by
-  induction 𝒢 <;> simp_all [HasSubst.subst, HyperEnv.substNames]
+  induction 𝒢 <;> simp_all [Env.mem_pair_fst_in_names_iff, HasSubst.subst, HyperEnv.substNames]
   case nil => simp [HyperEnv.names]
   case cons hd tl ih =>
     constructor

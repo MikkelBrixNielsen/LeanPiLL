@@ -1466,6 +1466,16 @@ lemma HyperEnv.cons_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
 
 -- NOTE: shows the proof lean found using the simp_all tactic show_term { simp_all }
 
+-- TODO: Implement the following instead of having post condition on res in EnvStep
+-- NOTE: Not possible without knowning that l.i is disjoint form ℋ, which could be
+-- obtained from a ProcStep sidecondition, but that would require having this be used
+-- inside e.g. session_fidelity and not having it be a strictly stand alone property /
+-- lemma for EnvStep.
+-- lemma EnvStep.Linearity_and_subset {𝒢 𝒢' : HyperEnv} {l : Lbl}
+--   (hlin : 𝒢.Linearity) (hES : 𝒢 -[l]->ₑ 𝒢') :
+--   𝒢'.Linearity ∧ (𝒢'.names ⊆ 𝒢.names ∪ l.i) := by
+--   induction hES
+
 
 
 
@@ -1475,114 +1485,45 @@ lemma HyperEnv.cons_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
 --        and PairwiseDisjoint.
 
 
-def HyperEnv.Linear (𝒢 : HyperEnv) : Prop :=
+def HyperEnv.Linearity (𝒢 : HyperEnv) : Prop :=
   𝒢.Nodup ∧ 𝒢.PairwiseDisjoint
 
 lemma HyperEnv.Perm_preserves_linearity {𝒢 ℋ : HyperEnv} :
-  𝒢 ~ ℋ → (𝒢.Linear ↔ ℋ.Linear) := by
+  𝒢 ~ ℋ → (𝒢.Linearity ↔ ℋ.Linearity) := by
   intro h
-  simp [HyperEnv.Linear, HyperEnv.PairwiseDisjoint]
+  simp [HyperEnv.Linearity, HyperEnv.PairwiseDisjoint]
   rw [HyperEnv.Nodup_perm_iff h, HyperEnv.Perm_PairwiseDisjoint_iff h]
 
-lemma HyperEnv.Perm.preserves_GlobalNodup {𝒢 ℋ : HyperEnv}
-  (hP : 𝒢 ~ ℋ) (h : 𝒢.Linear) : ℋ.Linear :=
+lemma HyperEnv.Perm.preserves_Linearity {𝒢 ℋ : HyperEnv}
+  (hP : 𝒢 ~ ℋ) (h : 𝒢.Linearity) : ℋ.Linearity :=
   (HyperEnv.Perm_preserves_linearity hP).mp h
 
-lemma HyperEnv.Perm.preserves_GlobalNodup_symm {𝒢 ℋ : HyperEnv}
-  (hP : 𝒢 ~ ℋ) (h : ℋ.Linear) : 𝒢.Linear :=
+lemma HyperEnv.Perm.preserves_Linearity_symm {𝒢 ℋ : HyperEnv}
+  (hP : 𝒢 ~ ℋ) (h : ℋ.Linearity) : 𝒢.Linearity :=
   (HyperEnv.Perm_preserves_linearity hP).mpr h
 
-@[simp] lemma HyperEnv.Linear_nil :
-  HyperEnv.Linear [] := by simp [HyperEnv.Linear]
+@[simp] lemma HyperEnv.Linearity_nil :
+  HyperEnv.Linearity [] := by simp [HyperEnv.Linearity]
 
+@[simp] lemma HyperEnv.Linearity_merge {𝒢 ℋ : HyperEnv} :
+  (𝒢 |ₕ ℋ).Linearity = (𝒢.Linearity ∧ ℋ.Linearity ∧
+    ∀ a ∈ 𝒢, ∀ b ∈ ℋ, Disjoint a.names b.names) := by
+  simp [HyperEnv.Linearity]
+  constructor
+  · intro h
+    obtain ⟨⟨h1, h2⟩, h3, h4, h5⟩ := h
+    exact ⟨⟨h1, h3⟩, ⟨⟨h2, h4⟩, h5⟩⟩
+  · intro h
+    obtain ⟨⟨h1, h2⟩, ⟨h3, h4⟩, h5⟩ := h
+    exact ⟨⟨h1, h3⟩, h2, h4, h5⟩
 
+-- FIXME: Do this
+lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
+  (hlin : 𝒢.Linearity) (hES : 𝒢 -[l]->ₑ 𝒢') : 𝒢'.Linearity := by
+  induction hES
 
-
-
-
-
-lemma EnvStep.preserves_linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
-  (hlin : 𝒢.Linear) (hES : 𝒢 -[l]->ₑ 𝒢') : 𝒢'.Linear:= by
-  induction hES <;> try simp at hnd
-
-  case one => simp
   all_goals sorry
 
-  -- case one => simp
-
-  -- case tensor hF =>
-  --   simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hF
-  --   simp [HyperEnv.Nodup, Env.Nodup_cons, Env.Nodup_merge_iff,
-  --       - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hnd
-
-  --   simp only [HyperEnv.Nodup_merge]
-  --   constructor
-  --   · apply HyperEnv.Nodup_singleton_from_env
-  --     exact Env.Nodup_cons.mpr ⟨hF.2.1, hnd.2.1⟩
-  --   · apply HyperEnv.Nodup_singleton_from_env
-  --     exact Env.Nodup_cons.mpr ⟨hnd.1.2, hnd.2.2.1⟩
-
-  -- case bot =>
-  --   simp [HyperEnv.Nodup, Env.Nodup_cons] at hnd
-  --   exact HyperEnv.Nodup_singleton_from_env hnd.2
-
-  -- case parr hF =>
-  --   simp at hF
-  --   simp [HyperEnv.Nodup, Env.Nodup_cons] at hnd
-  --   apply HyperEnv.Nodup_singleton_from_env
-  --   simp [Env.Nodup_cons]
-  --   constructor
-  --   · exact hF
-  --   · exact hnd
-
-  -- case par₁ ih => simp ; exact ⟨ih hnd.1, hnd.2⟩
-
-  -- case par₂ ih => simp ; exact ⟨hnd.1, ih hnd.2⟩
-
-  -- case syn ihP ihQ => simp ; exact ⟨ihP hnd.1, ihQ hnd.2⟩
-
-  -- case one_bot | tensor_parr => simp [hnd]
-
-  -- case res Γ _ Δ _ x y A _ _ hFx hFy _ ih =>
-  --   have := HyperEnv.Nodup_singleton hnd.2
-  --   simp [Env.Nodup_merge_iff] at this ⊢
-  --   simp at hFx hFy
-
-  --   have hndΓu: HyperEnv.Nodup [x ∶ Aᗮ :: Γ] := by
-  --     apply HyperEnv.Nodup_singleton_from_env
-  --     simp [Env.Nodup_cons]
-  --     exact ⟨hFx.2.1, this.1⟩
-
-  --   have hndΔv : HyperEnv.Nodup [y ∶ A :: Δ] := by
-  --     apply HyperEnv.Nodup_singleton_from_env
-  --     simp [Env.Nodup_cons]
-  --     exact ⟨hFy.2.2, this.2.1⟩
-
-  --   have hnd' := And.intro (And.intro hnd.1 hndΓu) hndΔv
-  --   simp only [HyperEnv.Nodup_merge] at ih
-  --   have := ih hnd'
-  --   simp [HyperEnv.Nodup, Env.Nodup_cons] at this
-  --   simp [HyperEnv.Nodup, Env.Nodup_merge_iff]
-  --   split_ands
-  --   · exact this.1.1
-  --   · exact this.1.2.2
-  --   · exact this.2.2
-  --   · sorry
-
-  -- all_goals sorry
-
--- lemma EnvStep.preserves_PairwiseDisjoint
-
-
-
-@[simp] lemma EnvStep.names_subset {𝒢 𝒢' : HyperEnv} {l : Lbl} :
-  (𝒢 -[l]->ₑ 𝒢') → 𝒢'.names ⊆ 𝒢.names ∪ l.i := by sorry
-
-
-
-lemma EnvStep.preserves_disjoint {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl}
-  (hES : 𝒢 -[l]->ₑ 𝒢') (hD : 𝒢.disjoint ℋ) (hFl : Disjoint l.i ℋ.names) :
-  𝒢'.disjoint ℋ := by sorry
 
 
 
@@ -1591,12 +1532,15 @@ lemma EnvStep.preserves_disjoint {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl}
 
 
 
-lemma EnvStep_inv_one {𝒢 𝒢' : HyperEnv} {x : FPName}
-  (hES : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
-  ∃ 𝒢_rest, (𝒢 ~ 𝒢_rest |ₕ [[x ∶ 1]]) ∧ (𝒢' ~ 𝒢_rest) := by
-  generalize h_lbl : (x⟦⟧ : Lbl) = lbl at hES
-  induction hES <;> try contradiction
-  all_goals sorry
+
+
+
+-- lemma EnvStep_inv_one {𝒢 𝒢' : HyperEnv} {x : FPName}
+--   (hES : 𝒢 -[x⟦⟧]->ₑ 𝒢') :
+--   ∃ 𝒢_rest, (𝒢 ~ 𝒢_rest |ₕ [[x ∶ 1]]) ∧ (𝒢' ~ 𝒢_rest) := by
+--   generalize h_lbl : (x⟦⟧ : Lbl) = lbl at hES
+--   induction hES <;> try contradiction
+--   all_goals sorry
 
 
 
@@ -1609,10 +1553,10 @@ lemma HyperEnv.Perm.extract_bot_res
     𝒢 |ₕ [Γ‚ Δ] ~ 𝒢ᵣ_new |ₕ [z ∶ ⊥ :: Γ_1_new] ∧
     ℋ |ₕ [Γ'‚ Δ'] ~ 𝒢ᵣ_new |ₕ [Γ_1_new] := by sorry
 
-lemma EnvStep_hygiene_bot {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {u v y : FPName} {A : Types}
-  (hnd : (𝒢 |ₕ [u ∶ Aᗮ :: Γ] |ₕ [v ∶ A :: Δ]).Nodup)
-  (hES : 𝒢 |ₕ [u ∶ Aᗮ :: Γ] |ₕ [v ∶ A :: Δ] -[Act.bot y]->ₑ 𝒢' |ₕ [u ∶ Aᗮ :: Γ'] |ₕ [v ∶ A :: Δ']) :
-  y ≠ u ∧ y ≠ v := by sorry
+-- lemma EnvStep_hygiene_bot {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {u v y : FPName} {A : Types}
+--   (hnd : (𝒢 |ₕ [u ∶ Aᗮ :: Γ] |ₕ [v ∶ A :: Δ]).Nodup)
+--   (hES : 𝒢 |ₕ [u ∶ Aᗮ :: Γ] |ₕ [v ∶ A :: Δ] -[Act.bot y]->ₑ 𝒢' |ₕ [u ∶ Aᗮ :: Γ'] |ₕ [v ∶ A :: Δ']) :
+--   y ≠ u ∧ y ≠ v := by sorry
 
 
 
@@ -1662,7 +1606,7 @@ lemma EnvStep_inv_bot {𝒢 𝒢' : HyperEnv} {y : FPName}
         apply HyperEnv.Perm.merge_assoc
       exact h1.trans h2
 
-  case res 𝒢 ℋ Γ Γ' Δ Δ' u v A B l hFu hFv hES ih =>
+  case res 𝒢 ℋ Γ Γ' Δ Δ' u v A B l hFu hFv hFu' hFv' hES ih =>
     simp at hnd
     have := HyperEnv.Nodup_singleton hnd.2
     simp [Env.Nodup_merge_iff] at this
@@ -1702,11 +1646,11 @@ lemma EnvStep_inv_bot {𝒢 𝒢' : HyperEnv} {y : FPName}
 
 
 
-lemma EnvStep_inv_one_bot {𝒢 ℋ : HyperEnv} {x y : FPName}
-  (hES : 𝒢 -[x⟦⟧ |ₗ y⸨⸩]->ₑ ℋ) :
-  ∃ 𝒢' Γ,
-    (𝒢 ~ 𝒢' |ₕ [[x ∶ 1]] |ₕ [y ∶ ⊥ :: Γ]) ∧
-    (ℋ ~ 𝒢 |ₕ [Γ]) := by sorry
+-- lemma EnvStep_inv_one_bot {𝒢 ℋ : HyperEnv} {x y : FPName}
+--   (hES : 𝒢 -[x⟦⟧ |ₗ y⸨⸩]->ₑ ℋ) :
+--   ∃ 𝒢' Γ,
+--     (𝒢 ~ 𝒢' |ₕ [[x ∶ 1]] |ₕ [y ∶ ⊥ :: Γ]) ∧
+--     (ℋ ~ 𝒢 |ₕ [Γ]) := by sorry
 
   -- generalize h_lbl : (x⟦⟧ |ₗ y⸨⸩) = lbl at hES
   -- induction hES <;> try contradiction
