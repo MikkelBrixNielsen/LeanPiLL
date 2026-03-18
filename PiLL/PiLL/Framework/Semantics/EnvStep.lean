@@ -22,21 +22,27 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       (hF : x' ∉ HyperEnv.names [x ∶ A ⅋ B :: Γ]) :
       EnvStep [x ∶ A ⅋ B :: Γ] (x⸨x'⸩) [x' ∶ A :: x ∶ B :: Γ]
 
+  -- NOTE: added disjointness contraints to par₁, par₂ and syn to mimic ProcStep contraint
+  -- as not to have to do mutual induction on EnvStep and ProcStep to show Linearity.
+  -- Remark 3.6 from the paper [1] (main.pdf)
   | par₁
       {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl} :
       EnvStep 𝒢 l 𝒢' →
+      l.i ∩ ℋ.names = ∅ → -- Added to mimic ProcStep
       -----------------------------
       EnvStep (𝒢 |ₕ ℋ) l (𝒢' |ₕ ℋ)
 
   | par₂
       {𝒢 ℋ ℋ': HyperEnv} {l : Lbl} :
       EnvStep ℋ l ℋ' →
+      l.i ∩ 𝒢.names = ∅ → -- Added to mimic ProcStep
       -----------------------------
       EnvStep (𝒢 |ₕ ℋ) l (𝒢 |ₕ ℋ')
 
   | syn
       {𝒢 𝒢' ℋ ℋ': HyperEnv} {l l' : Act} :
-      EnvStep 𝒢 l 𝒢' → EnvStep ℋ l' ℋ' → (l |ₗ l').WF →
+      EnvStep 𝒢 l 𝒢' → EnvStep ℋ l' ℋ' →
+      (l |ₗ l').i ∩ (𝒢 |ₕ ℋ).names = ∅ → (l |ₗ l').WF → -- Added to mimic ProcStep
       --------------------------------------------------
       EnvStep (𝒢 |ₕ ℋ) (l |ₗ l') (𝒢' |ₕ ℋ')
 
@@ -55,10 +61,17 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       ------------------------------------------------------------------
       EnvStep (𝒢 |ₕ [Γ‚ Δ‚ Ξ]) (τ) (𝒢 |ₕ [Γ‚ Δ‚ Ξ])
 
+  -- NOTE: hneq : x ≠ y, is only here for convenience to prove EnvStep.preserves_linearity as
+  -- a stand alone property. Given The Typing relating a ProcStep and EnvStep, this could be
+  -- extracted from the fact that a Typing preserves linearity of Envs.
+  -- The same is true for hFlx : x ∉ l.i ∪ l.f and hFly : y ∉ l.i ∪ l.f due to linearity, if
+  -- x and y persist across the step then no duplicates guarantee that its the same x and y
+  -- as such they could not have been mentioned in the label.
   | res
       {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : FPName} {A B : Types} {l : Lbl}
-      {hFx : x ∉ (𝒢 |ₕ [Γ‚ Δ]).names} {hFy : y ∉ (𝒢 |ₕ [Γ‚ Δ]).names}
-      {hFx' : x ∉ (𝒢' |ₕ [Γ'‚ Δ']).names} {hFy' : y ∉ (𝒢' |ₕ [Γ'‚ Δ']).names} :
+      (hFx : x ∉ (𝒢 |ₕ [Γ‚ Δ]).names) (hFy : y ∉ (𝒢 |ₕ [Γ‚ Δ]).names)
+      (hFx' : x ∉ (𝒢' |ₕ [Γ'‚ Δ']).names) (hFy' : y ∉ (𝒢' |ₕ [Γ'‚ Δ']).names)
+      (hFlx : x ∉ l.i ∪ l.f) (hFly : y ∉ l.i ∪ l.f) (hneq : x ≠ y) :
       EnvStep (𝒢 |ₕ [x ∶ Aᗮ :: Γ] |ₕ [y ∶ A :: Δ]) (l) (𝒢' |ₕ [x ∶ Aᗮ :: Γ'] |ₕ [y ∶ A :: Δ']) →
       -------------------------------------------------------------------------------------
       EnvStep (𝒢 |ₕ [Γ‚ Δ]) l (𝒢' |ₕ [Γ'‚ Δ'])
@@ -160,7 +173,7 @@ notation:50 𝒢 " -[" ls "]->>ₑ " 𝒢' => MEST 𝒢 ls 𝒢'
   case syn =>
     grind [HyperEnv.names_merge, Lbl.i]
 
-  case res 𝒢 𝒢' Γ Γ' Δ Δ' x y _ _  l hFx hFy hFx' hFy'  _ ih =>
+  case res 𝒢 𝒢' Γ Γ' Δ Δ' x y _ _ l hFx hFy hFx' hFy' _ _ _ _ ih =>
     simp_all only [HyperEnv.names_merge, HyperEnv.names_singleton, Env.names_merge,
       Env.names_distributes, Lbl.i, Finset.mem_union]
     intro n hn
