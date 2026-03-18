@@ -1445,6 +1445,88 @@ lemma HyperEnv.cons_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
   (Γ :: 𝒢) ~ (𝒢 |ₕ [Γ]) := by
   symm ; apply HyperEnv.Perm_merge_singleton
 
+lemma HyperEnv.cons_append {𝒢 : HyperEnv} {Γ : Env} :
+  Γ :: 𝒢 = [Γ] |ₕ 𝒢 := by simp
+
+inductive HyperEnv.Delete (Γ : Env) : HyperEnv → HyperEnv → Prop where
+  | head {𝒢 : HyperEnv} {Δ : Env} :
+      (Γ ~ Δ) → Delete Γ (Δ :: 𝒢) 𝒢
+  | tail {Δ : Env} {𝒢 𝒢' : HyperEnv} :
+      Delete Γ 𝒢 𝒢' → Delete Γ (Δ :: 𝒢) (Δ :: 𝒢')
+
+-- Removing Γ from Γ :: 𝒢 => 𝒢 then adding Γ again => Γ :: 𝒢
+lemma HyperEnv.Delete_restore {Γ : Env} {𝒢 𝒢' : HyperEnv} (h : Delete Γ 𝒢 𝒢') :
+  Γ :: 𝒢' ~ 𝒢 := by
+  induction h
+  case head Δ hEnv =>
+    exact HyperEnv.Perm.cons hEnv (.refl _)
+  case tail Δ hD ih =>
+    apply HyperEnv.Perm.trans (HyperEnv.Perm.swap ..)
+    exact HyperEnv.Perm.cons (List.Perm.refl _) ih
+
+lemma HyperEnv.Perm_Delete {𝒢 ℋ : HyperEnv} (hP : 𝒢 ~ ℋ) :
+  ∀ {Γ 𝒢'}, Delete Γ 𝒢 𝒢' → ∃ ℋ', Delete Γ ℋ ℋ' ∧ 𝒢' ~ ℋ' := by
+  induction hP
+  case nil => intros _ 𝒢 _ ; use 𝒢
+
+  case cons Γ Δ 𝒢 ℋ hPE hPH ih =>
+    intros Ξ 𝒥 hDel
+    cases hDel
+    case head hP' =>
+      exact ⟨ℋ, HyperEnv.Delete.head (List.Perm.trans hP' hPE), hPH⟩
+    case tail 𝒥 hDel =>
+      obtain ⟨ℋ', hDelℋ', hPℋ'⟩ := ih hDel
+      exact ⟨Δ :: ℋ', HyperEnv.Delete.tail hDelℋ', HyperEnv.Perm.cons hPE hPℋ'⟩
+
+  case swap Γ Δ 𝒢 =>
+    intro Ξ 𝒢' hDel
+    cases hDel
+    case head hEnv =>
+      exact ⟨Δ :: 𝒢, HyperEnv.Delete.tail (HyperEnv.Delete.head hEnv), .refl _⟩
+    case tail hD_tail =>
+      cases hD_tail
+      case head hPE =>
+        use Γ :: 𝒢
+        exact ⟨HyperEnv.Delete.head hPE, .refl _⟩
+      case tail 𝒢' hD_tl_tl =>
+        exact ⟨Δ :: Γ :: 𝒢', HyperEnv.Delete.tail (HyperEnv.Delete.tail hD_tl_tl), .swap ..⟩
+
+  case trans ih1 ih2 =>
+    intros E1 H1 hDel1
+    obtain ⟨H2, hDel2, hP12⟩ := ih1 hDel1
+    obtain ⟨H3, hDel3, hP23⟩ := ih2 hDel2
+    exact ⟨H3, hDel3, HyperEnv.Perm.trans hP12 hP23⟩
+
+lemma HyperEnv.Perm.cons_cancel_left {Γ : Env} {𝒢 ℋ : HyperEnv} (hP : Γ :: 𝒢 ~ Γ :: ℋ) :
+  𝒢 ~ ℋ := by
+  have hDel1 : Delete Γ (Γ :: 𝒢) 𝒢 := Delete.head (List.Perm.refl _)
+  obtain ⟨_, hDel2, hP'⟩ := HyperEnv.Perm_Delete hP hDel1
+  cases hDel2
+  case head _ => exact hP'
+  case tail hDel3 =>
+    apply HyperEnv.Perm.trans hP'
+    exact HyperEnv.Delete_restore hDel3
+
+lemma HyperEnv.Perm_merge_cancel_right {𝒢 ℋ 𝒥 : HyperEnv} :
+  𝒢 |ₕ 𝒥 ~ ℋ |ₕ 𝒥 → 𝒢 ~ ℋ := by
+  intro h
+  induction 𝒥 generalizing 𝒢 ℋ
+  case nil => simp at h ; exact h
+  case cons Γ 𝒥 ih =>
+    rw [HyperEnv.cons_append, ← HyperEnv.merge_assoc, ← HyperEnv.merge_assoc] at h
+    have hcancel := (ih h)
+    have h_front : Γ :: 𝒢 ~ Γ :: ℋ := by
+      apply HyperEnv.Perm.trans (HyperEnv.Perm_merge_singleton Γ 𝒢).symm
+      apply HyperEnv.Perm.trans hcancel
+      exact HyperEnv.Perm_merge_singleton Γ ℋ
+    exact HyperEnv.Perm.cons_cancel_left h_front
+
+lemma HyperEnv.Perm_merge_cancel_left {𝒢 ℋ 𝒥 : HyperEnv} :
+  𝒥 |ₕ 𝒢 ~ 𝒥 |ₕ ℋ → 𝒢 ~ ℋ := by
+  intro h
+  induction 𝒥
+  case nil => exact h
+  case cons Ξ 𝒥' ih => exact ih (HyperEnv.Perm.cons_cancel_left h)
 
 
 
@@ -1452,8 +1534,6 @@ lemma HyperEnv.cons_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
 -- FIXME: Fix TypingStep
 -- FIXME: Typing_preserves_proc_congr
 -- FIXME: Use NameSpaces instead of having e.g. HyperEnv._____ everywhere
-
-
 
 
 
@@ -1484,6 +1564,8 @@ lemma HyperEnv.cons_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
 --        and PairwiseDisjoint checks intra disjointess for components.
 --        Change this to have global no duplicates predicate using current Nodup
 --        and PairwiseDisjoint.
+
+-- FIXME: Move everything related to HyperEnv.Perm to a separate file?
 
 
 lemma HyperEnv.disjoint_names_left {𝒢 : HyperEnv} {S : Finset FPName} :
