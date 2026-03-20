@@ -588,6 +588,130 @@ lemma Env.extract_exp {Γ : Env} {z : FPName}
             simp only [Finset.mem_sdiff, Finset.mem_singleton, Finset.mem_insert]
             grind
 
+@[simp] lemma Env.serverUsable_nil :
+  ?ₑ[] := by simp [Env.serverUsable]
+
+@[simp] lemma Env.swap_two {x y : FPName} {A B : Types} :
+  [x ∶ A, y ∶ B] ~ [y ∶ B, x ∶ A] := by
+  exact List.Perm.swap ..
+lemma Env.not_mem_names_substNames {Γ : Env} {x y z : FPName} (hzy : z ≠ y) (hz : z ∉ Γ.names) :
+  z ∉ Γ{y // x}.names := by
+  induction Γ
+  case nil => simp
+  case cons E Δ ih =>
+    obtain ⟨w, T⟩ := E
+    simp at ⊢ hz
+    constructor
+    · simp [HasSubst.subst, FPName.subst]
+      split_ifs
+      case pos => exact hzy
+      case neg => exact hz.1
+    · simp_all
+
+@[simp] lemma Env.lc_nil {n : Nat} :
+  Env.lc n ([] : Env) := by simp [Env.lc]
+
+lemma Env.substNames_preserves_lc {Γ : Env} {x y : FPName} {n : Nat} (hlc : Env.lc n Γ) :
+  Env.lc n Γ{y // x} := by
+  induction Γ
+  case nil => simp
+  case cons E Δ ih =>
+    obtain ⟨w, T⟩ := E
+    simp [Env.lc_cons] at ⊢ hlc
+    constructor
+    · exact hlc.1
+    · apply ih
+      exact hlc.2
+
+lemma Env.serverUsable_perm_mp {Γ Δ : Env} :
+  Γ ~ Δ → (?ₑΓ → ?ₑΔ) := by
+  intro hP hServ A B
+  simp [Env.serverUsable] at hServ
+  have hAΓ : A ∈ Γ := (hP.mem_iff).mpr B
+  exact hServ A.1 A.2 hAΓ
+
+lemma Env.serverUsable_perm_iff {Γ Δ : Env} :
+  Γ ~ Δ → (?ₑΓ ↔ ?ₑΔ) := by
+  intro hP
+  constructor
+  · exact Env.serverUsable_perm_mp hP
+  · exact Env.serverUsable_perm_mp hP.symm
+
+lemma Env.serverUsable_merge_mp {Γ Δ : Env} :
+  ?ₑ(Γ ++ Δ) → (?ₑΓ ∧ ?ₑΔ) := by
+  simp [Env.serverUsable]
+  intro h
+  constructor
+  · intro a b hΓ
+    exact h a b (Or.inl hΓ)
+  · intro a b hΔ
+    exact h a b (Or.inr hΔ)
+
+lemma Env.serverUsable_merge_mpr {Γ Δ : Env} :
+  (?ₑΓ ∧ ?ₑΔ) → ?ₑ(Γ ++ Δ) := by
+  simp [Env.serverUsable]
+  intro hΓ hΔ a b h
+  cases h
+  case inl h => exact hΓ a b h
+  case inr h => exact hΔ a b h
+
+lemma Env.serverUsable_merge_iff {Γ Δ : Env} :
+  ?ₑ(Γ ++ Δ) ↔ (?ₑΓ ∧ ?ₑΔ) := by
+  constructor
+  · exact Env.serverUsable_merge_mp
+  · exact Env.serverUsable_merge_mpr
+
+lemma Env.Nodup_merge_iff {Γ Δ : Env} :
+  (Γ ++ Δ).Nodup ↔ (Γ.Nodup ∧ Δ.Nodup ∧ Γ.disjoint Δ) := by
+  simp [Env.Nodup]
+  constructor
+  · intro h
+    have h' := (List.nodup_append.mp h)
+    split_ands
+    · exact h'.1
+    · exact h'.2.1
+    · simp [Disjoint]
+      intro x hxΓ hxΔ
+      ext a
+      constructor
+      · intro ha
+        rcases h' with ⟨_, _, hdis⟩
+        have hΓ := hxΓ ha
+        have hΔ := hxΔ ha
+        have : a ≠ a := hdis a (by simpa using hΓ) a (by simpa using hΔ)
+        exact (this rfl).elim
+      · intro h; cases h
+  · intro h
+    obtain ⟨h1, h2, h3⟩ := h
+    have := (List.nodup_append.mpr ⟨h1, h2, ?_⟩)
+    · exact this
+    · simp [Disjoint] at h3
+      intro a ha b hb hEq
+      have hsubsetΓ : ({a} : Finset FPName) ⊆ Γ.names := by
+        intro x hx
+        simp at hx
+        subst hx
+        simpa using ha
+
+      have hsubsetΔ : ({a} : Finset FPName) ⊆ Δ.names := by
+        intro x hx
+        simp at hx
+        subst hx
+        simpa [hEq] using hb
+
+      have hEmpty := h3 hsubsetΓ hsubsetΔ
+      simp at hEmpty
+
+lemma Env.mem_unique {Γ : Env} {x : FPName} {A B : Types}
+  (hNodup : Γ.Nodup) (hA : (x, A) ∈ Γ) (hB : (x, B) ∈ Γ) : A = B := by
+  induction Γ
+  case nil => contradiction
+  case cons hd tl ih =>
+    obtain ⟨w, T⟩ := hd
+    simp_all
+    rw [Env.Nodup_cons] at hNodup
+    grind [mem_pair_fst_in_names_iff]
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
@@ -1129,3 +1253,273 @@ lemma HyperEnv.mem_of_disjoint {𝒢 ℋ : HyperEnv} (hD : 𝒢.disjoint ℋ) :
   apply Disjoint.mono _ _ hD
   · exact HyperEnv.subset_names_of_mem hΓ
   · exact HyperEnv.subset_names_of_mem hΔ
+
+@[simp] lemma HyperEnv.swap_two_inner {x y : FPName} {A B : Types} :
+  [[x ∶ A, y ∶ B]] ~ [[y ∶ B, x ∶ A]] := by
+  exact HyperEnv.Perm.cons Env.swap_two HyperEnv.Perm.nil
+
+@[simp] lemma HyperEnv.disjoint_split {𝒢 ℋ : HyperEnv} (hD : (𝒢 |ₕ ℋ).PairwiseDisjoint) :
+  𝒢.disjoint ℋ := by
+  rw [HyperEnv.disjoint, Finset.disjoint_left]
+  rw [HyperEnv.PairwiseDisjoint, HyperEnv.merge, List.pairwise_append] at hD
+  intro n hin𝒢 hinℋ
+  rw [HyperEnv.mem_pair_fst_in_names] at hin𝒢 hinℋ
+  obtain ⟨T1, Γ, hinΓ, hΓ𝒢⟩ := hin𝒢
+  obtain ⟨T2, Δ, hinΔ, hΔℋ⟩ := hinℋ
+  obtain ⟨h1, h2, h3⟩ := hD
+  have := h3 Γ hΓ𝒢 Δ hΔℋ
+  simp [Env.disjoint] at this
+  have hnΓ := Env.mem_pair_fst_in_names T1 hinΓ
+  have hnΔ := Env.mem_pair_fst_in_names T2 hinΔ
+  rw [Finset.disjoint_left] at this
+  exact this hnΓ hnΔ
+
+lemma HyperEnv.merge_nilL (𝒢 : HyperEnv) : [] |ₕ 𝒢 = 𝒢 := by simp
+
+lemma HyperEnv.merge_nilR (𝒢 : HyperEnv) : 𝒢 |ₕ [] = 𝒢 := by simp
+
+lemma HyperEnv.Perm.merge_right {𝒢 ℋ : HyperEnv} (p : 𝒢 ~ ℋ) : ∀ 𝒥, 𝒢 |ₕ 𝒥 ~ ℋ |ₕ 𝒥 := by
+  induction p
+  case nil => simp
+  case cons hPE hPH ih => intro 𝒥 ; exact HyperEnv.Perm.cons hPE (ih 𝒥)
+  case swap => intro 𝒥 ; exact HyperEnv.Perm.swap ..
+  case trans ih1 ih2 => intro 𝒥 ; exact HyperEnv.Perm.trans (ih1 𝒥) (ih2 𝒥)
+
+theorem HyperEnv.Perm.merge_left {𝒢 ℋ : HyperEnv} : 𝒢 ~ ℋ → ∀ 𝒥, 𝒥 |ₕ 𝒢 ~ 𝒥 |ₕ ℋ := by
+  intro h 𝒥
+  induction 𝒥
+  case nil => exact h
+  case cons Γ ℐ ih => apply HyperEnv.Perm.cons (.refl _) ih
+
+theorem HyperEnv.Perm.merge {𝒢 𝒢' ℋ ℋ' : HyperEnv} (p₁ : 𝒢 ~ 𝒢') (p₂ : ℋ ~ ℋ') :
+  𝒢 |ₕ ℋ ~ 𝒢' |ₕ ℋ' := (p₁.merge_right ℋ).trans (p₂.merge_left _)
+
+@[simp] lemma HyperEnv.Perm_middle {Γ : Env} : ∀ {𝒢 ℋ : HyperEnv}, 𝒢 |ₕ Γ :: ℋ ~ Γ :: (𝒢 |ₕ ℋ)
+  | [], _ => .refl _
+  | Δ :: _, _ =>
+    (HyperEnv.Perm.cons (.refl _) Perm_middle).trans (HyperEnv.Perm.swap Δ Γ _)
+
+lemma HyperEnv.Perm.merge_exchange_right {𝒢 ℋ 𝒥 : HyperEnv} :
+  ℋ ~ 𝒥 → (𝒢 |ₕ ℋ ~ 𝒢 |ₕ 𝒥) := by
+  intro h
+  induction 𝒢
+  case nil => simp ; exact h
+  case cons ih => apply HyperEnv.Perm.cons (by rfl) ih
+
+lemma HyperEnv.Perm.merge_exchange_left {𝒢 ℋ 𝒥 : HyperEnv} :
+  ℋ ~ 𝒥 → (ℋ |ₕ 𝒢 ~ 𝒥 |ₕ 𝒢 ) := by
+  intro h
+  induction h
+  case nil => simp
+  case cons hPE hPH ih => exact HyperEnv.Perm.cons hPE ih
+  case swap => exact HyperEnv.Perm.swap ..
+  case trans ih1 ih2 => exact HyperEnv.Perm.trans ih1 ih2
+
+lemma HyperEnv.Perm.merge_comm : ∀ {𝒢 ℋ : HyperEnv}, 𝒢 |ₕ ℋ ~ ℋ |ₕ 𝒢
+  | [], _ => by simp
+  | _ :: _, _ => (HyperEnv.Perm.merge_comm.cons (.refl _)).trans HyperEnv.Perm_middle.symm
+
+lemma HyperEnv.merge_assoc (𝒢 ℋ ℐ : HyperEnv) : 𝒢 |ₕ ℋ |ₕ ℐ = 𝒢 |ₕ (ℋ |ₕ ℐ) := by
+  simp only [List.append_assoc]
+
+lemma HyperEnv.Perm.merge_assoc (𝒢 ℋ ℐ : HyperEnv) :
+  (𝒢 |ₕ (ℋ |ₕ ℐ)) ~ (ℋ |ₕ (𝒢 |ₕ ℐ)) := by
+  repeat rw [← HyperEnv.merge_assoc]
+  apply HyperEnv.Perm.merge_right HyperEnv.Perm.merge_comm
+
+lemma HyperEnv.Perm.merge_cons {Γ : Env} {𝒢 𝒢' ℋ ℋ' : HyperEnv} (p₁ : 𝒢 ~ 𝒢') (p₂ : ℋ ~ ℋ') :
+    𝒢 |ₕ Γ :: ℋ ~ 𝒢' |ₕ Γ :: ℋ' := p₁.merge (p₂.cons (.refl _))
+
+@[simp] lemma HyperEnv.Perm_merge_singleton (Γ : Env) (𝒢 : HyperEnv) : 𝒢 |ₕ [Γ] ~ Γ :: 𝒢 :=
+  HyperEnv.Perm_middle.trans <| by rw [HyperEnv.merge_nilR]
+
+lemma HyperEnv.Perm_merge_comm : ∀ {𝒢 ℋ : HyperEnv}, 𝒢 |ₕ ℋ ~ ℋ |ₕ 𝒢
+  | [], _ => by simp
+  | _ :: _, _ => (HyperEnv.Perm_merge_comm.cons (.refl _)).trans HyperEnv.Perm_middle.symm
+
+theorem HyperEnv.Perm_merge_comm_assoc (𝒢 ℋ 𝒥 : HyperEnv) :
+    (𝒢 |ₕ (ℋ |ₕ 𝒥)) ~ (ℋ |ₕ (𝒢 |ₕ 𝒥)) := by
+  simpa only [List.append_assoc] using HyperEnv.Perm_merge_comm.merge_right _
+
+lemma HyperEnv.cons_rotate_left (𝒢 : HyperEnv) (Γ : Env) :
+  (Γ :: 𝒢) ~ (𝒢 |ₕ [Γ]) := by
+  symm ; apply HyperEnv.Perm_merge_singleton
+
+lemma HyperEnv.cons_append {𝒢 : HyperEnv} {Γ : Env} :
+  Γ :: 𝒢 = [Γ] |ₕ 𝒢 := by simp
+
+inductive HyperEnv.Delete (Γ : Env) : HyperEnv → HyperEnv → Prop where
+  | head {𝒢 : HyperEnv} {Δ : Env} :
+      (Γ ~ Δ) → Delete Γ (Δ :: 𝒢) 𝒢
+  | tail {Δ : Env} {𝒢 𝒢' : HyperEnv} :
+      Delete Γ 𝒢 𝒢' → Delete Γ (Δ :: 𝒢) (Δ :: 𝒢')
+
+-- Removing Γ from Γ :: 𝒢 => 𝒢 then adding Γ again => Γ :: 𝒢
+lemma HyperEnv.Delete_restore {Γ : Env} {𝒢 𝒢' : HyperEnv} (h : Delete Γ 𝒢 𝒢') :
+  Γ :: 𝒢' ~ 𝒢 := by
+  induction h
+  case head Δ hEnv =>
+    exact HyperEnv.Perm.cons hEnv (.refl _)
+  case tail Δ hD ih =>
+    apply HyperEnv.Perm.trans (HyperEnv.Perm.swap ..)
+    exact HyperEnv.Perm.cons (List.Perm.refl _) ih
+
+lemma HyperEnv.Perm_Delete {𝒢 ℋ : HyperEnv} (hP : 𝒢 ~ ℋ) :
+  ∀ {Γ 𝒢'}, Delete Γ 𝒢 𝒢' → ∃ ℋ', Delete Γ ℋ ℋ' ∧ 𝒢' ~ ℋ' := by
+  induction hP
+  case nil => intros _ 𝒢 _ ; use 𝒢
+
+  case cons Γ Δ 𝒢 ℋ hPE hPH ih =>
+    intros Ξ 𝒥 hDel
+    cases hDel
+    case head hP' =>
+      exact ⟨ℋ, HyperEnv.Delete.head (List.Perm.trans hP' hPE), hPH⟩
+    case tail 𝒥 hDel =>
+      obtain ⟨ℋ', hDelℋ', hPℋ'⟩ := ih hDel
+      exact ⟨Δ :: ℋ', HyperEnv.Delete.tail hDelℋ', HyperEnv.Perm.cons hPE hPℋ'⟩
+
+  case swap Γ Δ 𝒢 =>
+    intro Ξ 𝒢' hDel
+    cases hDel
+    case head hEnv =>
+      exact ⟨Δ :: 𝒢, HyperEnv.Delete.tail (HyperEnv.Delete.head hEnv), .refl _⟩
+    case tail hD_tail =>
+      cases hD_tail
+      case head hPE =>
+        use Γ :: 𝒢
+        exact ⟨HyperEnv.Delete.head hPE, .refl _⟩
+      case tail 𝒢' hD_tl_tl =>
+        exact ⟨Δ :: Γ :: 𝒢', HyperEnv.Delete.tail (HyperEnv.Delete.tail hD_tl_tl), .swap ..⟩
+
+  case trans ih1 ih2 =>
+    intros E1 H1 hDel1
+    obtain ⟨H2, hDel2, hP12⟩ := ih1 hDel1
+    obtain ⟨H3, hDel3, hP23⟩ := ih2 hDel2
+    exact ⟨H3, hDel3, HyperEnv.Perm.trans hP12 hP23⟩
+
+lemma HyperEnv.Perm.cons_cancel_left {Γ : Env} {𝒢 ℋ : HyperEnv} (hP : Γ :: 𝒢 ~ Γ :: ℋ) :
+  𝒢 ~ ℋ := by
+  have hDel1 : Delete Γ (Γ :: 𝒢) 𝒢 := Delete.head (List.Perm.refl _)
+  obtain ⟨_, hDel2, hP'⟩ := HyperEnv.Perm_Delete hP hDel1
+  cases hDel2
+  case head _ => exact hP'
+  case tail hDel3 =>
+    apply HyperEnv.Perm.trans hP'
+    exact HyperEnv.Delete_restore hDel3
+
+lemma HyperEnv.Perm_merge_cancel_right {𝒢 ℋ 𝒥 : HyperEnv} :
+  𝒢 |ₕ 𝒥 ~ ℋ |ₕ 𝒥 → 𝒢 ~ ℋ := by
+  intro h
+  induction 𝒥 generalizing 𝒢 ℋ
+  case nil => simp at h ; exact h
+  case cons Γ 𝒥 ih =>
+    rw [HyperEnv.cons_append, ← HyperEnv.merge_assoc, ← HyperEnv.merge_assoc] at h
+    have hcancel := (ih h)
+    have h_front : Γ :: 𝒢 ~ Γ :: ℋ := by
+      apply HyperEnv.Perm.trans (HyperEnv.Perm_merge_singleton Γ 𝒢).symm
+      apply HyperEnv.Perm.trans hcancel
+      exact HyperEnv.Perm_merge_singleton Γ ℋ
+    exact HyperEnv.Perm.cons_cancel_left h_front
+
+lemma HyperEnv.Perm_merge_cancel_left {𝒢 ℋ 𝒥 : HyperEnv} :
+  𝒥 |ₕ 𝒢 ~ 𝒥 |ₕ ℋ → 𝒢 ~ ℋ := by
+  intro h
+  induction 𝒥
+  case nil => exact h
+  case cons Ξ 𝒥' ih => exact ih (HyperEnv.Perm.cons_cancel_left h)
+lemma HyperEnv.disjoint_names_left {𝒢 : HyperEnv} {S : Finset FPName} :
+  Disjoint 𝒢.names S ↔ ∀ Γ ∈ 𝒢, Disjoint Γ.names S := by
+  induction 𝒢
+  case nil => simp
+  case cons ih =>
+    simp [HyperEnv.names_cons]
+    intro
+    apply ih
+
+lemma HyperEnv.disjoint_names_right {𝒢 : HyperEnv} {S : Finset FPName} :
+  Disjoint S 𝒢.names ↔ ∀ Γ ∈ 𝒢, Disjoint S Γ.names := by
+  induction 𝒢
+  case nil => simp
+  case cons ih =>
+    simp [HyperEnv.names_cons]
+    intro
+    apply ih
+
+def HyperEnv.Linearity (𝒢 : HyperEnv) : Prop :=
+  𝒢.Nodup ∧ 𝒢.PairwiseDisjoint
+
+lemma HyperEnv.Perm_preserves_Linearity {𝒢 ℋ : HyperEnv} :
+  𝒢 ~ ℋ → (𝒢.Linearity ↔ ℋ.Linearity) := by
+  intro h
+  simp [HyperEnv.Linearity, HyperEnv.PairwiseDisjoint]
+  rw [HyperEnv.Nodup_perm_iff h, HyperEnv.Perm_PairwiseDisjoint_iff h]
+
+lemma HyperEnv.Perm.preserves_Linearity {𝒢 ℋ : HyperEnv}
+  (hP : 𝒢 ~ ℋ) (h : 𝒢.Linearity) : ℋ.Linearity :=
+  (HyperEnv.Perm_preserves_Linearity hP).mp h
+
+@[simp] lemma HyperEnv.Linearity_nil :
+  HyperEnv.Linearity [] := by simp [HyperEnv.Linearity]
+
+@[simp] lemma HyperEnv.Linearity_singleton {Γ : Env} :
+  HyperEnv.Linearity [Γ] = Γ.Nodup := by
+  simp [HyperEnv.Linearity, HyperEnv.Nodup]
+
+@[simp] lemma HyperEnv.Linearity_merge {𝒢 ℋ : HyperEnv} :
+  (𝒢 |ₕ ℋ).Linearity = (𝒢.Linearity ∧ ℋ.Linearity ∧
+    ∀ a ∈ 𝒢, ∀ b ∈ ℋ, Disjoint a.names b.names) := by
+  simp [HyperEnv.Linearity]
+  constructor
+  · intro h
+    obtain ⟨⟨h1, h2⟩, h3, h4, h5⟩ := h
+    exact ⟨⟨h1, h3⟩, ⟨⟨h2, h4⟩, h5⟩⟩
+  · intro h
+    obtain ⟨⟨h1, h2⟩, ⟨h3, h4⟩, h5⟩ := h
+    exact ⟨⟨h1, h3⟩, h2, h4, h5⟩
+
+lemma HyperEnv.Perm_rotate_rhs_right {𝒢 ℋ 𝒥 𝒦 : HyperEnv} :
+  𝒢 ~ ℋ |ₕ 𝒥 |ₕ 𝒦 → 𝒢 ~ 𝒥 |ₕ 𝒦 |ₕ ℋ := by
+  intro h
+  apply HyperEnv.Perm.trans
+  · exact h
+  · apply HyperEnv.Perm.trans
+    · simp only [HyperEnv.merge_assoc]
+      apply HyperEnv.Perm.merge_assoc
+    · simp only [HyperEnv.merge_assoc]
+      apply HyperEnv.Perm.merge_left
+      exact HyperEnv.Perm.merge_comm
+
+lemma HyperEnv.Perm_rotate_rhs_left {𝒢 ℋ 𝒥 𝒦 : HyperEnv} :
+  𝒢 ~ ℋ |ₕ 𝒥 |ₕ 𝒦 → 𝒢 ~ 𝒦 |ₕ ℋ |ₕ 𝒥 := by
+  intro h
+  apply HyperEnv.Perm_rotate_rhs_right
+  exact HyperEnv.Perm_rotate_rhs_right h
+
+lemma HyperEnv.Perm_pull_rhs_mid_left {𝒢 ℋ 𝒥 𝒦 : HyperEnv} :
+  𝒢 ~ ℋ |ₕ (𝒥 |ₕ 𝒦) → 𝒢 ~ 𝒥 |ₕ (ℋ |ₕ 𝒦) := by
+  intro h
+  apply HyperEnv.Perm.trans
+  · exact h
+  · apply HyperEnv.Perm.merge_assoc
+
+lemma HyperEnv.Perm_pull_rhs_mid_right {𝒢 ℋ 𝒥 𝒦 : HyperEnv} :
+  𝒢 ~ (ℋ |ₕ 𝒥) |ₕ 𝒦 → 𝒢 ~ (ℋ |ₕ 𝒦) |ₕ 𝒥 := by
+  intro h
+  apply HyperEnv.Perm.trans
+  · exact h
+  · apply HyperEnv.Perm.symm
+    conv_rhs => rw [HyperEnv.merge_assoc]
+    apply HyperEnv.Perm_pull_rhs_mid_left
+    conv_rhs => rw [← HyperEnv.merge_assoc]
+    apply HyperEnv.Perm_rotate_rhs_left
+    rfl
+
+lemma HyperEnv.Perm.exchange_lhs_left {𝒢 ℋ 𝒥 𝒦 : HyperEnv} :
+  ℋ ~ 𝒥 → ℋ |ₕ 𝒦 ~ 𝒢 → 𝒥 |ₕ 𝒦 ~ 𝒢 := by
+  intros h1 h2
+  exact (h2.symm.trans (HyperEnv.Perm.merge_right h1 _)).symm
+
+lemma HyperEnv.Perm.exchange_rhs_left {𝒢 ℋ 𝒥 𝒦 : HyperEnv} :
+  ℋ ~ 𝒥 → 𝒢 ~ ℋ |ₕ 𝒦 → 𝒢 ~ 𝒥 |ₕ 𝒦 := by
+  intros h1 h2
+  exact (h2.trans (HyperEnv.Perm.merge_right h1 _))

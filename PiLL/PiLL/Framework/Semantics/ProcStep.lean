@@ -205,3 +205,47 @@ inductive MPST : (P : Proc) → Lbls → (P' : Proc) → Prop where
           MPST P (ls ∷ₗ l) P'
 
 notation:50 P " -[" ls "]->>ₚ " P' => MPST P ls P'
+
+lemma Proc.closeAll_not_mem {P : Proc} {L : List FPName} {k : Nat}
+  (h : P.f = ∅) : closeAll P k L = P := by
+  induction L generalizing k P
+  case nil => unfold closeAll ; simp
+  case cons x Γ ih =>
+    unfold closeAll
+    rw [Proc.close_not_mem]
+    · exact ih h
+    · rw [h] ; simp
+
+lemma Proc.closeAll_open_substNames {P : Proc} {names : List FPName} {y z : FPName} {k n : Nat}
+  (hF : z ∉ P.f) (hlc : lc k n P) (hNodup : (names ++ [y]).Nodup) (hFz : z ∉ names) :
+  (closeAll P k (names ++ [y]))⸨k + names.length | #z⸩ = closeAll (P{z // y}) k names := by
+  induction names generalizing k P
+  case nil =>
+    simp [closeAll]
+    rw [Proc.close_open_eq_substNames]
+    · exact hF
+    · exact hlc
+
+  case cons fst names ih =>
+    simp [← ne_eq, closeAll] at ⊢ hNodup hFz
+
+    have := ih
+      (k := k + 1) (P := P⟪k | fst⟫) (by simp [hF])
+      (Proc.lc_close (by simp) hlc) hNodup.2 hFz.2
+    rw [Nat.add_assoc, Nat.add_comm 1 names.length] at this
+
+    rw [Proc.close_substNames_comm_gen] at this
+    · exact this
+    · exact hNodup.1.2
+    · apply (hFz.1).symm
+
+lemma Proc.open_wrapDup {P : Proc} {names : List FPName} {z : FPName} {k : Nat} :
+  (wrapDup P names)⸨k | #z⸩ = wrapDup (P⸨k + names.length | #z⸩) names := by
+  induction names generalizing k
+  case nil =>
+    simp [wrapDup]
+  case cons y ys ih =>
+    simp only [wrapDup, HasOpen.open_, Proc.open, List.length_cons] at ⊢ ih
+    rw [ih]
+    congr 2
+    grind
