@@ -34,6 +34,7 @@ import PiLL.Framework.Substitution
 
 -- TODO: Change lemma naminig and dot notation interactions to follow standard pattern
 -- TODO: Change HyperEnv.Nodup def to match Env
+-- TODO: Change the names of the HyperEnv rotate left / right lemmas to match what they do
 
 
 
@@ -932,7 +933,6 @@ lemma EnvStep_inv_link {𝒢 ℋ : HyperEnv} {x y : FPName}
 
 
 
-
 -- FIXME: Check that this covers all rules mentioned in the paper
 -- FIXME: Subject reduction / simulation proof
 theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
@@ -1137,6 +1137,8 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 
 
   case res => sorry
+
+
 
   case one_bot Q Q' L hQS ih =>
     obtain ⟨A, Γ, Δ, ℋ, L', hP', hT'⟩ := Typing_inv_res hT
@@ -1411,9 +1413,9 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
       · simp [HasPerm.perm]
     · apply Typing.mix₀
 
+
+
   case com => sorry
-
-
 
 
 
@@ -1475,27 +1477,49 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
     constructor
     · rw [HyperEnv.substNames_of_not_mem hFzℋ]
 
-      have hz_in_LHS : z ∶ A :: Γ ∈ 𝒢' |ₕ [z ∶ A :: Γ] |ₕ [w ∶ Aᗮ :: Δ] := by simp
-      obtain ⟨E, hE_in_RHS, hPE⟩ := HyperEnv.Perm_mem h_pre.symm hz_in_LHS
-      simp only [List.mem_append, List.mem_singleton] at hE_in_RHS
-      rcases hE_in_RHS with h | rfl
+      have hzin : z ∶ A :: Γ ∈ 𝒢' |ₕ [z ∶ A :: Γ] |ₕ [w ∶ Aᗮ :: Δ] := by simp
+      obtain ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem h_pre.symm hzin
+      simp only [List.mem_append, List.mem_singleton] at hE
+      rcases hE with h | rfl
       · exfalso
-        have hz_in_E : z ∈ E.names := by
-          have : (z, A) ∈ (z ∶ A :: Γ) := by simp
-          have : (z, A) ∈ E := (List.Perm.mem_iff hPE).mpr (by simp)
-          exact Env.mem_pair_fst_in_names _ this
+        have hzE: (z, A) ∈ E := ((List.Perm.mem_iff hPE).mpr (by simp))
+        have hz_names := (HyperEnv.mem_of_mem_mem_names (x := z) (A := A) hzE h)
+        rw [← HyperEnv.names_eq_of_perm h_post] at hz_names
+        exact hFzℋ hz_names
+      · have hzAin : (z, A) ∈ [(x, Bᗮ), (z, B)] :=
+          (List.Perm.mem_iff (a := (z, A)) hPE).mpr (by simp)
 
+        simp only [List.mem_cons] at hzAin
+        rcases hzAin with hzx | hzz
+        · obtain ⟨rfl, rfl⟩ := hzx
+          simp at hz
+        · simp at hzz
+          subst hzz
 
+          have hPΓ : [(x, Aᗮ)] ~ Γ := List.Perm.cons_inv ((List.Perm.swap ..).trans hPE)
 
+          symm at h_pre
+          apply HyperEnv.Perm_rotate_rhs_left at h_pre
 
+          have h1 : [w ∶ Aᗮ :: Δ] |ₕ 𝒢' |ₕ [z ∶ A :: Γ] ~
+            [w ∶ Aᗮ :: Δ] |ₕ 𝒢' |ₕ [x ∶ Aᗮ :: [z ∶ A]] := by
+            apply HyperEnv.Perm.merge_left
+            apply HyperEnv.Perm.cons
+            · exact hPE.symm
+            · rfl
 
+          have h2 := h_post.trans (HyperEnv.Perm_merge_cancel_right (h_pre.trans h1))
+          have h3 := HyperEnv.substNames_preserves_perm (x := w) (y := z) h2
+          simp at h3
 
-
-
-
-        sorry
-      · sorry
-
-
+          -- FIXME: May need to add a rule to be able to deal with ProcStep.axcut. The discrepancy
+          -- is probably from not following the paper exactly and proving session fidelity using
+          -- ProcStep (look into this, maybe look at forwarder theory, or congruence theory)
+          -- | link_res
+          --       {𝒢 ℋ : HyperEnv} {Γ Δ : Env} {x z w : FPName} {A : Types} :
+          --       EnvStep (𝒢 |ₕ [z ∶ A :: Γ] |ₕ [w ∶ Aᗮ :: Δ]) (x ⟷ₗ z) ℋ →
+          --       -------------------------------------------------------------
+          --       EnvStep (𝒢 |ₕ [Γ‚ Δ]) (τ) (ℋ{x // w})
+          sorry
 
     · exact hT_subst'
