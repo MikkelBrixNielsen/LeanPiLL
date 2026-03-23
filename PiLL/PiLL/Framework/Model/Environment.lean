@@ -847,8 +847,16 @@ lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
 @[simp] lemma HyperEnv.substNames_self {𝒢 : HyperEnv} {x : FPName} :
   𝒢{x // x} = 𝒢 := by induction 𝒢 generalizing x <;> simp_all
 
-@[simp] lemma HyperEnv.substNames_of_not_mem {𝒢 : HyperEnv} {x : FPName} :
-  x ∉ 𝒢.names → (𝒢{x // x} = 𝒢) := by induction 𝒢 <;> simp
+@[simp] lemma HyperEnv.substNames_of_not_mem {𝒢 : HyperEnv} {x y : FPName} :
+  x ∉ 𝒢.names → (𝒢{y // x} = 𝒢) := by
+  induction 𝒢
+  case nil => simp
+  case cons E HE ih =>
+    simp? [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at ⊢ ih
+    intros hxE hxHE
+    constructor
+    · exact Env.substNames_of_not_mem hxE
+    · exact ih hxHE
 
 lemma HyperEnv.substNames_preserves_perm {𝒢 ℋ : HyperEnv} {x y : FPName} :
   𝒢 ~ ℋ → 𝒢{y // x} ~ ℋ{y // x} := by

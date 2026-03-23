@@ -874,11 +874,61 @@ lemma EnvStep_inv_one_bot {𝒢 ℋ : HyperEnv} {x y : FPName}
 
 
 
+lemma HyperEnv.mem_of_mem_mem_names {𝒢 : HyperEnv} {Γ : Env} {x : FPName} {A : Types}
+  (h₁ : x ∶ A ∈ Γ) (h₂ : Γ ∈ 𝒢) : x ∈ 𝒢.names := by
+  induction 𝒢
+  case nil => simp_all
+  case cons E HE ih =>
+    simp at h₂
+    cases h₂
+    case inl h =>
+      subst h
+      simp
+      apply Or.inl
+      use A
+    case inr h =>
+      simp
+      apply Or.inr
+      apply ih h
+
+lemma HyperEnv.not_mem_names_iff {𝒢 : HyperEnv} {x : FPName} :
+  x ∉ 𝒢.names ↔ ∀ (Γ : Env) (A : Types), Γ ∈ 𝒢 → (x, A) ∉ Γ := by
+  induction 𝒢
+  case nil => simp
+  case cons E HE ih =>
+    constructor
+    · intro h1 Γ A hin
+      simp [-Env.mem_pair_fst_in_names_iff, -Env.not_mem_names_iff] at h1 hin
+      obtain ⟨hE, hHE⟩ := h1
+      cases hin
+      case inl h =>
+        subst h
+        exact Env.not_mem_names_iff.mp hE A
+      case inr h =>
+        exact ih.mp hHE Γ A h
+    · intro h
+      have h' := h E
+      simp at h h' ⊢
+      constructor
+      · have := Env.not_mem_names_iff.mpr h'
+        simp at this
+        exact this
+      · apply ih.mpr
+        intro Γ A hin
+        exact h Γ A (Or.inr hin)
 
 
 
+-- #FIXME:
+lemma Proc.open_substNames {P : Proc} {x y z : FPName} :
+  P⸨#z⸩{y // x} = P⸨#z{y // x}⸩ := by sorry
 
+lemma Proc.open_two_substNames {P : Proc} {x y z w : FPName} :
+  (P⸨#z, #w⸩){y // x} = P⸨#z{y // x}, #w{y // x}⸩ := by sorry
 
+lemma EnvStep_inv_link {𝒢 ℋ : HyperEnv} {x y : FPName}
+  (hnd : 𝒢.Nodup) (hES : 𝒢 -[x⟷ₗy]->ₑ ℋ) :
+  ∃ 𝒢ᵣ A, (𝒢 ~ 𝒢ᵣ |ₕ [[x ∶ Aᗮ, y ∶ A]]) ∧ (ℋ ~ 𝒢ᵣ) := by sorry
 
 
 
@@ -1362,4 +1412,90 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
     · apply Typing.mix₀
 
   case com => sorry
-  case axcut => sorry
+
+
+
+
+
+  case axcut Q Q' x L hPS ih =>
+    have ⟨A, Γ, Δ, 𝒢', L', hP', hT'⟩ := Typing_inv_res hT
+    have ⟨z, w, hz, hw, hzw⟩ := exists_two_fresh (L ∪ L' ∪ {x} ∪ 𝒢'.names)
+    simp [← ne_eq] at hz hw
+    specialize hT' z hz.2.2.1 w hw.2.2.1 hzw
+    obtain ⟨ℋ, hESℋ, hTℋ⟩ := ih z hz.2.1 w hw.2.1 hzw hT'
+
+    have hlin := Typing_preserves_linearity hT'
+    have ⟨hnd, hpw⟩ := hlin
+
+    obtain ⟨ℋᵣ, B, h_pre, h_post⟩ := EnvStep_inv_link hnd hESℋ
+
+    have h_pre' := by
+      have : ℋᵣ |ₕ [[x ∶ Bᗮ, z ∶ B]] ~ ℋ |ₕ [[x ∶ Bᗮ, z ∶ B]] := by
+        apply HyperEnv.Perm.merge
+        · exact h_post.symm
+        · rfl
+      exact h_pre.trans this
+
+    have hlin' := (HyperEnv.Perm_preserves_Linearity h_pre').mp hlin
+
+    have hQf := Typing.f_eq_names hTℋ
+
+    have hFxℋ : x ∉ ℋ.names := by
+      simp at hlin'
+      rw [HyperEnv.not_mem_names_iff]
+      intros E T hE
+      have ⟨_, hxℋ⟩ := hlin'.2.2 E hE
+      exact hxℋ T
+
+    have hFzℋ : z ∉ ℋ.names := by
+      simp at hlin'
+      rw [HyperEnv.not_mem_names_iff]
+      intros E T hE
+      have ⟨hzℋ, _⟩ := hlin'.2.2 E hE
+      exact hzℋ T
+
+    have hT_subst' : n ⊢ Q'⸨#z, #w⸩{x // z}{x // w} ∷ ℋ{x // z}{x // w} := by
+      have hT_subst : n ⊢ Q'⸨#z, #w⸩{x // z} ∷ ℋ{x // z} := by
+        apply Typing_substNames hTℋ
+        intro E hEℋ C hinE
+        exfalso
+        exact hFxℋ (HyperEnv.mem_of_mem_mem_names hinE hEℋ)
+
+      apply Typing_substNames hT_subst
+      intro E hEℋ C hinE
+      exfalso
+      rw [HyperEnv.substNames_of_not_mem (y := x) hFzℋ] at hEℋ
+      exact hFxℋ (HyperEnv.mem_of_mem_mem_names hinE hEℋ)
+
+    use ℋ{x // z}{x // w}
+
+    simp [Proc.open_two_substNames, FPName.subst_self, FPName.subst_self_of_ne hzw.symm,
+      FPName.subst_self_of_ne hw.1.symm] at hT_subst'
+
+    constructor
+    · rw [HyperEnv.substNames_of_not_mem hFzℋ]
+
+      have hz_in_LHS : z ∶ A :: Γ ∈ 𝒢' |ₕ [z ∶ A :: Γ] |ₕ [w ∶ Aᗮ :: Δ] := by simp
+      obtain ⟨E, hE_in_RHS, hPE⟩ := HyperEnv.Perm_mem h_pre.symm hz_in_LHS
+      simp only [List.mem_append, List.mem_singleton] at hE_in_RHS
+      rcases hE_in_RHS with h | rfl
+      · exfalso
+        have hz_in_E : z ∈ E.names := by
+          have : (z, A) ∈ (z ∶ A :: Γ) := by simp
+          have : (z, A) ∈ E := (List.Perm.mem_iff hPE).mpr (by simp)
+          exact Env.mem_pair_fst_in_names _ this
+
+
+
+
+
+
+
+
+
+        sorry
+      · sorry
+
+
+
+    · exact hT_subst'
