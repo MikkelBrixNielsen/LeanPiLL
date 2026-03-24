@@ -68,7 +68,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
   -- x and y persist across the step then no duplicates guarantee that its the same x and y
   -- as such they could not have been mentioned in the label.
   | res
-      {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : FPName} {A B : Types} {l : Lbl}
+      {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y : FPName} {A : Types} {l : Lbl}
       (hFx : x ∉ (𝒢 |ₕ [Γ‚ Δ]).names) (hFy : y ∉ (𝒢 |ₕ [Γ‚ Δ]).names)
       (hFx' : x ∉ (𝒢' |ₕ [Γ'‚ Δ']).names) (hFy' : y ∉ (𝒢' |ₕ [Γ'‚ Δ']).names)
       (hFlx : x ∉ l.i ∪ l.f) (hFly : y ∉ l.i ∪ l.f) (hneq : x ≠ y) :
@@ -173,7 +173,7 @@ notation:50 𝒢 " -[" ls "]->>ₑ " 𝒢' => MEST 𝒢 ls 𝒢'
   case syn =>
     grind [HyperEnv.names_merge, Lbl.i]
 
-  case res 𝒢 𝒢' Γ Γ' Δ Δ' x y _ _ l hFx hFy hFx' hFy' _ _ _ _ ih =>
+  case res 𝒢 𝒢' Γ Γ' Δ Δ' x y _ l hFx hFy hFx' hFy' _ _ _ _ ih =>
     simp_all only [HyperEnv.names_merge, HyperEnv.names_singleton, Env.names_merge,
       Env.names_distributes, Lbl.i, Finset.mem_union]
     intro n hn
@@ -318,7 +318,7 @@ lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
 
   case one_bot | tensor_parr => exact hlin
 
-  case res 𝒢 𝒢' Γ Γ' Δ Δ' x y A B l hFx hFy hFx' hFy' _ _ hneq hES𝒢 ih =>
+  case res 𝒢 𝒢' Γ Γ' Δ Δ' x y A l hFx hFy hFx' hFy' _ _ hneq hES𝒢 ih =>
     simp [Env.Nodup_merge_iff] at hlin ⊢ hFx hFx' hFy hFy'
     obtain ⟨hlin𝒢, ⟨hndΓ, ⟨hndΔ, hDΓΔ⟩⟩, hD⟩ := hlin
     have hlin_inner : (𝒢 |ₕ [x ∶ Aᗮ :: Γ] |ₕ [y ∶ A :: Δ]).Linearity := by
