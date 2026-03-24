@@ -971,19 +971,64 @@ lemma HyperEnv.fresh_of_linear_res
 
   exact ⟨⟨hxninℋᵣ, hnd.2.1.1, hxninΔ⟩, ⟨hyninℋᵣ, hyninΓ, hnd.2.2.1⟩⟩
 
+lemma Channel.open_rec_substNames {u : Channel} {x y z : FPName} {k : Nat} :
+  (u⸨k | #z⸩){y // x} = u{y // x}⸨k | #(z{y // x})⸩ := by
+  cases u <;>
+    simp [HasOpen.open_, Channel.open, HasSubst.subst, Channel.subst, FPName.subst] <;>
+    split_ifs <;> simp
+  case pos h =>
+    intro h'
+    exfalso
+    exact h' h
+  case neg h =>
+    intro h'
+    exfalso
+    exact h h'
 
--- #FIXME:
-lemma Proc.open_substNames {P : Proc} {x y z : FPName} {k : Nat} :
-  P⸨#z⸩{y // x} = P⸨#z{y // x}⸩ := by sorry
+lemma Proc.open_rec_substNames {P : Proc} {x y z : FPName} {k : Nat} :
+  (P⸨k | #z⸩){y // x} = (P{y // x})⸨k | #(z{y // x})⸩ := by
+  induction P generalizing k <;> simp [Channel.open_rec_substNames, *]
+
+lemma Proc.open_substNames {P : Proc} {x y z : FPName} :
+  P⸨#z⸩{y // x} = (P{y // x})⸨#(z{y // x})⸩ := by
+  exact Proc.open_rec_substNames
 
 lemma Proc.open_two_substNames {P : Proc} {x y z w : FPName} :
-  (P⸨#z, #w⸩){y // x} = P⸨#z{y // x}, #w{y // x}⸩ := by sorry
+  (P⸨#z, #w⸩){y // x} = (P{y // x})⸨#(z{y // x}), #(w{y // x})⸩ := by
+  change (P⸨1 | #w⸩⸨0 | #z⸩){y // x} = _
+  rw [Proc.open_rec_substNames]
+  rw [Proc.open_rec_substNames]
+  rfl
 
+lemma Proc.substNames_of_not_mem {P : Proc} {x y : FPName} (h : x ∉ P.f) :
+  P{y // x} = P := by
+  induction P <;> simp_all
 
+  case one u P ih | bot u P ih | tensor u P ih | parr u P ih | selectL u P ih | selectR u P ih
+    | output u P A ih | input u P ih | server u P ih | consume u P ih | duplicate u P ih
+    | dispose u P ih | amp u P Q ihP ihQ =>
+    cases u
+    case free w =>
+      simp_all [← ne_eq, Channel.f]
+      rw [FPName.subst_self_of_ne h.1.symm]
+    case bound i => simp
+
+  case link u v =>
+    constructor
+    · cases u
+      case free w =>
+        simp_all [← ne_eq, Channel.f]
+        rw [FPName.subst_self_of_ne h.1.symm]
+      case bound i => simp
+    · cases v
+      case free w =>
+        simp_all [← ne_eq, Channel.f]
+        rw [FPName.subst_self_of_ne h.2.symm]
+      case bound i => simp
 
 lemma Typing_res_exists {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} {A : Types} {x y : FPName}
-  (hx : x ∉ 𝒢.names ∧ x ∉ Γ.names ∧ x ∉ Δ.names)
-  (hy : y ∉ 𝒢.names ∧ y ∉ Γ.names ∧ y ∉ Δ.names)
+  (hx : x ∉ 𝒢.names ∧ x ∉ Γ.names ∧ x ∉ Δ.names ∧ x ∉ P.f)
+  (hy : y ∉ 𝒢.names ∧ y ∉ Γ.names ∧ y ∉ Δ.names ∧ y ∉ P.f)
   (hneq : x ≠ y)
   (hT : n ⊢ P⸨#x, #y⸩ ∷ 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ]) :
   n ⊢ 𝑣⸨$N,$N⸩ P ∷ 𝒢 |ₕ [Γ‚ Δ] := by
@@ -995,12 +1040,17 @@ lemma Typing_res_exists {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} {A 
   have hTz := Typing_substNames (x := x) (y := z) hT ?_
   · have hTzw := Typing_substNames (x := y) (y := w) hTz ?_
     · simp [Proc.open_two_substNames] at hTzw ⊢
-      rw [HyperEnv.substNames_of_not_mem hx.1, HyperEnv.substNames_of_not_mem hy.1,
+
+      rw [Proc.substNames_of_not_mem, Proc.substNames_of_not_mem hx.2.2.2,
+        HyperEnv.substNames_of_not_mem hx.1, HyperEnv.substNames_of_not_mem hy.1,
         Env.substNames_of_not_mem hx.2.1, Env.substNames_of_not_mem hy.2.1,
-        Env.substNames_of_not_mem hx.2.2, Env.substNames_of_not_mem hy.2.2,
+        Env.substNames_of_not_mem hx.2.2.1, Env.substNames_of_not_mem hy.2.2.1,
         FPName.subst_self_of_ne hz.2.1, FPName.subst_self_of_ne hneq.symm,
         FPName.subst_self] at hTzw
-      exact hTzw
+      · exact hTzw
+      · rw [Proc.substNames_of_not_mem hx.2.2.2]
+        exact hy.2.2.2
+
     · intros Ξ hΞ A hinΞ
       simp at hΞ
       cases hΞ
@@ -1031,7 +1081,7 @@ lemma Typing_res_exists {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} {A 
             rfl
           case inr h =>
             exfalso
-            rw [Env.substNames_of_not_mem hx.2.2] at h
+            rw [Env.substNames_of_not_mem hx.2.2.1] at h
             exact hw.2.2.2.2 A h
   · intros Ξ hΞ A hinΞ
     simp at hΞ
@@ -1623,7 +1673,7 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 
   -- case axcut Q Q' x L hPS ih =>
   --   have ⟨A, Γ, Δ, 𝒢', L', hP', hT'⟩ := Typing_inv_res hT
-  --   have ⟨z, w, hz, hw, hzw⟩ := exists_two_fresh (L ∪ L' ∪ {x} ∪ 𝒢'.names)
+  --   have ⟨z, w, hz, hw, hzw⟩ := exists_two_fresh (L ∪ L' ∪ {x} ∪ 𝒢'.names ∪ Q'.f)
   --   simp [← ne_eq] at hz hw
   --   specialize hT' z hz.2.2.1 w hw.2.2.1 hzw
   --   obtain ⟨ℋ, hESℋ, hTℋ⟩ := ih z hz.2.1 w hw.2.1 hzw hT'
@@ -1672,9 +1722,14 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
   --     exact hFxℋ (HyperEnv.mem_of_mem_mem_names hinE hEℋ)
 
   --   use ℋ{x // z}{x // w}
-
   --   simp [Proc.open_two_substNames, FPName.subst_self, FPName.subst_self_of_ne hzw.symm,
   --     FPName.subst_self_of_ne hw.1.symm] at hT_subst'
+
+  --   have hFwQ : w ∉ Q'{x // z}.f := by
+  --     rw [Proc.substNames_of_not_mem hz.2.2.2.2]
+  --     exact hw.2.2.2.2
+
+  --   rw [Proc.substNames_of_not_mem hFwQ, Proc.substNames_of_not_mem hz.2.2.2.2] at hT_subst'
 
   --   constructor
   --   · rw [HyperEnv.substNames_of_not_mem hFzℋ]
