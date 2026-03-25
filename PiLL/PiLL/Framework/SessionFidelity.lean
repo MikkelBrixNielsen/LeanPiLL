@@ -320,8 +320,7 @@ lemma ProcStep_buildDup {n : Nat} {P : Proc} {x : FPName} {A : Types} {Γ : Env}
   · simp
   · exact hServ
   · have := (Typing_preserves_linearity hT).1
-    apply HyperEnv.Nodup_singleton at this
-    rw [Env.Nodup_cons] at this
+    rw [HyperEnv.Nodup_singleton, Env.Nodup_cons] at this
     exact this.1
   · simp
   · exact hlin.1
@@ -446,20 +445,16 @@ lemma EnvStep_inv_bot {𝒢 𝒢' : HyperEnv} {y : FPName}
       exact h1.trans h2
 
   case res 𝒢 ℋ Γ Γ' Δ Δ' u v A  l hFu hFv hFu' hFv' hFlu hFlv hneq hES ih =>
-    simp at hnd
-    have := HyperEnv.Nodup_singleton hnd.2
-    simp [Env.Nodup_merge_iff] at this
+    simp [Env.Nodup_merge_iff] at hnd
     simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hFu hFv hFu' hFv'
 
     have hndΓu: HyperEnv.Nodup [u ∶ Aᗮ :: Γ] := by
-      apply HyperEnv.Nodup_singleton_from_env
       simp [Env.Nodup_cons, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
-      exact ⟨hFu.2.1, this.1⟩
+      exact ⟨hFu.2.1, hnd.2.1⟩
 
     have hndΔv : HyperEnv.Nodup [v ∶ A :: Δ] := by
-      apply HyperEnv.Nodup_singleton_from_env
       simp [Env.Nodup_cons, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
-      exact ⟨hFv.2.2, this.2.1⟩
+      exact ⟨hFv.2.2, hnd.2.2.1⟩
 
     have hnd' := And.intro (And.intro hnd.1 hndΓu) hndΔv
 
@@ -678,20 +673,16 @@ lemma EnvStep_inv_one {𝒢 𝒢' : HyperEnv} {x : FPName}
     · exact HyperEnv.Perm.merge (by rfl) h_post_ih
 
   case res 𝒢 ℋ Γ Γ' Δ Δ' u v A l hFu hFv hFu' hFv' hFlu hFlv hneq hES ih =>
-    simp at hnd
-    have := HyperEnv.Nodup_singleton hnd.2
-    simp [Env.Nodup_merge_iff] at this
+    simp [Env.Nodup_merge_iff] at hnd
     simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hFu hFv hFu' hFv'
 
     have hndΓu: HyperEnv.Nodup [u ∶ Aᗮ :: Γ] := by
-      apply HyperEnv.Nodup_singleton_from_env
       simp [Env.Nodup_cons, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
-      exact ⟨hFu.2.1, this.1⟩
+      exact ⟨hFu.2.1, hnd.2.1⟩
 
     have hndΔv : HyperEnv.Nodup [v ∶ A :: Δ] := by
-      apply HyperEnv.Nodup_singleton_from_env
       simp [Env.Nodup_cons, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
-      exact ⟨hFv.2.2, this.2.1⟩
+      exact ⟨hFv.2.2, hnd.2.2.1⟩
 
     have hnd' := And.intro (And.intro hnd.1 hndΓu) hndΔv
 
@@ -838,7 +829,6 @@ lemma EnvStep_inv_one_bot {𝒢 ℋ : HyperEnv} {x y : FPName}
     have hnd_inner : (𝒥 |ₕ [u ∶ Aᗮ :: Γ] |ₕ [v ∶ A :: Δ]).Nodup := by
       simp
       obtain ⟨hnd1, hnd2⟩ := hnd
-      apply HyperEnv.Nodup_singleton at hnd2
       simp [Env.Nodup_merge_iff] at hnd2
       constructor
       · exact hnd1
@@ -1113,6 +1103,205 @@ lemma Typing_res_exists {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} {A 
           exfalso
           exact hz.2.2.2.2 A h
 
+lemma HyperEnv.Perm_nil_inv {𝒢 : HyperEnv} :
+  𝒢.Perm [] ↔ 𝒢 = [] := by
+  constructor
+  · intro h
+    generalize h1 : [] = ℋ at h
+    induction h <;> simp_all
+  · intro h ; subst h ; simp
+
+lemma HyperEnv.Perm_singleton_inv {Γ : Env} {ℋ : HyperEnv} (h : ([Γ] : HyperEnv) ~ ℋ) :
+  ∃ Δ, ℋ = [Δ] ∧ Γ ~ Δ := by
+  generalize heq : ([Γ] : HyperEnv) = G at h
+  induction h generalizing Γ <;> try simp_all
+  case cons E1 E2 H1 H2 hPE ih =>
+    obtain ⟨h1, h2⟩ := heq
+    subst h1 h2
+    have := HyperEnv.Perm_nil_inv.mp ih.symm
+    subst this
+    rfl
+  case trans hP1 hP2 ih1 ih2 =>
+    obtain ⟨Δ, hΔ, hP1⟩ := ih1 heq
+    obtain ⟨Ξ, hΞ, hP2⟩ := ih2 hΔ.symm
+    exact ⟨Ξ, hΞ, hP1.trans hP2⟩
+
+lemma HyperEnv.Perm_singleton_singleton {Γ Δ : Env} :
+  ([Γ] : HyperEnv) ~ [Δ] ↔ Γ ~ Δ := by
+  constructor
+  · intro h
+    obtain ⟨Δ', heq, hP⟩ := HyperEnv.Perm_singleton_inv h
+    injection heq with hhd
+    subst hhd
+    exact hP
+  · intro h ; exact HyperEnv.Perm.cons h HyperEnv.Perm.nil
+
+lemma HyperEnv.Perm.extract_link_res
+  {𝒥 𝒥' : HyperEnv} {Γ Γ' Δ Δ' : Env} {z w x y : FPName} {A B : Types}
+  (hP : 𝒥 |ₕ [z ∶ Aᗮ :: Γ] |ₕ [w ∶ A :: Δ] ~ 𝒥' |ₕ [z ∶ Aᗮ :: Γ']
+    |ₕ [w ∶ A :: Δ'] |ₕ [[x ∶ Bᗮ, y ∶ B]])
+  (hFz' : z ∉ 𝒥'.names ∧ z ∉ Γ'.names ∧ z ∉ Δ'.names)
+  (hFw' : w ∉ 𝒥'.names ∧ w ∉ Γ'.names ∧ w ∉ Δ'.names)
+  (hzx : z ≠ x) (hzy : z ≠ y) (hwx : w ≠ x) (hwy : w ≠ y) (hneq : z ≠ w) :
+  Γ ~ Γ' ∧ Δ ~ Δ' ∧ 𝒥 ~ 𝒥' |ₕ [[x ∶ Bᗮ, y ∶ B]] := by
+
+  have h1 : [z ∶ Aᗮ :: Γ] ~ [z ∶ Aᗮ :: Γ'] := by
+    have ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem hP.symm (Γ := z ∶ Aᗮ :: Γ) (by simp)
+    simp at hE
+    cases hE
+    case inl h =>
+      exfalso
+      have := (List.Perm.mem_iff (a := z ∶ Aᗮ) hPE).mpr (by simp)
+      have := HyperEnv.mem_of_mem_mem_names this h
+      exact hFz'.1 this
+    case inr h =>
+      cases h
+      case inl h =>
+        subst h
+        rw [HyperEnv.Perm_singleton_singleton]
+        exact hPE.symm
+      case inr h =>
+        cases h
+        case inl h =>
+          subst h
+          exfalso
+          have hzin := (List.Perm.mem_iff (a := z ∶ Aᗮ) hPE).mpr (by simp)
+          simp at hzin
+          cases hzin
+          case inl h =>
+            obtain ⟨h1, h2⟩ := h
+            contradiction
+          case inr h =>
+            exact hFz'.2.2 (Env.mem_pair_fst_in_names _ h)
+        case inr h =>
+          subst h
+          have hzin := (List.Perm.mem_iff (a := z ∶ Aᗮ) hPE).mpr (by simp)
+          simp at hzin
+          cases hzin <;> (
+            rename_i h
+            obtain ⟨h1, h2⟩ := h
+            contradiction
+          )
+
+  have h2 : [w ∶ A :: Δ] ~ [w ∶ A :: Δ'] := by
+    have ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem hP.symm (Γ := w ∶ A :: Δ) (by simp)
+    simp at hE
+    cases hE
+    case inl h =>
+      exfalso
+      have := (List.Perm.mem_iff (a := w ∶ A) hPE).mpr (by simp)
+      have := HyperEnv.mem_of_mem_mem_names this h
+      exact hFw'.1 this
+    case inr h =>
+      cases h
+      case inl h =>
+        subst h
+        exfalso
+        have hzin := (List.Perm.mem_iff (a := w ∶ A) hPE).mpr (by simp)
+        simp at hzin
+        cases hzin
+        case inl h =>
+          rw [h.1] at hneq
+          contradiction
+        case inr h =>
+          exact hFw'.2.1 (Env.mem_pair_fst_in_names _ h)
+      case inr h =>
+        cases h
+        case inl h =>
+          subst h
+          rw [HyperEnv.Perm_singleton_singleton]
+          exact hPE.symm
+        case inr h =>
+        subst h
+        have hzin := (List.Perm.mem_iff (a := w ∶ A) hPE).mpr (by simp)
+        simp at hzin
+        cases hzin <;> (
+          rename_i h
+          obtain ⟨h1, h2⟩ := h
+          contradiction
+        )
+
+  have h3 : 𝒥 ~ 𝒥' |ₕ [[x ∶ Bᗮ, y ∶ B]] := by
+    have h4 := (hP.symm.trans (HyperEnv.Perm.merge (HyperEnv.Perm.merge rfl h1) h2)).symm
+
+    apply HyperEnv.Perm_rotate_rhs_left at h4
+    apply HyperEnv.Perm_merge_cancel_right at h4
+    rw [← HyperEnv.merge_assoc] at h4
+    apply HyperEnv.Perm_merge_cancel_right at h4
+
+    apply HyperEnv.Perm.trans
+    · exact h4
+    · apply HyperEnv.Perm.merge_comm
+
+  rw [HyperEnv.Perm_singleton_singleton] at h1 h2
+  apply List.Perm.cons_inv at h1
+  apply List.Perm.cons_inv at h2
+
+  exact ⟨h1, h2, h3⟩
+
+lemma EnvStep_inv_link {𝒢 ℋ : HyperEnv} {x y : FPName}
+  (hnd : 𝒢.Nodup) (hES : 𝒢 -[x⟷ₗy]->ₑ ℋ) :
+  ∃ 𝒢ᵣ A, (𝒢 ~ 𝒢ᵣ |ₕ [[x ∶ Aᗮ, y ∶ A]]) ∧ (ℋ ~ 𝒢ᵣ) := by
+  generalize hl : (x⟷ₗy) = l at hES
+  induction hES <;> try contradiction
+
+  case link₁ z w A =>
+    use ∅
+    simp at ⊢
+    injection hl with h1 h2
+    subst h1 h2
+    use A
+
+  case par₁ 𝒥 𝒥' 𝒦 lbl hES hFl ih =>
+    simp at hnd
+    obtain ⟨𝒥ᵣ, A, hPᵣ, hP'⟩ := ih hnd.1 hl
+    use (𝒥ᵣ |ₕ 𝒦), A
+    constructor
+    · apply HyperEnv.Perm_rotate_rhs_right
+      apply HyperEnv.Perm_merge_cancel_right_inv
+      · apply HyperEnv.Perm.trans
+        · exact hPᵣ
+        · apply HyperEnv.Perm.merge_comm
+    · exact HyperEnv.Perm.merge hP' (by rfl)
+
+  case par₂ 𝒦 𝒥 𝒥' lbl hES hFl ih =>
+    simp at hnd
+    obtain ⟨𝒥ᵣ, A, hPᵣ, hP'⟩ := ih hnd.2 hl
+    use (𝒦 |ₕ 𝒥ᵣ), A
+    constructor
+    · rw [HyperEnv.merge_assoc]
+      apply HyperEnv.Perm_merge_cancel_left_inv
+      exact hPᵣ
+    · exact HyperEnv.Perm.merge (by rfl) hP'
+
+  case res 𝒥 𝒥' Γ Γ' Δ Δ' z w A lbl hFz hFw hFz' hFw' hFlz hFlw hneq hES ih =>
+    simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff,
+      - Lbl.f, - Lbl.i, Env.Nodup_merge_iff] at hFz hFz' hFw hFw' hFlz hFlw hnd
+    rw [HyperEnv.Nodup_merge, HyperEnv.Nodup_merge, HyperEnv.Nodup_cons_iff hFz.2.1,
+      HyperEnv.Nodup_cons_iff hFw.2.2] at ih
+    simp only [HyperEnv.Nodup_singleton, Env.Nodup_singleton, true_and] at ih
+    have ⟨𝒥ᵣ, B, hPᵣ, hP'⟩ := ih ⟨⟨hnd.1, hnd.2.1⟩, hnd.2.2.1⟩ hl
+    refine ⟨𝒥' |ₕ [Γ'‚ Δ'], B, ?_, HyperEnv.Perm.refl _⟩
+
+    subst hl
+    simp [← ne_eq] at hFlz hFlw
+
+    have ⟨hPΓ', hPΔ', hP𝒥'⟩ := HyperEnv.Perm.extract_link_res
+      (hP'.symm.exchange_rhs_left hPᵣ) hFz' hFw' hFlz.1 hFlz.2 hFlw.1 hFlw.2 hneq
+
+    apply HyperEnv.Perm_rotate_rhs_right
+    apply HyperEnv.Perm.merge
+    · exact hP𝒥'.trans HyperEnv.Perm.merge_comm
+    · exact HyperEnv.Perm_singleton_singleton.mpr (List.Perm.append hPΓ' hPΔ')
+
+  case perm 𝒥 𝒥' 𝒦 𝒦' lbl hP hES hP' ih =>
+    have ⟨𝒥ᵣ, A, hP𝒥, hP𝒥'⟩ := ih ((HyperEnv.Nodup_perm_iff hP).mpr hnd) hl
+    use 𝒥ᵣ, A
+    constructor
+    · exact hP.symm.trans hP𝒥
+    · exact hP'.symm.trans hP𝒥'
+
+
 
 
 
@@ -1120,17 +1309,17 @@ lemma Typing_res_exists {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} {A 
 
 
 -- FIXME:
-lemma EnvStep_inv_link {𝒢 ℋ : HyperEnv} {x y : FPName}
-  (hnd : 𝒢.Nodup) (hES : 𝒢 -[x⟷ₗy]->ₑ ℋ) :
-  ∃ 𝒢ᵣ A, (𝒢 ~ 𝒢ᵣ |ₕ [[x ∶ Aᗮ, y ∶ A]]) ∧ (ℋ ~ 𝒢ᵣ) := by sorry
-
 lemma EnvStep_inv_res_shape {𝒢 ℋ' : HyperEnv} {Γ Δ : Env} {x y : FPName} {A : Types} {l : Lbl}
   (hnd : (𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ]).Nodup)
   (hES : 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ] -[l]->ₑ ℋ')
   (hx : x ∉ l.i ∪ l.f)
   (hy : y ∉ l.i ∪ l.f)
   (hneq : x ≠ y) :
-  ∃ 𝒢' Γ' Δ', ℋ' ~ 𝒢' |ₕ [x ∶ A :: Γ'] |ₕ [y ∶ Aᗮ :: Δ'] := by sorry
+  ∃ 𝒢' Γ' Δ', ℋ' ~ 𝒢' |ₕ [x ∶ A :: Γ'] |ₕ [y ∶ Aᗮ :: Δ'] := by
+
+
+
+  sorry
 
 
 
@@ -1345,7 +1534,7 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
   -- case res Q Q' lbl L hQS ih =>
   --   obtain ⟨A, Γ, Δ, ℋ, L', hP', hT'⟩ := Typing_inv_res hT
   --   obtain ⟨x, y, hx, hy, hneq⟩ :=
-  --     exists_two_fresh (L ∪ L' ∪ ℋ.names ∪ Γ.names ∪ Δ.names ∪ lbl.i ∪ lbl.f)
+  --     exists_two_fresh (L ∪ L' ∪ ℋ.names ∪ Γ.names ∪ Δ.names ∪ lbl.i ∪ lbl.f ∪ Q'.f)
   --   simp only [Finset.union_assoc, Finset.mem_union, not_or] at hx hy
   --   specialize hT' x hx.2.1 y hy.2.1 hneq
   --   obtain ⟨ℋ', hESℋ', hTℋ'⟩ := ih x hx.1 y hy.1 hneq hT'
@@ -1355,11 +1544,11 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 
   --   have hFlblx: x ∉ lbl.i ∪ lbl.f := by
   --     simp [- Lbl.f, - Lbl.i]
-  --     exact ⟨hx.2.2.2.2.2.1, hx.2.2.2.2.2.2⟩
+  --     exact ⟨hx.2.2.2.2.2.1, hx.2.2.2.2.2.2.1⟩
 
   --   have hFlbly : y ∉ lbl.i ∪ lbl.f := by
   --     simp [- Lbl.f, - Lbl.i]
-  --     exact ⟨hy.2.2.2.2.2.1, hy.2.2.2.2.2.2⟩
+  --     exact ⟨hy.2.2.2.2.2.1, hy.2.2.2.2.2.2.1⟩
 
   --   obtain ⟨ℋᵣ, Γ', Δ', hPℋᵣ⟩ :=
   --     EnvStep_inv_res_shape hnd hESℋ' hFlblx hFlbly hneq
@@ -1388,7 +1577,13 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
   --         simp at this ⊢
   --         exact this
   --     · rfl
-  --   · exact Typing_res_exists hFxy.1 hFxy.2 hneq (Typing.exchange_hyper hTℋ' hPℋᵣ)
+
+
+  --   · rcases hFxy.1 with ⟨hx1, hx2, hx3⟩
+  --     rcases hFxy.2 with ⟨hy1, hy2, hy3⟩
+  --     exact Typing_res_exists
+  --       ⟨hx1, hx2, hx3, hx.2.2.2.2.2.2.2⟩ ⟨hy1, hy2, hy3, hy.2.2.2.2.2.2.2⟩
+  --       hneq (Typing.exchange_hyper hTℋ' hPℋᵣ)
 
 
   -- case one_bot Q Q' L hQS ih =>
@@ -1665,7 +1860,7 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
   --   · apply Typing.mix₀
 
 
-
+-- FIXME:
   case com => sorry
 
   all_goals sorry

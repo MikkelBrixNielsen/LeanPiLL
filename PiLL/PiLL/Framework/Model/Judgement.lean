@@ -413,6 +413,11 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     · exact ih d c
     · simp_all
 
+lemma HyperEnv.PairwiseDisjoint_implies_disjoint {Γ Δ : Env} :
+  HyperEnv.PairwiseDisjoint [Γ, Δ] → Γ.disjoint Δ := by
+  simp [HyperEnv.PairwiseDisjoint]
+
+
 lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   (n ⊢ P ∷ 𝒢) → HyperEnv.Nodup 𝒢 ∧ 𝒢.PairwiseDisjoint := by
   intro hT
@@ -424,6 +429,7 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     · exact ⟨ihP.2, ihQ.2, HyperEnv.mem_of_disjoint hD⟩
 
   case bot hF _ ih | w hF _ _ ih =>
+    rw [← HyperEnv.Nodup_singleton]
     apply (HyperEnv.Nodup_cons_iff hF).mpr
     exact ⟨by simp, ih.1⟩
 
@@ -442,28 +448,11 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
       (Env.Nodup_cons.mp (hNodupxy (y ∶ Aᗮ :: Δ) (by simp))).2
 
     refine ⟨⟨hNodup𝒢, ?_⟩, hPW𝒢, ?_⟩
-    · intro E hE
-      simp only [List.mem_cons] at hE
-      rcases hE with rfl | h
-      · have hDxy : Disjoint (Env.names (x ∶ A :: Γ)) (Env.names (y ∶ Aᗮ :: Δ)) := by
-          unfold HyperEnv.PairwiseDisjoint at hPWxy
-          have := (List.pairwise_cons.mp hPWxy).1
-          exact this (y ∶ Aᗮ :: Δ) (by simp)
-        have hDΓΔ : Disjoint Γ.names Δ.names := by
-          apply Disjoint.mono _ _ hDxy <;> simp
-        simp [Env.Nodup]
-        rw [List.nodup_append]
-        constructor
-        · exact hNodupΓ
-        · constructor
-          · exact hNodupΔ
-          · intro a ha b hb heq
-            subst heq
-            have haΓ : a ∈ Γ.names := by simp [Env.names, ha]
-            have haΔ : a ∈ Δ.names := by simp [Env.names, hb]
-            have hanΔ := Finset.disjoint_left.mp hDΓΔ haΓ
-            contradiction
-      · simp at h
+    · simp [Env.Nodup_merge_iff]
+      refine ⟨hNodupΓ, hNodupΔ, ?_⟩
+      have := HyperEnv.PairwiseDisjoint_implies_disjoint hPWxy
+      simp at this
+      exact this.2.2
     · intro a ha
       have := hGlue a ha
       exact ⟨this.1.2, this.2.2⟩
@@ -489,7 +478,6 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
       · exact Env.not_mem_names_iff.mp hF.1
       · exact Env.not_mem_names_iff.mp hF.2
 
-    apply HyperEnv.Nodup_singleton_from_env
     apply Env.Nodup_cons.mpr
     constructor
     · exact hFxΓΔ
@@ -509,7 +497,7 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case parr Γ _ x A B _ hF L _ ih =>
     obtain ⟨y, hy⟩ := exists_one_fresh L
     obtain ⟨ih1, ih2⟩ := ih y hy
-    apply HyperEnv.Nodup_singleton_from_env
+
     apply Env.Nodup_cons.mpr
     have := (Env.Nodup_cons.mp (ih1 (y ∶ A :: x ∶ B :: Γ) (by simp))).2
     exact (Env.Nodup_cons.mp this)
@@ -521,12 +509,9 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case c Γ _ x _ _ hF L _ ih =>
     obtain ⟨y, hy⟩ := exists_one_fresh (L)
     specialize ih y hy
-    simp [HyperEnv.Nodup, Env.Nodup] at ih
-    rw [← ne_eq] at ih
-    obtain ⟨ih1, ih2, ih3⟩ := ih
-    obtain ⟨hneq, ih1⟩ := ih1
-    apply (HyperEnv.Nodup_cons_iff (Env.not_mem_names_iff.mpr ih1)).mpr
-    simp [HyperEnv.Nodup, Env.Nodup, ih3] at ⊢
+    simp [HyperEnv.Nodup] at ih
+    simp [Env.Nodup_cons] at ⊢ ih
+    exact ⟨ih.1.2, ih.2.2⟩
 
   case exists_ ih => simp_all [HyperEnv.Nodup, Env.Nodup]
 
@@ -537,12 +522,13 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     have hNodupΓ := (Env.Nodup_cons.mp ih1').2
     rw [Env.shiftTypes_preserves_names] at hFx
     rw [Env.Nodup_shiftTypes] at hNodupΓ
-    apply HyperEnv.Nodup_singleton_from_env
+    -- apply HyperEnv.Nodup_singleton_from_env
+    rw [← HyperEnv.Nodup_singleton]
     have :=  (Env.Nodup_cons (A := B)).mpr ⟨hFx, hNodupΓ⟩
     simp [Env.Nodup] at this ⊢
     exact this
 
-  case ax hneq _ => simp [HyperEnv.Nodup, Env.Nodup, hneq]
+  case ax hneq _ => simp [Env.Nodup, hneq]
 
   case exchange_env hP ih =>
     obtain ⟨ih1, ih2⟩ := ih
