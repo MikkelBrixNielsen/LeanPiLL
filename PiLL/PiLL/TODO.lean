@@ -28,6 +28,7 @@
     fresh name yields an equivalent process, which can be used instead.
 -/
 
+-- NOTE: Talk about not including alphaeq rules and LN / de burijn indices.
 
 
 
