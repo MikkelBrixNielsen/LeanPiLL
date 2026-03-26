@@ -1363,19 +1363,12 @@ lemma EnvStep.preserves_thread_perm {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Ty
     simp at h
     rcases h with ⟨rfl, _⟩ | h2
     · exfalso ; apply hx.1 ; rfl
-    ·
-      have hxin : x ∶ A ∈ (y' ∶ B :: y ∶ C :: Δ) := by
+    · have hxin : x ∶ A ∈ (y' ∶ B :: y ∶ C :: Δ) := by
         apply List.mem_cons_of_mem
         apply List.mem_cons_of_mem
         exact h2
       obtain ⟨Γ', hP'⟩ := Env.exists_perm_cons hxin
-      refine ⟨y' ∶ B :: y ∶ C :: Δ, ?_in_post, Γ', ?_prove_perm⟩
-      sorry
-
-
-
-
-
+      refine ⟨y' ∶ B :: y ∶ C :: Δ, (by simp), Γ', hP'⟩
 
 
   case par₁ => sorry
@@ -1389,7 +1382,18 @@ lemma EnvStep.preserves_thread_perm {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Ty
   case res => sorry
 
 
-  case selectL => sorry
+  case selectL Δ _ B C =>
+    simp at hx hin
+    have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
+    simp at h
+    rcases h with ⟨rfl, _⟩ | h2
+    · contradiction
+    · have ⟨E, hPE⟩ := Env.exists_perm_cons h2
+      sorry
+
+
+
+
   case selectR => sorry
   case ampL => sorry
   case ampR => sorry
@@ -1429,8 +1433,8 @@ lemma EnvStep_inv_res {𝒢 ℋ' : HyperEnv} {Γ Δ : Env} {x y : FPName} {A : T
   simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hDΓΔ
 
 
-  have hxin : x ∶ A :: Γ ∈ 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ] := by simp
-  have hyin : y ∶ Aᗮ :: Δ ∈ 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ] := by simp
+  have hxin : ∃ Γ₁ ∈ (𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ]), Γ₁ ~ x ∶ A :: Γ := ⟨x ∶ A :: Γ, by simp⟩
+  have hxin : ∃ Δ₁ ∈ (𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ]), Δ₁ ~ y ∶ Aᗮ :: Δ := ⟨y ∶ Aᗮ :: Δ, by simp⟩
 
   obtain ⟨Γ', hx_post, hPΓ'⟩ := EnvStep.preserves_thread_perm hES hx hxin
   obtain ⟨Δ', hy_post, hPΔ'⟩ := EnvStep.preserves_thread_perm hES hy hyin
