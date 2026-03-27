@@ -1301,26 +1301,23 @@ lemma EnvStep_inv_link {𝒢 ℋ : HyperEnv} {x y : FPName}
     · exact hP.symm.trans hP𝒥
     · exact hP'.symm.trans hP𝒥'
 
-
-
 lemma Lbl.f_par {a a' : Act} :
   (a |ₗ a').f = fNamesAct a ∪ fNamesAct a' := by simp
-
 
 lemma Lbl.i_par {a a' : Act} :
   (a |ₗ a').i = iNamesAct a ∪ iNamesAct a' := by simp
 
-
-lemma EnvStep.preserves_thread_perm {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Types} {Γ : Env} {l : Lbl}
+lemma EnvStep.preserves_thread_perm {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Types} {l : Lbl}
   (hES : 𝒢 -[l]->ₑ 𝒢')
   (hx : x ∉ l.i ∪ l.f)
-  (hin : ∃ E ∈ 𝒢, E ~ (x ∶ A :: Γ)) :
+  (hin : ∃ E ∈ 𝒢, ∃ Γ', E ~ (x ∶ A :: Γ')) :
   ∃ E' ∈ 𝒢', ∃ Γ', E' ~ (x ∶ A :: Γ') := by
   induction hES
 
   case one =>
     exfalso
     simp at hin hx
+    obtain ⟨_, hin⟩ := hin
     have := List.Perm.length_eq hin
     simp at this
     subst this
@@ -1329,6 +1326,7 @@ lemma EnvStep.preserves_thread_perm {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Ty
 
   case bot Δ _ =>
     simp at hin hx
+    obtain ⟨_, hin⟩ := hin
     have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
     simp at h
     rcases h with ⟨rfl, _⟩ | h2
@@ -1337,14 +1335,12 @@ lemma EnvStep.preserves_thread_perm {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Ty
       refine ⟨Δ, (by simp), E, hPE⟩
 
   case tensor Δ Δ' y y' B C hF =>
-    obtain ⟨E, hE, hPE⟩ := hin
+    obtain ⟨E, hE, ⟨_, hPE⟩⟩ := hin
     have hxΓ := (List.Perm.mem_iff (a := x ∶ A) hPE).mpr (by simp)
     obtain ⟨Γᵣ, hPΓ⟩ := Env.exists_perm_cons hxΓ
-
     simp at hE
     subst hE
     simp at hxΓ hF hx
-
     rcases hxΓ with ⟨rfl, rfl⟩ | tl
     · exfalso ; apply hx.1 ; rfl
     · rcases tl with tl1 | tl2
@@ -1359,6 +1355,7 @@ lemma EnvStep.preserves_thread_perm {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Ty
 
   case parr Δ y y' B C hF =>
     simp at hin hx
+    obtain ⟨_, hin⟩ := hin
     have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
     simp at h
     rcases h with ⟨rfl, _⟩ | h2
@@ -1370,48 +1367,259 @@ lemma EnvStep.preserves_thread_perm {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Ty
       obtain ⟨Γ', hP'⟩ := Env.exists_perm_cons hxin
       refine ⟨y' ∶ B :: y ∶ C :: Δ, (by simp), Γ', hP'⟩
 
+  case par₁ ih =>
+    simp [- Lbl.f, - Lbl.i] at hin ⊢
+    obtain ⟨E, hE, ⟨Δ, hPE⟩⟩ := hin
+    rcases hE with h1 | h2
+    · have ih' := ih hx
+      simp at ih'
+      have ⟨E', hE', hPE'⟩ := ih' E h1 Δ hPE
+      refine ⟨E', ⟨Or.inl hE', hPE'⟩⟩
+    · refine ⟨E, ⟨Or.inr h2, ⟨Δ, hPE⟩⟩⟩
 
-  case par₁ => sorry
-  case par₂ => sorry
+  case par₂ ih =>
+    simp [- Lbl.f, - Lbl.i] at hin ⊢
+    obtain ⟨E, hE, ⟨Δ, hPE⟩⟩ := hin
+    rcases hE with h1 | h2
+    · refine ⟨E, ⟨Or.inl h1, ⟨Δ, hPE⟩⟩⟩
+    · have ih' := ih hx
+      simp at ih'
+      have ⟨E', hE', hPE'⟩ := ih' E h2 Δ hPE
+      refine ⟨E', ⟨Or.inr hE', hPE'⟩⟩
 
+  case syn ihP ihQ =>
+    simp [- fNamesAct, - iNamesAct] at hin ⊢ hx ihP ihQ
+    obtain ⟨E, hE, ⟨Δ, hPE⟩⟩ := hin
+    rcases hE with h1 | h2
+    · have ⟨E', hE', hPE'⟩ := ihP hx.1 hx.2.2.1 E h1 Δ hPE
+      refine ⟨E', ⟨Or.inl hE', hPE'⟩⟩
+    · have ⟨E', hE', hPE'⟩ := ihQ hx.2.1 hx.2.2.2 E h2 Δ hPE
+      refine ⟨E', ⟨Or.inr hE', hPE'⟩⟩
 
+  case one_bot | tensor_parr =>
+    simp at hx hin ⊢
+    obtain ⟨E, hE, ⟨E', hPE⟩⟩ := hin
+    rcases hE with h1 | h2
+    · refine ⟨E, ⟨Or.inl h1, ⟨E', hPE⟩⟩⟩
+    · refine ⟨E, ⟨Or.inr h2, ⟨E', hPE⟩⟩⟩
 
-  case syn => sorry
-  case one_bot => sorry
-  case tensor_parr => sorry
-  case res => sorry
+  case res Γ Γ' Δ Δ' z w B _ hFx hFy hFx' hFy' _ _ _  _ ih =>
+    simp [-Lbl.i, -Lbl.f, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
+      at hin ⊢ hFx hFy hFx' hFy'
+    obtain ⟨E, hE, ⟨Ξ, hPE⟩⟩ := hin
+    have ih₁ := ih hx
+    simp at ih₁
+    rcases hE with h1 | h2
+    · obtain ⟨E', hE', ⟨E'', hPE'⟩⟩ := ih₁ E (Or.inl h1) Ξ hPE
+      clear ih₁ ih
+      rcases hE' with h3 | h4 | h5
+      · refine ⟨E', ⟨Or.inl h3, ⟨E'', hPE'⟩⟩⟩
+      · subst h4
+        have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+        simp at hxin
+        rcases hxin with ⟨rfl, rfl⟩ | h6
+        · exfalso
+          have hxE := (List.Perm.mem_iff (a := x ∶ Bᗮ) hPE).mpr (by simp)
+          exact hFx.1 (HyperEnv.mem_of_mem_mem_names hxE h1)
+        · have hxin := List.mem_append_left (bs := Δ') h6
+          obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+          refine ⟨Γ' ++ Δ', Or.inr rfl, E', hPE'⟩
+      · subst h5
+        have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+        simp at hxin
+        rcases hxin with ⟨rfl, rfl⟩ | h7
+        · exfalso
+          have hxE := (List.Perm.mem_iff (a := x ∶ A) hPE).mpr (by simp)
+          exact hFy.1 (HyperEnv.mem_of_mem_mem_names hxE h1)
+        · have hxin := List.mem_append_right (as := Γ') h7
+          obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+          refine ⟨Γ' ++ Δ', Or.inr rfl, E', hPE'⟩
+    · subst h2
+      have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE).mpr (by simp)
+      simp at hxin
+      rcases hxin with h8 | h9
+      · obtain ⟨Ξ', hPΞ'⟩ := Env.exists_perm_cons (List.mem_cons_of_mem (y := z ∶ Bᗮ) h8)
+        have ⟨E, ⟨hE, ⟨E', hPE'⟩⟩⟩ := ih₁ (z ∶ Bᗮ :: Γ) (by simp) Ξ' hPΞ'
+        clear ih ih₁
+        rcases hE with h10 | h11 | h12
+        · refine ⟨E, ⟨Or.inl h10, ⟨E', hPE'⟩⟩⟩
+        · subst h11
+          have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+          simp at hxin
+          rcases hxin with ⟨rfl, rfl⟩ | h11
+          · exfalso
+            apply Env.mem_pair_fst_in_names at h8
+            exact hFx.2.1 h8
+          · have hxin := List.mem_append_left (bs := Δ') h11
+            obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+            refine ⟨Γ' ++ Δ', Or.inr rfl, E', hPE'⟩
+        · subst h12
+          have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+          simp at hxin
+          rcases hxin with ⟨rfl, rfl⟩ | h14
+          · exfalso
+            have hxE := (List.Perm.mem_iff (a := x ∶ A) hPE).mpr (by simp)
+            simp at hxE
+            rcases hxE with h15 | h16
+            · apply Env.mem_pair_fst_in_names at h15
+              exact hFy.2.1 h15
+            · apply Env.mem_pair_fst_in_names at h16
+              exact hFy.2.2 h16
+          · have hxin := List.mem_append_right (as := Γ') h14
+            obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+            refine ⟨Γ' ++ Δ', Or.inr rfl, E', hPE'⟩
+      · obtain ⟨Ξ', hPΞ'⟩ := Env.exists_perm_cons (List.mem_cons_of_mem (y := w ∶ B) h9)
+        have ⟨E, ⟨hE, ⟨E', hPE'⟩⟩⟩ := ih₁ (w ∶ B :: Δ) (by simp) Ξ' hPΞ'
+        clear ih ih₁
+        rcases hE with h17 | h18 | h19
+        · refine ⟨E, ⟨Or.inl h17, ⟨E', hPE'⟩⟩⟩
+        · subst h18
+          have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+          simp at hxin
+          rcases hxin with ⟨rfl, rfl⟩ | h20
+          · exfalso
+            apply Env.mem_pair_fst_in_names at h9
+            exact hFx.2.2 h9
+          · have hxin := List.mem_append_left (bs := Δ') h20
+            obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+            refine ⟨Γ' ++ Δ', Or.inr rfl, E', hPE'⟩
+        · subst h19
+          have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+          simp at hxin
+          rcases hxin with ⟨rfl, rfl⟩ | h21
+          · exfalso
+            have hxE := (List.Perm.mem_iff (a := x ∶ A) hPE).mpr (by simp)
+            simp at hxE
+            rcases hxE with h15 | h16
+            · apply Env.mem_pair_fst_in_names at h15
+              exact hFy.2.1 h15
+            · apply Env.mem_pair_fst_in_names at h16
+              exact hFy.2.2 h16
+          · have hxin := List.mem_append_right (as := Γ') h21
+            obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+            refine ⟨Γ' ++ Δ', Or.inr rfl, E', hPE'⟩
 
-
-  case selectL Δ _ B C =>
+  case selectL Δ y B C | selectR Δ y C B | ampL Δ y B C | ampR Δ y C B | use₁ Δ y B
+    | use₂ Δ y B _ =>
     simp at hx hin
+    obtain ⟨_, hin⟩ := hin
     have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
     simp at h
     rcases h with ⟨rfl, _⟩ | h2
     · contradiction
     · have ⟨E, hPE⟩ := Env.exists_perm_cons h2
-      sorry
+      refine ⟨y ∶ B :: Δ, (by simp), y ∶ B :: E, ?_⟩
+      · apply List.Perm.trans
+        · exact List.Perm.cons _ hPE
+        · exact List.Perm.trans (by rfl) (List.Perm.swap ..)
+
+  case link₁ z w B =>
+    simp at hx hin
+    obtain ⟨_, hin⟩ := hin
+    have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
+    simp at h
+    rcases h with ⟨rfl, rfl⟩ | h2
+    · exfalso ; apply hx.1 ; rfl
+    · exfalso ; rw [h2.1] at hx ; apply hx.2 ; rfl
+
+  case disp₁ Δ y B =>
+    simp at hx hin
+    obtain ⟨_, hin⟩ := hin
+    have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
+    simp at h
+    rcases h with ⟨rfl, _⟩ | h2
+    · contradiction
+    · have ⟨E, hPE⟩ := Env.exists_perm_cons h2
+      refine ⟨y ∶ ⊥ :: Δ, (by simp), y ∶ ⊥ :: E, ?_⟩
+      · apply List.Perm.trans
+        · exact List.Perm.cons _ hPE
+        · exact List.Perm.trans (by rfl) (List.Perm.swap ..)
+
+  case disp₂ Δ y B =>
+    simp at hx hin
+    obtain ⟨_, hin⟩ := hin
+    have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
+    simp at h
+    rcases h with ⟨rfl, _⟩ | h2
+    · contradiction
+    · have ⟨E, hPE⟩ := Env.exists_perm_cons h2
+      refine ⟨y ∶ 1 :: Δ, (by simp), y ∶ 1 :: E, ?_⟩
+      · apply List.Perm.trans
+        · exact List.Perm.cons _ hPE
+        · exact List.Perm.trans (by rfl) (List.Perm.swap ..)
+
+  case dup₁ Δ y B =>
+    simp at hx hin
+    obtain ⟨_, hin⟩ := hin
+    have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
+    simp at h
+    rcases h with ⟨rfl, _⟩ | h2
+    · contradiction
+    · have ⟨E, hPE⟩ := Env.exists_perm_cons h2
+      refine ⟨y ∶ ??B ⅋ ??B :: Δ, (by simp), y ∶ ??B ⅋ ??B :: E, ?_⟩
+      · apply List.Perm.trans
+        · exact List.Perm.cons _ hPE
+        · exact List.Perm.trans (by rfl) (List.Perm.swap ..)
+
+  case dup₂ Δ y B _ =>
+    simp at hx hin
+    obtain ⟨_, hin⟩ := hin
+    have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
+    simp at h
+    rcases h with ⟨rfl, _⟩ | h2
+    · contradiction
+    · have ⟨E, hPE⟩ := Env.exists_perm_cons h2
+      refine ⟨y ∶ !!B ⨂ !!B :: Δ, (by simp), y ∶ !!B ⨂ !!B :: E, ?_⟩
+      · apply List.Perm.trans
+        · exact List.Perm.cons _ hPE
+        · exact List.Perm.trans (by rfl) (List.Perm.swap ..)
+
+  case output Δ y B C | input Δ y B C hlc =>
+    simp at hx hin
+    obtain ⟨_, hin⟩ := hin
+    have h := (List.Perm.mem_iff (a := x ∶ A) hin).mpr (by simp)
+    simp at h
+    rcases h with ⟨rfl, _⟩ | h2
+    · contradiction
+    · have ⟨E, hPE⟩ := Env.exists_perm_cons h2
+      refine ⟨y ∶ C{B // 0} :: Δ, (by simp), y ∶ C{B // 0} :: E, ?_⟩
+      · apply List.Perm.trans
+        · exact List.Perm.cons _ hPE
+        · exact List.Perm.trans (by rfl) (List.Perm.swap ..)
+
+  case perm hP _ hP' ih =>
+    obtain ⟨E, hE, ⟨Δ, hPE⟩⟩ := hin
+    have ⟨E', hE', hPE'⟩ := HyperEnv.Perm_mem hP hE
+    have ih₁ := ih hx
+    simp at ih₁
+    have ⟨E'', hE'', ⟨Δ', hPE''⟩⟩ := ih₁ E' hE' Δ (hPE'.trans hPE)
+    have ⟨Γ', hΓ', hPΓ'⟩:= HyperEnv.Perm_mem hP'.symm hE''
+    refine ⟨Γ', ⟨hΓ', ⟨Δ', hPΓ'.trans hPE''⟩⟩⟩
+
+lemma EnvStep.preserves_two_threads {𝒢 ℋ : HyperEnv} {x y : FPName} {A B : Types} {l : Lbl}
+  (hES : 𝒢 -[l]->ₑ ℋ) (hx : x ∉ l.i ∪ l.f) (hy : y ∉ l.i ∪ l.f) (hneq : x ≠ y)
+  (hx_pre : ∃ Ex ∈ 𝒢, ∃ Γ', Ex ~ x ∶ A :: Γ')
+  (hy_pre : ∃ Ey ∈ 𝒢, ∃ Δ', Ey ~ y ∶ B :: Δ') :
+  ∃ Ex' ∈ ℋ, ∃ Ey' ∈ ℋ, ∃ Γ'' Δ'',
+    Ex' ~ x ∶ A :: Γ'' ∧ Ey' ~ y ∶ B :: Δ'' ∧ Ex' ≠ Ey' := by
+  obtain ⟨Ex, hEx, Γ', hPx⟩ := hx_pre
+  obtain ⟨Ey, hEy, Δ', hPy⟩ := hy_pre
+
+  induction hES generalizing Ex Γ' Ey Δ'
+
+  case one =>
+    exfalso
+    simp at hEx hx
+    subst hEx
+    have h_len := List.Perm.length_eq hPx
+    simp at h_len
+    subst h_len
+    simp [HasPerm.perm] at hPx
+    exact hx hPx.1.symm
 
 
 
-
-  case selectR => sorry
-  case ampL => sorry
-  case ampR => sorry
-  case link₁ => sorry
-  case use₁ => sorry
-  case use₂ => sorry
-  case disp₁ => sorry
-  case disp₂ => sorry
-  case dup₁ => sorry
-  case dup₂ => sorry
-  case output => sorry
-  case input => sorry
-  case perm => sorry
-
-
-
-
-
+  all_goals sorry
 
 
 
@@ -1433,50 +1641,63 @@ lemma EnvStep_inv_res {𝒢 ℋ' : HyperEnv} {Γ Δ : Env} {x y : FPName} {A : T
   simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hDΓΔ
 
 
-  have hxin : ∃ Γ₁ ∈ (𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ]), Γ₁ ~ x ∶ A :: Γ := ⟨x ∶ A :: Γ, by simp⟩
-  have hxin : ∃ Δ₁ ∈ (𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ]), Δ₁ ~ y ∶ Aᗮ :: Δ := ⟨y ∶ Aᗮ :: Δ, by simp⟩
+  have hxin : ∃ Γ₁ ∈ 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ], ∃ Γ₂, Γ₁ ~ x ∶ A :: Γ₂ :=
+    ⟨x ∶ A :: Γ, by simp, Γ, Env.Perm.refl _⟩
 
-  obtain ⟨Γ', hx_post, hPΓ'⟩ := EnvStep.preserves_thread_perm hES hx hxin
-  obtain ⟨Δ', hy_post, hPΔ'⟩ := EnvStep.preserves_thread_perm hES hy hyin
+  have hyin : ∃ Δ₁ ∈ 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ], ∃ Δ₂, Δ₁ ~ y ∶ Aᗮ :: Δ₂ :=
+    ⟨y ∶ Aᗮ :: Δ, by simp, Δ, Env.Perm.refl _⟩
+
+  obtain ⟨Γ', hx_post, ⟨Γ'', hPΓ'⟩⟩ := EnvStep.preserves_thread_perm hES hx hxin
+  obtain ⟨Δ', hy_post, ⟨Δ'', hPΔ'⟩⟩ := EnvStep.preserves_thread_perm hES hy hyin
 
   have ⟨HE1, hP1⟩ := HyperEnv.exists_perm_cons_of_mem hx_post
   have ⟨HE2, hP2⟩ := HyperEnv.exists_perm_cons_of_mem hy_post
 
   have hP12 := hP1.symm.trans hP2
 
-  have hinxΓ' : x ∶ A :: Γ' ∈ (x ∶ A :: Γ') :: HE1 := by simp
-  have ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem hP12.symm hinxΓ'
+  have hP12_cons : ((x ∶ A :: Γ'') :: HE1) ~ ((y ∶ Aᗮ :: Δ'') :: HE2) := by
+    rw [HyperEnv.cons_append] ; symm
+    rw [HyperEnv.cons_append]
+    apply HyperEnv.Perm.exchange_rhs_left (ℋ := [Γ'])
+    · simp [HyperEnv.Perm_singleton_singleton]
+      exact hPΓ'
+    · symm
+      apply HyperEnv.Perm.exchange_rhs_left (ℋ := [Δ'])
+      · simp [HyperEnv.Perm_singleton_singleton]
+        exact hPΔ'
+      · exact hP12
+
+  have hinxΓ' : x ∶ A :: Γ'' ∈ (x ∶ A :: Γ'') :: HE1 := by simp
+
+  have ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem hP12_cons.symm hinxΓ'
   simp at hE
 
   rcases hE with rfl | h2
-  · have h := (List.Perm.mem_iff (a := x ∶ A) hPE.symm).mp (by simp)
-    simp at h
-    rcases h with h1 | h2
-    · obtain ⟨hL, hR⟩ := h1
-      subst hL
-      contradiction
-    · exfalso
-      apply Env.mem_pair_fst_in_names at h2
-      rw [(Env.names_eq_of_perm hPΔ').symm] at h2
-      exact hDΓΔ.2.1 h2
-  · have ⟨HE3, hP3⟩ := HyperEnv.exists_perm_cons_of_mem h2
-    refine ⟨HE3, Γ', Δ', ?_⟩
-
-    have := hP3.trans (HyperEnv.Perm.cons hPE (by rfl))
-
-    apply HyperEnv.Perm.exchange_rhs_left
-    · apply HyperEnv.Perm.trans
-      · exact this
-      · rw [HyperEnv.cons_append]
-        apply HyperEnv.Perm.merge_comm
-    · rw [HyperEnv.cons_append] at hP2
-      exact HyperEnv.Perm_exchange_rhs HyperEnv.Perm.merge_comm hP2
+  · have hxiny : x ∶ A ∈ y ∶ Aᗮ :: Δ'' := (List.Perm.mem_iff hPE).mpr (by simp)
+    simp only [List.mem_cons] at hxiny
+    rcases hxiny with h3 | h4
+    · injection h3 with h5 h6
+      exfalso ; exact hneq h5
+    ·
 
 
+      exfalso
+      apply Env.mem_pair_fst_in_names at h4
+      have hnin : x ∉ Env.names Δ'' := sorry
+      exact hnin h4
+  · obtain ⟨HE3, hP3⟩ := HyperEnv.exists_perm_cons_of_mem h2
+    refine ⟨HE3, Γ'', Δ'', ?_⟩
+    have h7 : ℋ' ~ Δ' :: E :: HE3 :=
+      hP2.trans (HyperEnv.Perm.cons (Env.Perm.refl _) hP3)
 
+    have h8 : ℋ' ~ (y ∶ Aᗮ :: Δ'') :: (x ∶ A :: Γ'') :: HE3 :=
+      h7.trans (HyperEnv.Perm.cons hPΔ' (HyperEnv.Perm.cons hPE (HyperEnv.Perm.refl _)))
 
-
-
+    have h9 := h8.trans (HyperEnv.Perm.swap ..)
+    conv at h9 => rhs ; rhs ; rw [HyperEnv.cons_append]
+    rw [HyperEnv.cons_append, ← HyperEnv.merge_assoc] at h9
+    apply HyperEnv.Perm_rotate_rhs_left at h9
+    exact h9
 
 
 
@@ -1852,7 +2073,7 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 
 
 -- FIXME:
-  -- case tensor_parr => sorry
+  case tensor_parr => sorry
 
 
 
@@ -2012,7 +2233,7 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
 -- FIXME:
   case com => sorry
 
-  all_goals sorry
+  -- all_goals sorry
 
 
   -- case axcut Q Q' x L hPS ih =>
@@ -2124,3 +2345,4 @@ theorem session_fidelity {n : Nat} {P P' : Proc} {𝒢 : HyperEnv} {l : Lbl} :
   --         sorry
 
   --   · exact hT_subst'
+  all_goals sorry
