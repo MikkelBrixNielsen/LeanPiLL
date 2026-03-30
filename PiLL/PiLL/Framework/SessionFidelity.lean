@@ -1430,9 +1430,9 @@ lemma EnvStep.preserves_thread_perm
 
 
 
-  case res 𝒢 𝒢' E1 E1' E2 E2' z w B _ hFz hFw hFz' hFw' hFlz hFlw _ _ ih =>
+  case res 𝒢 𝒢' E1 E1' E2 E2' z w B _ hFz hFw hFz' hFw' hFlz hFlw hneq hES ih =>
     simp [-Lbl.i, -Lbl.f, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
-      at hin ⊢ hFz hFw hFz' hFw'
+      at hin ⊢ hFz hFw hFz' hFw' hFlz hFlw
     have ih₁ := ih (E := E) (Γ' := Γ') hx
     simp [- Lbl.i, - Lbl.f] at ih₁
     rcases hin with h1 | h2
@@ -1458,9 +1458,7 @@ lemma EnvStep.preserves_thread_perm
             have hzG : z ∈ 𝒢.names := HyperEnv.mem_of_mem_mem_names hin h1
             exact hFz.1 hzG
           · exfalso
-            apply hFlz
-            simp [- Lbl.i, - Lbl.f]
-            exact Or.inl hzl
+            exact hFlz.1 hzl
       · subst h5
         have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
         simp at hxin
@@ -1479,85 +1477,155 @@ lemma EnvStep.preserves_thread_perm
             have hzG : w ∈ 𝒢.names := HyperEnv.mem_of_mem_mem_names hin h1
             exact hFw.1 hzG
           · exfalso
-            apply hFlw
-            simp [- Lbl.i, - Lbl.f]
-            exact Or.inl hwl
-
+            exact hFlw.1 hwl
 
     · subst h2
       clear ih₁
+
       have hxin := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
       simp at hxin
       rcases hxin with h8 | h9
       · obtain ⟨Ξ', hPΞ'⟩ := Env.exists_perm_cons (List.mem_cons_of_mem (y := z ∶ Bᗮ) h8)
-        have hzin_pre : z ∶ Bᗮ :: E1 ∈ 𝒢 |ₕ [z ∶ Bᗮ :: E1] |ₕ [w ∶ B :: E2] := by simp
-        obtain ⟨E', hEz, Ξ'', hPE', hz_bounds⟩ := ih hx hzin_pre hPΞ'
-        simp at hEz
-        rcases hEz with h10 | h11 | h12
-        · refine ⟨E', ⟨Or.inl h10, ⟨Ξ'', hPE'⟩, ?_⟩⟩
-          · sorry
-        · subst h11
+        have hzin : (z ∶ Bᗮ :: E1) ∈ 𝒢 |ₕ [z ∶ Bᗮ :: E1] |ₕ [w ∶ B :: E2] := by simp
+        obtain ⟨Ez', hEz', Ξ'', hPE', hnames⟩ := ih hx hzin hPΞ'
+        simp at hEz'
+        rcases hEz' with h10 | h11 | h12
+        · sorry
+        ·
+          subst h11
           have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
           simp at hxin
-          rcases hxin with ⟨rfl, rfl⟩ | h11
+          rcases hxin with ⟨rfl, rfl⟩ | h
           · exfalso
-            apply Env.mem_pair_fst_in_names at h8
-            exact hFz.2.1 h8
-          · have hxin := List.mem_append_left (bs := E2') h11
-            obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
-            refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
-            · sorry
-        · subst h12
-          have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
-          simp at hxin
-          rcases hxin with ⟨rfl, rfl⟩ | h14
-          · exfalso
-            have hxE := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
-            simp at hxE
-            rcases hxE with h15 | h16
-            · apply Env.mem_pair_fst_in_names at h15
-              exact hFw.2.1 h15
-            · apply Env.mem_pair_fst_in_names at h16
-              exact hFw.2.2 h16
-          · have hxin := List.mem_append_right (as := E1') h14
-            obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
-            refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
-            · sorry
-      · obtain ⟨Ξ', hPΞ'⟩ := Env.exists_perm_cons (List.mem_cons_of_mem (y := w ∶ B) h9)
-        have hzin_pre : w ∶ B :: E2 ∈ 𝒢 |ₕ [z ∶ Bᗮ :: E1] |ₕ [w ∶ B :: E2] := by simp
-        obtain ⟨E', hEz, Ξ'', hPE', hz_bounds⟩ := ih hx hzin_pre hPΞ'
-        simp at hEz
+            exact hFz.2.1 (Env.mem_pair_fst_in_names _ h8)
+          ·
+            obtain ⟨E3, hPE3⟩ := Env.exists_perm_cons h
+            refine ⟨E1' ++ E2', Or.inr rfl, ⟨E3 ++ E2', ?_⟩, ?_⟩
+            · exact List.Perm.append_right E2' hPE3
+            · intro n hn
+              have hn_post : n ∈ (𝒢' |ₕ [z ∶ Bᗮ :: E1'] |ₕ [w ∶ B :: E2']).names := by
+                simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at ⊢ hn
+                rcases hn with h1 | h2
+                · right ; right ; right ; left ; exact h1
+                · right ; right ; right ; right ; exact h2
+              have h_glob := EnvStep.names_subset hES hn_post
+              simp [- Lbl.i, -Lbl.f, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at ⊢ h_glob hn
+              rcases h_glob with h1 | h2 | h3 | h4 | h5 | h6
 
-        rcases hEz with h17 | h18 | h19
-        · refine ⟨E', ⟨Or.inl h17, ⟨⟨Ξ'', hPE'⟩, ?_⟩⟩⟩
-          · sorry
-        · subst h18
-          have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
-          simp at hxin
-          rcases hxin with ⟨rfl, rfl⟩ | h20
-          · exfalso
-            apply Env.mem_pair_fst_in_names at h9
-            exact hFz.2.2 h9
-          · have hxin := List.mem_append_left (bs := E2') h20
-            obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
-            refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
-            · sorry
-        · subst h19
-          have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
-          simp at hxin
-          rcases hxin with ⟨rfl, rfl⟩ | h21
-          · exfalso
-            have hxE := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
-            simp at hxE
-            rcases hxE with h15 | h16
-            · apply Env.mem_pair_fst_in_names at h15
-              exact hFw.2.1 h15
-            · apply Env.mem_pair_fst_in_names at h16
-              exact hFw.2.2 h16
-          · have hxin := List.mem_append_right (as := E1') h21
-            obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
-            refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
-            · sorry
+              · subst h1
+                exfalso
+                rcases hn with hE1' | hE2'
+                · exact hFw'.2.1 hE1'
+                · exact hFw'.2.2 hE2'
+              · subst h2
+                exfalso
+                rcases hn with hE1' | hE2'
+                · exact hFz'.2.1 hE1'
+                · exact hFz'.2.2 hE2'
+              ·
+                rcases hn with hE1' | hE2'
+                · have hnin_Ez' : n ∈ Env.names (z ∶ Bᗮ :: E1') := by
+                    simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
+                    right
+                    exact hE1'
+                  have hn_bound := hnames hnin_Ez'
+                  simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff, - Lbl.i] at hn_bound
+                  rcases hn_bound with rfl | hn_E1 | hn_l
+                  · exact (hFz.1 h3).elim
+                  · left ; exact hn_E1
+                  · right ; right ; exact hn_l
+
+                have hnin_Ez' : n ∈ Env.names (w ∶ B :: E2') := by
+                    simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
+                    right
+                    exact hE2'
+                -- have hn_bound := hnames hnin_Ez'
+                --   simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff, - Lbl.i] at hn_bound
+                --   rcases hn_bound with rfl | hn_E1 | hn_l
+                --   · exact (hFz.1 h3).elim
+                --   · left ; exact hn_E1
+                --   · right ; right ; exact hn_l
+                sorry
+              · sorry
+              · sorry
+              · sorry
+
+        · exfalso
+          have hw_in_Ez : w ∈ Ez'.names := by simp [h12]
+          have hw_bound := hnames hw_in_Ez
+          simp only [Finset.mem_union, Env.names_distributes, Finset.mem_singleton] at hw_bound
+          rcases hw_bound with h1 | h2
+          · cases h1 with
+            | inl h => subst h ; apply hneq ; rfl
+            | inr h => exact hFw.2.1 h
+          · exact hFlw.1 h2
+      · sorry -- inr.inr
+
+
+
+
+      --   · subst h11
+      --     have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+      --     simp at hxin
+      --     rcases hxin with ⟨rfl, rfl⟩ | h11
+      --     · exfalso
+      --       apply Env.mem_pair_fst_in_names at h8
+      --       exact hFz.2.1 h8
+      --     · have hxin := List.mem_append_left (bs := E2') h11
+      --       obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+      --       refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
+      --       · sorry
+      --   · subst h12
+      --     have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+      --     simp at hxin
+      --     rcases hxin with ⟨rfl, rfl⟩ | h14
+      --     · exfalso
+      --       have hxE := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
+      --       simp at hxE
+      --       rcases hxE with h15 | h16
+      --       · apply Env.mem_pair_fst_in_names at h15
+      --         exact hFw.2.1 h15
+      --       · apply Env.mem_pair_fst_in_names at h16
+      --         exact hFw.2.2 h16
+      --     · have hxin := List.mem_append_right (as := E1') h14
+      --       obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+      --       refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
+      --       · sorry
+      -- · obtain ⟨Ξ', hPΞ'⟩ := Env.exists_perm_cons (List.mem_cons_of_mem (y := w ∶ B) h9)
+      --   have hzin_pre : w ∶ B :: E2 ∈ 𝒢 |ₕ [z ∶ Bᗮ :: E1] |ₕ [w ∶ B :: E2] := by simp
+      --   obtain ⟨E', hEz, Ξ'', hPE', hz_bounds⟩ := ih hx hzin_pre hPΞ'
+      --   simp at hEz
+
+      --   rcases hEz with h17 | h18 | h19
+      --   · refine ⟨E', ⟨Or.inl h17, ⟨⟨Ξ'', hPE'⟩, ?_⟩⟩⟩
+      --     · sorry
+      --   · subst h18
+      --     have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+      --     simp at hxin
+      --     rcases hxin with ⟨rfl, rfl⟩ | h20
+      --     · exfalso
+      --       apply Env.mem_pair_fst_in_names at h9
+      --       exact hFz.2.2 h9
+      --     · have hxin := List.mem_append_left (bs := E2') h20
+      --       obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+      --       refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
+      --       · sorry
+      --   · subst h19
+      --     have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+      --     simp at hxin
+      --     rcases hxin with ⟨rfl, rfl⟩ | h21
+      --     · exfalso
+      --       have hxE := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
+      --       simp at hxE
+      --       rcases hxE with h15 | h16
+      --       · apply Env.mem_pair_fst_in_names at h15
+      --         exact hFw.2.1 h15
+      --       · apply Env.mem_pair_fst_in_names at h16
+      --         exact hFw.2.2 h16
+      --     · have hxin := List.mem_append_right (as := E1') h21
+      --       obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+      --       refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
+      --       · sorry
 
 
 
