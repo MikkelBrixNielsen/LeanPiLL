@@ -1307,14 +1307,29 @@ lemma Lbl.f_par {a a' : Act} :
 lemma Lbl.i_par {a a' : Act} :
   (a |ₗ a').i = iNamesAct a ∪ iNamesAct a' := by simp
 
-lemma EnvStep.preserves_thread_perm
-  {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Types} {l : Lbl} {E Γ' : Env}
-  (hES : 𝒢 -[l]->ₑ 𝒢')
-  (hx : x ∉ l.i ∪ l.f)
-  (hin : E ∈ 𝒢)
-  (hP : E ~ x ∶ A :: Γ') :
-  ∃ E' ∈ 𝒢', ∃ Γ'', E' ~ x ∶ A :: Γ'' ∧ E'.names ⊆ E.names ∪ l.i := by
-  induction hES generalizing E hP Γ'
+
+
+-- lemma disjoint_foldr_names (L : List Env) (target_names : Finset FPName)
+--   (h_all : ∀ a ∈ L, Disjoint (List.map Prod.fst a).toFinset target_names) :
+--   Disjoint (List.foldr (fun Γ acc ↦ (List.map Prod.fst Γ).toFinset ∪ acc) ∅ L) target_names := by
+--   induction L with
+--   | nil =>
+--     simp
+--   | cons head tail ih_tail =>
+--     simp only [List.foldr, Finset.disjoint_union_left]
+--     constructor
+--     · exact h_all head (List.mem_cons_self)
+--     · exact ih_tail (fun a ha => h_all a (List.mem_cons_of_mem _ ha))
+
+-- lemma EnvStep.preserves_thread_perm
+--   {𝒢 𝒢' : HyperEnv} {x : FPName} {A : Types} {l : Lbl} {E Γ' : Env}
+--   (hES : 𝒢 -[l]->ₑ 𝒢')
+--   (hx : x ∉ l.i ∪ l.f)
+--   (hin : E ∈ 𝒢)
+--   (hP : E ~ x ∶ A :: Γ')
+--   (hlin : 𝒢.Linearity) :
+--   ∃ E' ∈ 𝒢', ∃ Γ'', E' ~ x ∶ A :: Γ'' ∧ E'.names ⊆ E.names ∪ l.i := by
+--   induction hES generalizing E hP Γ'
 
   -- case one =>
   --   exfalso
@@ -1428,141 +1443,185 @@ lemma EnvStep.preserves_thread_perm
   --   · refine ⟨E, ⟨Or.inl h1, ⟨⟨Γ', hP⟩, by simp⟩⟩⟩
   --   · refine ⟨E, ⟨Or.inr h2, ⟨⟨Γ', hP⟩, by simp⟩⟩⟩
 
+-- FIXME:
+  -- case res 𝒢 𝒢' E1 E1' E2 E2' z w B _ hFz hFw hFz' hFw' hFlz hFlw hneq hES ih =>
+  --   simp [- Lbl.i, - Lbl.f, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
+  --     at hin ⊢ hFz hFw hFz' hFw' hFlz hFlw
+  --   have ih₁ := ih (E := E) (Γ' := Γ') hx
+  --   simp [- Lbl.i, - Lbl.f] at ih₁
+  --   rcases hin with h1 | h2
+  --   · simp at hlin
+  --     obtain ⟨E', hE', ⟨E'', hPE'⟩, hnames⟩ := ih₁ (Or.inl h1) hP hlin.1 _ _
+  --     clear ih₁ ih
+  --     rcases hE' with h3 | h4 | h5
+  --     · refine ⟨E', ⟨Or.inl h3, ⟨E'', hPE'⟩, hnames⟩⟩
+  --     · subst h4
+  --       have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+  --       simp at hxin
+  --       rcases hxin with ⟨rfl, rfl⟩ | h6
+  --       · exfalso
+  --         have hxE := (List.Perm.mem_iff (a := x ∶ Bᗮ) hP).mpr (by simp)
+  --         exact hFz.1 (HyperEnv.mem_of_mem_mem_names hxE h1)
+  --       · have hxin := List.mem_append_left (bs := E2') h6
+  --         obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+  --         refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
+  --         have hzin : z ∈ Env.names (z ∶ Bᗮ :: E1') := by simp
+  --         have hz_bound := hnames hzin
+  --         rcases Finset.mem_union.mp hz_bound with hzE | hzl
+  --         · exfalso
+  --           have ⟨T, hin⟩ := (Env.mem_pair_fst_in_names_iff.mp hzE)
+  --           have hzG : z ∈ 𝒢.names := HyperEnv.mem_of_mem_mem_names hin h1
+  --           exact hFz.1 hzG
+  --         · exfalso
+  --           exact hFlz.1 hzl
+  --     · subst h5
+  --       have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+  --       simp at hxin
+  --       rcases hxin with ⟨rfl, rfl⟩ | h7
+  --       · exfalso
+  --         have hxE := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
+  --         exact hFw.1 (HyperEnv.mem_of_mem_mem_names hxE h1)
+  --       · have hxin := List.mem_append_right (as := E1') h7
+  --         obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
+  --         refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
+  --         have hwin : w ∈ Env.names (w ∶ B :: E2') := by simp
+  --         have hz_bound := hnames hwin
+  --         rcases Finset.mem_union.mp hz_bound with hzE | hwl
+  --         · exfalso
+  --           have ⟨T, hin⟩ := (Env.mem_pair_fst_in_names_iff.mp hzE)
+  --           have hzG : w ∈ 𝒢.names := HyperEnv.mem_of_mem_mem_names hin h1
+  --           exact hFw.1 hzG
+  --         · exfalso
+  --           exact hFlw.1 hwl
 
+  --   · subst h2
+  --     clear ih₁
+  --     have hxin := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
+  --     simp at hxin
+  --     rcases hxin with h8 | h9
+  --     · obtain ⟨Ξ', hPΞ'⟩ := Env.exists_perm_cons (List.mem_cons_of_mem (y := z ∶ Bᗮ) h8)
+  --       have hzin : (z ∶ Bᗮ :: E1) ∈ 𝒢 |ₕ [z ∶ Bᗮ :: E1] |ₕ [w ∶ B :: E2] := by simp
+  --       obtain ⟨Ez', hEz', Ξ'', hPE', hnames⟩ := ih hx hzin hPΞ' _
 
-  case res 𝒢 𝒢' E1 E1' E2 E2' z w B _ hFz hFw hFz' hFw' hFlz hFlw hneq hES ih =>
-    simp [-Lbl.i, -Lbl.f, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
-      at hin ⊢ hFz hFw hFz' hFw' hFlz hFlw
-    have ih₁ := ih (E := E) (Γ' := Γ') hx
-    simp [- Lbl.i, - Lbl.f] at ih₁
-    rcases hin with h1 | h2
-    · obtain ⟨E', hE', ⟨E'', hPE'⟩, hnames⟩ := ih₁ (Or.inl h1) hP
-      clear ih₁ ih
-      rcases hE' with h3 | h4 | h5
-      · refine ⟨E', ⟨Or.inl h3, ⟨E'', hPE'⟩, hnames⟩⟩
-      · subst h4
-        have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
-        simp at hxin
-        rcases hxin with ⟨rfl, rfl⟩ | h6
-        · exfalso
-          have hxE := (List.Perm.mem_iff (a := x ∶ Bᗮ) hP).mpr (by simp)
-          exact hFz.1 (HyperEnv.mem_of_mem_mem_names hxE h1)
-        · have hxin := List.mem_append_left (bs := E2') h6
-          obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
-          refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
-          have hzin : z ∈ Env.names (z ∶ Bᗮ :: E1') := by simp
-          have hz_bound := hnames hzin
-          rcases Finset.mem_union.mp hz_bound with hzE | hzl
-          · exfalso
-            have ⟨T, hin⟩ := (Env.mem_pair_fst_in_names_iff.mp hzE)
-            have hzG : z ∈ 𝒢.names := HyperEnv.mem_of_mem_mem_names hin h1
-            exact hFz.1 hzG
-          · exfalso
-            exact hFlz.1 hzl
-      · subst h5
-        have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
-        simp at hxin
-        rcases hxin with ⟨rfl, rfl⟩ | h7
-        · exfalso
-          have hxE := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
-          exact hFw.1 (HyperEnv.mem_of_mem_mem_names hxE h1)
-        · have hxin := List.mem_append_right (as := E1') h7
-          obtain ⟨E', hPE'⟩ := Env.exists_perm_cons hxin
-          refine ⟨E1' ++ E2', Or.inr rfl, ⟨E', hPE'⟩, ?_⟩
-          have hwin : w ∈ Env.names (w ∶ B :: E2') := by simp
-          have hz_bound := hnames hwin
-          rcases Finset.mem_union.mp hz_bound with hzE | hwl
-          · exfalso
-            have ⟨T, hin⟩ := (Env.mem_pair_fst_in_names_iff.mp hzE)
-            have hzG : w ∈ 𝒢.names := HyperEnv.mem_of_mem_mem_names hin h1
-            exact hFw.1 hzG
-          · exfalso
-            exact hFlw.1 hwl
+  --       simp at hEz'
+  --       rcases hEz' with h10 | h11 | h12
+  --       · sorry
+  --       · subst h11
+  --         have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
+  --         simp at hxin
+  --         rcases hxin with ⟨rfl, rfl⟩ | h
+  --         · exfalso
+  --           exact hFz.2.1 (Env.mem_pair_fst_in_names _ h8)
+  --         · obtain ⟨E3, hPE3⟩ := Env.exists_perm_cons h
+  --           refine ⟨E1' ++ E2', Or.inr rfl, ⟨E3 ++ E2', ?_⟩, ?_⟩
+  --           · exact List.Perm.append_right E2' hPE3
+  --           · intro n hn
+  --             have hn_post : n ∈ (𝒢' |ₕ [z ∶ Bᗮ :: E1'] |ₕ [w ∶ B :: E2']).names := by
+  --               simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at ⊢ hn
+  --               rcases hn with h1 | h2
+  --               · right ; right ; right ; left ; exact h1
+  --               · right ; right ; right ; right ; exact h2
+  --             have h_glob := EnvStep.names_subset hES hn_post
+  --             simp [- Lbl.i, -Lbl.f, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at ⊢ h_glob hn
+  --             rcases h_glob with h1 | h2 | h3 | h4 | h5 | h6
+  --             · subst h1
+  --               exfalso
+  --               rcases hn with hE1' | hE2'
+  --               · exact hFw'.2.1 hE1'
+  --               · exact hFw'.2.2 hE2'
+  --             · subst h2
+  --               exfalso
+  --               rcases hn with hE1' | hE2'
+  --               · exact hFz'.2.1 hE1'
+  --               · exact hFz'.2.2 hE2'
+  --             · rcases hn with hE1' | hE2'
+  --               · have hnin_Ez' : n ∈ Env.names (z ∶ Bᗮ :: E1') := by
+  --                   simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
+  --                   right
+  --                   exact hE1'
+  --                 have hn_bound := hnames hnin_Ez'
+  --                 simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff, - Lbl.i] at hn_bound
+  --                 rcases hn_bound with rfl | hn_E1 | hn_l
+  --                 · exact (hFz.1 h3).elim
+  --                 · left ; exact hn_E1
+  --                 · right ; right ; exact hn_l
+  --               · have h_glob := EnvStep.names_subset hES hn_post
+  --                 simp [- Lbl.i, - Env.mem_pair_fst_in_names_iff]  at h_glob
+  --                 rcases h_glob with rfl | rfl | h3' | h4 | h5 | h6
+  --                 · exfalso ; apply hFw.1 h3
+  --                 · exfalso ; apply hFz.1 h3
+  --                 · exfalso
+  --                   have hD : Disjoint 𝒢.names E2'.names := by
+  --                     have hlin_pre : (𝒢 |ₕ [z ∶ Bᗮ :: E1] |ₕ [w ∶ B :: E2]).Linearity := by
+  --                       simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff, HyperEnv.Linearity,
+  --                         Env.Nodup_merge_iff] at ⊢ hlin
+  --                       rcases hlin with ⟨⟨hndG, ⟨hndE1, hndE2, hD_E1E2⟩⟩, ⟨hpwG, hd⟩⟩
+  --                       split_ands
+  --                       · exact hndG
+  --                       · simp [HyperEnv.Nodup, Env.Nodup_cons, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
+  --                         constructor
+  --                         · exact ⟨hFz.2.1, hndE1⟩
+  --                         · exact ⟨hFw.2.2, hndE2⟩
+  --                       · exact hpwG
+  --                       · simp only [HyperEnv.PairwiseDisjoint, List.pairwise_cons, List.mem_singleton, forall_eq]
+  --                         simp [Finset.disjoint_insert_left, Finset.disjoint_insert_right]
+  --                         split_ands
+  --                         · exact hneq.symm
+  --                         · exact Env.not_mem_names_iff.mp hFw.2.1
+  --                         · exact Env.not_mem_names_iff.mp hFz.2.2
+  --                         · exact hD_E1E2
+  --                       · intro E hE
+  --                         have hDE := hd E hE
+  --                         split_ands
+  --                         · intro hc
+  --                           obtain ⟨T, hin⟩ := Env.mem_pair_fst_in_names_iff.mp hc
+  --                           exact hFz.1 (HyperEnv.mem_of_mem_mem_names hin hE)
+  --                         · exact hDE.1
+  --                         · intro hc
+  --                           obtain ⟨T, hin⟩ := Env.mem_pair_fst_in_names_iff.mp hc
+  --                           exact hFw.1 (HyperEnv.mem_of_mem_mem_names hin hE)
+  --                         · exact hDE.2
+  --                     ·
 
-    · subst h2
-      clear ih₁
+  --                       simp only [HyperEnv.Linearity] at hlin_pre
+  --                       have hlin_post := EnvStep.preserves_Linearity hlin_pre hES
+  --                       have hD_post : Disjoint 𝒢'.names (Env.names (w ∶ B :: E2')) := by
+  --                         simp only [HyperEnv.Linearity_merge] at  hlin_post
+  --                         rcases hlin_post with ⟨⟨hlinG, hlinE1, hDG_E1⟩, ⟨hlinE2, hDGE1_E2⟩⟩
+  --                         simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at ⊢ hDGE1_E2
+  --                         constructor
+  --                         · intro hc ; exact hFw'.1 hc
+  --                         · simp [Env.names, HyperEnv.names]
+  --                           have h_all : ∀ a ∈ 𝒢', Disjoint (List.map Prod.fst a).toFinset (List.map Prod.fst E2').toFinset := by
+  --                             intro a ha
+  --                             exact (hDGE1_E2 a (Or.inl ha)).2
+  --                           exact disjoint_foldr_names 𝒢' ((List.map Prod.fst E2').toFinset) h_all
 
-      have hxin := (List.Perm.mem_iff (a := x ∶ A) hP).mpr (by simp)
-      simp at hxin
-      rcases hxin with h8 | h9
-      · obtain ⟨Ξ', hPΞ'⟩ := Env.exists_perm_cons (List.mem_cons_of_mem (y := z ∶ Bᗮ) h8)
-        have hzin : (z ∶ Bᗮ :: E1) ∈ 𝒢 |ₕ [z ∶ Bᗮ :: E1] |ₕ [w ∶ B :: E2] := by simp
-        obtain ⟨Ez', hEz', Ξ'', hPE', hnames⟩ := ih hx hzin hPΞ'
-        simp at hEz'
-        rcases hEz' with h10 | h11 | h12
-        · sorry
-        ·
-          subst h11
-          have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
-          simp at hxin
-          rcases hxin with ⟨rfl, rfl⟩ | h
-          · exfalso
-            exact hFz.2.1 (Env.mem_pair_fst_in_names _ h8)
-          ·
-            obtain ⟨E3, hPE3⟩ := Env.exists_perm_cons h
-            refine ⟨E1' ++ E2', Or.inr rfl, ⟨E3 ++ E2', ?_⟩, ?_⟩
-            · exact List.Perm.append_right E2' hPE3
-            · intro n hn
-              have hn_post : n ∈ (𝒢' |ₕ [z ∶ Bᗮ :: E1'] |ₕ [w ∶ B :: E2']).names := by
-                simp [- Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at ⊢ hn
-                rcases hn with h1 | h2
-                · right ; right ; right ; left ; exact h1
-                · right ; right ; right ; right ; exact h2
-              have h_glob := EnvStep.names_subset hES hn_post
-              simp [- Lbl.i, -Lbl.f, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at ⊢ h_glob hn
-              rcases h_glob with h1 | h2 | h3 | h4 | h5 | h6
-
-              · subst h1
-                exfalso
-                rcases hn with hE1' | hE2'
-                · exact hFw'.2.1 hE1'
-                · exact hFw'.2.2 hE2'
-              · subst h2
-                exfalso
-                rcases hn with hE1' | hE2'
-                · exact hFz'.2.1 hE1'
-                · exact hFz'.2.2 hE2'
-              ·
-                rcases hn with hE1' | hE2'
-                · have hnin_Ez' : n ∈ Env.names (z ∶ Bᗮ :: E1') := by
-                    simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
-                    right
-                    exact hE1'
-                  have hn_bound := hnames hnin_Ez'
-                  simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff, - Lbl.i] at hn_bound
-                  rcases hn_bound with rfl | hn_E1 | hn_l
-                  · exact (hFz.1 h3).elim
-                  · left ; exact hn_E1
-                  · right ; right ; exact hn_l
-
-                have hnin_Ez' : n ∈ Env.names (w ∶ B :: E2') := by
-                    simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff]
-                    right
-                    exact hE2'
-                -- have hn_bound := hnames hnin_Ez'
-                --   simp [Finset.mem_insert, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff, - Lbl.i] at hn_bound
-                --   rcases hn_bound with rfl | hn_E1 | hn_l
-                --   · exact (hFz.1 h3).elim
-                --   · left ; exact hn_E1
-                --   · right ; right ; exact hn_l
-                sorry
-              · sorry
-              · sorry
-              · sorry
-
-        · exfalso
-          have hw_in_Ez : w ∈ Ez'.names := by simp [h12]
-          have hw_bound := hnames hw_in_Ez
-          simp only [Finset.mem_union, Env.names_distributes, Finset.mem_singleton] at hw_bound
-          rcases hw_bound with h1 | h2
-          · cases h1 with
-            | inl h => subst h ; apply hneq ; rfl
-            | inr h => exact hFw.2.1 h
-          · exact hFlw.1 h2
-      · sorry -- inr.inr
-
-
-
+  --                       have hD_final : Disjoint 𝒢.names E2'.names := by
+  --                         have hD_post_E2' : Disjoint 𝒢'.names E2'.names := by
+  --                           apply Finset.disjoint_of_subset_right _ hD_post
+  --                           simp
+  --                         have hG_subset : 𝒢.names ⊆ 𝒢'.names := by
+  --                           sorry
+  --                         exact Finset.disjoint_of_subset_left hG_subset hD_post_E2'
+  --                       exact hD_final
+  --                   exact Finset.disjoint_left.mp hD h3 hE2'
+  --                 · left ; exact h4
+  --                 · right ; left ; exact h5
+  --                 · right ; right ; exact h6
+  --             · left ; exact h4
+  --             · right ; left ; exact h5
+  --             · right ; right ; exact h6
+  --       · exfalso
+  --         have hw_in_Ez : w ∈ Ez'.names := by simp [h12]
+  --         have hw_bound := hnames hw_in_Ez
+  --         simp only [Finset.mem_union, Env.names_distributes, Finset.mem_singleton] at hw_bound
+  --         rcases hw_bound with h1 | h2
+  --         · cases h1 with
+  --           | inl h => subst h ; apply hneq ; rfl
+  --           | inr h => exact hFw.2.1 h
+  --         · exact hFlw.1 h2
+  --     · sorry -- inr.inr
 
       --   · subst h11
       --     have hxin := (List.Perm.mem_iff (a := x ∶ A) hPE').mpr (by simp)
@@ -1728,22 +1787,22 @@ lemma EnvStep.preserves_thread_perm
   --   rw [Env.names_eq_of_perm hPE3, ← Env.names_eq_of_perm hPE1]
   --   exact hnames
 
+-- FIXME: Add linearity contraint
+-- lemma EnvStep.preserves_two_threads
+--   {𝒢 ℋ : HyperEnv} {Ex Ey Γ' Δ': Env} {x y : FPName} {A B : Types} {l : Lbl}
+--   (hES : 𝒢 -[l]->ₑ ℋ) (hx : x ∉ l.i ∪ l.f) (hy : y ∉ l.i ∪ l.f) (hneq : x ≠ y)
 
-lemma EnvStep.preserves_two_threads
-  {𝒢 ℋ : HyperEnv} {Ex Ey Γ' Δ': Env} {x y : FPName} {A B : Types} {l : Lbl}
-  (hES : 𝒢 -[l]->ₑ ℋ) (hx : x ∉ l.i ∪ l.f) (hy : y ∉ l.i ∪ l.f) (hneq : x ≠ y)
+--   (hxin : Ex ∈ 𝒢) (hyin : Ey ∈ 𝒢)
+--   (hPx_pre : Ex ~ x ∶ A :: Γ')
+--   (hPy_pre : Ey ~ y ∶ B :: Δ')
+--   (hneq_pre : Ex ≠ Ey) (hD_pre : Disjoint Ex.names Ey.names) :
 
-  (hxin : Ex ∈ 𝒢) (hyin : Ey ∈ 𝒢)
-  (hPx_pre : Ex ~ x ∶ A :: Γ')
-  (hPy_pre : Ey ~ y ∶ B :: Δ')
-  (hneq_pre : Ex ≠ Ey) (hD_pre : Disjoint Ex.names Ey.names) :
+--   ∃ Ex' ∈ ℋ, ∃ Ey' ∈ ℋ, ∃ Γ'' Δ'',
+--     Ex' ~ x ∶ A :: Γ'' ∧ Ey' ~ y ∶ B :: Δ'' ∧ Ex' ≠ Ey' := by
 
-  ∃ Ex' ∈ ℋ, ∃ Ey' ∈ ℋ, ∃ Γ'' Δ'',
-    Ex' ~ x ∶ A :: Γ'' ∧ Ey' ~ y ∶ B :: Δ'' ∧ Ex' ≠ Ey' := by
+--   have h_names := EnvStep.names_subset hES
 
-  have h_names := EnvStep.names_subset hES
-
-  induction hES generalizing Ex Ey Γ' Δ' hPx_pre hPy_pre hneq_pre hD_pre
+--   induction hES generalizing Ex Ey Γ' Δ' hPx_pre hPy_pre hneq_pre hD_pre
   --   <;> (
   --   simp [- Lbl.i, - Lbl.f] at hx hy hxin hyin
   --   try subst hxin hyin
@@ -2406,20 +2465,6 @@ lemma EnvStep.preserves_two_threads
 
   --     · contradiction
 
-
-
-
-
-  all_goals sorry
-
-
-
-
-
-
-
-
-
   -- case perm 𝒥 𝒥' 𝒦 𝒦' lbl hP hES hP' ih =>
   --   simp_all [- Lbl.i, - Lbl.f]
   --   have ⟨Ex', hEx', hPEx'⟩ := HyperEnv.Perm_mem hP hxin
@@ -2465,27 +2510,6 @@ lemma EnvStep.preserves_two_threads
   --     exact Finset.disjoint_left.mp hD_post hxin_Ex''_names hxin_Ey''_names
 
   --   refine ⟨Ex''', hEx''', Ey''', hEy''', ⟨Γ_post, hPx''⟩, ⟨Δ_post, hPy''⟩, hneq_K'⟩
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
