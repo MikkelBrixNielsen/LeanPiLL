@@ -16,3 +16,5 @@ scope = "leanprover-community"
 
 [[lean_lib]]
 name = "PiLL"
+srcDir = "."
+includeDirs = ["."]

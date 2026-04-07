@@ -1,4 +1,4 @@
--- import PiLL.Framework.Model.Process
+-- import PiLL.Model.Process
 
 /-
   Alpha Equivalance becomes structural equality when using De Brujin / LN. Processes

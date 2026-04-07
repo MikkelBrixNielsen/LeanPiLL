@@ -1,5 +1,5 @@
-import PiLL.Framework.Model.Process
-import PiLL.Framework.Semantics.Labels
+import PiLL.Model.Process
+import PiLL.Semantics.Labels
 
 -- Helper for being able to dynamically build a dispose process
 def buildDisp (names : List FPName) (x : FPName) : Proc :=
@@ -23,7 +23,6 @@ def buildDup (P : Proc) (names : List FPName) (x : FPName) : Proc :=
   -- use closeAll to replace free names with De Bruijn indices to get duplicate server
   -- x :: names has names reversed to have x be innermost binder (bound 0) and zₙ (bound 1)
   let P' := closeAll (Proc.server #x P) 0 (x :: names.reverse)
-
   -- Wrap x with tensor, and the rest with duplicate
   wrapDup (#x⟦$N⟧․(P' |ₚ (Proc.server #x P))) names
 
@@ -31,45 +30,37 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | one
       {P : Proc} {x : FPName} :
       ProcStep (#x⟦⟧․P) (x⟦⟧) P
-
   | tensor
       {P : Proc} {x y : FPName} (hF : y ∉ {x} ∪ P.f) :
       ProcStep (#x⟦$N⟧․P) (x⟦y⟧) P⸨#y⸩
-
   | bot
       {P : Proc} {x : FPName} :
       ProcStep (#x⸨⸩․P) (x⸨⸩) P
-
   | parr
       {P : Proc} {x y : FPName} (hF: y ∉ {x} ∪ P.f) :
       ProcStep (#x⸨$N⸩․P) (x⸨y⸩) P⸨#y⸩
-
   | par₁
       {P P' Q : Proc} {l : Lbl} :
       ProcStep P l P' → l.i ∩ Q.f = ∅ →
       ----------------------------------
       ProcStep (P |ₚ Q) l (P' |ₚ Q)
-
   | par₂
       {P Q Q' : Proc} {l : Lbl} :
       ProcStep Q l Q' → l.i ∩ P.f = ∅ →
       ----------------------------------
       ProcStep (P |ₚ Q) l (P |ₚ Q')
-
   | syn
       {P P' Q Q' : Proc} {l l' : Act} :
       ProcStep P l P' → ProcStep Q l' Q' →
       (l |ₗ l').i ∩ (P |ₚ Q).f = ∅  → (l |ₗ l').WF →
       ---------------------------------------------
       ProcStep (P |ₚ Q) (l |ₗ l') (P' |ₚ Q')
-
 -- FIXME: Delete, and make theorem stating AlphaEq is handled by LN
 --   | alpha_equiv
 --       {P Q Q' : Proc} {l : Lbl} :
 --       (P =ₐ Q) → ProcStep Q l Q' →
 --       -------------------------------
 --       ProcStep P l Q'
-
 -- NOTE: P' defined outside forall → x y cannot be in P'
   | one_bot
       {P P' : Proc} (L : Finset FPName) :
@@ -77,7 +68,6 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep P⸨#x, #y⸩ (x⟦⟧ |ₗ y⸨⸩) P') →
       ----------------------------
       ProcStep (𝑣⸨$N,$N⸩ P) (τ) P'
-
   | tensor_parr
       {P P' : Proc} {x x' y y' : FPName} {L : Finset FPName} :
       (∀ x ∉ L, ∀ x' ∉ L, ∀ y ∉ L, ∀ y' ∉ L,
@@ -85,7 +75,6 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep P⸨#x, #y⸩ (x⟦x'⟧ |ₗ y⸨y'⸩) P'⸨#x, #y⸩⸨#x', #y'⸩) →
       ---------------------------------------------------------
       ProcStep (𝑣⸨$N,$N⸩ P) (τ) (𝑣⸨$N,$N⸩ (𝑣⸨$N,$N⸩ P'))
-
 /- NOTE: x y are fresh from L, so they avoid l.f and l.i, with L = P.f.
          Thus, x, y ∉ l.f ∪ l.i follows automatically -/
   | res
@@ -94,72 +83,56 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStep P⸨#x, #y⸩ l P'⸨#x, #y⸩) →
       -------------------------------------
       ProcStep (𝑣⸨$N,$N⸩ P) (l) (𝑣⸨$N,$N⸩ P')
-
   | disp₁
       {P : Proc} {x : FPName} :
       ProcStep (#x⟦DISP⟧․P) (x⟦DISP⟧) (#x⸨⸩․P)
-
   | disp₂
       {P : Proc} {x : FPName} :
       ---------------------------------------------------------------
       ProcStep (!#x․{P}) (x⸨DISP⸩) (buildDisp (P.f.erase x).toList x)
-
   | dup₁
       {P : Proc} {x : FPName} :
       ProcStep (#x⟦DUP⟧⸨$N⸩․P) (x⟦DUP⟧) ((#x⸨$N⸩․P))
-
   | dup₂
       {P : Proc} {x : FPName} :
       -----------------------------------------------------------------
       ProcStep (!#x․{P}) (x⸨DUP⸩) (buildDup P ((P.f.erase x).toList) x)
-
   | use₁
       {P : Proc} {x : FPName} :
       ProcStep (#x⟦USE⟧․P) (x⟦USE⟧) P
-
   | use₂
       {P : Proc} {x : FPName} :
       ProcStep (!#x․{P}) (x⸨USE⸩) P
-
   | output
       {P : Proc} {x : FPName} {A : Types} :
       ProcStep (#x⟦A⟧․P) (x⟦A⟧) P
-
   | input
       {P : Proc} {x : FPName} {A : Types} :
       A.lc 0 →
       ProcStep (#x⸨$T⸩․P) (x⸨A⸩) (P{A // 0})
-
   | selectL
       {P : Proc} {x : FPName} :
       ProcStep (#x⟦𝐋⟧․P) (x⟦𝐋⟧) P
-
   | ampL
       {P Q : Proc} {x : FPName} :
       ProcStep (#x․case{𝐋 : P, 𝐑 : Q}) (x⸨𝐋⸩) P
-
   | selectR
       {P : Proc} {x : FPName} :
       ProcStep (#x⟦𝐑⟧․P) (x⟦𝐑⟧) P
-
   | ampR
       {P Q : Proc} {x : FPName} :
       ProcStep (#x․case{𝐋 : P, 𝐑 : Q}) (x⸨𝐑⸩) Q
-
   | link₁
       {x y : FPName} :
       ProcStep (#x ⟷ₚ #y) (x ⟷ₗ y) 𝟘
-
   | link₂
       {x y : FPName} :
       ProcStep (#x ⟷ₚ #y) (y ⟷ₗ x) 𝟘
-
   | com {P P' : Proc} {μ : Mu} {L : Finset FPName} :
       (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
       ProcStep P⸨#x, #y⸩ (x⟦μ⟧ |ₗ y⟦μ⟧) P'⸨#x, #y⸩) →
       ----------------------------------------------
       ProcStep (𝑣⸨$N,$N⸩ P) (τ) (𝑣⸨$N,$N⸩ P')
-
 /- NOTE: y is consumed by link → y = x, and z is being replaced by x, thus
          the process can be opened with x for both y and z -/
   | axcut
@@ -177,28 +150,23 @@ inductive ProcStep : (P : Proc) → Lbl → (P' : Proc) → Prop where
 --       -----------------------------------------
 --       ProcStep (𝑣⸨$N,$N⸩ P) (τ) (P'⸨#x, #x⸩)
 
-
-
 notation:50 P " -[" l "]->ₚ " P' => ProcStep P l P'
 
 theorem ProcStep.preserves_WF (P P' : Proc) (l : Lbl) :
   ProcStep P l P' → l.WF := by
   intro h
   induction h
-
   case res L _ ih =>
     obtain ⟨x, hx, y, hy, hneq⟩ := exists_two_fresh L
     exact ih x y hx hy hneq
-
   all_goals
-    simp_all [Lbl.WF]
+    simp_all only [Lbl.WF]
 
 inductive MPST : (P : Proc) → Lbls → (P' : Proc) → Prop where
   | refl
     {P : Proc} :
     ------------
     MPST P (ε) P
-
   | stepR {l : Lbl} {ls : Lbls} {P P'' P' : Proc} :
     (MPST P ls P'') → (P'' -[l]->ₚ P') →
     ------------------------------------
@@ -221,23 +189,19 @@ lemma Proc.closeAll_open_substNames {P : Proc} {names : List FPName} {y z : FPNa
   (closeAll P k (names ++ [y]))⸨k + names.length | #z⸩ = closeAll (P{z // y}) k names := by
   induction names generalizing k P
   case nil =>
-    simp [closeAll]
+    simp only [List.nil_append, closeAll, List.length_nil, add_zero]
     rw [Proc.close_open_eq_substNames]
     · exact hF
     · exact hlc
-
   case cons fst names ih =>
-    simp [← ne_eq, closeAll] at ⊢ hNodup hFz
-
+    simp only [List.cons_append, List.nodup_cons, List.mem_append, List.mem_cons, List.not_mem_nil,
+      or_false, not_or, ← ne_eq, closeAll, List.length_cons] at ⊢ hNodup hFz
     have := ih
       (k := k + 1) (P := P⟪k | fst⟫) (by simp [hF])
       (Proc.lc_close (by simp) hlc) hNodup.2 hFz.2
-    rw [Nat.add_assoc, Nat.add_comm 1 names.length] at this
-
-    rw [Proc.close_substNames_comm_gen] at this
-    · exact this
-    · exact hNodup.1.2
-    · apply (hFz.1).symm
+    rw [Nat.add_assoc, Nat.add_comm 1 names.length,
+      Proc.close_substNames_comm_gen hNodup.1.2 hFz.1.symm] at this
+    exact this
 
 lemma Proc.open_wrapDup {P : Proc} {names : List FPName} {z : FPName} {k : Nat} :
   (wrapDup P names)⸨k | #z⸩ = wrapDup (P⸨k + names.length | #z⸩) names := by

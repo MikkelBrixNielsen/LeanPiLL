@@ -1,4 +1,4 @@
-import PiLL.Framework.Model.Process
+import PiLL.Model.Process
 
 inductive Mu : Type
   | L

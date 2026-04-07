@@ -1,6 +1,11 @@
-import PiLL.Framework.Model.Environment
--- import PiLL.Framework.Model.Alpha
--- import PiLL.Framework.Model.Congruence
+import PiLL.Model.Environment
+-- import PiLL.Model.Alpha
+-- import PiLL.Model.Congruence
+
+-- Same reason as in Environment.lean
+set_option linter.style.setOption false
+set_option linter.flexible false
+set_option linter.style.emptyLine false
 
 inductive Typing : Nat → Proc → HyperEnv → Prop where
   ----------------- Actual Typing Rules -----------------

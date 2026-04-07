@@ -1,4 +1,4 @@
-import PiLL.Framework.Model.Process
+import PiLL.Model.Process
 
 -- inductive StructCong : Proc → Proc → Prop where
 --   | refl (P : Proc) : StructCong P P
@@ -27,16 +27,13 @@ inductive StructCong : Proc → Proc → Prop where
   | refl (P : Proc) : StructCong P P
   | symm {P Q : Proc} : StructCong P Q → StructCong Q P
   | trans {P Q R : Proc} : StructCong P Q → StructCong Q R → StructCong P R
-
   | par_congr {P P' Q Q' : Proc} :
       StructCong P P' → StructCong Q Q' → StructCong (P |ₚ Q) (P' |ₚ Q')
   | cut_congr {P P' : Proc} :
       StructCong P P' → StructCong (𝑣⸨$N,$N⸩ P) (𝑣⸨$N,$N⸩ P')
-
   | par_comm (P Q : Proc) : StructCong (P |ₚ Q) (Q |ₚ P)
   | par_assoc (P Q R : Proc) : StructCong ((P |ₚ Q) |ₚ R) (P |ₚ (Q |ₚ R))
   | par_zero (P : Proc) : StructCong (P |ₚ 𝟘) P
-
   -- 4. Scope Extrusion
   -- For LN 𝒗⸨#, #⸩ (P | Q) ≡ (𝑣⸨#, #⸩ P) | Q" IF Q doesn't have dangling bound variable
   -- which could risk capturing 0 or 1 from 𝒗⸨#, #⸩. This amounts to checking lcProc Q.

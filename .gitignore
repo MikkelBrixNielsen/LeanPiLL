@@ -1,0 +1,11 @@
+/.lake
+/.gemini/
+/.gemini_history
+lake-manifest.json
+lean_packages/
+/.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
+Notes-TODO/
+old/

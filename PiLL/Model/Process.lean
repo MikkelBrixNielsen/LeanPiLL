@@ -1,4 +1,4 @@
-import PiLL.Framework.Model.STypes
+import PiLL.Model.STypes
 
 abbrev FPName := Nat
 abbrev BPName := Nat
@@ -181,21 +181,18 @@ lemma exists_two_fresh (L : Finset FPName) :
     intro hc
     have h_lt := fresh_is_fresh L u hc
     exact Nat.lt_irrefl _ h_lt
-
   let v := freshName (L ∪ {u})
   have hv : v ∉ L := by
     intro hc
     have hin : v ∈ L ∪ {u} := Finset.mem_union_left {u} hc
     have h_lt := fresh_is_fresh (L ∪ {u}) v hin
     exact Nat.lt_irrefl _ h_lt
-
   have hneq : u ≠ v := by
     intro heq
     have hinu : v ∈ ({u} : Finset FPName) := by rw [← heq] ; simp
     have hinLu : v ∈ L ∪ {u} := by rw [← heq] ; simp
     have h_lt := fresh_is_fresh (L ∪ {u}) v hinLu
     exact Nat.lt_irrefl _ h_lt
-
   refine ⟨u, v, hu, hv, hneq⟩
 
 def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
@@ -331,7 +328,7 @@ instance : HasSubst Proc Types Nat where subst P A k := Proc.substTypes A k P
 
 @[simp] lemma FPName.subst_id {x z : FPName} :
   z{x // x} = z := by
-  simp [HasSubst.subst, FPName.subst]
+  simp only [HasSubst.subst, FPName.subst, ite_eq_right_iff]
   intro h
   apply h.symm
 
@@ -340,7 +337,7 @@ instance : HasSubst Proc Types Nat where subst P A k := Proc.substTypes A k P
 
 @[simp] lemma FPName.subst_self_of_ne {x y z : FPName} (hneq : z ≠ x) :
   z{y // x} = z := by
-  simp [HasSubst.subst, FPName.subst]
+  simp only [HasSubst.subst, FPName.subst, ite_eq_right_iff]
   intro h
   contradiction
 
@@ -348,7 +345,8 @@ lemma FPName.subst_preserves_neq {w x y z : FPName}
   (hab : w ≠ z) (hya : y = w → y = x) (hyb : y = z → y = x) :
   w{y // x} ≠ z{y // x} := by
   simp only [HasSubst.subst, FPName.subst]
-  split_ifs <;> simp_all
+  split_ifs <;> simp_all only [ne_eq, not_true_eq_false,
+    not_false_eq_true, implies_true, imp_false]
   all_goals {
     intro heq
     exact hya heq.symm
@@ -489,23 +487,23 @@ lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
   cases x with
   | bound i =>
     simp [Channel.open, HasSubst.subst, Channel.subst]
-    split_ifs <;> simp
+    split_ifs <;> simp only [↓reduceIte]
   | free f =>
-    simp [Channel.open, HasSubst.subst, Channel.subst, Channel.f] at ⊢ hF
+    simp only [Channel.f, Finset.mem_singleton, Channel.open, HasSubst.subst,
+      subst, beq_iff_eq, right_eq_ite_iff, free.injEq] at ⊢ hF
     intro h
     exfalso
     exact hF h.symm
 
+set_option linter.flexible false in -- FIXME: Fix linter warnings
 lemma Proc.open_substNames_intro_gen (P : Proc) (k : Nat) {w z : FPName} (hF : w ∉ P.f) :
   P⸨k | #z⸩ = P⸨k | #w⸩{z // w} := by
   induction P generalizing k <;> (
     try simp [Proc.f, HasOpen.open_, HasSubst.subst, Proc.open, Proc.substNames] at ⊢ hF
   )
-
   case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih
     | input ih | server ih | consume ih | duplicate ih | dispose ih =>
     exact ⟨Channel.open_substNames_intro_gen _ _ hF.1, ih _ hF.2⟩
-
   case cut ih => apply ih _ hF
   case par ihP ihQ => exact ⟨ihP k hF.1, ihQ k hF.2⟩
   case amp ihP ihQ => exact ⟨Channel.open_substNames_intro_gen _ _ hF.1, ihP _ hF.2.1, ihQ _ hF.2.2⟩
@@ -523,9 +521,9 @@ lemma Channel.open_substNames_comm_gen {u : Channel} {x y z : FPName} {k : Nat} 
     simp [HasOpen.open_, Channel.open, HasSubst.subst, Channel.subst]
     split_ifs <;> simp
   case bound =>
-    simp [HasOpen.open_, Channel.open, HasSubst.subst, Channel.subst]
+    simp only [HasSubst.subst, subst, HasOpen.open_, Channel.open, beq_iff_eq]
     split_ifs
-    case pos => simp ; intro ; contradiction
+    case pos => simp only [ite_eq_right_iff, free.injEq] ; intro ; contradiction
     case neg => rfl
 
 @[simp] lemma Proc.open_nil {x : FPName} {k : Nat} :
@@ -595,14 +593,13 @@ lemma Channel.open_substNames_comm_gen {u : Channel} {x y z : FPName} {k : Nat} 
   (u⟷ₚv)⸨k | #x⸩ = u⸨k | #x⸩⟷ₚv⸨k | #x⸩ := by
   simp [HasOpen.open_, Channel.open, Proc.open]
 
+set_option linter.flexible false in -- FIXME: Fix linter warnings
 lemma Proc.open_substNames_comm_gen {P : Proc} {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
   (P⸨k | #z⸩){y // x} = P{y // x}⸨k | #z⸩ := by
   induction P generalizing k <;> try simp
-
   case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih | input ih
     | server ih | consume ih | duplicate ih | dispose ih =>
     exact ⟨Channel.open_substNames_comm_gen hneq, ih⟩
-
   case cut ih => exact ih
   case par ihP ihQ => exact ⟨ihP, ihQ⟩
   case amp ihP ihQ => exact ⟨Channel.open_substNames_comm_gen hneq, ⟨ihP, ihQ⟩⟩
@@ -614,7 +611,7 @@ lemma Proc.open_substNames_comm {P : Proc} {x y z : FPName} (hF : z ≠ x) :
 lemma Proc.openCut_substNames_comm {P : Proc} {x y z w : FPName}
   (hFz : z ≠ x) (hFw : w ≠ x) :
   P⸨#z, #w⸩{y // x} = P{y // x}⸨#z, #w⸩ := by
-  simp [HasOpenTwo.open_, HasSubst.subst]
+  simp only [HasOpenTwo.open_, HasSubst.subst, zero_add]
   change ((P⸨1 | #w⸩)⸨#z⸩){y // x} = P{y // x}⸨1 | #w⸩⸨#z⸩
   rw [Proc.open_substNames_comm_gen (k := 0) hFz]
   rw [Proc.open_substNames_comm_gen (k := 1) hFw]
@@ -632,7 +629,7 @@ lemma Proc.openCut_substNames_comm {P : Proc} {x y z w : FPName}
 
 @[simp] lemma Channel.close_open_other {x y z : FPName} {k : Nat} (hneq : z ≠ x) :
   ((#z).close x k).open #y k = #z := by
-  simp [Channel.close, Channel.open]
+  simp only [Channel.close, Channel.open, beq_iff_eq]
   split_ifs
   case pos h => subst h ; contradiction
   case neg h => simp
@@ -661,7 +658,7 @@ lemma Channel.close_open_eq_substNames {u : Channel} {x y : FPName} {k : Nat}
     case neg h => rfl
   | free z =>
     simp only [Channel.f, Finset.mem_singleton] at hy
-    simp [Channel.close, Channel.open, HasSubst.subst, Channel.subst]
+    simp only [Channel.open, Channel.close, beq_iff_eq, HasSubst.subst, subst]
     split_ifs
     case pos h1 h2 => subst h1 ; simp
     case neg h1 h2 => subst h1 ; contradiction
@@ -670,7 +667,7 @@ lemma Channel.close_open_eq_substNames {u : Channel} {x y : FPName} {k : Nat}
 
 lemma Channel.close_open_eq_substNames_notation {u : Channel} {x y : FPName} {k : Nat}
   (hy : y ∉ u.f) (hlc : u.lc k) : u⟪k | x⟫⸨k | (#y)⸩ = u{y // x} := by
-  simp [HasClose.close_, HasOpen.open_]
+  simp only [HasClose.close_, HasOpen.open_]
   rw [Channel.close_open_eq_substNames hy hlc]
 
 @[simp] lemma Proc.close_nil {k : Nat} {x : FPName} :
@@ -725,37 +722,33 @@ lemma Channel.close_open_eq_substNames_notation {u : Channel} {x y : FPName} {k 
 @[simp] lemma Proc.close_link {k : Nat} {x : FPName} {u v : Channel} :
   (u⟷ₚv)⟪k | x⟫ = u⟪k | x⟫⟷ₚv⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
 
+set_option linter.flexible false in -- FIXME: Fix linter warnings
 lemma Proc.close_open_eq_substNames {P : Proc} {x y : FPName} {k n : Nat}
   (hy : y ∉ P.f) (hlc : P.lc k n) :
   P⟪k | x⟫⸨k | #y⸩ = P{y // x} := by
   induction P generalizing k n <;> (
     simp only [Proc.f, Finset.mem_union, not_or, Proc.lc] at hy hlc
-    try simp)
-
+    simp
+  )
   case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | input ih | server ih
     | consume ih | duplicate ih | dispose ih =>
     constructor
     · exact Channel.close_open_eq_substNames_notation hy.1 hlc.1
     · exact  ih hy.2 hlc.2
-
   case cut ih => exact ih hy hlc
-
   case par ihP ihQ =>
     constructor
     · exact ihP hy.1 hlc.1
     · exact ihQ hy.2 hlc.2
-
   case amp ihP ihQ  =>
     split_ands
     · exact Channel.close_open_eq_substNames_notation hy.1.1 hlc.1
     · exact ihP hy.1.2 hlc.2.1
     · exact ihQ hy.2 hlc.2.2
-
   case output ih =>
     constructor
     · exact Channel.close_open_eq_substNames_notation hy.1 hlc.1
     · exact ih hy.2 hlc.2.1
-
   case link u v =>
     constructor
     · exact Channel.close_open_eq_substNames_notation hy.1 hlc.1
@@ -775,33 +768,32 @@ lemma Proc.open_lc {P : Proc} {x : FPName} {k n : Nat} (hF : x ∉ P.f) (hlc : P
   P⸨k | #x⸩ = P := by
   induction P generalizing k n <;> (
     simp only [Proc.lc, Proc.f, Finset.notMem_union] at hlc hF
-    try simp
+    simp only [open_nil, open_one, one.injEq, open_bot, bot.injEq, open_tensor, tensor.injEq,
+      open_parr, parr.injEq, open_cut, cut.injEq, open_par, par.injEq, open_selectL,
+      selectL.injEq, open_selectR, selectR.injEq, open_amp, amp.injEq, open_output,
+      output.injEq, and_true, open_input, input.injEq, open_server, server.injEq, open_consume,
+       consume.injEq, open_duplicate, duplicate.injEq, open_dispose, dispose.injEq, open_link,
+       link.injEq]
   )
-
   case one ih | bot ih | tensor ih | parr ih |selectL ih | selectR ih | input ih | server ih
     | consume ih | duplicate ih | dispose ih =>
     constructor
     · exact Channel.open_lc hF.1 hlc.1
     · exact ih hF.2 hlc.2
-
   case cut ih => exact ih hF hlc
-
   case par ihP ihQ =>
     constructor
     · exact ihP hF.1 hlc.1
     · exact ihQ hF.2 hlc.2
-
   case amp ihP ihQ =>
     split_ands
     · exact Channel.open_lc hF.1.1 hlc.1
     · exact ihP hF.1.2 hlc.2.1
     · exact ihQ hF.2 hlc.2.2
-
   case output ih =>
     constructor
     · exact Channel.open_lc hF.1 hlc.1
     · apply ih hF.2 hlc.2.1
-
   case link =>
     constructor
     · exact Channel.open_lc hF.1 hlc.1
@@ -815,7 +807,7 @@ lemma Channel.lc_of_open {u : Channel} {x : FPName} {k : Nat} :
   cases u with
   | free => simp [Channel.lc]
   | bound =>
-    simp [HasOpen.open_, Channel.open, Channel.lc]
+    simp only [HasOpen.open_, Channel.open, Channel.lc, beq_iff_eq, Order.lt_add_one_iff]
     split_ifs
     case pos h => simp [h]
     case neg h => grind
@@ -823,40 +815,33 @@ lemma Channel.lc_of_open {u : Channel} {x : FPName} {k : Nat} :
 lemma Proc.lc_of_open_gen {P : Proc} {x : FPName} {k n : Nat} :
   P⸨k | #x⸩.lc k n → P.lc (k + 1) n := by
   induction P generalizing n k <;> (
-    try simp [HasOpen.open_, Proc.open, Proc.lc]
+    try simp only [HasOpen.open_, Proc.open, Proc.lc, and_imp, imp_self]
   )
-
   case one ih | bot ih | selectL ih | selectR ih | input ih | server ih | consume ih | duplicate ih
     | dispose ih =>
     intros hlc1 hlc2
     exact ⟨Channel.lc_of_open hlc1, ih hlc2⟩
-
   case tensor ih | parr ih =>
     intros hlc1 hlc2
     exact ⟨Channel.lc_of_open hlc1, ih hlc2⟩
-
   case cut ih =>
     intros hlc ; exact ih hlc
-
   case par ihP ihQ =>
     intros hlc1 hlc2
     exact ⟨ihP hlc1, ihQ hlc2⟩
-
   case amp ihP ihQ =>
     intros hlc1 hlc2 hlc3
     exact ⟨Channel.lc_of_open hlc1, ihP hlc2, ihQ hlc3⟩
-
   case output ih =>
     intros hlc1 hlc2 hlc3
     exact ⟨Channel.lc_of_open hlc1, ih hlc2, hlc3⟩
-
   case link =>
     intros hlc1 hlc2
     exact ⟨Channel.lc_of_open hlc1, Channel.lc_of_open hlc2⟩
 
 lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
   Proc.lc k n P⸨k | #x, #y⸩ → Proc.lc (k + 2) n P := by
-  simp [HasOpenTwo.open_]
+  simp only [HasOpenTwo.open_]
   intro h
   exact Proc.lc_of_open_gen (Proc.lc_of_open_gen h)
 
@@ -918,17 +903,23 @@ lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
     simp [HasOpen.open_, Channel.open, Channel.f]
     split_ifs <;> simp
   | free z =>
-    simp [HasOpen.open_, Channel.open, Channel.f] at ⊢ hy
+    simp only [f, Finset.mem_singleton, HasOpen.open_,
+      Channel.open, Finset.erase_eq_self] at ⊢ hy
     exact hy
 
 @[simp] lemma Proc.f_open_erase {P : Proc} {y : FPName} {k : Nat} (hy : y ∉ P.f) :
   (P⸨k | #y⸩.f).erase y = P.f := by
-  induction P generalizing k <;> simp [Finset.erase_union_distrib] at ⊢ hy
-
+  induction P generalizing k <;>
+    simp only [f_nil, f_one, f_bot, f_tensor, f_parr, f_cut, f_par, f_selectL,
+      f_selectR, f_amp, f_output, f_input, f_server, f_consume, f_duplicate,
+      f_dispose, f_link, Finset.notMem_empty, Finset.notMem_union, Finset.union_assoc,
+      Finset.erase_eq_of_notMem, Finset.erase_union_distrib, not_false_eq_true, open_nil,
+      open_one, open_bot, open_tensor, open_parr, open_cut, open_par, open_selectL,
+      open_selectR, open_amp, open_output, open_input, open_server, open_consume,
+      open_duplicate, open_dispose, open_link] at hy ⊢
   case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih | input ih
     | server ih | consume ih | duplicate ih | dispose ih =>
     rw [Channel.f_open_erase hy.1, ih hy.2]
-
   case cut ih => exact ih hy
   case par ihP ihQ => rw [ihP hy.1, ihQ hy.2]
   case amp ihP ihQ => rw [Channel.f_open_erase hy.1, ihP hy.2.1, ihQ hy.2.2]
@@ -937,7 +928,7 @@ lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
 @[simp] lemma Proc.f_open_two_erase {P : Proc} {x y : FPName} {k : Nat}
   (hx : x ∉ P.f) (hy : y ∉ P.f) (hneq : x ≠ y) :
   ((P⸨k | #x, #y⸩.f).erase x).erase y = P.f := by
-  simp [HasOpenTwo.open_]
+  simp only [HasOpenTwo.open_]
   change (P⸨k + 1 | #y⸩⸨k | #x⸩.f.erase x).erase y = P.f
   rw [Proc.f_open_erase, Proc.f_open_erase hy]
   intro h
@@ -963,14 +954,21 @@ lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
 
 lemma Channel.close_not_mem {u : Channel} {z : FPName} {k : Nat} (h : z ∉ u.f) :
   u⟪k | z⟫ = u := by
-  cases u <;> simp [HasClose.close_, Channel.close, Channel.f] at *
+  cases u <;>
+    simp only [f, Finset.mem_singleton, HasClose.close_, close, beq_iff_eq, ite_eq_right_iff,
+      reduceCtorEq, imp_false] at *
   case free f => apply h
 
 lemma Proc.close_not_mem {P : Proc} {z : FPName} {k : Nat} (h : z ∉ P.f) :
   P⟪k | z⟫ = P := by
   induction P generalizing k <;> (
     simp only [Proc.f, Finset.mem_union, not_or] at h
-    try simp
+    try simp only [close_nil, close_one, close_bot, close_tensor, close_parr, close_cut,
+          close_par, close_selectL, close_selectR, close_amp, close_output, close_input,
+          close_server, close_consume, close_duplicate, close_dispose, close_link, one.injEq,
+          bot.injEq, tensor.injEq, parr.injEq, cut.injEq, par.injEq, selectL.injEq, selectR.injEq,
+          amp.injEq, output.injEq, input.injEq, server.injEq, consume.injEq, duplicate.injEq,
+          dispose.injEq, link.injEq, and_true]
   )
   case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih | input ih
   | server ih | consume ih | dispose ih | duplicate ih => exact ⟨Channel.close_not_mem h.1, ih h.2⟩
@@ -981,13 +979,13 @@ lemma Proc.close_not_mem {P : Proc} {z : FPName} {k : Nat} (h : z ∉ P.f) :
 
 @[simp] lemma Channel.f_close {u : Channel} {x : FPName} {k : Nat} :
   (u⟪k | x⟫).f = u.f \ {x} := by
-  cases u <;> simp [HasClose.close_, Channel.close, Channel.f]
+  cases u <;> simp only [f, HasClose.close_, close, beq_iff_eq, Finset.empty_sdiff]
   case free f =>
     split_ifs with heq
     case pos => subst heq ; simp
     case neg =>
       ext y
-      simp_all [← ne_eq]
+      simp_all only [← ne_eq, Finset.mem_singleton, Finset.mem_sdiff, iff_self_and]
       intro h
       subst h
       exact heq.symm
@@ -1006,54 +1004,46 @@ lemma Channel.lc_le_any {u : Channel} {k i : Nat} (hle : i ≤ k) :
 lemma Proc.lc_le_any {P : Proc} {k n i : Nat} (hle : i ≤ k) :
   P.lc i n → P.lc k n := by
   induction P generalizing n k i
-
-  case nil => simp [Proc.lc]
-
+  case nil => simp only [Proc.lc, imp_self]
   case one ih | bot ih | selectL ih | selectR ih | input ih | server ih | consume ih
     | dispose ih =>
-    simp [Proc.lc]
+    simp only [Proc.lc, and_imp]
     intro hChan hProc
     constructor
     · exact Channel.lc_le_any hle hChan
     · exact ih hle hProc
-
   case tensor ih | parr ih | duplicate ih =>
-    simp [Proc.lc]
+    simp only [Proc.lc, and_imp]
     intro hChan hProc
     constructor
     · exact Channel.lc_le_any hle hChan
     · exact ih (by simp [hle]) hProc
-
   case cut ih =>
-    simp [Proc.lc] at ⊢ ih
+    simp only [Proc.lc] at ⊢ ih
     intro hProc
     apply ih (by simp [hle]) hProc
-
   case par ihP ihQ =>
-    simp [Proc.lc]
+    simp only [Proc.lc, and_imp]
     intro hP hQ
     constructor
     · exact ihP hle hP
     · exact ihQ hle hQ
-
   case amp ihP ihQ =>
-    simp [Proc.lc]
+    simp only [Proc.lc, and_imp]
     intro hChan hP hQ
     split_ands
     · exact Channel.lc_le_any hle hChan
     · exact ihP hle hP
     · exact ihQ hle hQ
-
   case output ih =>
-    simp [Proc.lc]
+    simp only [Proc.lc, and_imp]
     intro hChan hProc hlc
     split_ands
     · exact Channel.lc_le_any hle hChan
     · exact ih hle hProc
     · exact hlc
-
   case link =>
-    simp [Proc.lc]
+    simp only [Proc.lc, and_imp]
     intro hx hy
     constructor
     · exact Channel.lc_le_any hle hx
@@ -1077,66 +1067,58 @@ lemma Proc.lc_le {P : Proc} {k n : Nat} :
   induction u
   case free y =>
     intro h
-    simp [Channel.lc, HasClose.close_, Channel.close]
+    simp only [lc, HasClose.close_, close, beq_iff_eq]
     split_ifs
     case pos heq => subst heq ; grind
     case neg hneq => simp
   case bound i =>
-    simp [Channel.lc, HasClose.close_, Channel.close]
-    grind
+    simp only [lc, HasClose.close_, close]
+    grind only
 
 @[simp] lemma Proc.lc_close {P : Proc} {x : FPName} {n k i : Nat} (hle : i ≤ k) :
   P.lc k n → P⟪i | x⟫.lc (k + 1) n := by
   induction P generalizing n k i
-
-  case nil =>
-    simp [Proc.lc]
-
+  case nil => simp only [Proc.lc, close_nil, imp_self]
   case one ih | bot ih | selectL ih | selectR ih | input ih | server ih | consume ih
     | dispose ih =>
-    simp [Proc.lc]
+    simp only [lc, close_one, close_bot, close_selectL, close_selectR, close_input, close_server,
+      close_consume, close_dispose, and_imp]
     intro hChan hProc
     constructor
     · exact Channel.lc_close hle hChan
     · apply ih hle hProc
-
   case tensor ih | parr ih | duplicate ih =>
-    simp [Proc.lc]
+    simp only [lc, close_tensor, close_parr, close_duplicate, and_imp]
     intro hChan hProc
     constructor
     · exact Channel.lc_close hle hChan
-    · apply ih (by simp [hle]) hProc
-
+    · exact ih (by simp [hle]) hProc
   case cut ih =>
-    simp [Proc.lc] at ⊢ ih
+    simp only [lc, close_cut] at ⊢ ih
     apply ih
     grind
-
   case par ihP ihQ =>
-    simp [Proc.lc] at ⊢ ihP ihQ
+    simp only [lc, close_par, and_imp] at ⊢ ihP ihQ
     intro hP hQ
     constructor
     · exact ihP hle hP
     · exact ihQ hle hQ
-
   case amp ihP ihQ =>
-    simp [Proc.lc] at ⊢ ihP ihQ
+    simp only [lc, close_amp, and_imp] at ⊢ ihP ihQ
     intro hChan hP hQ
     split_ands
     · exact Channel.lc_close hle hChan
     · exact ihP hle hP
     · exact ihQ hle hQ
-
   case output ih =>
-    simp [Proc.lc] at ⊢ ih
+    simp only [lc, close_output, and_imp] at ⊢ ih
     intro hChan hProc hType
     split_ands
     · exact Channel.lc_close hle hChan
     · exact ih hle hProc
     · exact hType
-
   case link =>
-    simp [Proc.lc]
+    simp only [Proc.lc, Proc.close_link, and_imp]
     intro hx hy
     constructor
     · exact Channel.lc_close hle hx
@@ -1147,29 +1129,35 @@ lemma Channel.close_substNames_comm_gen {u : Channel} {x y z : FPName} {k : Nat}
   u⟪k | z⟫{y // x} = u{y // x}⟪k | z⟫ := by
   induction u
   case free =>
-    simp [HasClose.close_, Channel.close, HasSubst.subst, Channel.subst]
+    simp only [HasClose.close_, Channel.close, HasSubst.subst, Channel.subst, beq_iff_eq]
     split_ifs
     case pos h1 h2 => subst h1 h2 ; contradiction
     case neg h1 h2 => simp [h1]
     case pos h1 h2 => subst h2 ; simp [hzy]
     case neg h1 h2 => simp ; split_ifs ; rfl
-
   case bound =>
     simp [HasClose.close_, Channel.close, HasSubst.subst, Channel.subst]
 
 lemma Proc.close_substNames_comm_gen {P : Proc} {x y z : FPName} {k : Nat}
   (hzx : z ≠ x) (hzy : z ≠ y) :
   P⟪k | z⟫{y // x} = P{y // x}⟪k | z⟫ := by
-  induction P generalizing k <;> try simp
-
+  induction P generalizing k <;>
+    try simp only [ close_nil, substNames_nil, close_one, substNames_one, one.injEq, close_bot,
+      substNames_bot, bot.injEq, close_tensor, substNames_tensor, tensor.injEq, close_parr,
+      substNames_parr, parr.injEq, close_cut, substNames_cut, cut.injEq, close_par,
+      substNames_par, par.injEq, close_selectL, substNames_oplus₁, selectL.injEq,
+      close_selectR, substNames_oplus₂, selectR.injEq, close_amp, substNames_amp, amp.injEq,
+      close_output, substNames_exists, output.injEq, and_true, close_input, substNames_forall,
+      input.injEq, close_server, substNames_bang, server.injEq, close_consume, substNames_quest,
+      consume.injEq, close_duplicate, substNames_c, duplicate.injEq, close_dispose, substNames_w,
+       dispose.injEq, close_link, substNames_ax, link.injEq]
   case one ih | bot ih | tensor ih | parr ih | selectL ih | selectR ih | output ih | input ih
     | server ih | consume ih | duplicate ih | dispose ih =>
     exact ⟨Channel.close_substNames_comm_gen hzx hzy, ih⟩
-
   case cut ih => exact ih
   case par ihP ihQ => exact ⟨ihP, ihQ⟩
   case amp ihP ihQ => exact ⟨Channel.close_substNames_comm_gen hzx hzy, ⟨ihP, ihQ⟩⟩
-  case link => simp [Channel.close_substNames_comm_gen hzx hzy]
+  case link => simp only [Channel.close_substNames_comm_gen hzx hzy, and_self]
 
 lemma Proc.close_substNames_comm {P : Proc} {x y z : FPName} (hzx : z ≠ x) (hzy : z ≠ y) :
   P⟪z⟫{y // x} = P{y // x}⟪z⟫ := Proc.close_substNames_comm_gen (k := 0) hzx hzy
@@ -1177,7 +1165,7 @@ lemma Proc.close_substNames_comm {P : Proc} {x y z : FPName} (hzx : z ≠ x) (hz
 lemma Proc.closeCut_substNames_comm {P : Proc} {x y z w : FPName}
   (hzx : z ≠ x) (hzy : z ≠ y) (hwx : w ≠ x) (hwy : w ≠ y) :
   P⟪z, w⟫{y // x} = P{y // x}⟪z, w⟫ := by
-  simp [HasCloseTwo.close_, HasSubst.subst]
+  simp only [HasSubst.subst, HasCloseTwo.close_, zero_add]
   change P⟪1 | w⟫⟪z⟫{y // x} = P{y // x}⟪1 | w⟫⟪z⟫
   rw [Proc.close_substNames_comm_gen (k := 0) hzx hzy]
   rw [Proc.close_substNames_comm_gen (k := 1) hwx hwy]

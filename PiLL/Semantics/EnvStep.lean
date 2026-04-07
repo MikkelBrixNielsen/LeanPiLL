@@ -1,27 +1,22 @@
-import PiLL.Framework.Model.Judgement
-import PiLL.Framework.Semantics.Labels
+import PiLL.Model.Judgement
+import PiLL.Semantics.Labels
 
 inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
   ------------------ Actual Step Rules ------------------
-
   | one
       {x : FPName} :
       EnvStep [[x ∶ 1]] (x⟦⟧) ∅
-
   | tensor
       {Γ Δ : Env} {x x' : FPName} {A B : Types}
       (hF : x' ∉ HyperEnv.names [x ∶ A ⨂ B :: Γ‚ Δ]) :
       EnvStep [x ∶ A ⨂ B :: Γ‚ Δ] (x⟦x'⟧) ([x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ])
-
   | bot
       {Γ : Env} {x : FPName} :
       EnvStep [x ∶ ⊥ :: Γ] (x⸨⸩) [Γ]
-
   | parr
       {Γ : Env} {x x' : FPName} {A B : Types}
       (hF : x' ∉ HyperEnv.names [x ∶ A ⅋ B :: Γ]) :
       EnvStep [x ∶ A ⅋ B :: Γ] (x⸨x'⸩) [x' ∶ A :: x ∶ B :: Γ]
-
   -- NOTE: added disjointness contraints to par₁, par₂ and syn to mimic ProcStep contraint
   -- as not to have to do mutual induction on EnvStep and ProcStep to show Linearity.
   -- Remark 3.6 from the paper [1] (main.pdf)
@@ -31,27 +26,23 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       l.i ∩ ℋ.names = ∅ → -- Added to mimic ProcStep
       -----------------------------
       EnvStep (𝒢 |ₕ ℋ) l (𝒢' |ₕ ℋ)
-
   | par₂
       {𝒢 ℋ ℋ': HyperEnv} {l : Lbl} :
       EnvStep ℋ l ℋ' →
       l.i ∩ 𝒢.names = ∅ → -- Added to mimic ProcStep
       -----------------------------
       EnvStep (𝒢 |ₕ ℋ) l (𝒢 |ₕ ℋ')
-
   | syn
       {𝒢 𝒢' ℋ ℋ': HyperEnv} {l l' : Act} :
       EnvStep 𝒢 l 𝒢' → EnvStep ℋ l' ℋ' →
       (l |ₗ l').i ∩ (𝒢 |ₕ ℋ).names = ∅ → (l |ₗ l').WF → -- Added to mimic ProcStep
       --------------------------------------------------
       EnvStep (𝒢 |ₕ ℋ) (l |ₗ l') (𝒢' |ₕ ℋ')
-
   | one_bot
       {𝒢 : HyperEnv} {Γ : Env} {x y : FPName} :
       EnvStep (𝒢 |ₕ [[x ∶ 1]] |ₕ [y ∶ ⊥ :: Γ]) (x⟦⟧ |ₗ y⸨⸩) (𝒢 |ₕ [Γ]) →
       ---------------------------------------------------------------
       EnvStep (𝒢 |ₕ [Γ]) (τ) (𝒢 |ₕ [Γ])
-
   | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {x x' y y': FPName} {A B : Types} :
       EnvStep
@@ -60,7 +51,6 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
         (𝒢 |ₕ [x' ∶ A :: Γ] |ₕ [x' ∶ A :: Δ] |ₕ [y ∶ Bᗮ :: y' ∶ Aᗮ :: Ξ]) →
       ------------------------------------------------------------------
       EnvStep (𝒢 |ₕ [Γ‚ Δ‚ Ξ]) (τ) (𝒢 |ₕ [Γ‚ Δ‚ Ξ])
-
   -- NOTE: hneq : x ≠ y, is only here for convenience to prove EnvStep.preserves_linearity as
   -- a stand alone property. Given The Typing relating a ProcStep and EnvStep, this could be
   -- extracted from the fact that a Typing preserves linearity of Envs.
@@ -75,66 +65,51 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       EnvStep (𝒢 |ₕ [x ∶ Aᗮ :: Γ] |ₕ [y ∶ A :: Δ]) (l) (𝒢' |ₕ [x ∶ Aᗮ :: Γ'] |ₕ [y ∶ A :: Δ']) →
       -------------------------------------------------------------------------------------
       EnvStep (𝒢 |ₕ [Γ‚ Δ]) l (𝒢' |ₕ [Γ'‚ Δ'])
-
   | selectL
       {Γ : Env} {x : FPName} {A B : Types} :
       EnvStep [x ∶ A ⊕ B :: Γ] (x⟦𝐋⟧) [x ∶ A :: Γ]
-
   | ampL
       {Γ : Env} {x : FPName} {A B : Types} :
       EnvStep [x ∶ A & B :: Γ] (x⸨𝐋⸩) [x ∶ A :: Γ]
-
   | selectR
       {Γ : Env} {x : FPName} {A B : Types} :
       EnvStep [x ∶ A ⊕ B :: Γ] (x⟦𝐑⟧) [x ∶ B :: Γ]
-
   | ampR
       {Γ : Env} {x : FPName} {A B : Types} :
       EnvStep [x ∶ A & B :: Γ] (x⸨𝐑⸩) [x ∶ B :: Γ]
-
   | link₁
       {x y : FPName} {A : Types} :
       EnvStep [x ∶ Aᗮ :: [y ∶ A]] (x ⟷ₗ y) ∅
-
   | use₁
       {Γ : Env} {x : FPName} {A : Types} :
       EnvStep [x ∶ ??A :: Γ] (x⟦USE⟧) [x ∶ A :: Γ]
-
   | use₂
       {Γ : Env} {x : FPName} {A : Types} :
       ?ₑΓ →
       -------------------------------------------
       EnvStep [x ∶ !!A :: Γ] (x⸨USE⸩) [x ∶ A :: Γ]
-
   | disp₁
       {Γ : Env} {x : FPName} {A : Types} :
       EnvStep [x ∶ ??A :: Γ] (x⟦DISP⟧) [x ∶ ⊥ :: Γ]
-
   | disp₂
       {Γ : Env} {x : FPName} {A : Types} :
       EnvStep [x ∶ !!A :: Γ] (x⸨DISP⸩) [x ∶ 1 :: Γ]
-
   | dup₁
       {Γ : Env} {x : FPName} {A : Types} :
       EnvStep [x ∶ ??A:: Γ] (x⟦DUP⟧) [x ∶ ??A ⅋ ??A :: Γ]
-
   | dup₂
       {Γ : Env} {x : FPName} {A : Types} :
       ?ₑΓ →
       ---------------------------------------------------
       EnvStep [x ∶ !!A :: Γ] (x⸨DUP⸩) [x ∶ !!A ⨂ !!A :: Γ]
-
   | output
       {Γ : Env} {x : FPName} {A B : Types} :
       EnvStep [x ∶ ∃․B :: Γ] (x⟦A⟧) [x ∶ B{A // 0} :: Γ]
-
   | input
       {Γ : Env} {x : FPName} {A B : Types} :
       A.lc 0 →
       EnvStep [x ∶ ∀․B :: Γ] (x⸨A⸩) [x ∶ B{A // 0} :: Γ]
-
 ------- Additional Structural / Exchange Rules -------
-
     | perm {𝒢 𝒢' ℋ ℋ' : HyperEnv} {l : Lbl} :
       𝒢 ~ ℋ → EnvStep 𝒢 l 𝒢' → 𝒢' ~ ℋ' →
       ------------------------------------
@@ -145,14 +120,13 @@ notation:50 P " -[" l "]->ₑ " P' => EnvStep P l P'
 theorem EnvStep.preserves_WF (Γ Γ' : HyperEnv) (l : Lbl) :
   EnvStep Γ l Γ' → l.WF := by
   intro h
-  induction h <;> simp_all [Lbl.WF]
+  induction h <;> simp_all only [Lbl.WF]
 
 inductive MEST : (𝒢 : HyperEnv) → Lbls → (𝒢' : HyperEnv) → Prop where
   | refl
     {𝒢 : HyperEnv} :
     -------------
     MEST 𝒢 (ε) 𝒢
-
   | stepR {l : Lbl} {ls : Lbls} {𝒢 𝒢'' 𝒢' : HyperEnv} :
     (MEST 𝒢 ls 𝒢'') → (𝒢'' -[l]->ₑ 𝒢') →
     ------------------------------------
@@ -164,39 +138,25 @@ notation:50 𝒢 " -[" ls "]->>ₑ " 𝒢' => MEST 𝒢 ls 𝒢'
   (𝒢 -[l]->ₑ 𝒢') → 𝒢'.names ⊆ 𝒢.names ∪ l.i := by
   intro h
   induction h
-  case tensor | parr =>
-    simp ; rw [Finset.insert_comm]
-
-  case par₁ | par₂ =>
-    grind [HyperEnv.names_merge]
-
-  case syn =>
-    grind [HyperEnv.names_merge, Lbl.i]
-
+  case par₁ | par₂ | syn => grind [HyperEnv.names_merge, Lbl.i]
   case res 𝒢 𝒢' Γ Γ' Δ Δ' x y _ l hFx hFy hFx' hFy' _ _ _ _ ih =>
     simp_all only [HyperEnv.names_merge, HyperEnv.names_singleton, Env.names_merge,
       Env.names_distributes, Lbl.i, Finset.mem_union]
     intro n hn
-
     simp only [Finset.mem_union] at hn
-
     have hnx : n ≠ x := by rintro rfl ; exact hFx' hn
     have hny : n ≠ y := by rintro rfl ; exact hFy' hn
-
     have hinLHS : n ∈ 𝒢'.names ∪ ({x} ∪ Γ'.names) ∪ ({y} ∪ Δ'.names) := by
       simp only [Finset.mem_union, Finset.mem_singleton]
       rcases hn with h𝒢 | hΓ | hΔ <;> grind
-
     have hPrev:= ih hinLHS
     simp only [Finset.mem_union, Finset.mem_singleton] at ⊢ hPrev
     rcases hPrev with ((h𝒢 | (hx | hΓ)) | (hy | hΔ)) | hM <;> grind
-
   case perm hP _ hP' ih =>
     have heq := HyperEnv.names_eq_of_perm hP
     have heq' := HyperEnv.names_eq_of_perm hP'
     rw [← heq, ← heq']
     exact ih
-
   all_goals simp
 
 lemma EnvStep.preserves_disjoint {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl}
@@ -212,31 +172,42 @@ lemma EnvStep.preserves_disjoint {𝒢 𝒢' ℋ : HyperEnv} {l : Lbl}
 lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
   (hlin : 𝒢.Linearity) (hES : 𝒢 -[l]->ₑ 𝒢') : 𝒢'.Linearity := by
   induction hES
-
-  case one | link₁ => simp
-
+  case one | link₁ => simp only [List.empty_eq, HyperEnv.Linearity_nil]
   case tensor hF =>
-    simp [HyperEnv.Linearity, HyperEnv.Nodup, Env.Nodup_cons, Env.Nodup_merge_iff] at ⊢ hlin hF
+    simp only [HyperEnv.Linearity, HyperEnv.Nodup, List.mem_cons, List.not_mem_nil, or_false,
+      forall_eq, Env.Nodup_cons, Env.names_merge, Finset.mem_union, Env.mem_pair_fst_in_names_iff,
+      not_or, not_exists, Env.Nodup_merge_iff, Env.disjoint, HyperEnv.PairwiseDisjoint_singleton,
+      and_true, HyperEnv.names_cons, Env.names_distributes, Finset.singleton_union,
+      HyperEnv.names_nil, Finset.union_empty, Finset.mem_insert, List.cons_append,
+      List.nil_append, forall_eq_or_imp] at ⊢ hlin hF
     split_ands
     · exact hF.2.1
     · exact hlin.2.1
     · exact hlin.1.2
     · exact hlin.2.2.1
-    · simp_all [← ne_eq, HyperEnv.PairwiseDisjoint]
+    · simp_all only [← ne_eq, HyperEnv.PairwiseDisjoint, List.pairwise_cons, List.mem_cons,
+        List.not_mem_nil, or_false, Env.disjoint, Env.names_distributes, Finset.singleton_union,
+        Finset.disjoint_insert_right, Finset.mem_insert, Env.mem_pair_fst_in_names_iff,
+        exists_const, Finset.disjoint_insert_left, not_false_eq_true, and_self, and_true,
+        forall_eq, not_isEmpty_of_nonempty, IsEmpty.exists_iff, Finset.insert_eq_of_mem,
+        IsEmpty.forall_iff, implies_true, List.Pairwise.nil]
       exact hF.1.symm
-
   case bot =>
-    simp [HyperEnv.Linearity, HyperEnv.Nodup, Env.Nodup_cons] at ⊢ hlin
+    simp only [HyperEnv.Linearity, HyperEnv.Nodup, List.mem_cons, List.not_mem_nil, or_false,
+      forall_eq, Env.Nodup_cons, Env.mem_pair_fst_in_names_iff, not_exists,
+      HyperEnv.PairwiseDisjoint_singleton, and_true] at ⊢ hlin
     exact hlin.2
-
   case parr hF =>
-    simp [HyperEnv.Linearity, HyperEnv.Nodup, Env.Nodup_cons] at ⊢ hlin hF
+    simp only [HyperEnv.Linearity, HyperEnv.Nodup, List.mem_cons,
+      List.not_mem_nil, or_false, forall_eq, Env.Nodup_cons,
+      Env.mem_pair_fst_in_names_iff, not_exists, HyperEnv.PairwiseDisjoint_singleton,
+      and_true, HyperEnv.names_cons, Env.names_distributes, Finset.singleton_union,
+      HyperEnv.names_nil, Finset.union_empty, Finset.mem_insert,not_or] at ⊢ hlin hF
     constructor
     · exact hF
     · exact hlin
-
   case par₁ hES hDl ih =>
-    simp at ⊢ hlin
+    simp only [HyperEnv.Linearity_merge] at ⊢ hlin
     obtain ⟨hlin𝒢, hlinℋ, hD⟩ := hlin
     constructor
     · exact ih hlin𝒢
@@ -254,9 +225,8 @@ lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
           exact hD a ha E2 hE2
         · rw [← Finset.disjoint_iff_inter_eq_empty] at hDl
           exact Finset.disjoint_of_subset_right (HyperEnv.subset_names_of_mem hE2) hDl
-
   case par₂ hES hDl ih =>
-    simp at ⊢ hlin
+    simp only [HyperEnv.Linearity_merge] at ⊢ hlin
     obtain ⟨hlin𝒢, hlinℋ, hD⟩ := hlin
     constructor
     · exact hlin𝒢
@@ -274,11 +244,9 @@ lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
           exact hD E1 hE1 a ha
         · rw [← Finset.disjoint_iff_inter_eq_empty] at hDl
           exact Finset.disjoint_of_subset_left (HyperEnv.subset_names_of_mem hE1) hDl.symm
-
   case syn hES𝒢 hESℋ hDl lwf ihP ihQ =>
-    simp at ⊢ hlin
+    simp only [HyperEnv.Linearity_merge] at ⊢ hlin
     obtain ⟨hlin𝒢, hlinℋ, hD⟩ := hlin
-
     constructor
     · exact ihP hlin𝒢
     · constructor
@@ -289,18 +257,14 @@ lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
         simp only [HyperEnv.merge, HyperEnv.names_merge, Lbl.i,
           Finset.disjoint_union_left, Finset.disjoint_union_right] at hDl
         obtain ⟨⟨hDl1, hDl2⟩, ⟨hDl3, hDl4⟩⟩ := hDl
-
         have hsubE1 := Finset.Subset.trans
           (HyperEnv.subset_names_of_mem hE1)
           (EnvStep.names_subset hES𝒢)
-
         have hsubE2:= Finset.Subset.trans
           (HyperEnv.subset_names_of_mem hE2)
           (EnvStep.names_subset hESℋ)
-
         apply Finset.disjoint_of_subset_left hsubE1
         apply Finset.disjoint_of_subset_right hsubE2
-
         rw [Finset.disjoint_union_left, Lbl.i, Lbl.i]
         constructor
         · rw [Finset.disjoint_union_right]
@@ -315,32 +279,41 @@ lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
           constructor
           · exact hDl3
           · exact lwf
-
   case one_bot | tensor_parr => exact hlin
-
   case res 𝒢 𝒢' Γ Γ' Δ Δ' x y A l hFx hFy hFx' hFy' _ _ hneq hES𝒢 ih =>
-    simp [Env.Nodup_merge_iff] at hlin ⊢ hFx hFx' hFy hFy'
+    simp only [HyperEnv.Linearity_merge, HyperEnv.Linearity_singleton,
+      Env.Nodup_merge_iff, Env.disjoint, List.mem_cons, List.not_mem_nil, or_false,
+      forall_eq, Env.names_merge, Finset.disjoint_union_right, HyperEnv.names_merge,
+      HyperEnv.names_cons, HyperEnv.names_nil, Finset.union_empty, Finset.mem_union,
+      Env.mem_pair_fst_in_names_iff, not_or, not_exists] at hlin ⊢ hFx hFx' hFy hFy'
     obtain ⟨hlin𝒢, ⟨hndΓ, ⟨hndΔ, hDΓΔ⟩⟩, hD⟩ := hlin
     have hlin_inner : (𝒢 |ₕ [x ∶ Aᗮ :: Γ] |ₕ [y ∶ A :: Δ]).Linearity := by
-      simp
+      simp only [List.append_assoc, List.cons_append, List.nil_append, HyperEnv.Linearity_merge,
+        List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, Env.names_distributes,
+        Finset.singleton_union, Finset.disjoint_insert_right, Env.mem_pair_fst_in_names_iff,
+        not_exists, forall_eq]
       constructor
       · exact hlin𝒢
       · constructor
         · change HyperEnv.Linearity ([x ∶ Aᗮ :: Γ] |ₕ  [y ∶ A :: Δ])
           simp only [HyperEnv.Linearity_merge]
           constructor
-          · simp [Env.Nodup_cons]
+          · simp only [HyperEnv.Linearity_singleton, Env.Nodup_cons,
+              Env.mem_pair_fst_in_names_iff, not_exists]
             constructor
             · exact hFx.2.1
             · exact hndΓ
           · constructor
-            · simp [Env.Nodup_cons]
+            · simp only [HyperEnv.Linearity_singleton, Env.Nodup_cons,
+                Env.mem_pair_fst_in_names_iff, not_exists]
               constructor
               · exact hFy.2.2
               · exact hndΔ
             · intro a ha b hb
-              simp at ha hb
-              simp [ha, hb]
+              simp only [List.mem_cons, List.not_mem_nil, or_false] at ha hb
+              simp only [ha, Env.names_distributes, Finset.singleton_union, hb,
+                Finset.disjoint_insert_right, Finset.mem_insert, Env.mem_pair_fst_in_names_iff,
+                not_or, not_exists, Finset.disjoint_insert_left]
               exact ⟨⟨hneq.symm, hFy.2.1⟩, ⟨hFx.2.2, hDΓΔ⟩⟩
         · intro a ha
           obtain ⟨hDΓ, hDΔ⟩ := hD a ha
@@ -353,16 +326,18 @@ lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
             apply hFy.1
             rw [HyperEnv.mem_pair_fst_in_names]
             use T, a
-
     have hlin_outer:= ih hlin_inner
-
-    simp at hlin_outer
+    simp only [List.append_assoc, List.cons_append, List.nil_append, HyperEnv.Linearity_merge,
+      List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, Env.names_distributes,
+        Finset.singleton_union, Finset.disjoint_insert_right, Env.mem_pair_fst_in_names_iff,
+        not_exists, forall_eq] at hlin_outer
     obtain ⟨hlin𝒢', hlin_xy, hD'⟩ := hlin_outer
     change HyperEnv.Linearity ([x ∶ Aᗮ :: Γ'] |ₕ  [y ∶ A :: Δ']) at hlin_xy
     simp only [HyperEnv.Linearity_merge, HyperEnv.Linearity_singleton, Env.Nodup_cons] at hlin_xy
     obtain ⟨hlin_xΓ', hlin_yΔ', hD_xΓ'yΔ'⟩ := hlin_xy
-    simp at hD_xΓ'yΔ'
-
+    simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq, Env.names_distributes,
+      Finset.singleton_union, Finset.disjoint_insert_right, Env.mem_pair_fst_in_names_iff,
+      not_exists, Prod.mk.injEq, not_or, not_and, Finset.disjoint_insert_left] at hD_xΓ'yΔ'
     split_ands
     · exact hlin𝒢'.1
     · exact hlin𝒢'.2
@@ -370,15 +345,14 @@ lemma EnvStep.preserves_Linearity {𝒢 𝒢' : HyperEnv} {l : Lbl}
     · exact hlin_yΔ'.2
     · exact hD_xΓ'yΔ'.2.2
     · intro a ha
-      have ⟨⟨_, haΓ'⟩, _, haΔ'⟩:= hD' a ha
+      have ⟨⟨_, haΓ'⟩, _, haΔ'⟩ := hD' a ha
       constructor
       · exact haΓ'
       · exact haΔ'
-
   case selectL | selectR | ampL | ampR | use₁ | use₂ | disp₁ | disp₂
     | dup₁ | dup₂ | output | input =>
-    simp [Env.Nodup_cons] at hlin ⊢
+    simp only [HyperEnv.Linearity_singleton, Env.Nodup_cons,
+      Env.mem_pair_fst_in_names_iff, not_exists] at hlin ⊢
     exact hlin
-
   case perm hP _ hP' ih =>
     exact hP'.preserves_Linearity (ih (hP.symm.preserves_Linearity hlin))
