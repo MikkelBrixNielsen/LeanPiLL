@@ -158,9 +158,11 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
     apply Typing.quest
     split_names x eq y using hT, ih, huniq
   case bang hServ hT ih =>
+    -- FIXME:
     apply Typing.bang
     · exact Env.serverUsable_substNames hServ
     · split_names x eq y using hT, ih, huniq
+
   case w hF hlc hT ih =>
     apply Typing.w
     · exact Env.fresh_substNames hF huniq
@@ -300,7 +302,9 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
     · exact 𝒟
   case amp ihP ihQ => exact Typing.amp (ihP hlcA hk heq) (ihQ hlcA hk heq)
   case quest ih => exact Typing.quest (ih hlcA hk heq)
-  case bang his _ ih => exact Typing.bang (Env.serverUsable_substTypes his) (ih hlcA hk heq)
+  case bang his _ ih =>
+    rw [← Env.substTypes_preserves_names]
+    exact Typing.bang (Env.serverUsable_substTypes his) (ih hlcA hk heq)
   case w hF hlc _ ih =>
     have 𝒟 := ih hlcA hk heq
     subst heq
