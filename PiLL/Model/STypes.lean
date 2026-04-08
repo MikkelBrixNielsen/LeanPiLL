@@ -40,29 +40,6 @@ prefix:95 "!!" => Types.bang
 prefix:max "∃․" => Types.exists_
 prefix:max "∀․" => Types.forall_
 
--- def openTVar (k : Nat) (u : TVar) : TVar → TVar
---   | TVar.bound i => if i = k then u else TVar.bound i
---   | v => v
-
--- def openType (k : Nat) (u : TVar) : Types → Types
---   | .atom a => .atom a
---   | .atomDual a => .atomDual a
---   | .var v => .var (openTVar k u v)
---   | .varDual v => .varDual (openTVar k u v)
---   | .one => .one
---   | .bot => .bot
---   | .tensor A B => .tensor (openType k u A) (openType k u B)
---   | .parr A B => .parr (openType k u A) (openType k u B)
---   | .oplus A B => .oplus (openType k u A) (openType k u B)
---   | .amp A B => .amp (openType k u A) (openType k u B)
---   | .bang A => .bang (openType k u A)
---   | .quest A => .quest (openType k u A)
---   | .forall_ A => .forall_ (openType (k+1) u A)
---   | .exists_ A => .exists_ (openType (k+1) u A)
-
--- def openType0 (u : TVar) (A : Types) : Types :=
---   openType 0 u A
-
 def TVar.lc : Nat → TVar → Prop
   | _, .free _ => True
   | k, .bound i => i < k
