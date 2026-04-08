@@ -75,7 +75,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
   | bang
       {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} :
       ?ₑΓ → Typing n P [x ∶ A :: Γ] →
-      ---------------------------------
+      -----------------------------------------------------------
       Typing n (!#x⟨Γ.names.image Channel.free⟩․{P}) [x ∶ !!A :: Γ]
 
   | w
