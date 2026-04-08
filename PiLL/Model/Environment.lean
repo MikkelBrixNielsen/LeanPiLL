@@ -709,6 +709,34 @@ lemma Env.mem_unique {Γ : Env} {x : FPName} {A B : Types}
     rw [Env.Nodup_cons] at hNodup
     grind [mem_pair_fst_in_names_iff]
 
+lemma Env.disjoint_of_perm {Γ Δ Γ' Δ' : Env} (hP1 : Γ ~ Γ') (hP2 : Δ ~ Δ')
+  (hDisj : Env.disjoint Γ Δ) : Env.disjoint Γ' Δ' := by
+  simp only [Env.disjoint] at *
+  have h_names1 : Γ.names = Γ'.names := by
+    ext x ; simp [Env.names]
+    constructor
+    · intro h
+      obtain ⟨A, hinΓ⟩ := h
+      use A
+      exact (List.Perm.mem_iff (a := (x, A)) hP1).mp hinΓ
+    · intro h
+      obtain ⟨A, hinΓ'⟩ := h
+      use A
+      exact (List.Perm.mem_iff (a := (x, A)) hP1.symm).mp hinΓ'
+  have h_names2 : Δ.names = Δ'.names := by
+    ext x ; simp [Env.names]
+    constructor
+    · intro h
+      obtain ⟨A, hinΔ⟩ := h
+      use A
+      exact (List.Perm.mem_iff (a := (x, A)) hP2).mp hinΔ
+    · intro h
+      obtain ⟨A, hinΔ'⟩ := h
+      use A
+      exact (List.Perm.mem_iff (a := (x, A)) hP2.symm).mp hinΔ'
+  rw [← h_names1, ← h_names2]
+  exact hDisj
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env
@@ -1197,34 +1225,6 @@ lemma HyperEnv.PairwiseDisjoint_cons_perm_iff {𝒢 : HyperEnv} {Γ Δ : Env} (h
   constructor
   · intro h ; exact HyperEnv.PairwiseDisjoint_cons_perm hP h
   · intro h ; exact HyperEnv.PairwiseDisjoint_cons_perm hP.symm h
-
-lemma Env.disjoint_of_perm {Γ Δ Γ' Δ' : Env} (hP1 : Γ ~ Γ') (hP2 : Δ ~ Δ')
-  (hDisj : Env.disjoint Γ Δ) : Env.disjoint Γ' Δ' := by
-  simp only [Env.disjoint] at *
-  have h_names1 : Γ.names = Γ'.names := by
-    ext x ; simp [Env.names]
-    constructor
-    · intro h
-      obtain ⟨A, hinΓ⟩ := h
-      use A
-      exact (List.Perm.mem_iff (a := (x, A)) hP1).mp hinΓ
-    · intro h
-      obtain ⟨A, hinΓ'⟩ := h
-      use A
-      exact (List.Perm.mem_iff (a := (x, A)) hP1.symm).mp hinΓ'
-  have h_names2 : Δ.names = Δ'.names := by
-    ext x ; simp [Env.names]
-    constructor
-    · intro h
-      obtain ⟨A, hinΔ⟩ := h
-      use A
-      exact (List.Perm.mem_iff (a := (x, A)) hP2).mp hinΔ
-    · intro h
-      obtain ⟨A, hinΔ'⟩ := h
-      use A
-      exact (List.Perm.mem_iff (a := (x, A)) hP2.symm).mp hinΔ'
-  rw [← h_names1, ← h_names2]
-  exact hDisj
 
 lemma HyperEnv.mem_of_disjoint {𝒢 ℋ : HyperEnv} (hD : 𝒢.disjoint ℋ) :
   ∀ Γ ∈ 𝒢, ∀ Δ ∈ ℋ, Γ.disjoint Δ := by

@@ -76,7 +76,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} :
       ?ₑΓ → Typing n P [x ∶ A :: Γ] →
       ---------------------------------
-      Typing n (!#x․{P}) [x ∶ !!A :: Γ]
+      Typing n (!#x⟨Γ.names.image Channel.free⟩․{P}) [x ∶ !!A :: Γ]
 
   | w
       {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} (hF : x ∉ Γ.names) :
@@ -152,6 +152,23 @@ def env {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : HyperEnv
 -- lemma Typing.hyper_comm {P : Proc} {𝒢 ℋ : HyperEnv} :
 --   (⊢ P ∷ 𝒢 |ₕ ℋ) → (⊢ P ∷ ℋ |ₕ 𝒢) :=
 --   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
+
+
+-- FIXME: Move to proc
+@[simp] lemma Finset.f_image_free (zs : Finset FPName) :
+  (zs.image Channel.free).f = zs := by
+  ext y
+  simp only [Finset.f, Finset.mem_biUnion, Finset.mem_image]
+  constructor
+  · rintro ⟨u, ⟨z, hz, rfl⟩, hy⟩
+    simp only [Channel.f, Finset.mem_singleton] at hy
+    rwa [← hy] at hz
+  · intro hy
+    exact ⟨.free y, ⟨y, hy, rfl⟩, by simp [Channel.f]⟩
+
+
+
+
 
 
 
@@ -288,9 +305,17 @@ lemma Typing_preserves_lc_proc {𝒢 : HyperEnv} {P : Proc} {n : Nat}
 
   case mix ihP ihQ => exact ⟨ihP, ihQ⟩
 
-  case one ih | bot ih | oplus₁ ih | oplus₂ ih | quest ih | bang ih | w ih | forall_ ih
+  case one ih | bot ih | oplus₁ ih | oplus₂ ih | quest ih | w ih | forall_ ih
     | exchange_env ih | exchange_hyper ih =>
     exact ih
+
+  case bang ih =>
+    simp [Finset.lc]
+    constructor
+    · intros z x T hx hxz
+      rw [← hxz]
+      simp [Channel.lc]
+    · exact ih
 
   case cut L _ ih =>
     obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
@@ -316,7 +341,7 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat}
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by
   intro h
-  induction h <;> try simp_all [Env.mem_pair_fst_in_names_iff] ; intro d c
+  induction h <;> try simp_all? [Env.mem_pair_fst_in_names_iff] ; intro d c
 
   case mix₀ => exact Typing.mix₀
 
@@ -377,6 +402,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     exact Typing.quest (ih d c)
 
   case bang ih =>
+    rw [← Env.shiftTypes_preserves_names]
     apply Typing.bang
     · simp_all
     · exact ih d c
@@ -554,7 +580,7 @@ lemma Typing.f_eq_names {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 
   case mix ih1 ih2 => rw [ih1, ih2]
 
-  case one ih | bot ih | oplus₁ ih | oplus₂ ih | quest ih | bang ih | w ih | exists_ ih
+  case one ih | bot ih | oplus₁ ih | oplus₂ ih | bang ih | quest ih | w ih | exists_ ih
     | forall_ ih =>
     simp [ih]
 
@@ -940,7 +966,7 @@ lemma Typing_inv_use₂ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
 
   case bang Γ _ _ A _ _ _ _ =>
     simp at heq
-    obtain ⟨rfl, rfl⟩ := heq
+    obtain ⟨rfl, _, rfl⟩ := heq
     use Γ, A
 
 lemma Typing_inv_disp₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
