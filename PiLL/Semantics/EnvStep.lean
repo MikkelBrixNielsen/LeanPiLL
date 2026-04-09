@@ -43,7 +43,7 @@ inductive EnvStep : HyperEnv → Lbl → HyperEnv → Prop where
       EnvStep (𝒢 |ₕ [[x ∶ 1]] |ₕ [y ∶ ⊥ :: Γ]) (x⟦⟧ |ₗ y⸨⸩) (𝒢 |ₕ [Γ]) →
       ---------------------------------------------------------------
       EnvStep (𝒢 |ₕ [Γ]) (τ) (𝒢 |ₕ [Γ])
-  | tensor_parr
+  | tensor_parr --FIXME: last part of premise EvnStep is wrong
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {x x' y y': FPName} {A B : Types} :
       EnvStep
         (𝒢 |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ])

@@ -11,8 +11,6 @@ import Mathlib.Data.Finset.Disjoint
 import Mathlib.Tactic
 import Mathlib.Order.CompleteLattice.Finset
 
-
-
 ------------------------------ POLYMORPHIC CLASSES (NOTATION)------------------------------
 
 class HasShiftNames (Subject : Type) where
@@ -74,6 +72,17 @@ class HasPerm (α : Type) where
 
 infixr:54 " ~ " => HasPerm.perm
 
+universe u v
+class HasStep (Pre : Sort u) (Label : Type) (Post : Sort v) where
+  step : Pre → Label → Post → Prop
+
+notation:50 S " -[" l "]-> " S' => HasStep.step S l S'
+
+class HasMultiStep (Pre : Sort u) (Label : Type) (Post : Sort v) where
+  step : Pre → Label → Post → Prop
+
+notation:50 S " -[" l "]->> " S' => HasMultiStep.step S l S'
+
 ------------------------------- ADDITIONAL FINSET THEOREMS --------------------------------
 
 -- lemma Finset.biUnion_union {α β : Type _} [DecidableEq α] [DecidableEq β]
@@ -97,11 +106,13 @@ infixr:54 " ~ " => HasPerm.perm
 --       rcases h' with ⟨a, ha, hb⟩
 --       exact ⟨a, Or.inr ha, hb⟩
 
+-- FIXME: Check use
 lemma Finset.not_mem_of_not_mem_sdiff {α : Type*} [DecidableEq α]
   {s : Finset α} {x y : α} (h_diff : x ∉ s \ {y}) (h_neq : x ≠ y) : x ∉ s := by
   simp at h_diff
   tauto
 
+-- FIXME: Check use
 lemma Finset.disjoint_image_substName {α : Type*} [DecidableEq α]
   (s t : Finset α) (x z : α) :
   Disjoint s t → x ∉ s → x ∉ t →

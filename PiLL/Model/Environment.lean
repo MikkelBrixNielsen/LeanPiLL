@@ -81,11 +81,15 @@ def Env.substTypes (Γ : Env) (A : Types) (k : Nat) : Env :=
 instance : HasSubst Env Types Nat where subst := Env.substTypes
 
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
-infixr:69 "‚ " => Env.merge
+infixl:69 "‚ " => Env.merge
 
 lemma Env.merge_unitL (Γ : Env) : ∅‚ Γ = Γ := by simp
 
 lemma Env.merge_unitR (Γ : Env) : Γ‚ ∅ = Γ := by simp
+
+lemma Env.cons_nil {e : Elem} : e :: ∅ = [e] := by simp
+
+lemma Env.cons_empty {e : Elem} : e :: [] = [e] := by simp
 
 lemma Env.merge_comm (Γ Δ : Env) : List.Perm (Γ‚ Δ) (Δ‚ Γ) := by
   exact List.perm_append_comm
