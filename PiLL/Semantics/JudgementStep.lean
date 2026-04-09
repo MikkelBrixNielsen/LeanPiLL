@@ -249,7 +249,6 @@ theorem session_fidelity_envₘ
     have ih' := ih x y hx hy hneq
     apply EnvStepₘ.res ih'
 
-
 inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | one
       {P : Proc} {x : FPName} :
@@ -294,7 +293,7 @@ inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStepₘ (𝑣⸨$N,$N⸩ P) (τ) P'
 
   | tensor_parr
-      {P P' : Proc} {x x' y y' : FPName} {L : Finset FPName} :
+      {P P' : Proc} {L : Finset FPName} :
       (∀ x ∉ L, ∀ x' ∉ L, ∀ y ∉ L, ∀ y' ∉ L,
       x ≠ x' → x ≠ y → x ≠ y' → y ≠ x' → y ≠ y' → x' ≠ y' →
       ProcStepₘ P⸨#x, #y⸩ (x⟦x'⟧ |ₗ y⸨y'⸩) P'⸨#x, #y⸩⸨#x', #y'⸩) →
@@ -308,6 +307,69 @@ inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
       -------------------------------------
       ProcStepₘ (𝑣⸨$N,$N⸩ P) (l) (𝑣⸨$N,$N⸩ P')
 
+-- FIXME: Move to Process
+lemma Channel.f_subset_open {u : Channel} {x : FPName} {k : Nat} :
+  u.f ⊆ (u.open (#x) k).f := by
+  cases u
+  case free => simp only [Channel.f, Channel.open, subset_refl]
+  case bound => simp only [f_bound, Finset.empty_subset]
+
+lemma Finset.f_subset_open {zs : Finset Channel} {x : FPName} {k : Nat} :
+  zs.f ⊆ (zs.open (#x) k).f := by
+  intro y hy
+  simp [Finset.f, Finset.open, Channel.open, Channel.f] at hy ⊢
+  obtain ⟨a, ha, hy⟩ := hy
+  use a
+  constructor
+  · exact ha
+  · cases a
+    case free => simp [hy]
+    case bound => simp at hy
+
+lemma Proc.f_subset_open_gen {P : Proc} {x : FPName} {k : Nat} :
+  P.f ⊆ P⸨k | #x⸩.f := by
+  induction P generalizing k <;> simp_all [HasOpen.open_, Proc.open, Proc.f, Channel.open, Channel.f]
+  case one u _ ih | bot u _ ih | tensor u _ ih | parr u _ ih | selectL u _ ih | selectR u _ ih
+    | output u _ _ ih | input u _ ih | consume u _ ih | duplicate u _ ih | dispose u _ ih =>
+    cases u
+    case free =>
+      apply Finset.insert_subset_insert
+      exact ih
+    case bound => grind
+
+  case par ih1 ih2 =>
+    apply Finset.union_subset_union
+    · exact ih1
+    · exact ih2
+
+  case amp u _ _ ih1 ih2 =>
+    cases u
+    case free =>
+      simp
+      apply Finset.insert_subset_insert
+      apply Finset.union_subset_union
+      · exact ih1
+      · exact ih2
+    case bound => grind
+
+  case server u _ _ ih =>
+    cases u
+    case free =>
+      simp
+      apply Finset.insert_subset_insert
+      apply Finset.union_subset_union
+      · exact Finset.f_subset_open
+      · exact ih
+    case bound => grind [Finset.f_subset_open]
+
+  case link u v =>
+    cases u
+    case free => cases v <;> simp
+    case bound => cases v <;> simp
+
+lemma Proc.f_subset_open {P : Proc} {x : FPName} :
+  P.f ⊆ P⸨#x⸩.f := Proc.f_subset_open_gen (k := 0)
+
 
 
 theorem session_fidelity_procₘ
@@ -315,7 +377,83 @@ theorem session_fidelity_procₘ
   {𝒟 : Typing n P 𝒢} {𝒟' : Typing n' P' 𝒢'}
   (hStep : TypingStepₘ 𝒟 l 𝒟') : ProcStepₘ P l P' := by
   induction hStep
-  all_goals sorry
+
+  case one | bot => constructor
+
+  case tensor Q _ y _ _ _ _ L hy ih =>
+    have ⟨z, hz⟩ := exists_one_fresh (L ∪ {y})
+    simp [← ne_eq] at hz
+    obtain ⟨hzy, hz⟩ := hz
+    have hTz := (ih z hz)
+    have hfn := Typing.f_eq_names hTz
+    have hTy := (ih y hy)
+    have ⟨hnd, hpw⟩:= Typing_preserves_linearity hTy
+    have hD := HyperEnv.PairwiseDisjoint_implies_disjoint hpw
+    simp only [Env.disjoint, Env.names_distributes, Finset.singleton_union,
+      Finset.disjoint_insert_right, Finset.mem_insert, not_or,
+      Finset.disjoint_insert_left, ← ne_eq] at hD
+    simp only [HyperEnv.Nodup_merge, HyperEnv.Nodup_singleton, Env.Nodup_cons] at hnd
+    obtain ⟨⟨hxy, hxΓ⟩, ⟨hyΔ, hDΓΔ⟩⟩ := hD
+    obtain ⟨⟨hyΓ, hndΓ⟩, ⟨hxΔ, hndΔ⟩⟩ := hnd
+    have h1 : y ∉ Q⸨#z⸩.f := by
+      rw [hfn]
+      simp only [List.cons_append, List.nil_append, HyperEnv.names_cons,
+        Env.names_distributes, Finset.singleton_union, HyperEnv.names_nil,
+        Finset.union_empty, Finset.union_insert, Finset.insert_union,
+        Finset.mem_insert, Finset.mem_union, not_or, ← ne_eq]
+      exact ⟨hxy.symm, hzy.symm, hyΓ, hyΔ⟩
+    have h2 := Proc.f_subset_open (P := Q) (x := z)
+    apply ProcStepₘ.tensor
+    simp
+    constructor
+    · exact hxy.symm
+    · intro hy
+      exact h1 ((Finset.subset_iff.mp h2) hy)
+
+  case parr Q _ y _ _ _ _ L hy ih =>
+    have ⟨z, hz⟩ := exists_one_fresh (L ∪ {y})
+    simp [← ne_eq] at hz
+    obtain ⟨hzy, hz⟩ := hz
+    have hTz := (ih z hz)
+    have hfn := Typing.f_eq_names hTz
+    have hTy := (ih y hy)
+    have ⟨hnd, hpw⟩:= Typing_preserves_linearity hTy
+    simp only [HyperEnv.Nodup_singleton, Env.names_distributes, Env.Nodup_cons,
+      Finset.notMem_union, Finset.notMem_singleton] at hnd
+    obtain ⟨⟨hyx, hyΓ⟩, ⟨hxΓ, hndΓ⟩⟩ := hnd
+    have h1 : y ∉ Q⸨#z⸩.f := by
+      rw [hfn]
+      simp only [HyperEnv.names_cons, Env.names_distributes, Finset.singleton_union,
+        HyperEnv.names_nil, Finset.union_empty, Finset.union_insert, Finset.mem_insert,
+        not_or, ← ne_eq]
+      exact ⟨hyx, hzy.symm, hyΓ⟩
+    have h2 := Proc.f_subset_open (P := Q) (x := z)
+    apply ProcStepₘ.parr
+    simp
+    constructor
+    · exact hyx
+    · intro hy
+      exact h1 ((Finset.subset_iff.mp h2) hy)
+
+  case par₁ hD ih | par₂ hD ih =>
+    constructor
+    · exact ih
+    · exact hD
+
+  case syn hD lwf ih1 ih2 => exact ProcStepₘ.syn ih1 ih2 hD lwf
+
+  case one_bot L _ _ _ ih | res L _ _ _ _ ih =>
+    constructor
+    intros x hx y hy hneq
+    exact ih x y hx hy hneq
+
+  case tensor_parr L _ _ _ _ ih =>
+    apply ProcStepₘ.tensor_parr
+    intros x hx x' hx' y hy y' hy' hxx' hneq hxy' hyx' hyy' hneq'
+    exact ih x y hx hy hneq x' y' hx' hy' hneq' hxx' hxy' hyx' hyy'
+
+
+
 
 
 theorem typability_subject_reductionₘ
