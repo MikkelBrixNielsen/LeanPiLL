@@ -737,6 +737,42 @@ lemma Env.disjoint_of_perm {Γ Δ Γ' Δ' : Env} (hP1 : Γ ~ Γ') (hP2 : Δ ~ Δ
   rw [← h_names1, ← h_names2]
   exact hDisj
 
+@[simp] lemma Env.names_substNames_image_free {Γ : Env} {y x : FPName} :
+  (Γ.names.image Channel.free){y // x} = (Γ{y // x}).names.image Channel.free := by
+  ext u
+  simp only [HasSubst.subst, Finset.subst, Finset.image_image, Env.names, Env.substNames,
+    Finset.mem_image, List.mem_toFinset, List.mem_map, Prod.exists, beq_iff_eq]
+  constructor
+  · rintro ⟨c, ⟨z, B, hin, rfl⟩, rfl⟩
+    simp only [↓existsAndEq, and_true, Channel.subst, beq_iff_eq,
+      Function.comp_apply, exists_and_right]
+    split_ifs with heq
+    · subst heq
+      use y
+      constructor
+      · use B, z, B, hin
+        simp only [if_true]
+      · rfl
+    · use z
+      constructor
+      · use B, z, B, hin
+        simp only [heq, if_false]
+      · rfl
+  · rintro ⟨_, ⟨w, B, ⟨z, B', hin, heq⟩, rfl⟩, rfl⟩
+    split_ifs at heq with heq'
+    · simp only [Prod.mk.injEq] at heq
+      rcases heq with ⟨rfl, rfl⟩
+      use z
+      constructor
+      · use z, B', hin
+      · simp only [Channel.subst, beq_iff_eq, heq', Function.comp_apply, ↓reduceIte]
+    · simp only [Prod.mk.injEq] at heq
+      rcases heq with ⟨rfl, rfl⟩
+      use z
+      constructor
+      · use z, B', hin
+      · simp [Channel.subst, heq']
+
 ------------------------------------ HYPER-ENVIRONMENTS ------------------------------------
 
 abbrev HyperEnv := List Env

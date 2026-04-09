@@ -158,11 +158,10 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
     apply Typing.quest
     split_names x eq y using hT, ih, huniq
   case bang hServ hT ih =>
-    -- FIXME:
+    rw [Env.names_substNames_image_free]
     apply Typing.bang
     · exact Env.serverUsable_substNames hServ
     · split_names x eq y using hT, ih, huniq
-
   case w hF hlc hT ih =>
     apply Typing.w
     · exact Env.fresh_substNames hF huniq
