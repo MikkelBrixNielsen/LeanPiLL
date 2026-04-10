@@ -115,3 +115,9 @@ lemma append_concat_eq {xs ys y} :
 
 lemma cons_append_assoc {x : Lbl} {xs ys : Lbls} :
   x :: (xs ++ ys) = (x :: xs) ++ ys := by rfl
+
+lemma Lbl.f_par {a a' : Act} :
+  (a |ₗ a').f = fNamesAct a ∪ fNamesAct a' := by simp only [f]
+
+lemma Lbl.i_par {a a' : Act} :
+  (a |ₗ a').i = iNamesAct a ∪ iNamesAct a' := by simp only [i]

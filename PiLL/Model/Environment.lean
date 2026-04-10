@@ -2046,3 +2046,95 @@ lemma HyperEnv.Perm.extract_bot_res
           apply HyperEnv.Perm_merge_cancel_right at hP2
           exact hP2
         exact HyperEnv.Perm.merge hPℋ𝒢 (HyperEnv.Perm.cons (List.Perm.append hPΓ' hPΔ') rfl)
+
+lemma HyperEnv.Perm_nil_inv {𝒢 : HyperEnv} :
+  𝒢.Perm [] ↔ 𝒢 = [] := by
+  constructor
+  · intro h
+    generalize h1 : [] = ℋ at h
+    induction h <;> simp_all
+  · intro h ; subst h ; simp
+
+lemma HyperEnv.Perm_singleton_inv {Γ : Env} {ℋ : HyperEnv} (h : ([Γ] : HyperEnv) ~ ℋ) :
+  ∃ Δ, ℋ = [Δ] ∧ Γ ~ Δ := by
+  generalize heq : ([Γ] : HyperEnv) = G at h
+  induction h generalizing Γ
+  case nil => simp only [List.cons_ne_self] at heq
+  case cons E1 E2 H1 H2 hPE ih =>
+    simp_all only [List.cons.injEq, List.nil_eq, ↓existsAndEq, true_and, and_true,
+      List.cons_ne_self, not_isEmpty_of_nonempty, IsEmpty.exists_iff, implies_true]
+    obtain ⟨h1, h2⟩ := heq
+    subst h1 h2
+    exact HyperEnv.Perm_nil_inv.mp hPE.symm
+  case swap => simp only [List.cons.injEq, List.nil_eq, reduceCtorEq, and_false] at heq
+  case trans hP1 hP2 ih1 ih2 =>
+    obtain ⟨Δ, hΔ, hP1⟩ := ih1 heq
+    obtain ⟨Ξ, hΞ, hP2⟩ := ih2 hΔ.symm
+    exact ⟨Ξ, hΞ, hP1.trans hP2⟩
+
+lemma HyperEnv.Perm_singleton_singleton {Γ Δ : Env} :
+  ([Γ] : HyperEnv) ~ [Δ] ↔ Γ ~ Δ := by
+  constructor
+  · intro h
+    obtain ⟨Δ', heq, hP⟩ := HyperEnv.Perm_singleton_inv h
+    injection heq with hhd
+    subst hhd
+    exact hP
+  · intro h ; exact HyperEnv.Perm.cons h HyperEnv.Perm.nil
+
+lemma HyperEnv.mem_of_mem_mem_names {𝒢 : HyperEnv} {Γ : Env} {x : FPName} {A : Types}
+  (h₁ : x ∶ A ∈ Γ) (h₂ : Γ ∈ 𝒢) : x ∈ 𝒢.names := by
+  induction 𝒢
+  case nil => simp_all only [List.not_mem_nil]
+  case cons E HE ih =>
+    simp only [List.mem_cons] at h₂
+    cases h₂
+    case inl h =>
+      subst h
+      simp only [names_cons, Finset.mem_union, Env.mem_pair_fst_in_names_iff]
+      apply Or.inl
+      use A
+    case inr h =>
+      simp only [names_cons, Finset.mem_union, Env.mem_pair_fst_in_names_iff]
+      apply Or.inr
+      apply ih h
+
+lemma HyperEnv.not_mem_names_iff {𝒢 : HyperEnv} {x : FPName} :
+  x ∉ 𝒢.names ↔ ∀ (Γ : Env) (A : Types), Γ ∈ 𝒢 → (x, A) ∉ Γ := by
+  induction 𝒢
+  case nil =>
+    simp only [names_nil, Finset.notMem_empty, not_false_eq_true, List.not_mem_nil,
+      IsEmpty.forall_iff, implies_true]
+  case cons E HE ih =>
+    constructor
+    · intro h1 Γ A hin
+      simp only [names_cons, Finset.mem_union, not_or, List.mem_cons] at h1 hin
+      obtain ⟨hE, hHE⟩ := h1
+      cases hin
+      case inl h =>
+        subst h
+        exact Env.not_mem_names_iff.mp hE A
+      case inr h =>
+        exact ih.mp hHE Γ A h
+    · intro h
+      have h' := h E
+      simp only [List.mem_cons, true_or, forall_const, names_cons, Finset.mem_union,
+        Env.mem_pair_fst_in_names_iff, not_or, not_exists] at h h' ⊢
+      constructor
+      · have := Env.not_mem_names_iff.mpr h'
+        simp only [Env.mem_pair_fst_in_names_iff, not_exists] at this
+        exact this
+      · apply ih.mpr
+        intro Γ A hin
+        exact h Γ A (Or.inr hin)
+
+lemma HyperEnv.PairwiseDisjoint_tail_not_in_head {𝒢 ℋ : HyperEnv} :
+  List.Pairwise Env.disjoint (𝒢 |ₕ ℋ) →
+  (∀ E, E ∈ ℋ → ∀ x A, (x ∶ A) ∈ E → x ∉ 𝒢.names) := by
+  intros h Γ hΓinℋ x A hinΓ hxin𝒢
+  have h_cross := (List.pairwise_append.mp h).2.2
+  obtain ⟨B, Δ, hinΔ, hΔin𝒢⟩ := HyperEnv.mem_pair_fst_in_names.mp hxin𝒢
+  have hxΓ : x ∈ Γ.names := Env.mem_pair_fst_in_names _ hinΓ
+  have hxΔ : x ∈ Δ.names := Env.mem_pair_fst_in_names _ hinΔ
+  have hD := h_cross Δ hΔin𝒢 Γ hΓinℋ
+  exact Finset.disjoint_left.mp hD hxΔ hxΓ

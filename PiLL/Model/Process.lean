@@ -1394,3 +1394,165 @@ lemma Proc.closeCut_substNames_comm {P : Proc} {x y z w : FPName}
   change P⟪1 | w⟫⟪z⟫{y // x} = P{y // x}⟪1 | w⟫⟪z⟫
   rw [Proc.close_substNames_comm_gen (k := 0) hzx hzy]
   rw [Proc.close_substNames_comm_gen (k := 1) hwx hwy]
+
+lemma Channel.f_subset_open {u : Channel} {x : FPName} {k : Nat} :
+  u.f ⊆ (u.open (#x) k).f := by
+  cases u
+  case free => simp only [Channel.f, Channel.open, subset_refl]
+  case bound => simp only [f_bound, Finset.empty_subset]
+
+lemma Finset.f_subset_open {zs : Finset Channel} {x : FPName} {k : Nat} :
+  zs.f ⊆ (zs.open (#x) k).f := by
+  intro y hy
+  simp only [f, mem_biUnion, Channel.f, Finset.open, Channel.open, beq_iff_eq,
+    mem_image, exists_exists_and_eq_and] at hy ⊢
+  obtain ⟨a, ha, hy⟩ := hy
+  use a
+  constructor
+  · exact ha
+  · cases a
+    case free => simp only [hy]
+    case bound => simp only [notMem_empty] at hy
+
+lemma Proc.f_subset_open_gen {P : Proc} {x : FPName} {k : Nat} :
+  P.f ⊆ P⸨k | #x⸩.f := by
+  induction P generalizing k <;>
+    simp_all only [ HasOpen.open_, f, Channel.f, Proc.open, Channel.open,
+      beq_iff_eq, f_nil, f_one, f_bot, f_tensor, f_parr, f_cut, f_par, f_selectL,
+      f_selectR, f_amp, f_output, f_input, f_server, f_consume, f_duplicate, f_dispose,
+      f_link, Finset.union_assoc, subset_refl]
+  case one u _ ih | bot u _ ih | tensor u _ ih | parr u _ ih | selectL u _ ih | selectR u _ ih
+    | output u _ _ ih | input u _ ih | consume u _ ih | duplicate u _ ih | dispose u _ ih =>
+    cases u
+    case free =>
+      apply Finset.insert_subset_insert
+      exact ih
+    case bound => grind
+  case par ih1 ih2 =>
+    apply Finset.union_subset_union
+    · exact ih1
+    · exact ih2
+  case amp u _ _ ih1 ih2 =>
+    cases u
+    case free =>
+      simp only [Finset.singleton_union]
+      apply Finset.insert_subset_insert
+      apply Finset.union_subset_union
+      · exact ih1
+      · exact ih2
+    case bound => grind
+  case server u _ _ ih =>
+    cases u
+    case free =>
+      simp only [Finset.singleton_union]
+      apply Finset.insert_subset_insert
+      apply Finset.union_subset_union
+      · exact Finset.f_subset_open
+      · exact ih
+    case bound => grind [Finset.f_subset_open]
+  case link u v =>
+    cases u
+    case free => cases v <;>
+      simp only [Finset.union_empty, Finset.singleton_union,
+      Finset.singleton_subset_iff, Finset.mem_insert, true_or, subset_refl]
+    case bound =>
+      cases v <;>
+        simp only [Finset.union_singleton, insert_empty_eq, Finset.union_idempotent,
+          Finset.singleton_subset_iff, Finset.mem_insert, true_or, Finset.empty_subset]
+
+lemma Proc.f_subset_open {P : Proc} {x : FPName} :
+  P.f ⊆ P⸨#x⸩.f := Proc.f_subset_open_gen (k := 0)
+
+lemma Channel.open_rec_substNames {u : Channel} {x y z : FPName} {k : Nat} :
+  (u⸨k | #z⸩){y // x} = u{y // x}⸨k | #(z{y // x})⸩ := by
+  cases u <;>
+    simp only [HasSubst.subst, subst, HasOpen.open_, Channel.open, beq_iff_eq, FPName.subst] <;>
+    split_ifs <;> simp only [ite_eq_left_iff, ite_eq_right_iff]
+  case pos h =>
+    intro h'
+    exfalso
+    exact h' h
+  case neg h =>
+    intro h'
+    exfalso
+    exact h h'
+
+lemma Finset.open_rec_substNames {zs : Finset Channel} {x y z : FPName} {k : Nat} :
+  (zs⸨k | #z⸩){y // x} = zs{y // x}⸨k | #(z{y // x})⸩ := by
+  simp only [HasOpen.open_, HasSubst.subst, Finset.open,
+    Finset.subst, Finset.image_image]
+  apply Finset.image_congr
+  intro c _
+  exact Channel.open_rec_substNames
+
+lemma Proc.open_rec_substNames {P : Proc} {x y z : FPName} {k : Nat} :
+  (P⸨k | #z⸩){y // x} = (P{y // x})⸨k | #(z{y // x})⸩ := by
+  induction P generalizing k <;>
+    simp [Channel.open_rec_substNames, Finset.open_rec_substNames, *]
+
+lemma Proc.open_substNames {P : Proc} {x y z : FPName} :
+  P⸨#z⸩{y // x} = (P{y // x})⸨#(z{y // x})⸩ := by
+  exact Proc.open_rec_substNames
+
+lemma Proc.open_two_substNames {P : Proc} {x y z w : FPName} :
+  (P⸨#z, #w⸩){y // x} = (P{y // x})⸨#(z{y // x}), #(w{y // x})⸩ := by
+  change (P⸨1 | #w⸩⸨0 | #z⸩){y // x} = _
+  rw [Proc.open_rec_substNames]
+  rw [Proc.open_rec_substNames]
+  rfl
+
+lemma Channel.subst_of_not_mem {u : Channel} {x y : FPName} (hnin : x ∉ u.f) :
+  u{y // x} = u := by
+  cases u
+  case free =>
+    simp only [Channel.f, Finset.mem_singleton,
+      ← ne_eq, subst_free, free.injEq] at hnin ⊢
+    exact FPName.subst_self_of_ne hnin.symm
+  case bound => simp only [Channel.subst_bound]
+
+lemma Finset.subst_of_not_mem {zs : Finset Channel} {x y : FPName} (hnin : x ∉ zs.f) :
+  zs{y // x} = zs := by
+  simp only [HasSubst.subst, Finset.subst]
+  simp only [mem_biUnion, not_exists, not_and, Finset.f] at hnin
+  rw [Finset.image_congr (g := fun u => u) _]
+  · rw [Finset.image_id']
+  · intro c hc
+    apply Channel.subst_of_not_mem
+    intro hx
+    exact hnin c hc hx
+
+-- FIXME: remove linter false and fix
+set_option linter.flexible false in
+lemma Proc.substNames_of_not_mem {P : Proc} {x y : FPName} (h : x ∉ P.f) :
+  P{y // x} = P := by
+  induction P <;> simp_all
+  case one u P ih | bot u P ih | tensor u P ih | parr u P ih | selectL u P ih | selectR u P ih
+    | output u P A ih | input u P ih | consume u P ih | duplicate u P ih
+    | dispose u P ih | amp u P Q ihP ihQ =>
+    cases u
+    case free w =>
+      simp_all [← ne_eq, Channel.f]
+      rw [FPName.subst_self_of_ne h.1.symm]
+    case bound i => simp
+  case server u _ P ih =>
+    cases u
+    case free w =>
+      simp_all [← ne_eq, Channel.f]
+      rw [FPName.subst_self_of_ne h.1.symm, Finset.subst_of_not_mem h.2.1]
+      exact ⟨rfl, rfl⟩
+    case bound i =>
+      constructor
+      · simp
+      · exact Finset.subst_of_not_mem h.2.1
+  case link u v =>
+    constructor
+    · cases u
+      case free w =>
+        simp_all [← ne_eq, Channel.f]
+        rw [FPName.subst_self_of_ne h.1.symm]
+      case bound i => simp
+    · cases v
+      case free w =>
+        simp_all [← ne_eq, Channel.f]
+        rw [FPName.subst_self_of_ne h.2.symm]
+      case bound i => simp

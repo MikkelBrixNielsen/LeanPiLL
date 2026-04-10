@@ -97,6 +97,13 @@ inductive TypingStepₘ : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typ
       (h_fresh : ∀ x y, x ∉ L → y ∉ L → x ∉ l.f ∪ l.i ∧ y ∉ l.f ∪ l.i) :
       TypingStepₘ (Typing.cut L huniq) l (Typing.cut L huniq')
 
+  ------- Additional Structural / Exchange Rules -------
+
+  | perm {𝒢 ℋ 𝒢' : HyperEnv} {P P' : Proc} {n n' : Nat} {l : Lbl}
+    {𝒟 : n ⊢ P ∷ 𝒢} {𝒟' : n' ⊢ P' ∷ 𝒢'}
+    (hPerm : 𝒢 ~ ℋ) (hTS : TypingStepₘ 𝒟 l 𝒟') :
+    TypingStepₘ (Typing.exchange_hyper 𝒟 hPerm) l 𝒟'
+
 instance {n n' : Nat} {𝒢 𝒢' : HyperEnv} {P P' : Proc} :
   HasStep (Typing n P 𝒢) Lbl (Typing n' P' 𝒢') where
   step 𝒟 l 𝒟' := TypingStepₘ 𝒟 l 𝒟'
@@ -186,12 +193,18 @@ inductive EnvStepₘ : HyperEnv → Lbl → HyperEnv → Prop where
       -------------------------------------------------------------------------------------
       EnvStepₘ (𝒢 |ₕ [Γ‚ Δ]) l (𝒢' |ₕ [Γ'‚ Δ'])
 
+  ------- Additional Structural / Exchange Rules -------s
+
+  | perm {𝒢 ℋ 𝒢' : HyperEnv} {l : Lbl} (hPerm : 𝒢 ~ ℋ)  (hES : EnvStepₘ 𝒢 l 𝒢') :
+      EnvStepₘ ℋ l 𝒢'
+
 instance : HasStep HyperEnv Lbl HyperEnv where step := EnvStepₘ
 
+-- env: Der → Env (HyperEnv)
 theorem session_fidelity_envₘ
   {n n' : Nat} {𝒢 𝒢' : HyperEnv} {P P' : Proc} {l : Lbl}
-  {𝒟 : Typing n P 𝒢} {𝒟' : Typing n' P' 𝒢'}
-  (hStep : TypingStepₘ 𝒟 l 𝒟') : EnvStepₘ (env 𝒟) l (env 𝒟') := by
+  {𝒟 : Typing n P 𝒢} {𝒟' : Typing n' P' 𝒢'} (hStep : TypingStepₘ 𝒟 l 𝒟') :
+  EnvStepₘ (env 𝒟) l (env 𝒟') := by
   induction hStep
 
   case one | bot => constructor
@@ -235,7 +248,7 @@ theorem session_fidelity_envₘ
     simp only [Env.cons_nil, Env.merge_unitL] at ih' ⊢
     exact EnvStepₘ.one_bot (x := x) (y := y) ih'
 
-  case tensor_parr 𝒥 Γ Δ Ξ _ _ A B _ L _ _ _ _ ih =>
+  case tensor_parr L _ _ _ _ ih =>
     obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
     obtain ⟨x', y', hx', hy', hneq'⟩ := exists_two_fresh (L ∪ {x} ∪ {y})
     simp [← ne_eq] at hx' hy'
@@ -244,10 +257,12 @@ theorem session_fidelity_envₘ
     have ih' := ih x y hx hy hneq x' y' hx' hy' hneq' hxx'.symm hxy'.symm hyx'.symm hyy'.symm
     exact EnvStepₘ.tensor_parr ih'
 
-  case res 𝒥 𝒥' Γ Γ' Δ Δ' _ _ A _ _ L _ _ _ _ ih =>
+  case res L _ _ _ _ ih =>
     obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
     have ih' := ih x y hx hy hneq
     apply EnvStepₘ.res ih'
+
+  case perm hP hTS ih => exact EnvStepₘ.perm hP ih
 
 inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
   | one
@@ -307,75 +322,11 @@ inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
       -------------------------------------
       ProcStepₘ (𝑣⸨$N,$N⸩ P) (l) (𝑣⸨$N,$N⸩ P')
 
--- FIXME: Move to Process
-lemma Channel.f_subset_open {u : Channel} {x : FPName} {k : Nat} :
-  u.f ⊆ (u.open (#x) k).f := by
-  cases u
-  case free => simp only [Channel.f, Channel.open, subset_refl]
-  case bound => simp only [f_bound, Finset.empty_subset]
-
-lemma Finset.f_subset_open {zs : Finset Channel} {x : FPName} {k : Nat} :
-  zs.f ⊆ (zs.open (#x) k).f := by
-  intro y hy
-  simp [Finset.f, Finset.open, Channel.open, Channel.f] at hy ⊢
-  obtain ⟨a, ha, hy⟩ := hy
-  use a
-  constructor
-  · exact ha
-  · cases a
-    case free => simp [hy]
-    case bound => simp at hy
-
-lemma Proc.f_subset_open_gen {P : Proc} {x : FPName} {k : Nat} :
-  P.f ⊆ P⸨k | #x⸩.f := by
-  induction P generalizing k <;> simp_all [HasOpen.open_, Proc.open, Proc.f, Channel.open, Channel.f]
-  case one u _ ih | bot u _ ih | tensor u _ ih | parr u _ ih | selectL u _ ih | selectR u _ ih
-    | output u _ _ ih | input u _ ih | consume u _ ih | duplicate u _ ih | dispose u _ ih =>
-    cases u
-    case free =>
-      apply Finset.insert_subset_insert
-      exact ih
-    case bound => grind
-
-  case par ih1 ih2 =>
-    apply Finset.union_subset_union
-    · exact ih1
-    · exact ih2
-
-  case amp u _ _ ih1 ih2 =>
-    cases u
-    case free =>
-      simp
-      apply Finset.insert_subset_insert
-      apply Finset.union_subset_union
-      · exact ih1
-      · exact ih2
-    case bound => grind
-
-  case server u _ _ ih =>
-    cases u
-    case free =>
-      simp
-      apply Finset.insert_subset_insert
-      apply Finset.union_subset_union
-      · exact Finset.f_subset_open
-      · exact ih
-    case bound => grind [Finset.f_subset_open]
-
-  case link u v =>
-    cases u
-    case free => cases v <;> simp
-    case bound => cases v <;> simp
-
-lemma Proc.f_subset_open {P : Proc} {x : FPName} :
-  P.f ⊆ P⸨#x⸩.f := Proc.f_subset_open_gen (k := 0)
-
-
-
+-- proc: Der → Proc
 theorem session_fidelity_procₘ
   {n n' : Nat} {𝒢 𝒢' : HyperEnv} {P P' : Proc} {l : Lbl}
-  {𝒟 : Typing n P 𝒢} {𝒟' : Typing n' P' 𝒢'}
-  (hStep : TypingStepₘ 𝒟 l 𝒟') : ProcStepₘ P l P' := by
+  {𝒟 : Typing n P 𝒢} {𝒟' : Typing n' P' 𝒢'} (hStep : TypingStepₘ 𝒟 l 𝒟') :
+  ProcStepₘ (proc 𝒟) l (proc 𝒟') := by
   induction hStep
 
   case one | bot => constructor
@@ -452,19 +403,60 @@ theorem session_fidelity_procₘ
     intros x hx x' hx' y hy y' hy' hxx' hneq hxy' hyx' hyy' hneq'
     exact ih x y hx hy hneq x' y' hx' hy' hneq' hxx' hxy' hyx' hyy'
 
-
-
+  case perm hP hTS ih => exact ih
 
 
 theorem typability_subject_reductionₘ
   {n : Nat} {𝒢 : HyperEnv} {P P' : Proc} {l : Lbl}
-  (𝒟 : Typing n P 𝒢)
-  (hPS : ProcStepₘ P l P') :
+  (𝒟 : Typing n P 𝒢) (hPS : ProcStepₘ P l P') :
   ∃ (n' : Nat) (𝒢' : HyperEnv) (𝒟' : Typing n' P' 𝒢'),
     TypingStepₘ 𝒟 l 𝒟' := by
   induction hPS generalizing n 𝒢
+
+  case one =>
+    obtain ⟨hP, 𝒟'⟩ := Typing_inv_one 𝒟
+    have ⟨Δ, heq, hPΔ⟩:= HyperEnv.Perm_singleton_inv hP.symm
+    simp only [HasPerm.perm, List.singleton_perm] at hPΔ
+    subst hPΔ heq
+    use n, ∅, 𝒟'
+    apply TypingStepₘ.one
+
+  case bot =>
+    obtain ⟨Γ, hP, 𝒟'⟩ := Typing_inv_bot 𝒟
+    have := HyperEnv.Nodup_perm hP (Typing_preserves_linearity 𝒟).1
+    simp only [HyperEnv.Nodup_singleton, Env.Nodup_cons] at this
+    obtain ⟨hxΓ, _⟩ := this
+    use n, [Γ], 𝒟'
+    exact TypingStepₘ.perm hP.symm (TypingStepₘ.bot (hF := hxΓ))
+
+  case tensor =>
+    obtain ⟨A, B, Γ, Δ, L, hP, 𝒟'⟩ := Typing_inv_tensor 𝒟
+    sorry
+
+
+
+
+
+
+
+
+
+
+
+
   all_goals sorry
 
+
+
+
+
+
+
+
+/-
+  Together session_fidelity_procₘ and typability_subject_reductionₘ establishes the Strong
+  Bisimulation required by Theorem 4.7.
+-/
 
 /- NOTE FOR PAPER
 The res rule in fig 5 and the res rule in fig 2, has swapped which name is typed with Aᗮ, visually
