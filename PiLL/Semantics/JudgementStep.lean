@@ -112,12 +112,13 @@ inductive TypingStepₘ : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typ
       {𝒢 : HyperEnv} {Γ : Env} {P P' : Proc} {n : Nat} {L : Finset FPName}
       {huniq : ∀ x y, x ∉ L → y ∉ L → x ≠ y →
         Typing n (P⸨#x, #y⸩) (𝒢 |ₕ [x ∶ 1 :: ∅] |ₕ [y ∶ ⊥ :: Γ])}
-      {x y : FPName} (hx : x ∉ L) (hy : y ∉ L) (hneq : x ≠ y)
+      {x y : FPName} (hxL : x ∉ L) (hyL : y ∉ L) (hneq : x ≠ y)
+      (hxP : x ∉ P.f) (hyP : y ∉ P.f)
       {𝒟' : Typing n P' (𝒢 |ₕ [Env.merge ∅ Γ])}
-      (hStep : TypingStepₘ (huniq x y hx hy hneq) (x⟦⟧ |ₗ y⸨⸩) 𝒟') :
+      (hStep : TypingStepₘ (huniq x y hxL hyL hneq) (x⟦⟧ |ₗ y⸨⸩) 𝒟') :
       TypingStepₘ (Typing.cut L huniq) (τ) 𝒟'
 
-  | tensor_parr
+| tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {A B : Types} {n : Nat} {L : Finset FPName}
       {huniq : ∀ x y, x ∉ L → y ∉ L → x ≠ y →
                 Typing n
@@ -130,12 +131,11 @@ inductive TypingStepₘ : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typ
                   (P'⸨#x, #y⸩⸨#x', #y'⸩)
                   (𝒢 |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ])}
       {𝒟' : Typing n (𝑣⸨$N,$N⸩ (𝑣⸨$N,$N⸩ P')) (𝒢 |ₕ [Env.merge (Env.merge Γ Δ) Ξ])}
-      (h : ∀ x y, (hx : x ∉ L) → (hy : y ∉ L) → (hneq : x ≠ y) →
-            ∀ x' y', (hx' : x' ∉ L) → (hy' : y' ∉ L) → (hneq' : x' ≠ y') →
-              (hxx' : x ≠ x') → (hxy' : x ≠ y') → (hyx' : y ≠ x') → (hyy' : y ≠ y') →
-              TypingStepₘ
-                (huniq x y hx hy hneq)
-                (x⟦x'⟧ |ₗ y⸨y'⸩)
+      {x y : FPName} (hx : x ∉ L) (hy : y ∉ L) (hneq : x ≠ y)
+      {x' y' : FPName} (hx' : x' ∉ L) (hy' : y' ∉ L) (hneq' : x' ≠ y')
+      (hxx' : x ≠ x') (hxy' : x ≠ y') (hyx' : y ≠ x') (hyy' : y ≠ y')
+      (hxP : x ∉ P.f) (hyP : y ∉ P.f) (hx'P : x' ∉ P.f) (hy'P : y' ∉ P.f)
+      (hStep : TypingStepₘ (huniq x y hx hy hneq) (x⟦x'⟧ |ₗ y⸨y'⸩)
                 (huniq' x y hx hy hneq x' y' hx' hy' hneq' hxx' hxy' hyx' hyy')) :
       TypingStepₘ (Typing.cut L huniq) (τ) 𝒟'
 
@@ -146,9 +146,9 @@ inductive TypingStepₘ : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typ
                 Typing n (P⸨#x, #y⸩) (𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ])}
       {huniq' : ∀ x y, x ∉ L → y ∉ L → x ≠ y →
                 Typing n (P'⸨#x, #y⸩) (𝒢' |ₕ [x ∶ A :: Γ'] |ₕ [y ∶ Aᗮ :: Δ'])}
-      (h : ∀ x y, (hx : x ∉ L) → (hy : y ∉ L) → (hneq : x ≠ y) →
-           TypingStepₘ (huniq x y hx hy hneq) l (huniq' x y hx hy hneq))
-      (h_fresh : ∀ x y, x ∉ L → y ∉ L → x ∉ l.f ∪ l.i ∧ y ∉ l.f ∪ l.i) :
+      {x y : FPName} (hx : x ∉ L) (hy : y ∉ L) (hneq : x ≠ y)
+      (hFx : x ∉ P.f ∪ l.f ∪ l.i) (hFy : y ∉ P.f ∪ l.f ∪ l.i)
+      (hStep : TypingStepₘ (huniq x y hx hy hneq) l (huniq' x y hx hy hneq)) :
       TypingStepₘ (Typing.cut L huniq) l (Typing.cut L huniq')
 
   ------- Additional Structural / Exchange Rules -------
@@ -167,10 +167,10 @@ theorem TypingStepₘ.preserves_WF {n n' 𝒢 𝒢' P P'}
   TypingStepₘ 𝒟 l 𝒟' → l.WF := by
   intro h
   induction h <;> simp_all only [Lbl.WF]
-  case res L _ _ _ _  ih =>
-    obtain ⟨x, hx, y, hy, hneq⟩ := exists_two_fresh L
-    have := ih x hx y hy hneq
-    exact this
+  -- case res L _ _ _ _  ih =>
+  --   obtain ⟨x, hx, y, hy, hneq⟩ := exists_two_fresh L
+  --   have := ih x hx y hy hneq
+  --   exact this
 
 -- theorem TypingStep.preserves_serverUsableEnv
 
@@ -303,19 +303,12 @@ theorem session_fidelity_envₘ
   case one_bot ih =>
     exact EnvStepₘ.one_bot ih
 
-  case tensor_parr L _ _ _ _ ih =>
-    obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
-    obtain ⟨x', y', hx', hy', hneq'⟩ := exists_two_fresh (L ∪ {x} ∪ {y})
-    simp [← ne_eq] at hx' hy'
-    obtain ⟨hxx', hyx', hx'⟩ := hx'
-    obtain ⟨hxy', hyy', hy'⟩ := hy'
-    have ih' := ih x y hx hy hneq x' y' hx' hy' hneq' hxx'.symm hxy'.symm hyx'.symm hyy'.symm
-    exact EnvStepₘ.tensor_parr ih'
+  case tensor_parr ih =>
+    exact EnvStepₘ.tensor_parr ih
 
-  case res L _ _ _ _ ih =>
-    obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
-    have ih' := ih x y hx hy hneq
-    apply EnvStepₘ.res ih'
+  case res ih =>
+    exact EnvStepₘ.res ih
+
 
   case perm hP hTS ih => exact EnvStepₘ.perm hP ih
 
@@ -356,24 +349,24 @@ inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStepₘ (P |ₚ Q) (l |ₗ l') (P' |ₚ Q')
 
   | one_bot
-      {P P' : Proc} (L : Finset FPName) :
-      (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
-      ProcStepₘ P⸨#x, #y⸩ (x⟦⟧ |ₗ y⸨⸩) P') →
-      ----------------------------
+      {P P' : Proc} {x y : FPName} (hx : x ∉ P.f) (hy : y ∉ P.f) (hneq : x ≠ y) :
+      ProcStepₘ P⸨#x, #y⸩ (x⟦⟧ |ₗ y⸨⸩) P' →
+      -----------------------------------
       ProcStepₘ (𝑣⸨$N,$N⸩ P) (τ) P'
 
-  | tensor_parr
-      {P P' : Proc} {L : Finset FPName} :
-      (∀ x ∉ L, ∀ x' ∉ L, ∀ y ∉ L, ∀ y' ∉ L,
-      x ≠ x' → x ≠ y → x ≠ y' → y ≠ x' → y ≠ y' → x' ≠ y' →
-      ProcStepₘ P⸨#x, #y⸩ (x⟦x'⟧ |ₗ y⸨y'⸩) P'⸨#x, #y⸩⸨#x', #y'⸩) →
+| tensor_parr
+      {P P' : Proc} {x x' y y' : FPName}
+      (hx : x ∉ P.f) (hx' : x' ∉ P.f) (hy : y ∉ P.f) (hy' : y' ∉ P.f)
+      (hxx' : x ≠ x') (hxy : x ≠ y) (hxy' : x ≠ y')
+      (hyx' : y ≠ x') (hyy' : y ≠ y') (hx'y' : x' ≠ y')
+      (hStep : ProcStepₘ P⸨#x, #y⸩ (x⟦x'⟧ |ₗ y⸨y'⸩) P'⸨#x, #y⸩⸨#x', #y'⸩) :
       ---------------------------------------------------------
       ProcStepₘ (𝑣⸨$N,$N⸩ P) (τ) (𝑣⸨$N,$N⸩ (𝑣⸨$N,$N⸩ P'))
 
-  | res
-      {P P' : Proc} {l : Lbl} {L : Finset FPName} :
-      (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
-      ProcStepₘ P⸨#x, #y⸩ l P'⸨#x, #y⸩) →
+| res
+      {P P' : Proc} {l : Lbl} {x y : FPName}
+      (hx : x ∉ P.f ∪ l.f ∪ l.i) (hy : y ∉ P.f ∪ l.f ∪ l.i) (hneq : x ≠ y)
+      (hStep : ProcStepₘ P⸨#x, #y⸩ l P'⸨#x, #y⸩) :
       -------------------------------------
       ProcStepₘ (𝑣⸨$N,$N⸩ P) (l) (𝑣⸨$N,$N⸩ P')
 
@@ -446,15 +439,14 @@ theorem session_fidelity_procₘ
 
   case syn hD lwf ih1 ih2 => exact ProcStepₘ.syn ih1 ih2 hD lwf
 
-  case one_bot ih | res ih =>
-    constructor
-    intros x hx y hy hneq
-    exact ih
+  case one_bot hneq hxP hyP _ _ ih =>
+    exact ProcStepₘ.one_bot hxP hyP hneq ih
 
-  case tensor_parr L _ _ _ _ ih =>
-    apply ProcStepₘ.tensor_parr
-    intros x hx x' hx' y hy y' hy' hxx' hneq hxy' hyx' hyy' hneq'
-    exact ih x y hx hy hneq x' y' hx' hy' hneq' hxx' hxy' hyx' hyy'
+  case tensor_parr hxy _ _ _ _ hx'y' hxx' hxy' hyx' hyy' hxP hyP hx'P hy'P _ ih =>
+    exact ProcStepₘ.tensor_parr hxP hx'P hyP hy'P hxx' hxy hxy' hyx' hyy' hx'y' ih
+
+  case res hneq hFx hFy _ ih =>
+    exact ProcStepₘ.res hFx hFy hneq ih
 
   case perm hP hTS ih => exact ih
 
@@ -526,22 +518,33 @@ lemma TypingStepₘ_names_bound {n n' P P' 𝒢 𝒢' l} {𝒟 : n ⊢ P ∷ �
       · simp [h1]
       · simp [- Lbl.i, Lbl.i_par', h2]
 
-  case res 𝒢' _ Γ' _ Δ' _ _ _ _ _ L _ _ _ hF ih =>
+  case res 𝒢' _ Γ' _ Δ' _ _ _ _ _ _ _ huniq' x y hx hy hneq hFx hFy hStep ih =>
     intro a ha
-    obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh (L ∪ {a})
-    simp [← ne_eq] at hx hy
-    have hsub:= ih x y hx.2 hy.2 hneq
     simp only [HyperEnv.names_merge, HyperEnv.names_cons, Env.names_merge, HyperEnv.names_nil,
       Finset.union_empty, Finset.mem_union, List.append_assoc, List.cons_append,
       List.nil_append, Env.names_distributes, Finset.singleton_union, Finset.union_insert,
-      Finset.insert_union, Finset.union_assoc] at ha hsub ⊢
+      Finset.insert_union, Finset.union_assoc] at ha ih ⊢
     have haLHS : a ∈ insert y (insert x (𝒢'.names ∪ (Γ'.names ∪ Δ'.names))) := by
       simp only [Finset.mem_insert, Finset.mem_union, ha, or_true]
-    have haRHS := hsub haLHS
+    have haRHS := ih haLHS
     simp only [Finset.mem_insert, Finset.mem_union] at haRHS
+
+    have ⟨hnd, hpw⟩ := Typing_preserves_linearity (huniq' x y hx hy hneq)
+    simp only [HyperEnv.Nodup_merge, HyperEnv.Nodup_singleton, Env.Nodup_cons] at hnd
+    rw [HyperEnv.merge_assoc] at hpw
+    have hD := HyperEnv.PairwiseDisjoint_tail_not_in_head hpw
+    simp at hD
+
+
+
+
+
     rcases haRHS with rfl | rfl | h
-    · exfalso ; apply hy.1 ; rfl
-    · exfalso ; apply hx.1 ; rfl
+    · rcases ha with h1 | h2 | h3
+      · exfalso ; apply hnd.2.1 ; sorry -- continue with hpw disjointness
+      · sorry
+      · sorry
+    · sorry -- same as above
     · exact h
 
   case perm hP _ ih =>
@@ -712,27 +715,13 @@ theorem typability_subject_reductionₘ
       · exact hD'
 
   case one_bot L _ ih =>
-
-    have ⟨A, Γ, Δ, 𝒥, L', hP, hT⟩ := Typing_inv_res 𝒟
-    have ⟨x, y, hx, hy, hnxy⟩ := exists_two_fresh (L ∪ L')
-    simp at hx hy
-    obtain ⟨hxL, hxL'⟩ := hx
-    obtain ⟨hyL, hyL'⟩ := hy
-    have hTxy := hT x hxL' y hyL' hnxy
-    have ⟨𝒢', hT', hStep'⟩:= ih x hxL y hyL hnxy hTxy
-    use 𝒢', hT'
-    apply TypingStepₘ.perm hP.symm
-    · sorry
-    ·
-
-
-
     sorry
 
   case tensor_parr L _ ih =>
     sorry
 
-  case res => sorry
+  case res =>
+    sorry
 
 
 
