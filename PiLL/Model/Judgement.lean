@@ -442,10 +442,10 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     · exact ih d c
     · simp_all
 
+-- FIXME: Move to Environment
 lemma HyperEnv.PairwiseDisjoint_implies_disjoint {Γ Δ : Env} :
   HyperEnv.PairwiseDisjoint [Γ, Δ] → Γ.disjoint Δ := by
   simp [HyperEnv.PairwiseDisjoint]
-
 
 lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   (n ⊢ P ∷ 𝒢) → HyperEnv.Nodup 𝒢 ∧ 𝒢.PairwiseDisjoint := by
@@ -551,7 +551,6 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     have hNodupΓ := (Env.Nodup_cons.mp ih1').2
     rw [Env.shiftTypes_preserves_names] at hFx
     rw [Env.Nodup_shiftTypes] at hNodupΓ
-    -- apply HyperEnv.Nodup_singleton_from_env
     rw [← HyperEnv.Nodup_singleton]
     have :=  (Env.Nodup_cons (A := B)).mpr ⟨hFx, hNodupΓ⟩
     simp [Env.Nodup] at this ⊢
@@ -702,10 +701,8 @@ lemma Typing_inv_tensor {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
     · exact HyperEnv.Perm.trans (hP.symm) hP'
     · exact hT'
 
-  case tensor Γ Δ Q _ A B _ _ L hT ih =>
-    obtain ⟨z, hz⟩ := exists_one_fresh (L ∪ Γ.names ∪ Δ.names ∪ Q.f ∪ {x})
-    simp at hz heq
-    obtain ⟨hz1, hz2, hz3, hz4, hz5⟩ := hz
+  case tensor Γ Δ _ _ A B _ _ L hT _ =>
+    simp at heq
     use A, B, Γ, Δ, L
     constructor
     · rw [heq.1]
@@ -733,10 +730,8 @@ lemma Typing_inv_parr {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
     · exact HyperEnv.Perm.trans (hP.symm) hP'
     · exact hT'
 
-  case parr Γ Q y A B hF n L hT ih =>
-    obtain ⟨z, hz⟩ := exists_one_fresh (L ∪ Γ.names ∪ Q.f ∪ {x})
-    simp at hz heq
-    obtain ⟨hz1, hz2, hz3, hz4⟩ := hz
+  case parr Γ _ _ A B _ _ L hT _ =>
+    simp at heq
     use A, B, Γ, L
     constructor
     · rw [heq.1]
@@ -744,7 +739,7 @@ lemma Typing_inv_parr {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
       exact hT
 
 lemma Typing_inv_par {n : Nat} {P Q : Proc} {𝒢 : HyperEnv} (hT : n ⊢ P |ₚ Q ∷ 𝒢) :
-  ∃ 𝒢₁ 𝒢₂, (𝒢 ~ 𝒢₁ |ₕ 𝒢₂) ∧ (n ⊢ P ∷ 𝒢₁) ∧ (n ⊢ Q ∷ 𝒢₂) := by
+  ∃ 𝒢₁ 𝒢₂, (𝒢 ~ 𝒢₁ |ₕ 𝒢₂) ∧ (n ⊢ P ∷ 𝒢₁) ∧ (n ⊢ Q ∷ 𝒢₂) ∧ Disjoint 𝒢₁.names 𝒢₂.names := by
   generalize heq : (P |ₚ Q) = PQ at hT
   induction hT generalizing P Q <;> try contradiction
 
@@ -762,12 +757,12 @@ lemma Typing_inv_par {n : Nat} {P Q : Proc} {𝒢 : HyperEnv} (hT : n ⊢ P |ₚ
     · exact HyperEnv.Perm.trans hP.symm hP'
     · exact hT'
 
-  case mix 𝒢 ℋ _ _ hD _ hTP hTQ ihP ihQ =>
+  case mix 𝒢 ℋ _ _ _ hD hTP hTQ ihP ihQ =>
     simp at heq
     obtain ⟨hP, hQ⟩ := heq
     use 𝒢, ℋ
     rw [hP, hQ]
-    exact ⟨by simp, ⟨hTP, hTQ⟩⟩
+    exact ⟨by simp, hTP, hTQ, hD⟩
 
 lemma Typing_inv_link {n : Nat} {x y : FPName} {𝒢 : HyperEnv}
   (hT : n ⊢ #x⟷ₚ#y ∷ 𝒢) :
@@ -1026,7 +1021,7 @@ lemma Typing_inv_dup₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
         apply Typing.exchange_hyper (hT x' hin)
         exact HyperEnv.Perm.cons (List.Perm.swap (x' ∶ ??A) (x ∶ ??A) Γ) (by simp)
 
-lemma Typing_inv_res {n : ℕ} {P : Proc} {𝒢 : HyperEnv}
+lemma Typing_inv_res {n : Nat} {P : Proc} {𝒢 : HyperEnv}
   (hT : n ⊢ 𝑣⸨$N,$N⸩ P ∷ 𝒢) :
   ∃ (A : Types) (Γ Δ : Env) (𝒢' : HyperEnv) (L : Finset FPName),
     (𝒢 ~ 𝒢' |ₕ [Γ‚ Δ]) ∧
