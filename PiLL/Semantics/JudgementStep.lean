@@ -483,6 +483,33 @@ lemma Env.disjoint_cons_iff {Γ Δ : Env} {x y : FPName} {A : Types} :
     rcases h with ⟨hneq, hyΓ, hxΔ, hDΓΔ⟩
     refine ⟨⟨hneq, hyΓ⟩, ⟨hxΔ, hDΓΔ⟩⟩
 
+lemma Env.Perm.eq_nil_of_disjoint {Γ Δ : Env} (hD : Γ.disjoint Δ) (hP : Γ.Perm Δ) :
+  Γ = [] ∧ Δ = [] := by
+  induction hP
+  case nil => simp
+  case cons E Γ Δ hP ih =>
+    rcases E with ⟨x, A⟩
+    simp only [disjoint, names_distributes, Finset.singleton_union,
+      Finset.disjoint_insert_right, Finset.mem_insert, true_or,
+      not_true_eq_false, Finset.disjoint_insert_left,false_and] at hD
+  case swap E1 E2 Γ => rcases E1 ; rcases E2 ; simp at hD
+  case trans l1 l2 l3 hP1 hP2 ih1 ih2 =>
+    simp [Disjoint] at hD
+    have hNamesEq := Env.names_eq_of_perm (hP1.trans hP2)
+    have hEmptyNames : names l1 = ∅ := by
+      apply hD (x := names l1)
+      · simp only [subset_refl]
+      · rw [← hNamesEq]
+    have h1 : l1 = [] := by simp_all
+    have h2 : l3 = [] := by simp_all
+    refine ⟨h1, h2⟩
+
+
+
+
+
+
+
 -- FIXME: Move to judgement
 lemma Typing_res_fresh {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env}
   {x y : FPName} {A B : Types}
@@ -617,7 +644,7 @@ lemma TypingStepₘ_syn_preserves_disjoint {n : Nat} {P P' Q Q' : Proc}
 lemma HyperEnv.Perm.extract_one_res_source
   {𝒢 𝒢ᵣ : HyperEnv} {Γ Δ : Env} {x y z : FPName} {A : Types}
   (h_pre : 𝒢 |ₕ [x ∶ Aᗮ :: Γ] |ₕ [y ∶ A :: Δ] ~ 𝒢ᵣ |ₕ [[z ∶ 1]])
-  (hzx : z ≠ x) (hzy : z ≠ y) :
+  (hxz : x ≠ z) (hyz : y ≠ z) :
   ∃ 𝒢ᵣ_new,
     𝒢 |ₕ [Γ‚ Δ] ~ 𝒢ᵣ_new |ₕ [[z ∶ 1]] := by
   have hzin : ([z ∶ 1]) ∈ 𝒢ᵣ |ₕ [[z ∶ 1]] := by
@@ -642,11 +669,11 @@ lemma HyperEnv.Perm.extract_one_res_source
     case inr h =>
       rw [h] at hPE
       simp only [HasPerm.perm, List.perm_singleton, List.cons.injEq, Prod.mk.injEq] at hPE
-      rw [hPE.1.1] at hzx
+      rw [hPE.1.1] at hxz
       contradiction
   · exfalso
     simp only [HasPerm.perm, List.perm_singleton, List.cons.injEq, Prod.mk.injEq] at hPE
-    rw [hPE.1.1] at hzy
+    rw [hPE.1.1] at hyz
     contradiction
 
 lemma HyperEnv.Perm.extract_bot_res_source
@@ -783,6 +810,98 @@ lemma HyperEnv.Perm.extract_one_bot_res_source
 
 
 
+lemma TypingStepₘ_inv_one_existential {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEnv}
+  {x : FPName} {𝒟 : n ⊢ P ∷ 𝒢} {𝒟' : n' ⊢ P' ∷ 𝒢'}
+  (hStep : TypingStepₘ 𝒟 (x⟦()⟧) 𝒟') :
+  ∃ 𝒢ᵣ, 𝒢 ~ 𝒢ᵣ |ₕ [[x ∶ 1]] := by
+  generalize hl : (x⟦⟧ : Lbl) = l at hStep
+  induction hStep <;> try simp [HasBracket.brack, HasParen.paren] at hl
+
+  case one =>
+    subst hl
+    use ∅
+    rw [HyperEnv.merge_unitL]
+
+  case par₁ ih =>
+    expose_names
+    simp [HasBracket.brack] at ih
+    have ⟨𝒢'', hP⟩ := ih hl
+    use ℋ |ₕ 𝒢''
+    apply HyperEnv.Perm_exchange_lhs HyperEnv.Perm.merge_comm
+    rw [HyperEnv.merge_assoc]
+    exact HyperEnv.Perm_merge_cancel_left_inv hP
+
+  case par₂ ih =>
+    expose_names
+    simp [HasBracket.brack] at ih
+    have ⟨ℋ''', hP⟩ := ih hl
+    use 𝒢_1 |ₕ ℋ'''
+    rw [HyperEnv.merge_assoc]
+    exact HyperEnv.Perm_merge_cancel_left_inv hP
+
+  case res A _ _ _ 𝒟 _ _ _ _ _ _ hFu hFv _ ih =>
+    simp only [HasBracket.brack] at ih
+    have ⟨𝒥, hP⟩ := ih hl
+    subst hl
+    simp [← ne_eq] at hFu hFv
+    obtain ⟨hux, huPf⟩ := hFu
+    obtain ⟨hvx, hvPf⟩ := hFv
+    exact HyperEnv.Perm.extract_one_res_source (A := Aᗮ)
+      (by simp at hP ⊢ ; apply hP) hux hvx
+
+  case perm hP _ ih =>
+    simp at ih
+    have ⟨𝒥, hP'⟩ := ih hl
+    use 𝒥
+    exact hP.symm.trans hP'
+
+lemma TypingStepₘ_inv_bot_existential {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEnv}
+  {x : FPName} {𝒟 : n ⊢ P ∷ 𝒢} {𝒟' : n' ⊢ P' ∷ 𝒢'}
+  (hStep : TypingStepₘ 𝒟 (x⸨()⸩) 𝒟') :
+  ∃ 𝒢ᵣ Γᵣ, 𝒢 ~ 𝒢ᵣ |ₕ [x ∶ ⊥ :: Γᵣ] := by
+  generalize hl : (x⸨⸩ : Lbl) = l at hStep
+  induction hStep <;> try simp [HasBracket.brack, HasParen.paren] at hl
+
+  case bot Γ _ _ _ _ _=>
+    subst hl
+    use ∅, Γ
+    rw [HyperEnv.merge_unitL]
+
+  case par₁ ih =>
+    simp at ih
+    have ⟨𝒥, Γ', hP⟩ := ih hl
+    expose_names
+    use 𝒥 |ₕ ℋ, Γ'
+    apply HyperEnv.Perm_rotate_rhs_right
+    exact HyperEnv.Perm_merge_cancel_right_inv (hP.trans HyperEnv.Perm_merge_comm)
+
+  case par₂ ih =>
+    simp at ih
+    have ⟨𝒥, Γ', hP⟩ := ih hl
+    expose_names
+    use 𝒥 |ₕ 𝒢_1, Γ'
+    apply HyperEnv.Perm_rotate_rhs_left
+    rw [HyperEnv.merge_assoc]
+    exact HyperEnv.Perm_merge_cancel_left_inv (hP.trans HyperEnv.Perm_merge_comm)
+
+  case res A _ _ _ 𝒟 _ u v hu hv hneq hFu hFv _ ih =>
+    simp only [HasParen.paren] at ih
+    have ⟨𝒥, Γ', hP⟩ := ih hl
+    subst hl
+    simp [← ne_eq] at hFu hFv
+    obtain ⟨hux, _⟩ := hFu
+    obtain ⟨hvx, _⟩ := hFv
+    have ⟨⟨hu𝒢, _, huΔ⟩, ⟨hv𝒢, hvΓ, _⟩⟩ := Typing_res_fresh (𝒟 u v hu hv hneq)
+    exact HyperEnv.Perm.extract_bot_res_source (A := Aᗮ)
+      (by simp at hP ⊢ ; apply hP) hux hvx hu𝒢 hv𝒢 hneq huΔ hvΓ
+
+  case perm hP _ ih =>
+    simp at ih
+    have ⟨𝒥, Γ', hP'⟩ := ih hl
+    use 𝒥, Γ'
+    exact hP.symm.trans hP'
+
+
 lemma TypingStepₘ_inv_one_bot_existential {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEnv}
   {x y : FPName} {𝒟 : n ⊢ P ∷ 𝒢} {𝒟' : n' ⊢ P' ∷ 𝒢'}
   (hStep : TypingStepₘ 𝒟 (x⟦()⟧ |ₗ y⸨()⸩) 𝒟') :
@@ -807,10 +926,20 @@ lemma TypingStepₘ_inv_one_bot_existential {n n' : Nat} {P P' : Proc} {𝒢 �
     rw [HyperEnv.merge_assoc] at hP'
     exact HyperEnv.Perm_merge_cancel_left_inv hP'
 
-  case syn ih1 ih2 =>
-    expose_names
-
-    sorry
+  case syn 𝒥 𝒥' ℋ ℋ' Q Q' R R' l' l'' n' hD1 hD2 ℰ ℰ' ℱ ℱ' hSℰ hSℱ disj lwf ih1 ih2 =>
+    rcases hl with ⟨rfl, rfl⟩
+    obtain ⟨𝒥', hP𝒥⟩ := TypingStepₘ_inv_one_existential hSℰ
+    obtain ⟨ℋ', Γ', hPℋ⟩ := TypingStepₘ_inv_bot_existential hSℱ
+    use 𝒥' |ₕ ℋ', Γ'
+    rw [HyperEnv.merge_assoc]
+    apply HyperEnv.Perm.trans (HyperEnv.Perm.merge hP𝒥 hPℋ)
+    repeat rw [HyperEnv.merge_assoc]
+    apply HyperEnv.Perm_merge_cancel_left_inv
+    conv_rhs => rw [← HyperEnv.merge_assoc]
+    apply HyperEnv.Perm_rotate_rhs_left
+    apply HyperEnv.Perm_merge_cancel_left_inv
+    rw [List.append_eq, List.nil_append]
+    apply HyperEnv.Perm_merge_singleton
 
   case res A _ l _ huinq _ u v hu hv hneq hFu hFv hStep ih =>
     obtain ⟨𝒢ᵣ, Γᵣ, hP'⟩ := ih hl
@@ -827,14 +956,62 @@ lemma TypingStepₘ_inv_one_bot_existential {n n' : Nat} {P P' : Proc} {𝒢 �
     use 𝒢ᵣ, Γᵣ
     exact HyperEnv.Perm.trans hP.symm hP'
 
+lemma TypingStepₘ_inv_one_bot {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEnv}
+  {x y : FPName} {A B : Types} {Γ Δ : Env} {𝒟' : n' ⊢ P' ∷ 𝒢'}
+  (𝒟 : n ⊢ P ∷ 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ B :: Δ])
+  (hStep : TypingStepₘ 𝒟 (x⟦()⟧ |ₗ y⸨()⸩) 𝒟') :
+  A = 1 ∧ B = ⊥ ∧ Γ = ∅ := by
+  obtain ⟨𝒢ᵣ, Γᵣ, hP⟩ := TypingStepₘ_inv_one_bot_existential hStep
+  have ⟨hdn, hpw⟩ := Typing_preserves_linearity 𝒟
+  have ⟨⟨hx𝒢, hxΓ, hxΔ⟩, ⟨hy𝒢, hyΓ, hyΔ⟩⟩ := Typing_res_fresh 𝒟
 
+  have hxLHS : [x ∶ 1] ∈ 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ B :: Δ] := by
+    have hxRHS : [x ∶ 1] ∈ 𝒢ᵣ |ₕ [[x ∶ 1]] |ₕ [y ∶ ⊥ :: Γᵣ] := by simp
+    have ⟨Ξ, hΞ, hPΞ⟩ := HyperEnv.Perm_mem hP hxRHS
+    simp [HasPerm.perm] at hPΞ
+    subst hPΞ
+    exact hΞ
 
+  simp [HyperEnv.PairwiseDisjoint_merge] at hpw
+  have hDΓΔ := HyperEnv.PairwiseDisjoint_implies_disjoint hpw.2.1
 
+  have hyLHS : y ∶ ⊥ :: Δ ∈ 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ B :: Δ] := by
+    have hyRHS : (y ∶ ⊥ :: Γᵣ) ∈ 𝒢ᵣ |ₕ [[x ∶ 1]] |ₕ [y ∶ ⊥ :: Γᵣ] := by simp
+    have ⟨Ξ, hΞ, hPΞ⟩ := HyperEnv.Perm_mem hP hyRHS
+    simp [HasPerm.perm] at hPΞ
+    simp at hΞ
+    rcases hΞ with h1 | h2 | h3
+    · exfalso
+      exact (HyperEnv.not_mem_names_iff.mp hy𝒢 Ξ ⊥ h1)
+        ((List.Perm.mem_iff (a := y ∶ ⊥) hPΞ.symm).mp (by simp))
+    · subst h2
+      have hyin := (List.Perm.mem_iff (a := y ∶ ⊥) hPΞ).mpr (by simp)
+      simp at hyin
+      rcases hyin with ⟨rfl, rfl⟩ | h
+      · exfalso ; simp at hDΓΔ
+      · exfalso ; exact hyΓ (Env.mem_pair_fst_in_names _ h)
+    · subst h3
+      have hyin := (List.Perm.mem_iff (a := y ∶ ⊥) hPΞ).mpr (by simp)
+      simp at hyin
+      rcases hyin with rfl | h
+      · simp
+      · exfalso ; exact hyΔ (Env.mem_pair_fst_in_names _ h)
 
-
-
-
-
+  simp at hxLHS hyLHS
+  rcases hxLHS with h1 | h2 | h3
+  · exfalso
+    apply HyperEnv.not_mem_names_iff.mp hx𝒢 [x ∶ 1] 1 h1
+    simp only [List.mem_cons, List.not_mem_nil, or_false]
+  · rcases h2 with ⟨rfl, rfl⟩
+    · rcases hyLHS with h4 | h5 | h6
+      · exfalso
+        apply HyperEnv.not_mem_names_iff.mp hy𝒢 (y ∶ ⊥ :: Δ) ⊥ h4
+        simp only [List.mem_cons, true_or]
+      · obtain ⟨⟨rfl, _⟩, _⟩ := h5
+        simp at hDΓΔ
+      · subst h6 ; simp
+  · obtain ⟨⟨rfl, _⟩, _⟩ := h3
+    simp at hDΓΔ
 
 
 theorem typability_subject_reductionₘ
@@ -949,10 +1126,8 @@ theorem typability_subject_reductionₘ
     have ⟨𝒥, 𝒦, hP, hTR, hTQ, hD⟩ := Typing_inv_par 𝒟
     have ⟨𝒥', hTR', hStepRR'⟩ := ih1 hTR
     have ⟨𝒦', hTQ', hStepQQ'⟩ := ih2 hTQ
-
     have hD' : 𝒥'.disjoint 𝒦' :=
       TypingStepₘ_syn_preserves_disjoint hStepRR' hStepQQ' hD disj lwf
-
     use 𝒥' |ₕ 𝒦', (Typing.mix ?_ hTR' hTQ')
     · apply TypingStepₘ.perm hP.symm
       · apply TypingStepₘ.syn
@@ -964,15 +1139,48 @@ theorem typability_subject_reductionₘ
         · exact lwf
       · exact hD'
 
-  case one_bot L _ ih =>
-    have ⟨A, Γ, Δ, 𝒢, L, hP, 𝒟'⟩ := Typing_inv_res 𝒟
+  case one_bot Q Q' x y hxQf hyQf hxy hPS ih =>
+    expose_names
+    have ⟨A, Γ, Δ, ℋ, L, hP, 𝒟'⟩ := Typing_inv_res 𝒟
+
+
+    -- FIXME: Probalby make the renaming part into a lemma for
+    -- reuseability in tensor_parr and res
+    obtain ⟨z, w, hz, hw, hzw⟩ := exists_two_fresh (L ∪ Q.f ∪ Γ.names ∪ Δ.names ∪ {x, y})
+    simp [← ne_eq, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hz hw
+    obtain ⟨hzx, hzy, hzL, hzQf, hzΓ, hzΔ⟩ := hz
+    obtain ⟨hwx, hwy, hwL, hwQf, hwΓ, hwΔ⟩ := hw
+
+    have 𝒟zw := 𝒟' z hzL w hwL hzw
+    have 𝒟xw := Typing_substNames 𝒟zw (x := z) (y := x) ?_
+    · have 𝒟xy := Typing_substNames 𝒟zw (x := w) (y := y) ?_
+      · sorry -- FIXME: Continues on main goal with renamed derivation
+      · sorry -- FIXME: prove freshness of w
+    · intros Ξ hΞ C hin
+      simp at hΞ
+      rcases hΞ with h1 | h2 | h3
+      · exfalso
+        have hxℋ := HyperEnv.mem_of_mem_mem_names hin h1
+        have hNames := Typing.f_eq_names 𝒟
+        simp at hNames
+        rw [HyperEnv.names_eq_of_perm hP] at hNames
+        rw [hNames] at hxQf
+        apply hxQf
+        simp [hxℋ]
+      ·
+        subst h2
+        simp at hin
+        rcases hin with ⟨rfl, rfl⟩ | h
+        · rfl
+        · sorry -- use hxQf to show x cannot be in Γ since Γ ⊆ Q.f
+
+
+      · sorry
 
 
 
 
 
-
-    sorry
 
   case tensor_parr L _ ih =>
     sorry
