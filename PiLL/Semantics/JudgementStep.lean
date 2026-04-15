@@ -1013,6 +1013,50 @@ lemma TypingStepₘ_inv_one_bot {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEn
   · obtain ⟨⟨rfl, _⟩, _⟩ := h3
     simp at hDΓΔ
 
+lemma HyperEnv.rename_res_left
+  {ℋ : HyperEnv} {Γ Δ : Env} {x z w : FPName} {A B : Types}
+  (hxℋ : x ∉ ℋ.names) (hxΓ : x ∉ Γ.names) (hxΔ : x ∉ Δ.names) (hxw : x ≠ w) :
+  ∀ Ξ ∈ ℋ |ₕ [z ∶ A :: Γ] |ₕ [w ∶ B :: Δ], ∀ C, (x, C) ∈ Ξ → x = z := by
+  intros Ξ hΞ C hin
+  simp at hΞ
+  rcases hΞ with h1 | rfl | rfl
+  · exfalso
+    exact hxℋ (HyperEnv.mem_of_mem_mem_names hin h1)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | h
+    · rfl
+    · exfalso
+      exact hxΓ (Env.mem_pair_fst_in_names _ h)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | h
+    · exfalso
+      exact hxw rfl
+    · exfalso
+      exact hxΔ (Env.mem_pair_fst_in_names _ h)
+
+lemma HyperEnv.rename_res_right
+  {ℋ : HyperEnv} {Γ Δ : Env} {x y w : FPName} {A B : Types}
+  (hyℋ : y ∉ ℋ.names) (hyΓ : y ∉ Γ.names) (hyΔ : y ∉ Δ.names) (hyx : y ≠ x) :
+  ∀ Ξ ∈ ℋ |ₕ [x ∶ A :: Γ] |ₕ [w ∶ B :: Δ], ∀ C, (y, C) ∈ Ξ → y = w := by
+  intros Ξ hΞ C hin
+  simp at hΞ
+  rcases hΞ with h1 | rfl | rfl
+  · exfalso
+    exact hyℋ (HyperEnv.mem_of_mem_mem_names hin h1)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | h
+    · exfalso
+      exact hyx rfl
+    · exfalso
+      exact hyΓ (Env.mem_pair_fst_in_names _ h)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | h
+    · rfl
+    · exfalso
+      exact hyΔ (Env.mem_pair_fst_in_names _ h)
+
+
+
 
 theorem typability_subject_reductionₘ
   {n : Nat} {𝒢 : HyperEnv} {P P' : Proc} {l : Lbl}
@@ -1142,45 +1186,32 @@ theorem typability_subject_reductionₘ
   case one_bot Q Q' x y hxQf hyQf hxy hPS ih =>
     expose_names
     have ⟨A, Γ, Δ, ℋ, L, hP, 𝒟'⟩ := Typing_inv_res 𝒟
-
-
-    -- FIXME: Probalby make the renaming part into a lemma for
-    -- reuseability in tensor_parr and res
-    obtain ⟨z, w, hz, hw, hzw⟩ := exists_two_fresh (L ∪ Q.f ∪ Γ.names ∪ Δ.names ∪ {x, y})
+    have hNames := Typing.f_eq_names 𝒟
+    simp [HyperEnv.names_eq_of_perm hP] at hNames
+    simp [hNames, -Env.mem_pair_fst_in_names_iff, -Env.not_mem_names_iff] at hxQf hyQf
+    obtain ⟨hxℋ, hxΓ, hxΔ⟩ := hxQf
+    obtain ⟨hyℋ, hyΓ, hyΔ⟩ := hyQf
+    obtain ⟨z, w, hz, hw, hzw⟩ :=
+      exists_two_fresh (L ∪ Q.f ∪ ℋ.names ∪ Γ.names ∪ Δ.names ∪ {x, y})
     simp [← ne_eq, - Env.mem_pair_fst_in_names_iff, - Env.not_mem_names_iff] at hz hw
-    obtain ⟨hzx, hzy, hzL, hzQf, hzΓ, hzΔ⟩ := hz
-    obtain ⟨hwx, hwy, hwL, hwQf, hwΓ, hwΔ⟩ := hw
+    obtain ⟨hzx, hzy, hzL, hzQf, hzℋ, hzΓ, hzΔ⟩ := hz
+    obtain ⟨hwx, hwy, hwL, hwQf, hwℋ, hwΓ, hwΔ⟩ := hw
 
     have 𝒟zw := 𝒟' z hzL w hwL hzw
-    have 𝒟xw := Typing_substNames 𝒟zw (x := z) (y := x) ?_
-    · have 𝒟xy := Typing_substNames 𝒟zw (x := w) (y := y) ?_
-      · sorry -- FIXME: Continues on main goal with renamed derivation
-      · sorry -- FIXME: prove freshness of w
-    · intros Ξ hΞ C hin
-      simp at hΞ
-      rcases hΞ with h1 | h2 | h3
-      · exfalso
-        have hxℋ := HyperEnv.mem_of_mem_mem_names hin h1
-        have hNames := Typing.f_eq_names 𝒟
-        simp at hNames
-        rw [HyperEnv.names_eq_of_perm hP] at hNames
-        rw [hNames] at hxQf
-        apply hxQf
-        simp [hxℋ]
-      ·
-        subst h2
-        simp at hin
-        rcases hin with ⟨rfl, rfl⟩ | h
-        · rfl
-        · sorry -- use hxQf to show x cannot be in Γ since Γ ⊆ Q.f
+    have 𝒟xw := Typing_substNames 𝒟zw (x := z) (y := x)
+      (HyperEnv.rename_res_left hxℋ hxΓ hxΔ hwx.symm)
 
+    simp only [HyperEnv.substNames_merge, HyperEnv.substNames_distributes,
+      Env.substNames_distributes, FPName.subst_self, HyperEnv.names_nil,
+      Finset.notMem_empty, not_false_eq_true, HyperEnv.substNames_of_not_mem] at 𝒟xw
 
-      · sorry
+    rw [HyperEnv.substNames_of_not_mem hzℋ, Env.substNames_of_not_mem hzΓ,
+        Env.substNames_of_not_mem hzΔ, FPName.subst_self_of_ne hzw.symm,
+        Proc.open_two_substNames, Proc.substNames_of_not_mem hzQf,
+        FPName.subst_self, FPName.subst_self_of_ne hzw.symm] at 𝒟xw
 
-
-
-
-
+    have 𝒟xy := Typing_substNames 𝒟xw (x := w) (y := y)
+      (HyperEnv.rename_res_right hyℋ hyΓ hyΔ hxy.symm)
 
   case tensor_parr L _ ih =>
     sorry
