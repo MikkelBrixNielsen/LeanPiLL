@@ -1076,6 +1076,14 @@ lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
   rw [h1] at h2
   contradiction
 
+lemma Proc.not_mem_f_open {P : Proc} {y z : FPName}
+  (hzy : z ≠ y) (hfz : z ∉ P.f) (hy : y ∉ P.f) :
+  y ∉ P⸨#z⸩.f := by
+  intro hc
+  have h_erased := Finset.mem_erase.mpr ⟨hzy.symm, hc⟩
+  rw [Proc.f_open_erase hfz] at h_erased
+  exact hy h_erased
+
 @[simp] lemma Channel.open_bound_zero {x : FPName} :
   ($0)⸨#x⸩ = (#x) := by simp [HasOpen.open_, Channel.open]
 
@@ -1556,3 +1564,14 @@ lemma Proc.substNames_of_not_mem {P : Proc} {x y : FPName} (h : x ∉ P.f) :
         simp_all [← ne_eq, Channel.f]
         rw [FPName.subst_self_of_ne h.2.symm]
       case bound i => simp
+
+@[simp] lemma Finset.f_image_free (zs : Finset FPName) :
+  (zs.image Channel.free).f = zs := by
+  ext y
+  simp only [Finset.f, Finset.mem_biUnion, Finset.mem_image]
+  constructor
+  · rintro ⟨u, ⟨z, hz, rfl⟩, hy⟩
+    simp only [Channel.f, Finset.mem_singleton] at hy
+    rwa [← hy] at hz
+  · intro hy
+    exact ⟨.free y, ⟨y, hy, rfl⟩, by simp [Channel.f]⟩

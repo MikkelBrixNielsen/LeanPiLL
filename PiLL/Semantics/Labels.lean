@@ -121,3 +121,9 @@ lemma Lbl.f_par {a a' : Act} :
 
 lemma Lbl.i_par {a a' : Act} :
   (a |ₗ a').i = iNamesAct a ∪ iNamesAct a' := by simp only [i]
+
+lemma Lbl.f_par' {a a' : Act} :
+  (a |ₗ a').f =  (Lbl.act a).f ∪ (Lbl.act a').f := by simp only [f]
+
+lemma Lbl.i_par' {a a' : Act} :
+  (a |ₗ a').i =  (Lbl.act a).i ∪ (Lbl.act a').i := by simp only [i]

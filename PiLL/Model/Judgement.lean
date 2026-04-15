@@ -29,20 +29,20 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       Typing n (#x⸨⸩․P) [x ∶ ⊥ :: Γ]
 
   | cut {𝒢 : HyperEnv} {Γ Δ : Env} {P : Proc} {A : Types} {n : Nat} (L : Finset FPName) :
-      (∀ x y, x ∉ L → y ∉ L → x ≠ y →
+      (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
       Typing n (P⸨#x, #y⸩) (𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ])) →
       ----------------------------------------------------------
       Typing n (𝑣⸨$N,$N⸩P) (𝒢 |ₕ [Γ‚ Δ])
 
   | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {A B : Types}
       {n : Nat} (hF : x ∉ Γ.names ∧ x ∉ Δ.names) (L : Finset FPName) :
-      (∀ y, y ∉ L → Typing n (P⸨#y⸩) ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) →
+      (∀ y ∉ L, Typing n (P⸨#y⸩) ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) →
       ---------------------------------------------------------------
       Typing n (#x⟦$N⟧․P) [x ∶ A ⨂ B :: Γ‚ Δ]
 
   | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types}
        {n : Nat} (hF : x ∉ Γ.names) (L : Finset FPName) :
-      (∀ y, y ∉ L → Typing n (P⸨#y⸩) [y ∶ A :: x ∶ B :: Γ]) →
+      (∀ y ∉ L, Typing n (P⸨#y⸩) [y ∶ A :: x ∶ B :: Γ]) →
       -------------------------------------------------------
       Typing n (#x⸨$N⸩․P) [x ∶ A ⅋ B :: Γ]
 
@@ -87,7 +87,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
   | c
       {Γ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat}
       (hF : x ∉ Γ.names) (L : Finset FPName) :
-      (∀ x', x' ∉ L → Typing n P⸨#x'⸩ [x ∶ ??A :: x' ∶ ??A :: Γ]) →
+      (∀ x' ∉ L, Typing n P⸨#x'⸩ [x ∶ ??A :: x' ∶ ??A :: Γ]) →
       -------------------------------------------------------------
       Typing n (#x⟦DUP⟧⸨$N⸩․P) [x ∶ ??A :: Γ]
 
@@ -152,17 +152,7 @@ def env {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : HyperEnv
 --   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
 
 
--- FIXME: Move to proc
-@[simp] lemma Finset.f_image_free (zs : Finset FPName) :
-  (zs.image Channel.free).f = zs := by
-  ext y
-  simp only [Finset.f, Finset.mem_biUnion, Finset.mem_image]
-  constructor
-  · rintro ⟨u, ⟨z, hz, rfl⟩, hy⟩
-    simp only [Channel.f, Finset.mem_singleton] at hy
-    rwa [← hy] at hz
-  · intro hy
-    exact ⟨.free y, ⟨y, hy, rfl⟩, by simp [Channel.f]⟩
+
 
 
 
@@ -208,7 +198,7 @@ theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
 
   case cut L _ ih =>
     obtain ⟨u, v, hu, hv, hneq⟩ := exists_two_fresh L
-    specialize ih u v hu hv hneq
+    specialize ih u hu v hv hneq
 
     simp only [HyperEnv.PairwiseDisjoint, List.pairwise_append,
       List.pairwise_cons] at ih ⊢
@@ -265,7 +255,7 @@ lemma Typing_preserves_lc_context {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
 
   case cut Γ Δ _ A n L _  ih =>
     obtain ⟨u, v, hu, hv, hneq⟩ := exists_two_fresh L
-    specialize ih u v hu hv hneq
+    specialize ih u hu v hv hneq
     simp at hE𝒢
     cases hE𝒢 with
     | inl => simp_all
@@ -317,7 +307,7 @@ lemma Typing_preserves_lc_proc {𝒢 : HyperEnv} {P : Proc} {n : Nat}
 
   case cut L _ ih =>
     obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
-    exact Proc.lc_of_open_two (ih x y hx hy hneq)
+    exact Proc.lc_of_open_two (ih x hx y hy hneq)
 
   case amp ihP ihQ =>
     split_ands
@@ -464,7 +454,7 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 
   case cut Γ Δ _ A _ L _ ih =>
     obtain ⟨x, y, hx, hy, hneq⟩ := exists_two_fresh L
-    specialize ih x y hx hy hneq
+    specialize ih x hx y hy hneq
     simp [HyperEnv.Nodup_merge] at ih
     obtain ⟨ih1, ih2⟩ := ih
     obtain ⟨hNodup𝒢, hNodupxy⟩ := ih1
@@ -586,7 +576,7 @@ lemma Typing.f_eq_names {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     simp at hx hy ih
     obtain ⟨hx1, hx2, hx3⟩ := hx
     obtain ⟨hy1, hy2, hy3⟩ := hy
-    have := ih x y hx1 hy1 hneq
+    have := ih x hx1 y hy1 hneq
     apply_fun (fun s => (s.erase y).erase x) at this
     rw [Finset.erase_insert (by simp [hy3, hneq.symm]), Finset.erase_insert (by simp [hx3]),
       Finset.erase_right_comm, Proc.f_open_two_erase hx2 hy2 hneq] at this
@@ -628,7 +618,6 @@ lemma Typing.f_eq_names {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
 
   case exchange_hyper hP ih =>
     simp [ih, HyperEnv.names_eq_of_perm hP]
-
 
 lemma Typing_inv_one {n : Nat} {P : Proc} {x : FPName} {𝒢 : HyperEnv}
   (hT : Typing n (#x⟦⟧․P) 𝒢) :
@@ -1054,4 +1043,4 @@ lemma Typing_inv_res {n : Nat} {P : Proc} {𝒢 : HyperEnv}
     · injection heq with heq
       subst heq
       intros x hx y hy hneq
-      exact hT x y hx hy hneq
+      exact hT x hx y hy hneq

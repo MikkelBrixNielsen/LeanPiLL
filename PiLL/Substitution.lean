@@ -82,11 +82,11 @@ lemma Typing_substNames {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x y : FPName} :
       exact huniq T (Or.inr hinΓ)
   case cut Γ Δ _ A _ L _ ih =>
     apply Typing.cut (A := A) (L ∪ {x} ∪ {y})
-    intros z w hz hw hneq
+    intros z hz w hw hneq
     simp only [Finset.union_singleton, Finset.mem_insert, not_or] at hz hw
     obtain ⟨hz1, hz2, hz3⟩ := hz
     obtain ⟨hw1, hw2, hw3⟩ := hw
-    specialize ih z w hz3 hw3 hneq
+    specialize ih z hz3 w hw3 hneq
     · exact x
     · exact y
     · by_cases hxy : x = y
