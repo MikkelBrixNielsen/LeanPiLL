@@ -1774,6 +1774,11 @@ theorem typability_subject_reductionₘ
   Bisimulation required by Theorem 4.7.
 -/
 
+/-
+  NOTE: Most of the relfexive cases in the HyperEnv.extract lemmas have been partially generated
+  using AI and then filled out where any proofs were missing manually. (FIXME: WRITE IN REPORT)
+-/
+
 -- TODO: Prove Session fidelity, erasure, type preservation, Session fidelity for πLL
 /- TODO:
   - Remove _source variants of TypingStep inversion lemmas
