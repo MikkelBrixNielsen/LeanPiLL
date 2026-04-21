@@ -3504,6 +3504,14 @@ lemma HyperEnv.Perm.extract_parr_res
               apply List.perm_append_comm
             exact ((hP1.trans hP2).trans hP3).trans hP4
 
+lemma HyperEnv.absurd_fresh_of_mem_perm {𝒢 ℋ : HyperEnv} {C : Env} {v : FPName} {T : Types}
+  (h𝒢 : 𝒢 ~ ℋ) (hC : C ∈ ℋ) (hv : (v, T) ∈ C) (hFv : v ∉ 𝒢.names) :
+  False := by
+  obtain ⟨Ex, hEx_in_𝒢, hPEx⟩ := HyperEnv.Perm_mem h𝒢 hC
+  have hvEx : (v, T) ∈ Ex := (List.Perm.mem_iff hPEx).mpr hv
+  have hvExNames := Env.mem_pair_fst_in_names _ hvEx
+  exact hFv (HyperEnv.subset_names_of_mem hEx_in_𝒢 hvExNames)
+
 lemma HyperEnv.Perm.extract_tensor_parr
   {𝒢 ℋ 𝒢ᵣ : HyperEnv} {Γ' Γ'' Δ' Δ'' Γ Δ Ξ : Env}
   {u v x y x' y' : FPName} {A B C : Types}
@@ -3526,8 +3534,8 @@ lemma HyperEnv.Perm.extract_tensor_parr
   obtain ⟨Eu, hEu, hPEu⟩ := HyperEnv.Perm_mem h_pre.symm huin
   obtain ⟨Ev, hEv, hPEv⟩ := HyperEnv.Perm_mem h_pre.symm hvin
   simp only [List.mem_append, List.mem_singleton, or_assoc] at hEu hEv
-  rcases hEu with hu𝒢 | ⟨rfl, rfl⟩
-  · rcases hEv with hv𝒢 | ⟨rfl, rfl⟩
+  rcases hEu with hu𝒢 | rfl | rfl
+  · rcases hEv with hv𝒢 | rfl | rfl
     · obtain ⟨𝒢ᵣ₁, hP𝒢ᵣ₁⟩ := HyperEnv.exists_perm_cons_of_mem hu𝒢
       obtain ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem hP𝒢ᵣ₁.symm hv𝒢
       simp only [List.mem_cons] at hE
@@ -3553,7 +3561,8 @@ lemma HyperEnv.Perm.extract_tensor_parr
           exact hP1.trans (hP2.trans hP3)
         refine ⟨𝒢ᵣ₂ |ₕ [Γ'‚ Δ'], Γ, Δ, Ξ, ?_, ?_⟩
         · have h_pre_subst : 𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] ~
-            (𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ]) |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+            (𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ]) |ₕ
+              [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
             have hP1 : 𝒢ᵣ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
               𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] :=
               (h𝒢ᵣ_split.merge (by rfl)).merge (by rfl)
@@ -3594,31 +3603,105 @@ lemma HyperEnv.Perm.extract_tensor_parr
               apply HyperEnv.Perm.merge ?_ (by rfl)
               exact HyperEnv.Perm_rotate_rhs_right (by rfl)
             exact h_post.trans (hP1.trans hP2)
-
+          have h𝒢 : 𝒢 ~ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by
+            have hP1 : 𝒢ᵣ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ
+                 [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] :=
+              (h𝒢ᵣ_split.merge (by rfl)).merge (by rfl)
+            have hP2 :
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ
+                [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              (𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ]) |ₕ
+                [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+              apply HyperEnv.Perm_rotate_rhs_left
+              repeat rw [← HyperEnv.merge_assoc]
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              exact HyperEnv.Perm_rotate_rhs_right (by rfl)
+            have h_pre_subst_local := h_pre.trans (hP1.trans hP2)
+            apply HyperEnv.Perm_merge_cancel_right at h_pre_subst_local
+            apply HyperEnv.Perm_merge_cancel_right at h_pre_subst_local
+            exact h_pre_subst_local
           have hPΔ'' : Δ'' ~ Δ' := by
             have hin : (v ∶ Cᗮ :: Δ'') ∈ ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] := by simp
             obtain ⟨E', hE', hPE'v⟩ := HyperEnv.Perm_mem h_post_subst.symm hin
             simp only [List.mem_append, List.mem_singleton, or_assoc] at hE'
-
             rcases hE' with h𝒢ᵣ₂ | rfl | rfl | rfl | rfl | rfl
-            · sorry -- E' ∈ 𝒢ᵣ₂
-            · sorry -- E' = x' ∶ A :: Γ
-            · sorry -- E' = x ∶ B :: Δ
-            · sorry -- E' = y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ
-            · sorry -- E' = u ∶ C :: Γ'
-            · sorry -- E' = v ∶ Cᗮ :: Δ'
-
-
-
-
-
-
-
-          -- remove v-cell from h_post
-
-
-          have hPΓ'' : Γ'' ~ Γ' := by sorry
-
+            · exfalso
+              have hvE' : (v, Cᗮ) ∈ E' := (List.Perm.mem_iff hPE'v).mpr (by simp)
+              have hE'RHS : E' ∈ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by simp [h𝒢ᵣ₂]
+              obtain ⟨E'', hE'', hPE''⟩ := HyperEnv.Perm_mem h𝒢 hE'RHS
+              have hv𝒢 : (v, Cᗮ) ∈ E'' := (List.Perm.mem_iff hPE'').mpr hvE'
+              exact hFv (HyperEnv.subset_names_of_mem hE'' (Env.mem_pair_fst_in_names _ hv𝒢))
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply hvx' ; rfl
+              · have hCell : (v, Cᗮ) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFv
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply hvx ; rfl
+              · have hCell : (v, Cᗮ) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFv
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | ⟨rfl, _⟩ | h
+              · apply hvy' ; rfl
+              · apply hvy ; rfl
+              · have hCell : (v, Cᗮ) ∈ y ∶ Aᗮ ⅋ Bᗮ :: Ξ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFv
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply huv ; rfl
+              · exact hvΓ' (Env.mem_pair_fst_in_names _ h)
+            · exact List.Perm.cons_inv hPE'v.symm
+          have hPΓ'' : Γ'' ~ Γ' := by
+            have hin : (u ∶ C :: Γ'') ∈ ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] := by simp
+            obtain ⟨E', hE', hPE'v⟩ := HyperEnv.Perm_mem h_post_subst.symm hin
+            simp only [List.mem_append, List.mem_singleton, or_assoc] at hE'
+            rcases hE' with h𝒢ᵣ₂ | rfl | rfl | rfl | rfl | rfl
+            · exfalso
+              have hvE' : (u, C) ∈ E' := (List.Perm.mem_iff hPE'v).mpr (by simp)
+              have hE'RHS : E' ∈ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by simp [h𝒢ᵣ₂]
+              obtain ⟨E'', hE'', hPE''⟩ := HyperEnv.Perm_mem h𝒢 hE'RHS
+              have hv𝒢 : (u, C) ∈ E'' := (List.Perm.mem_iff hPE'').mpr hvE'
+              exact hFu (HyperEnv.subset_names_of_mem hE'' (Env.mem_pair_fst_in_names _ hv𝒢))
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := u ∶ C) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply hux' ; rfl
+              · have hCell : (u, C) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFu
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := u ∶ C) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply hux ; rfl
+              · have hCell : (u, C) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFu
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := u ∶ C) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | ⟨rfl, _⟩ | h
+              · apply huy' ; rfl
+              · apply huy ; rfl
+              · have hCell : (u, C) ∈ y ∶ Aᗮ ⅋ Bᗮ :: Ξ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFu
+            · exact List.Perm.cons_inv hPE'v.symm
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := u ∶ C) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply huv ; rfl
+              · exact huΔ' (Env.mem_pair_fst_in_names _ h)
           have hP_post : ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] ~
             ℋ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
             have h1 : [u ∶ C :: Γ''] ~ [u ∶ C :: Γ'] :=
@@ -3626,14 +3709,12 @@ lemma HyperEnv.Perm.extract_tensor_parr
             have h2 : [v ∶ Cᗮ :: Δ''] ~ [v ∶ Cᗮ :: Δ'] :=
               HyperEnv.Perm_singleton_singleton.mpr (List.Perm.cons _ hPΔ'')
             exact HyperEnv.Perm.merge (HyperEnv.Perm.merge (by rfl) h1) h2
-
           have h_post' := hP_post.symm.trans h_post_subst
           apply HyperEnv.Perm_merge_cancel_right at h_post'
           apply HyperEnv.Perm_merge_cancel_right at h_post'
           have hP_res : ℋ |ₕ [Γ''‚ Δ''] ~ ℋ |ₕ [Γ'‚ Δ'] := HyperEnv.Perm.merge
             (by rfl)
             (HyperEnv.Perm_singleton_singleton.mpr (hPΓ''.append hPΔ''))
-
           apply HyperEnv.Perm.trans hP_res
           rw [HyperEnv.merge_assoc]
           apply HyperEnv.Perm_rotate_rhs_left
@@ -3643,8 +3724,416 @@ lemma HyperEnv.Perm.extract_tensor_parr
           rw [← HyperEnv.merge_assoc]
           exact h_post'
 
+
+
+    · sorry -- Ev = x ∶ A ⨂ B :: Γ‚ Δ FIXME:
+
+
+
+
+    · obtain ⟨𝒢ᵣ₂, hP𝒢ᵣ₂⟩ := HyperEnv.exists_perm_cons_of_mem hu𝒢
+      have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPEv.symm).mp (by simp)
+      simp at hvin ; rcases hvin with ⟨rfl, _⟩ | hvΞ
+      · exfalso ; apply hvy ; rfl
+      · obtain ⟨Ξᵣ, hPΞ⟩ : ∃ Ξᵣ, Ξ ~ (v, Cᗮ) :: Ξᵣ := Env.exists_perm_cons hvΞ
+        have hPΔ' : Δ' ~ y ∶ Aᗮ ⅋ Bᗮ :: Ξᵣ := by
+          have h1 := hPEv.symm.trans (List.Perm.cons (y ∶ Aᗮ ⅋ Bᗮ) hPΞ)
+          have h2 : (y ∶ Aᗮ ⅋ Bᗮ :: (v, Cᗮ) :: Ξᵣ) ~
+            ((v, Cᗮ) :: y ∶ Aᗮ ⅋ Bᗮ :: Ξᵣ) := List.Perm.swap ..
+          exact (h1.trans h2).cons_inv
+        refine ⟨𝒢ᵣ₂, Γ, Δ, (Γ'‚ Ξᵣ), ?_, ?_⟩
+        · have h𝒢 : 𝒢 ~ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] := by
+            have h𝒢ᵣ_split : 𝒢ᵣ ~ 𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] := by
+              have hP1 : Eu :: 𝒢ᵣ₂ ~ (u ∶ C :: Γ') :: 𝒢ᵣ₂ :=
+                HyperEnv.Perm.cons hPEu (HyperEnv.Perm.refl _)
+              have hP2 : (u ∶ C :: Γ') :: 𝒢ᵣ₂ ~ 𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] := by
+                rw [HyperEnv.cons_append]
+                apply HyperEnv.Perm.merge_comm
+              exact hP𝒢ᵣ₂.trans (hP1.trans hP2)
+            have h_pre_subst : 𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by
+              have : 𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] ~
+                𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by
+                apply HyperEnv.Perm.merge (HyperEnv.Perm.refl _)
+                rw [HyperEnv.Perm_singleton_singleton]
+                have h1 := List.Perm.cons (v ∶ Cᗮ) hPΔ'
+                have h2 : v ∶ Cᗮ :: y ∶ Aᗮ ⅋ Bᗮ :: Ξᵣ ~
+                  y ∶ Aᗮ ⅋ Bᗮ :: v ∶ Cᗮ :: Ξᵣ := List.Perm.swap ..
+                have h3 := List.Perm.cons (y ∶ Aᗮ ⅋ Bᗮ) hPΞ.symm
+                exact h1.trans (h2.trans h3)
+              repeat rw [HyperEnv.merge_assoc] at h_pre
+              apply HyperEnv.Perm.exchange_rhs_left h𝒢ᵣ_split at h_pre
+              repeat rw [← HyperEnv.merge_assoc] at h_pre
+              exact this.symm.trans h_pre
+            apply HyperEnv.Perm_merge_cancel_right at h_pre_subst
+            apply HyperEnv.Perm_rotate_rhs_left at h_pre_subst
+            apply HyperEnv.Perm_merge_cancel_right at h_pre_subst
+            exact HyperEnv.Perm.trans h_pre_subst HyperEnv.Perm.merge_comm
+          apply HyperEnv.Perm.exchange_lhs_left h𝒢.symm
+          apply HyperEnv.Perm_merge_cancel_left_inv
+          rw [HyperEnv.Perm_singleton_singleton]
+          exact (hPΔ'.append_left Γ').trans (List.perm_middle)
+        · have hP : [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ] ~ [v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ] := by
+            rw [HyperEnv.Perm_singleton_singleton]
+            have h1 := List.Perm.cons (y' ∶ Aᗮ) (List.Perm.cons (y ∶ Bᗮ) hPΞ)
+            have h2 : y' ∶ Aᗮ :: y ∶ Bᗮ :: v ∶ Cᗮ :: Ξᵣ ~
+              v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ := by
+              have h21 : v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ ~
+                y' ∶ Aᗮ  :: v ∶ Cᗮ :: y ∶ Bᗮ :: Ξᵣ := List.Perm.swap ..
+              apply List.Perm.trans (l₂ := (y' ∶ Aᗮ :: (v, Cᗮ) :: y ∶ Bᗮ :: Ξᵣ))
+              · apply List.Perm.cons
+                apply List.Perm.swap
+              · exact h21.symm
+            exact h1.trans h2
+          have h𝒢ᵣ_split_post : 𝒢ᵣ ~ 𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] := by
+            have h1 : Eu :: 𝒢ᵣ₂ ~ (u ∶ C :: Γ') :: 𝒢ᵣ₂ :=
+              HyperEnv.Perm.cons hPEu (HyperEnv.Perm.refl _)
+            have h2 : (u ∶ C :: Γ') :: 𝒢ᵣ₂ ~ 𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] := by
+              rw [HyperEnv.cons_append]
+              apply HyperEnv.Perm_merge_comm
+            exact hP𝒢ᵣ₂.trans (h1.trans h2)
+          have h_post_subst : ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] ~
+            (𝒢ᵣ₂ |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ]) |ₕ [u ∶ C :: Γ'] |ₕ
+              [v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ] := by
+            have hP1 : 𝒢ᵣ |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ] ~
+              (𝒢ᵣ₂ |ₕ [u ∶ C :: Γ']) |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ
+                [v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ] :=
+              (((h𝒢ᵣ_split_post.merge (by rfl)).merge (by rfl)).merge hP)
+            have hP2 : (𝒢ᵣ₂ |ₕ [u ∶ C :: Γ']) |ₕ [x' ∶ A :: Γ] |ₕ
+              [x ∶ B :: Δ] |ₕ [v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ] ~
+              𝒢ᵣ₂ |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ [u ∶ C :: Γ'] |ₕ
+                [v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ] := by
+                apply HyperEnv.Perm_merge_cancel_right_inv
+                apply HyperEnv.Perm_rotate_rhs_right
+                apply HyperEnv.Perm_merge_cancel_right_inv
+                rw [← HyperEnv.merge_assoc]
+                apply HyperEnv.Perm_merge_cancel_right_inv
+                apply HyperEnv.Perm_merge_comm
+            exact h_post.trans (hP1.trans hP2)
+          have h𝒢 : 𝒢 ~ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] := by
+            have hP1 : [v ∶ Cᗮ :: Δ'] ~ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by
+              rw [HyperEnv.Perm_singleton_singleton]
+              have h1 := List.Perm.cons (v ∶ Cᗮ) hPΔ'
+              have h2 : v ∶ Cᗮ :: y ∶ Aᗮ ⅋ Bᗮ :: Ξᵣ ~
+                y ∶ Aᗮ ⅋ Bᗮ :: v ∶ Cᗮ :: Ξᵣ := List.Perm.swap ..
+              have h3 := List.Perm.cons (y ∶ Aᗮ ⅋ Bᗮ) hPΞ.symm
+              exact h1.trans (h2.trans h3)
+            have hP2 : 𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] ~
+              𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] :=
+              HyperEnv.Perm.merge (HyperEnv.Perm.refl _) hP1
+            have hP3 : 𝒢ᵣ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] :=
+              (h𝒢ᵣ_split_post.merge (by rfl)).merge (by rfl)
+            have hP4 : 𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              (𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ]) |ₕ [u ∶ C :: Γ'] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by
+              apply HyperEnv.Perm_merge_cancel_right_inv
+              apply HyperEnv.Perm_rotate_rhs_right
+              apply HyperEnv.Perm_merge_cancel_right_inv
+              exact HyperEnv.Perm.merge_comm
+            have h_pre_subst_local := hP2.symm.trans (h_pre.trans (hP3.trans hP4))
+            apply HyperEnv.Perm_merge_cancel_right at h_pre_subst_local
+            apply HyperEnv.Perm_merge_cancel_right at h_pre_subst_local
+            exact h_pre_subst_local
+          have hPΔ'' : Δ'' ~ y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ := by
+            have hin : (v ∶ Cᗮ :: Δ'') ∈ ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] := by simp
+            obtain ⟨E', hE', hPE'v⟩ := HyperEnv.Perm_mem h_post_subst.symm hin
+            simp only [List.mem_append, List.mem_singleton, or_assoc] at hE'
+            rcases hE' with h𝒢ᵣ₂_mem | rfl | rfl | rfl | rfl
+            · exfalso
+              have hvE' : (v, Cᗮ) ∈ E' := (List.Perm.mem_iff hPE'v).mpr (by simp)
+              have hE'RHS : E' ∈ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] := by simp [h𝒢ᵣ₂_mem]
+              obtain ⟨E'', hE'', hPE''⟩ := HyperEnv.Perm_mem h𝒢 hE'RHS
+              have hv𝒢 : (v, Cᗮ) ∈ E'' := (List.Perm.mem_iff hPE'').mpr hvE'
+              exact hFv (HyperEnv.subset_names_of_mem hE'' (Env.mem_pair_fst_in_names _ hv𝒢))
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin ; rcases hvin with ⟨rfl, _⟩ | h
+              · apply hvx' ; rfl
+              · have hCell : (v, Cᗮ) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFv
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin ; rcases hvin with ⟨rfl, _⟩ | h
+              · apply hvx ; rfl
+              · have hCell : (v, Cᗮ) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFv
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin ; rcases hvin with ⟨rfl, _⟩ | h
+              · apply huv.symm ; rfl
+              · exact hvΓ' (Env.mem_pair_fst_in_names _ h)
+            · exact List.Perm.cons_inv hPE'v.symm
+          have hPΓ'' : Γ'' ~ Γ' := by
+            have hin_u : (u ∶ C :: Γ'') ∈ ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] := by simp
+            obtain ⟨E', hE', hPE'u⟩ := HyperEnv.Perm_mem h_post_subst.symm hin_u
+            simp only [List.mem_append, List.mem_singleton, or_assoc] at hE'
+            rcases hE' with h𝒢ᵣ₂_mem | rfl | rfl | rfl | rfl
+            · exfalso
+              have huE' : (u, C) ∈ E' := (List.Perm.mem_iff hPE'u).mpr (by simp)
+              have hE'RHS : E' ∈ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] := by simp [h𝒢ᵣ₂_mem]
+              obtain ⟨E'', hE'', hPE''⟩ := HyperEnv.Perm_mem h𝒢 hE'RHS
+              have hu𝒢 : (u, C) ∈ E'' := (List.Perm.mem_iff hPE'').mpr huE'
+              exact hFu (HyperEnv.subset_names_of_mem hE'' (Env.mem_pair_fst_in_names _ hu𝒢))
+            · exfalso
+              have huin := (List.Perm.mem_iff (a := u ∶ C) hPE'u).mpr (by simp)
+              simp at huin ; rcases huin with ⟨rfl, _⟩ | h
+              · apply hux' ; rfl
+              · have hCell : (u, C) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFu
+            · exfalso
+              have huin := (List.Perm.mem_iff (a := u ∶ C) hPE'u).mpr (by simp)
+              simp at huin ; rcases huin with ⟨rfl, _⟩ | h
+              · apply hux ; rfl
+              · have hCell : (u, C) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFu
+            · exact List.Perm.cons_inv hPE'u.symm
+            · exfalso
+              have huin := (List.Perm.mem_iff (a := u ∶ C) hPE'u).mpr (by simp)
+              simp at huin ; rcases huin with ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ | h
+              · apply huv ; rfl
+              · apply huy';  rfl
+              · apply huy ; rfl
+              · have h_in_Δ' : (u, C) ∈ Δ' := (List.Perm.mem_iff hPΔ').mpr (by simp [h])
+                exact huΔ' (Env.mem_pair_fst_in_names _ h_in_Δ')
+          have hℋ : ℋ ~ 𝒢ᵣ₂ |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] := by
+            have hP : ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] ~
+              ℋ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ] := by
+              have h1 : [u ∶ C :: Γ''] ~ [u ∶ C :: Γ'] :=
+                HyperEnv.Perm_singleton_singleton.mpr (List.Perm.cons _ hPΓ'')
+              have h2 : [v ∶ Cᗮ :: Δ''] ~ [v ∶ Cᗮ :: y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ] :=
+                HyperEnv.Perm_singleton_singleton.mpr (List.Perm.cons _ hPΔ'')
+              exact HyperEnv.Perm.merge (HyperEnv.Perm.merge (by rfl) h1) h2
+            have h_ready := hP.symm.trans h_post_subst
+            apply HyperEnv.Perm_merge_cancel_right at h_ready
+            apply HyperEnv.Perm_merge_cancel_right at h_ready
+            exact h_ready
+          have hP1 : ℋ |ₕ [Γ''‚ Δ''] ~ ℋ |ₕ [Γ'‚ (y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ)] := by
+            apply HyperEnv.Perm.merge (by rfl)
+            exact HyperEnv.Perm_singleton_singleton.mpr (List.Perm.append hPΓ'' hPΔ'')
+          have hP2 : ℋ |ₕ [Γ'‚ (y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ)] ~
+            ℋ |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Γ'‚ Ξᵣ] := by
+            apply HyperEnv.Perm.merge (by rfl)
+            rw [HyperEnv.Perm_singleton_singleton]
+            have h1 : Γ'‚ (y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ) ~ y' ∶ Aᗮ :: Γ'‚ (y ∶ Bᗮ :: Ξᵣ) :=
+              List.perm_middle
+            have h2 : Γ'‚ (y ∶ Bᗮ :: Ξᵣ) ~ y ∶ Bᗮ :: Γ'‚ Ξᵣ :=
+              List.perm_middle
+            have h3 : y' ∶ Aᗮ :: Γ'‚ (y ∶ Bᗮ :: Ξᵣ) ~ y' ∶ Aᗮ :: y ∶ Bᗮ :: Γ'‚ Ξᵣ :=
+              List.Perm.cons _ h2
+            exact h1.trans h3
+          exact hP1.trans (hP2.trans (HyperEnv.Perm.merge hℋ (by rfl)))
+
+
+
+
+
+
+
+
+
+
+  · sorry -- Eu = x ∶ A ⨂ B :: Γ‚ Δ
+
+
+
+
+
+
+  · rcases hEv with hv𝒢 | rfl | rfl
+    · obtain ⟨𝒢ᵣ₁, hP𝒢ᵣ₁⟩ := HyperEnv.exists_perm_cons_of_mem hv𝒢
+      obtain ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem hP𝒢ᵣ₁.symm hv𝒢
+      simp only [List.mem_cons] at hE
+      rcases hE with h | hE𝒢
+      · subst h
+        have hP := (hPE.trans hPEv)
+        have huinE := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPEu).mp (by simp)
+        have huinEv := (List.Perm.mem_iff (a := v ∶ Cᗮ) hP).mp huinE
+        simp at huinEv
+        rcases huinEv with ⟨rfl, _⟩ | h
+        · exfalso ; apply huv ; rfl
+        · exfalso ; apply huΔ' ; exact Env.mem_pair_fst_in_names _ h
+      · obtain ⟨𝒢ᵣ₂, hP𝒢ᵣ₂⟩ := HyperEnv.exists_perm_cons_of_mem hE𝒢
+        have h𝒢ᵣ_split : 𝒢ᵣ ~ 𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+          have hP1 := hP𝒢ᵣ₁.trans (HyperEnv.Perm.cons (List.Perm.refl _) hP𝒢ᵣ₂)
+          have hP2 : Eu :: E :: 𝒢ᵣ₂ ~ (u ∶ C :: Γ') :: (v ∶ Cᗮ :: Δ') :: 𝒢ᵣ₂ :=
+            HyperEnv.Perm.cons hPEu (HyperEnv.Perm.cons (hPE.trans hPEv) (HyperEnv.Perm.refl _))
+          have hP3 : (u ∶ C :: Γ') :: (v ∶ Cᗮ :: Δ') :: 𝒢ᵣ₂ ~
+            𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+            apply HyperEnv.Perm_rotate_rhs_left
+            rw [HyperEnv.cons_append, HyperEnv.cons_append (Γ := v ∶ Cᗮ :: Δ') (𝒢 := 𝒢ᵣ₂),
+              ← HyperEnv.merge_assoc]
+          exact hP1.trans (hP2.trans hP3)
+        refine ⟨𝒢ᵣ₂ |ₕ [Γ'‚ Δ'], Γ, Δ, Ξ, ?_, ?_⟩
+        · have h_pre_subst : 𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] ~
+            (𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ]) |ₕ
+              [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+            have hP1 : 𝒢ᵣ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] :=
+              (h𝒢ᵣ_split.merge (by rfl)).merge (by rfl)
+            have hP2 :
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ
+                [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              (𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ]) |ₕ
+                [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+              apply HyperEnv.Perm_rotate_rhs_left
+              repeat rw [← HyperEnv.merge_assoc]
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              exact HyperEnv.Perm_rotate_rhs_right (by rfl)
+            exact h_pre.trans (hP1.trans hP2)
+          apply HyperEnv.Perm_merge_cancel_right at h_pre_subst
+          apply HyperEnv.Perm_merge_cancel_right at h_pre_subst
+          apply HyperEnv.Perm_rotate_rhs_left
+          rw [← HyperEnv.merge_assoc]
+          apply HyperEnv.Perm_merge_cancel_right_inv
+          apply HyperEnv.Perm_rotate_rhs_right
+          exact h_pre_subst
+        · have h_post_subst : ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] ~
+            (𝒢ᵣ₂ |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ]) |ₕ
+              [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+            have hP1 : 𝒢ᵣ |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ] ~
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ
+                [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ] :=
+              (((h𝒢ᵣ_split.merge (by rfl)).merge (by rfl)).merge (by rfl))
+            have hP2 :
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ
+                [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ] ~
+              (𝒢ᵣ₂ |ₕ [x' ∶ A :: Γ] |ₕ [x ∶ B :: Δ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ]) |ₕ
+                [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+              apply HyperEnv.Perm_rotate_rhs_left
+              repeat rw [← HyperEnv.merge_assoc]
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              exact HyperEnv.Perm_rotate_rhs_right (by rfl)
+            exact h_post.trans (hP1.trans hP2)
+          have h𝒢 : 𝒢 ~ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by
+            have hP1 : 𝒢ᵣ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ
+                 [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] :=
+              (h𝒢ᵣ_split.merge (by rfl)).merge (by rfl)
+            have hP2 :
+              𝒢ᵣ₂ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] |ₕ
+                [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] ~
+              (𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ]) |ₕ
+                [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+              apply HyperEnv.Perm_rotate_rhs_left
+              repeat rw [← HyperEnv.merge_assoc]
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              apply HyperEnv.Perm.merge ?_ (by rfl)
+              exact HyperEnv.Perm_rotate_rhs_right (by rfl)
+            have h_pre_subst_local := h_pre.trans (hP1.trans hP2)
+            apply HyperEnv.Perm_merge_cancel_right at h_pre_subst_local
+            apply HyperEnv.Perm_merge_cancel_right at h_pre_subst_local
+            exact h_pre_subst_local
+          have hPΔ'' : Δ'' ~ Δ' := by
+            have hin : (v ∶ Cᗮ :: Δ'') ∈ ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] := by simp
+            obtain ⟨E', hE', hPE'v⟩ := HyperEnv.Perm_mem h_post_subst.symm hin
+            simp only [List.mem_append, List.mem_singleton, or_assoc] at hE'
+            rcases hE' with h𝒢ᵣ₂ | rfl | rfl | rfl | rfl | rfl
+            · exfalso
+              have hvE' : (v, Cᗮ) ∈ E' := (List.Perm.mem_iff hPE'v).mpr (by simp)
+              have hE'RHS : E' ∈ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by simp [h𝒢ᵣ₂]
+              obtain ⟨E'', hE'', hPE''⟩ := HyperEnv.Perm_mem h𝒢 hE'RHS
+              have hv𝒢 : (v, Cᗮ) ∈ E'' := (List.Perm.mem_iff hPE'').mpr hvE'
+              exact hFv (HyperEnv.subset_names_of_mem hE'' (Env.mem_pair_fst_in_names _ hv𝒢))
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply hvx' ; rfl
+              · have hCell : (v, Cᗮ) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFv
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply hvx ; rfl
+              · have hCell : (v, Cᗮ) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFv
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | ⟨rfl, _⟩ | h
+              · apply hvy' ; rfl
+              · apply hvy ; rfl
+              · have hCell : (v, Cᗮ) ∈ y ∶ Aᗮ ⅋ Bᗮ :: Ξ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFv
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := v ∶ Cᗮ) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply huv ; rfl
+              · exact hvΓ' (Env.mem_pair_fst_in_names _ h)
+            · exact List.Perm.cons_inv hPE'v.symm
+          have hPΓ'' : Γ'' ~ Γ' := by
+            have hin : (u ∶ C :: Γ'') ∈ ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] := by simp
+            obtain ⟨E', hE', hPE'v⟩ := HyperEnv.Perm_mem h_post_subst.symm hin
+            simp only [List.mem_append, List.mem_singleton, or_assoc] at hE'
+            rcases hE' with h𝒢ᵣ₂ | rfl | rfl | rfl | rfl | rfl
+            · exfalso
+              have hvE' : (u, C) ∈ E' := (List.Perm.mem_iff hPE'v).mpr (by simp)
+              have hE'RHS : E' ∈ 𝒢ᵣ₂ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξ] := by simp [h𝒢ᵣ₂]
+              obtain ⟨E'', hE'', hPE''⟩ := HyperEnv.Perm_mem h𝒢 hE'RHS
+              have hv𝒢 : (u, C) ∈ E'' := (List.Perm.mem_iff hPE'').mpr hvE'
+              exact hFu (HyperEnv.subset_names_of_mem hE'' (Env.mem_pair_fst_in_names _ hv𝒢))
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := u ∶ C) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply hux' ; rfl
+              · have hCell : (u, C) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFu
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := u ∶ C) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply hux ; rfl
+              · have hCell : (u, C) ∈ x ∶ A ⨂ B :: Γ‚ Δ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFu
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := u ∶ C) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | ⟨rfl, _⟩ | h
+              · apply huy' ; rfl
+              · apply huy ; rfl
+              · have hCell : (u, C) ∈ y ∶ Aᗮ ⅋ Bᗮ :: Ξ := by simp [h]
+                exact HyperEnv.absurd_fresh_of_mem_perm h𝒢 (by simp) hCell hFu
+            · exact List.Perm.cons_inv hPE'v.symm
+            · exfalso
+              have hvin := (List.Perm.mem_iff (a := u ∶ C) hPE'v).mpr (by simp)
+              simp at hvin
+              rcases hvin with ⟨rfl, _⟩ | h
+              · apply huv ; rfl
+              · exact huΔ' (Env.mem_pair_fst_in_names _ h)
+          have hP_post : ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] ~
+            ℋ |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] := by
+            have h1 : [u ∶ C :: Γ''] ~ [u ∶ C :: Γ'] :=
+              HyperEnv.Perm_singleton_singleton.mpr (List.Perm.cons _ hPΓ'')
+            have h2 : [v ∶ Cᗮ :: Δ''] ~ [v ∶ Cᗮ :: Δ'] :=
+              HyperEnv.Perm_singleton_singleton.mpr (List.Perm.cons _ hPΔ'')
+            exact HyperEnv.Perm.merge (HyperEnv.Perm.merge (by rfl) h1) h2
+          have h_post' := hP_post.symm.trans h_post_subst
+          apply HyperEnv.Perm_merge_cancel_right at h_post'
+          apply HyperEnv.Perm_merge_cancel_right at h_post'
+          have hP_res : ℋ |ₕ [Γ''‚ Δ''] ~ ℋ |ₕ [Γ'‚ Δ'] := HyperEnv.Perm.merge
+            (by rfl)
+            (HyperEnv.Perm_singleton_singleton.mpr (hPΓ''.append hPΔ''))
+          apply HyperEnv.Perm.trans hP_res
+          rw [HyperEnv.merge_assoc]
+          apply HyperEnv.Perm_rotate_rhs_left
+          rw [← HyperEnv.merge_assoc]
+          apply HyperEnv.Perm_merge_cancel_right_inv
+          apply HyperEnv.Perm_rotate_rhs_right
+          rw [← HyperEnv.merge_assoc]
+          exact h_post'
     · sorry
-  · sorry
+    · sorry
+
+
+
+
+
 
 
 -- lemma HyperEnv.Perm.extract_res_res
