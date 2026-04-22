@@ -1286,13 +1286,10 @@ theorem typability_subject_reductionₘ
 
       have 𝒟_final : m ⊢ 𝑣⸨$N,$N⸩ (𝑣⸨$N,$N⸩ Q') ∷ 𝒢 |ₕ [Env.merge Γ₂ (Env.merge Γ₁ Δ)] := by
         apply Typing.cut L'
-        intros z hz w hw hzw
-        simp [HasOpenTwo.open_]
-        sorry
-
-
-
-
+        · intros z hz w hw hzw
+          simp [HasOpenTwo.open_]
+          sorry
+        · sorry
       sorry -- FIXME:
 
   case res Q Q' l' x y hFx hFy hneq hES ih =>
