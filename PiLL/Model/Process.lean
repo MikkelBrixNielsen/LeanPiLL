@@ -1509,6 +1509,13 @@ lemma Proc.open_two_substNames {P : Proc} {x y z w : FPName} :
   rw [Proc.open_rec_substNames]
   rfl
 
+lemma Proc.open_two_substNames_gen {P : Proc} {x y z w : FPName} {k : Nat} :
+  (P⸨k | #z, #w⸩){y // x} = (P{y // x})⸨k | #(z{y // x}), #(w{y // x})⸩ := by
+  change (P⸨k + 1 | #w⸩⸨k | #z⸩){y // x} = _
+  rw [Proc.open_rec_substNames]
+  rw [Proc.open_rec_substNames]
+  rfl
+
 lemma Channel.subst_of_not_mem {u : Channel} {x y : FPName} (hnin : x ∉ u.f) :
   u{y // x} = u := by
   cases u

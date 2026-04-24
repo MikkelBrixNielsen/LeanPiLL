@@ -21,6 +21,16 @@ macro "clean_subst " T:ident h1:ident h2:ident h3:ident h4:ident h5:ident : tact
         FPName.subst_self_of_ne $h5] at $T:ident
     )
 
+macro "clean_subst' " T:ident h1:ident h2:ident h3:ident h4:ident h5:ident
+  h6:ident h7:ident h8:ident : tactic =>
+  `(tactic|
+      simp only [HyperEnv.substNames_of_not_mem $h1, Env.substNames_of_not_mem $h2,
+        Env.substNames_of_not_mem $h3, Env.substNames_of_not_mem $h4,
+        Proc.open_two_substNames_gen, Proc.substNames_of_not_mem $h5,
+        FPName.subst_self, FPName.subst_self_of_ne $h6,
+        FPName.subst_self_of_ne $h7, FPName.subst_self_of_ne $h8] at $T:ident
+  )
+
 macro "clean_substNames "
   T:ident h𝒢:ident hΓ:ident hΔ:ident hfpn:ident hpf:ident : tactic =>
   `(tactic|
@@ -28,6 +38,12 @@ macro "clean_substNames "
       clean_subst $T $h𝒢 $hΓ $hΔ $hpf $hfpn
     )
 
+macro "clean_substNames' " T:ident h1:ident h2:ident h3:ident h4:ident h5:ident
+  h6:ident h7:ident h8:ident : tactic =>
+  `(tactic|
+      distribute_names $T <;>
+      clean_subst' $T $h1 $h2 $h3 $h4 $h5 $h6 $h7 $h8
+    )
 
 
 lemma Typing_tensor_all_fresh {n : Nat} {P : Proc} {Γ Δ : Env}
@@ -106,8 +122,8 @@ lemma Typing_one_bot_all_fresh {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ : Env}
   clean_substNames 𝒟xy hw𝒢 hwΓ hwΓ hwx.symm hwPf
   exact 𝒟xy
 
-lemma Typing_res_all_fresh {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} {A B : Types}
-  {L : Finset FPName}
+lemma Typing_res_all_fresh {n : Nat} {P : Proc} {𝒢 : HyperEnv}
+  {Γ Δ : Env} {A B : Types} {L : Finset FPName}
   (huniq : ∀ z ∉ L, ∀ w ∉ L, z ≠ w →
     Typing n (P⸨#z, #w⸩) (𝒢 |ₕ [z ∶ A :: Γ] |ₕ [w ∶ B :: Δ])) :
   ∀ x y,
@@ -134,28 +150,227 @@ lemma Typing_res_all_fresh {n : Nat} {P : Proc} {𝒢 : HyperEnv} {Γ Δ : Env} 
 
 
 
-lemma Typing_tensor_parr__post_all_fresh {m : Nat} {P : Proc} {𝒢 : HyperEnv}
-  {Γ₁ Γ₂ Δ : Env} {C D : Types} {x y x' y' : FPName}
-  (𝒟 : m ⊢ P⸨2 | #x, #y⸩⸨#x', #y'⸩ ∷
-    𝒢 |ₕ [x ∶ D :: Γ₂] |ₕ [x' ∶ C :: Γ₁] |ₕ [y' ∶ C :: y ∶ Dᗮ :: Δ])
-  (L : Finset FPName)
-  (hx : x ∉ L) (hy : y ∉ L) (hx' : x' ∉ L) (hy' : y' ∉ L) :
+
+
+-- FIXME: Move to Environment
+lemma HyperEnv.mem_tensor_parr_post_env
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names) :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ], ∀ C, (z, C) ∈ Ξ →
+  z = x ∨ z = x' ∨ z = y ∨ z = y' := by
+  intros Ξ hΞ C hin
+  simp at hΞ
+  rcases hΞ with h1 | rfl | rfl | rfl
+  · exfalso
+    exact hz𝒢 (HyperEnv.mem_of_mem_mem_names hin h1)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | h
+    · exact Or.inl rfl
+    · exfalso
+      exact hzΓ₁ (Env.mem_pair_fst_in_names _ h)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | h
+    · exact Or.inr (Or.inl rfl)
+    · exfalso
+      exact hzΓ₂ (Env.mem_pair_fst_in_names _ h)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | h
+    · exact Or.inr (Or.inr (Or.inr rfl))
+    · exact Or.inr (Or.inr (Or.inl rfl))
+    · exfalso
+      exact hzΔ (Env.mem_pair_fst_in_names _ h)
+
+lemma HyperEnv.substNames_tensor_parr_x
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names)
+  (hzx' : z ≠ x') (hzy' : z ≠ y') (hzy : z ≠ y) :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ],
+    ∀ C, (z, C) ∈ Ξ → z = x := by
+  intros Ξ hΞ C hin
+  rcases HyperEnv.mem_tensor_parr_post_env hz𝒢 hzΓ₁ hzΓ₂ hzΔ Ξ hΞ C hin with h | h | h | h
+  · exact h
+  · exact False.elim (hzx' h)
+  · exact False.elim (hzy h)
+  · exact False.elim (hzy' h)
+
+lemma HyperEnv.substNames_tensor_parr_x'
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names)
+  (hzx : z ≠ x) (hzy' : z ≠ y') (hzy : z ≠ y) :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ],
+    ∀ C, (z, C) ∈ Ξ → z = x' := by
+  intros Ξ hΞ C hin
+  rcases HyperEnv.mem_tensor_parr_post_env hz𝒢 hzΓ₁ hzΓ₂ hzΔ Ξ hΞ C hin with h | h | h | h
+  · exact False.elim (hzx h)
+  · exact h
+  · exact False.elim (hzy h)
+  · exact False.elim (hzy' h)
+
+lemma HyperEnv.substNames_tensor_parr_y
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names)
+  (hzx : z ≠ x) (hzx' : z ≠ x') (hzy' : z ≠ y') :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ],
+    ∀ C, (z, C) ∈ Ξ → z = y := by
+  intros Ξ hΞ C hin
+  rcases HyperEnv.mem_tensor_parr_post_env hz𝒢 hzΓ₁ hzΓ₂ hzΔ Ξ hΞ C hin with h | h | h | h
+  · exact False.elim (hzx h)
+  · exact False.elim (hzx' h)
+  · exact h
+  · exact False.elim (hzy' h)
+
+lemma HyperEnv.substNames_tensor_parr_y'
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names)
+  (hzx : z ≠ x) (hzx' : z ≠ x') (hzy : z ≠ y) :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ],
+    ∀ C, (z, C) ∈ Ξ → z = y' := by
+  intros Ξ hΞ C hin
+  rcases HyperEnv.mem_tensor_parr_post_env hz𝒢 hzΓ₁ hzΓ₂ hzΔ Ξ hΞ C hin with h | h | h | h
+  · exact False.elim (hzx h)
+  · exact False.elim (hzx' h)
+  · exact False.elim (hzy h)
+  · exact h
+
+
+
+
+-- leave here
+-- lemma Typing_tensor_parr_post_all_fresh {n : Nat} {P : Proc} {𝒢 : HyperEnv}
+--   {Γ₁ Γ₂ Δ : Env} {A B : Types} {L : Finset FPName}
+--   (𝒟 : ∀ x ∉ L, ∀ y ∉ L, x ≠ y → ∀ x' ∉ L, ∀ y' ∉ L, x' ≠ y' →
+--         x ≠ x' → x ≠ y' → y ≠ x' → y ≠ y' →
+--     n ⊢ P⸨2 | #x, #y⸩⸨#x', #y'⸩ ∷
+--       𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ]) :
+--   ∀ z z' w w',
+--     z ∉ ({z', w, w'} ∪ P.f ∪ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names) →
+--     z' ∉ ({w, w'} ∪ P.f ∪ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names) →
+--     w ∉ ({w'} ∪ P.f ∪ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names) →
+--     w' ∉ (P.f ∪ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names) →
+--   n ⊢ P⸨2 | #z, #w⸩⸨#z', #w'⸩ ∷
+--     𝒢 |ₕ [z ∶ B :: Γ₁] |ₕ [z' ∶ A :: Γ₂] |ₕ [w' ∶ Aᗮ :: w ∶ Bᗮ :: Δ] := by
+--   intros z z' w w' hz hz' hw hw'
+--   obtain ⟨x, y, hx, hy, hxy⟩ :=
+--     exists_two_fresh (L ∪ {z, z', w, w'} ∪ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names ∪ P.f)
+--   obtain ⟨x', y', hx', hy', hx'y'⟩ :=
+--     exists_two_fresh (L ∪ {z, z', w, w', x, y} ∪ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names ∪ P.f)
+--   simp only [Finset.singleton_union, Finset.insert_union, Finset.union_assoc,
+--     Finset.mem_insert, Finset.mem_union, not_or, ← ne_eq, Env.names_merge,
+--       ] at hx hx' hy hy' hz hz' hw hw'
+--   obtain ⟨hxL, hxz, hxz', hxw, hxw', hx𝒢, hxΓ₁, hxΓ₂, hxΔ, hxPf⟩ := hx
+--   obtain ⟨hyL, hyz, hyz', hyw, hyw', hy𝒢, hyΓ₁, hyΓ₂, hyΔ, hyPf⟩ := hy
+--   obtain ⟨hx'L, hx'z, hx'z', hx'w, hx'w', hx'x, hx'y, hx'𝒢, hx'Γ₁, hx'Γ₂, hx'Δ, hx'Pf⟩ := hx'
+--   obtain ⟨hy'L, hy'z, hy'z', hy'w, hy'w', hy'x, hy'y, hy'𝒢, hy'Γ₁, hy'Γ₂, hy'Δ, hy'Pf⟩ := hy'
+--   obtain ⟨hzz', hzw, hzw', hzPf, hz𝒢, hzΓ₁, hzΓ₂, hzΔ⟩ := hz
+--   obtain ⟨hz'w, hz'w', hz'Pf, hz'𝒢, hz'Γ₁, hz'Γ₂, hz'Δ⟩ := hz'
+--   obtain ⟨hww', hwPf, hw𝒢, hwΓ₁, hwΓ₂, hwΔ⟩ := hw
+--   obtain ⟨hw'Pf, hw'𝒢, hw'Γ₁, hw'Γ₂, hw'Δ⟩ := hw'
+--   have 𝒟₁ := 𝒟 x hxL y hyL hxy x' hx'L y' hy'L hx'y' hx'x.symm hy'x.symm hx'y.symm hy'y.symm
+--   have 𝒟₂ := Typing_substNames (x := x) (y := z) 𝒟₁
+--     (HyperEnv.substNames_tensor_parr_x hz𝒢 hzΓ₁ hzΓ₂ hzΔ hx'z.symm hy'z.symm hyz.symm)
+--   clean_substNames' 𝒟₂ hx𝒢 hxΓ₁ hxΓ₂ hxΔ hxPf hxy.symm hx'x hy'x
+--   have 𝒟₃ := Typing_substNames (x := y) (y := w) 𝒟₂
+--     (HyperEnv.substNames_tensor_parr_y hw𝒢 hwΓ₁ hwΓ₂ hwΔ hzw.symm hx'w.symm hy'w.symm)
+--   clean_substNames' 𝒟₃ hy𝒢 hyΓ₁ hyΓ₂ hyΔ hyPf hyz.symm hx'y hy'y
+--   have 𝒟₄ := Typing_substNames (x := x') (y := z') 𝒟₃
+--     (HyperEnv.substNames_tensor_parr_x' hz'𝒢 hz'Γ₁ hz'Γ₂ hz'Δ hzz'.symm hy'z'.symm hz'w)
+--   clean_substNames' 𝒟₄ hx'𝒢 hx'Γ₁ hx'Γ₂ hx'Δ hx'Pf hx'w.symm hx'z.symm hx'y'.symm
+--   have 𝒟₅ := Typing_substNames (x := y') (y := w') 𝒟₄
+--     (HyperEnv.substNames_tensor_parr_y' hw'𝒢 hw'Γ₁ hw'Γ₂ hw'Δ hzw'.symm hz'w'.symm hww'.symm)
+--   clean_substNames' 𝒟₅ hy'𝒢 hy'Γ₁ hy'Γ₂ hy'Δ hy'Pf hy'z.symm hy'w.symm hy'z'.symm
+--   exact 𝒟₅
+
+
+lemma unpack_tensor_parr_fresh {v : FPName} {L : Finset FPName} {P : Proc}
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env}
+  (hv : v ∉ L)
+  (hEnv : 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names ⊆ L)
+  (hPf : P.f ⊆ L) :
+  v ∉ P.f ∧ v ∉ 𝒢.names ∧ v ∉ Γ₁.names ∧ v ∉ Γ₂.names ∧ v ∉ Δ.names := by
+  have h1 : v ∉ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names := fun h => hv (hEnv h)
+  have h2 : v ∉ P.f := fun h => hv (hPf h)
+  simp only [Finset.mem_union, not_or, Env.names_merge] at h1
+  exact ⟨h2, h1.1.1, h1.1.2.1, h1.1.2.2, h1.2⟩
+
+
+lemma Typing_tensor_parr_post_all_fresh {n : Nat} {P : Proc} {𝒢 : HyperEnv}
+  {Γ₁ Γ₂ Δ : Env} {A B : Types} {x y x' y' : FPName} (L : Finset FPName)
+  (𝒟 : n ⊢ P⸨2 | #x, #y⸩⸨#x', #y'⸩ ∷
+    𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ])
+  (hx : x ∉ L) (hy : y ∉ L) (hx' : x' ∉ L) (hy' : y' ∉ L)
+  (hEnv : 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names ⊆ L) (hPf : P.f ⊆ L)
+  (hxx' : x ≠ x') (hxy : x ≠ y) (hxy' : x ≠ y')
+  (hyx' : y ≠ x') (hyy' : y ≠ y') (hx'y' : x' ≠ y') :
   ∀ z ∉ L, ∀ w ∉ L, z ≠ w →
   ∀ z' ∉ L, ∀ w' ∉ L, z' ≠ w' →
   z ≠ z' → z ≠ w' → w ≠ z' → w ≠ w' →
-  m ⊢ P⸨2 | #z, #w⸩⸨#z', #w'⸩ ∷
-    𝒢 |ₕ [z ∶ D :: Γ₂] |ₕ [z' ∶ C :: Γ₁] |ₕ [w' ∶ C :: w ∶ Dᗮ :: Δ] := by
+  n ⊢ P⸨2 | #z, #w⸩⸨#z', #w'⸩ ∷
+    𝒢 |ₕ [z ∶ B :: Γ₁] |ₕ [z' ∶ A :: Γ₂] |ₕ [w' ∶ Aᗮ :: w ∶ Bᗮ :: Δ] := by
   intros z hz w hw hzw z' hz' w' hw' hz'w' hzz' hzw' hwz' hww'
+  obtain ⟨a, b, ha, hb, hab⟩ := exists_two_fresh (L ∪ {x, y, x', y', z, w, z', w'} ∪
+    P.f ∪ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names)
+  obtain ⟨a', b', ha', hb', ha'b'⟩ := exists_two_fresh (L ∪ {x, y, x', y', z, w, z', w', a, b} ∪
+    P.f ∪ 𝒢.names ∪ (Γ₁‚ Γ₂).names ∪ Δ.names)
+  simp only [Finset.singleton_union, Finset.insert_union, Finset.union_assoc,
+    Finset.mem_insert, Finset.mem_union, not_or, ← ne_eq, Env.names_merge]
+    at ha hb ha' hb'
+  obtain ⟨hxPf, hx𝒢, hxΓ₁, hxΓ₂, hxΔ⟩ := unpack_tensor_parr_fresh hx hEnv hPf
+  obtain ⟨hyPf, hy𝒢, hyΓ₁, hyΓ₂, hyΔ⟩ := unpack_tensor_parr_fresh hy hEnv hPf
+  obtain ⟨hx'Pf, hx'𝒢, hx'Γ₁, hx'Γ₂, hx'Δ⟩ := unpack_tensor_parr_fresh hx' hEnv hPf
+  obtain ⟨hy'Pf, hy'𝒢, hy'Γ₁, hy'Γ₂, hy'Δ⟩ := unpack_tensor_parr_fresh hy' hEnv hPf
+  obtain ⟨hzPf, hz𝒢, hzΓ₁, hzΓ₂, hzΔ⟩ := unpack_tensor_parr_fresh hz hEnv hPf
+  obtain ⟨hwPf, hw𝒢, hwΓ₁, hwΓ₂, hwΔ⟩ := unpack_tensor_parr_fresh hw hEnv hPf
+  obtain ⟨hz'Pf, hz'𝒢, hz'Γ₁, hz'Γ₂, hz'Δ⟩ := unpack_tensor_parr_fresh hz' hEnv hPf
+  obtain ⟨hw'Pf, hw'𝒢, hw'Γ₁, hw'Γ₂, hw'Δ⟩ := unpack_tensor_parr_fresh hw' hEnv hPf
+  obtain ⟨haL, hax, hay, hax', hay', haz, haw, haz', haw', haPf, ha𝒢, haΓ₁, haΓ₂, haΔ⟩ := ha
+  obtain ⟨hbL, hbx, hby, hbx', hby', hbz, hbw, hbz', hbw', hbPf, hb𝒢, hbΓ₁, hbΓ₂, hbΔ⟩ := hb
+  obtain ⟨ha'L, ha'x, ha'y, ha'x', ha'y', ha'z, ha'w, ha'z', ha'w', ha'a, ha'b,
+    ha'Pf, ha'𝒢, ha'Γ₁, ha'Γ₂, ha'Δ⟩ := ha'
+  obtain ⟨hb'L, hb'x, hb'y, hb'x', hb'y', hb'z, hb'w, hb'z', hb'w', hb'a, hb'b,
+    hb'Pf, hb'𝒢, hb'Γ₁, hb'Γ₂, hb'Δ⟩ := hb'
+  have 𝒟 := Typing_substNames (x := x) (y := a) 𝒟
+    (HyperEnv.substNames_tensor_parr_x ha𝒢 haΓ₁ haΓ₂ haΔ hax' hay' hay)
+  clean_substNames' 𝒟 hx𝒢 hxΓ₁ hxΓ₂ hxΔ hxPf hxy.symm hxx'.symm hxy'.symm
+  have 𝒟 := Typing_substNames (x := y) (y := b) 𝒟
+    (HyperEnv.substNames_tensor_parr_y hb𝒢 hbΓ₁ hbΓ₂ hbΔ hab.symm hbx' hby')
+  clean_substNames' 𝒟 hy𝒢 hyΓ₁ hyΓ₂ hyΔ hyPf hay hyx'.symm hyy'.symm
+  have 𝒟 := Typing_substNames (x := x') (y := a') 𝒟
+    (HyperEnv.substNames_tensor_parr_x' ha'𝒢 ha'Γ₁ ha'Γ₂ ha'Δ ha'a ha'y' ha'b)
+  clean_substNames' 𝒟 hx'𝒢 hx'Γ₁ hx'Γ₂ hx'Δ hx'Pf hax' hbx' hx'y'.symm
+  have 𝒟 := Typing_substNames (x := y') (y := b') 𝒟
+    (HyperEnv.substNames_tensor_parr_y' hb'𝒢 hb'Γ₁ hb'Γ₂ hb'Δ hb'a ha'b'.symm hb'b)
+  clean_substNames' 𝒟 hy'𝒢 hy'Γ₁ hy'Γ₂ hy'Δ hy'Pf hay' hby' ha'y'
+  have 𝒟 := Typing_substNames (x := a) (y := z) 𝒟
+    (HyperEnv.substNames_tensor_parr_x hz𝒢 hzΓ₁ hzΓ₂ hzΔ ha'z.symm hb'z.symm hbz.symm)
+  clean_substNames' 𝒟 ha𝒢 haΓ₁ haΓ₂ haΔ haPf hab.symm ha'a hb'a
+  have 𝒟 := Typing_substNames (x := b) (y := w) 𝒟
+    (HyperEnv.substNames_tensor_parr_y hw𝒢 hwΓ₁ hwΓ₂ hwΔ hzw.symm ha'w.symm hb'w.symm)
+  clean_substNames' 𝒟 hb𝒢 hbΓ₁ hbΓ₂ hbΔ hbPf hbz.symm ha'b hb'b
+  have 𝒟 := Typing_substNames (x := a') (y := z') 𝒟
+    (HyperEnv.substNames_tensor_parr_x' hz'𝒢 hz'Γ₁ hz'Γ₂ hz'Δ hzz'.symm hb'z'.symm hwz'.symm)
+  clean_substNames' 𝒟 ha'𝒢 ha'Γ₁ ha'Γ₂ ha'Δ ha'Pf ha'z.symm ha'w.symm ha'b'.symm
+  have 𝒟 := Typing_substNames (x := b') (y := w') 𝒟
+    (HyperEnv.substNames_tensor_parr_y' hw'𝒢 hw'Γ₁ hw'Γ₂ hw'Δ hzw'.symm hz'w'.symm hww'.symm)
+  clean_substNames' 𝒟 hb'𝒢 hb'Γ₁ hb'Γ₂ hb'Δ hb'Pf hb'z.symm hb'w.symm hb'z'.symm
+  exact 𝒟
 
 
 
 
-  -- Put your 4 sequential Typing_substNames calls here!
-  -- Step 3a: Swap x for z
-  -- Step 3b: Swap y for w
-  -- Step 3c: Swap x' for z'
-  -- Step 3d: Swap y' for w'
-  sorry
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1053,7 +1268,7 @@ lemma TypingStepₘ_inv_tensor_parr_existential {n n' : Nat} {P P' : Proc} {𝒢
   (hStep : TypingStepₘ 𝒟 (x⟦x'⟧ |ₗ y⸨y'⸩) 𝒟') :
   ∃ (𝒢ᵣ : HyperEnv) (Γᵣ Δᵣ Ξᵣ : Env) (A B : Types),
     (𝒢 ~ 𝒢ᵣ |ₕ [x ∶ A ⨂ B :: Env.merge Γᵣ Δᵣ] |ₕ [y ∶ Aᗮ ⅋ Bᗮ :: Ξᵣ]) ∧
-    (𝒢' ~ 𝒢ᵣ |ₕ [x' ∶ A :: Γᵣ] |ₕ [x ∶ B :: Δᵣ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ]) := by
+    (𝒢' ~ 𝒢ᵣ |ₕ [x ∶ B :: Γᵣ] |ₕ [x' ∶ A :: Δᵣ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξᵣ]) := by
   sorry
 
 lemma TypingStepₘ_inv_tensor_parr_source {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEnv}
@@ -1261,7 +1476,8 @@ theorem typability_subject_reductionₘ
 
   -- FIXME:
   -- Try to do local induction, otherwise try the tensor_parr_all_fresh lemma path like for one_bot
-  -- Depending on how well this goes remvoe all_fresh from one_bot constructor and do inline induction
+  -- Depending on how well this goes remvoe all_fresh from one_bot
+    -- constructor and do inline induction
 
     generalize heq : (𝑣⸨$N,$N⸩ Q) = R at 𝒟
     induction 𝒟 generalizing Q <;> try contradiction
@@ -1328,11 +1544,39 @@ theorem typability_subject_reductionₘ
           exact hb
         exact Typing_res_all_fresh 𝒟 a b ha_bound hb_bound
 
+      have hL' : x ∉ L' ∧ y ∉ L' ∧ x' ∉ L' ∧ y' ∉ L':= by
+        simp only [L', Finset.mem_union, not_or] at ⊢ hx_bound hy_bound hx'_bound hy'_bound
+        constructor
+        · exact ⟨⟨⟨hxQf, hx_bound.1.1.2⟩, hx_bound.1.2⟩, hx_bound.2⟩
+        · constructor
+          · exact ⟨⟨⟨hyQf, hy_bound.1.1.2⟩, hy_bound.1.2⟩, hy_bound.2⟩
+          · constructor
+            · exact ⟨⟨⟨hx'Qf, hx'_bound.1.1.2⟩, hx'_bound.1.2⟩, hx'_bound.2⟩
+            · exact ⟨⟨⟨hy'Qf, hy'_bound.1.1.2⟩, hy'_bound.1.2⟩, hy'_bound.2⟩
+
+
+
+
+
+
       have huniq_post : ∀ z ∉ L', ∀ w ∉ L', z ≠ w → ∀ z' ∉ L',
         ∀ w' ∉ L', z' ≠ w' → z ≠ z' → z ≠ w' → w ≠ z' → w ≠ w' →
         m ⊢ Q'⸨2 | #z, #w⸩⸨#z', #w'⸩ ∷
           𝒢 |ₕ [z ∶ D :: Γ₁] |ₕ [z' ∶ C :: Γ₂] |ₕ [w' ∶ Cᗮ :: w ∶ Dᗮ :: Δ] := by
+        intros z hzL w hwL hzw z' hz'L w' hw'L hz'w' hzz' hzw' hwz' hww'
+        apply Typing_tensor_parr_post_all_fresh L' 𝒟_post' hL'.1 hL'.2.1 hL'.2.2.1 hL'.2.2.2
+          (by simp [L']) (?_) hxx' hxy hxy' hyx' hyy' hx'y' z hzL w hwL hzw z' hz'L w' hw'L
+          hz'w' hzz' hzw' hwz' hww'
+        simp [L']
+        have hEnvBound := TypingStepₘ_names_bound hTS_post
+        have hEqPost := Typing.f_eq_names 𝒟_post'
+        have hEqPre := Typing.f_eq_names 𝒟xy
 
+        have hLN : Q'.f ⊆ (Q'⸨2 | #x, #y⸩⸨#x', #y'⸩).f \ {x, x', y, y'} := by
+          sorry
+
+        -- chian subset to get Q'.f ⊆ Q.f
+        -- prove other version of Proc.f_subset_open_erase using Typing.f_eq_names
         sorry
 
 
@@ -1340,19 +1584,11 @@ theorem typability_subject_reductionₘ
         (L := L')
         (huniq := huinq_pre)
         (huniq' := huniq_post)
-        (hx := ?_) (hy := ?_) (hneq := hxy)
-        (hx' := ?_) (hy' := ?_) (hneq' := hx'y')
+        (hx := hL'.1) (hy := hL'.2.1) (hneq := hxy)
+        (hx' := hL'.2.2.1) (hy' := hL'.2.2.2) (hneq' := hx'y')
         (hxx' := hxx') (hxy' := hxy') (hyx' := hyx') (hyy' := hyy')
         (hxP := hxQf) (hyP := hyQf) (hx'P := hx'Qf) (hy'P := hy'Qf)
         (hStep := hTS_post')⟩
-      · simp only [L', Finset.mem_union, not_or] at ⊢ hx_bound
-        exact ⟨⟨⟨hxQf, hx_bound.1.1.2⟩, hx_bound.1.2⟩, hx_bound.2⟩
-      · simp only [L', Finset.mem_union, not_or] at ⊢ hy_bound
-        exact ⟨⟨⟨hyQf, hy_bound.1.1.2⟩, hy_bound.1.2⟩, hy_bound.2⟩
-      · simp only [L', Finset.mem_union, not_or] at ⊢ hx'_bound
-        exact ⟨⟨⟨hx'Qf, hx'_bound.1.1.2⟩, hx'_bound.1.2⟩, hx'_bound.2⟩
-      · simp only [L', Finset.mem_union, not_or] at ⊢ hy'_bound
-        exact ⟨⟨⟨hy'Qf, hy'_bound.1.1.2⟩, hy'_bound.1.2⟩, hy'_bound.2⟩
 
 
 
@@ -1364,24 +1600,6 @@ theorem typability_subject_reductionₘ
 
 
 
-/-
-hPS_post': TypingStepₘ
-Typing.exchange_hyper 𝒟xy HyperEnv.Perm_refl :
-  m ⊢ Q⸨#x, #y⸩ ∷ 𝒢 |ₕ [x ∶ C ⨂ D :: Γ₁‚ Γ₂] |ₕ [y ∶ (C ⨂ D)ᗮ :: Δ]
-(x⟦x'⟧ |ₗ y⸨y'⸩)
-Typing.exchange_hyper 𝒟xy HyperEnv.Perm_refl :
-   m ⊢ Q⸨#x, #y⸩ ∷ 𝒢 |ₕ [x ∶ C ⨂ D :: Γ₁‚ Γ₂] |ₕ [y ∶ (C ⨂ D)ᗮ :: Δ]
-
-
-goal:TypingStepₘ
-huniq_pre x ?m.2478 y ?m.2479 hxy :
-  m ⊢ Q⸨#x, #y⸩ ∷ 𝒢 |ₕ [x ∶ C ⨂ D :: Γ₁‚ Γ₂] |ₕ [y ∶ (C ⨂ D)ᗮ :: Δ]
-(x⟦x'⟧ |ₗ y⸨y'⸩)
-huniq_post x ?m.2478 y ?m.2479 hxy x' ?m.2482 y' ?m.2483 hx'y' hxx' hxy' hyx' hyy' :
-  m ⊢ Q'⸨2 | #x, #y⸩⸨#x', #y'⸩ ∷
-    𝒢 |ₕ [x ∶ D :: Γ₁] |ₕ [x' ∶ C :: Γ₂] |ₕ [y' ∶ Cᗮ :: y ∶ Dᗮ :: Δ]
-
--/
 
 
 
