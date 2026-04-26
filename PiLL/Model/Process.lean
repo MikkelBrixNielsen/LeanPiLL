@@ -1471,6 +1471,37 @@ lemma Proc.f_subset_open_gen {P : Proc} {x : FPName} {k : Nat} :
 lemma Proc.f_subset_open {P : Proc} {x : FPName} :
   P.f ⊆ P⸨#x⸩.f := Proc.f_subset_open_gen (k := 0)
 
+lemma Channel.f_subset_open_erase_gen {u : Channel} {x : FPName} {k : Nat} (hF : x ∉ u.f) :
+  u.f ⊆ (u.open (#x) k).f.erase x := by
+  cases u
+  case free =>
+    simp only [Channel.f, Channel.open] at ⊢ hF
+    rw [Finset.erase_eq_of_notMem hF]
+  case bound => simp only [f_bound, Finset.empty_subset]
+
+lemma Finset.f_subset_open_erase_gen {zs : Finset Channel} {x : FPName} {k : Nat} (hF : x ∉ zs.f) :
+  zs.f ⊆ zs⸨k | #x⸩.f.erase x := by
+  rw [Finset.f_open_erase hF]
+
+lemma Proc.f_subset_open_erase_gen {P : Proc} {x : FPName} {k : Nat} (hPf : x ∉ P.f) :
+  P.f ⊆ ((P.open #x k).f).erase x := by
+  intro y hy
+  have hyx : y ≠ x := by intro h ; subst h ; exact hPf hy
+  apply Finset.mem_erase.mpr ⟨hyx, Proc.f_subset_open_gen hy⟩
+
+lemma Proc.f_subset_open_two_erase_gen {P : Proc} {x y : FPName} {k : Nat}
+  (hx : x ∉ P.f) (hy : y ∉ P.f) (hneq : x ≠ y) :
+  P.f ⊆ ((P⸨k | #x, #y⸩.f).erase x).erase y := by
+  simp only [HasOpenTwo.open_]
+  intro z hz
+  have hzx : z ≠ x := by intro h ; subst h ; exact hx hz
+  have hzy : z ≠ y := by intro h ; subst h ; exact hy hz
+  have h1 : z ∈ (P.open (#y) (k + 1)).f := Proc.f_subset_open_gen hz
+  have h2 : z ∈ ((P.open (#y) (k + 1)).open (#x) k).f := Proc.f_subset_open_gen h1
+  have h3 : z ∈ (((P.open (#y) (k + 1)).open (#x) k).f.erase x) :=
+    Finset.mem_erase.mpr ⟨hzx, h2⟩
+  exact Finset.mem_erase.mpr ⟨hzy, h3⟩
+
 lemma Channel.open_rec_substNames {u : Channel} {x y z : FPName} {k : Nat} :
   (u⸨k | #z⸩){y // x} = u{y // x}⸨k | #(z{y // x})⸩ := by
   cases u <;>
