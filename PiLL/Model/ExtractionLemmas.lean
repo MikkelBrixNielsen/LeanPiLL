@@ -1,5 +1,9 @@
 import PiLL.Model.Environment
 
+set_option linter.style.setOption false
+set_option linter.flexible false
+-- same reason as in Environment.lean
+
 lemma HyperEnv.Perm.extract_one_res
   {𝒢 ℋ 𝒢ᵣ : HyperEnv} {Γ Γ' Δ Δ' : Env} {x y z : FPName} {A : Types}
   (h_pre : 𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ] ~ 𝒢ᵣ |ₕ [[z ∶ 1]])
@@ -1683,6 +1687,8 @@ lemma HyperEnv.Perm.extract_parr_res
               apply List.perm_append_comm
             exact ((hP1.trans hP2).trans hP3).trans hP4
 
+set_option maxHeartbeats 300000 in
+-- 200000 heartbeats isn't enough for it to typecheck
 lemma HyperEnv.Perm.extract_tensor_parr_res
   {𝒢 ℋ 𝒢ᵣ : HyperEnv} {Γ Γ' Γ'' Δ Δ' Δ'' Ξ : Env}
   {u v x x' y y' : FPName} {A B C D E : Types}
