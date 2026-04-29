@@ -152,17 +152,6 @@ def env {𝒢 : HyperEnv} {P : Proc} {n : Nat} (_ : n ⊢ P ∷ 𝒢) : HyperEnv
 --   fun h => Typing.exchange_hyper h (HyperEnv.merge_comm _ _)
 
 
-
-
-
-
-
-
-
-
-
-
-
 theorem Typing_preserves_disjointness {P : Proc} {𝒢 : HyperEnv} {n : Nat}
   (h : n ⊢ P ∷ 𝒢) : 𝒢.PairwiseDisjoint := by
   induction h
@@ -329,7 +318,7 @@ lemma Typing_preserves_lc {𝒢 : HyperEnv} {P : Proc} {n : Nat}
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by
   intro h
-  induction h <;> try simp_all? [Env.mem_pair_fst_in_names_iff] ; intro d c
+  induction h <;> try simp_all [Env.mem_pair_fst_in_names_iff] ; intro d c
 
   case mix₀ => exact Typing.mix₀
 
@@ -431,11 +420,6 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
     apply Typing.exchange_hyper
     · exact ih d c
     · simp_all
-
--- FIXME: Move to Environment
-lemma HyperEnv.PairwiseDisjoint_implies_disjoint {Γ Δ : Env} :
-  HyperEnv.PairwiseDisjoint [Γ, Δ] → Γ.disjoint Δ := by
-  simp [HyperEnv.PairwiseDisjoint]
 
 lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   (n ⊢ P ∷ 𝒢) → HyperEnv.Nodup 𝒢 ∧ 𝒢.PairwiseDisjoint := by

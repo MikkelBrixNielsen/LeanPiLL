@@ -1823,3 +1823,87 @@ lemma HyperEnv.absurd_fresh_of_mem_perm {𝒢 ℋ : HyperEnv} {C : Env} {v : FPN
   have hvEx : (v, T) ∈ Ex := (List.Perm.mem_iff hPEx).mpr hv
   have hvExNames := Env.mem_pair_fst_in_names _ hvEx
   exact hFv (HyperEnv.subset_names_of_mem hEx_in_𝒢 hvExNames)
+
+lemma HyperEnv.mem_tensor_parr_post_env
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names) :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ], ∀ C, (z, C) ∈ Ξ →
+  z = x ∨ z = x' ∨ z = y ∨ z = y' := by
+  intros Ξ hΞ C hin
+  simp at hΞ
+  rcases hΞ with h1 | rfl | rfl | rfl
+  · exfalso
+    exact hz𝒢 (HyperEnv.mem_of_mem_mem_names hin h1)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | h
+    · exact Or.inl rfl
+    · exfalso
+      exact hzΓ₁ (Env.mem_pair_fst_in_names _ h)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | h
+    · exact Or.inr (Or.inl rfl)
+    · exfalso
+      exact hzΓ₂ (Env.mem_pair_fst_in_names _ h)
+  · simp at hin
+    rcases hin with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | h
+    · exact Or.inr (Or.inr (Or.inr rfl))
+    · exact Or.inr (Or.inr (Or.inl rfl))
+    · exfalso
+      exact hzΔ (Env.mem_pair_fst_in_names _ h)
+
+lemma HyperEnv.substNames_tensor_parr_x
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names)
+  (hzx' : z ≠ x') (hzy' : z ≠ y') (hzy : z ≠ y) :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ],
+    ∀ C, (z, C) ∈ Ξ → z = x := by
+  intros Ξ hΞ C hin
+  rcases HyperEnv.mem_tensor_parr_post_env hz𝒢 hzΓ₁ hzΓ₂ hzΔ Ξ hΞ C hin with h | h | h | h
+  · exact h
+  · exact False.elim (hzx' h)
+  · exact False.elim (hzy h)
+  · exact False.elim (hzy' h)
+
+lemma HyperEnv.substNames_tensor_parr_x'
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names)
+  (hzx : z ≠ x) (hzy' : z ≠ y') (hzy : z ≠ y) :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ],
+    ∀ C, (z, C) ∈ Ξ → z = x' := by
+  intros Ξ hΞ C hin
+  rcases HyperEnv.mem_tensor_parr_post_env hz𝒢 hzΓ₁ hzΓ₂ hzΔ Ξ hΞ C hin with h | h | h | h
+  · exact False.elim (hzx h)
+  · exact h
+  · exact False.elim (hzy h)
+  · exact False.elim (hzy' h)
+
+lemma HyperEnv.substNames_tensor_parr_y
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names)
+  (hzx : z ≠ x) (hzx' : z ≠ x') (hzy' : z ≠ y') :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ],
+    ∀ C, (z, C) ∈ Ξ → z = y := by
+  intros Ξ hΞ C hin
+  rcases HyperEnv.mem_tensor_parr_post_env hz𝒢 hzΓ₁ hzΓ₂ hzΔ Ξ hΞ C hin with h | h | h | h
+  · exact False.elim (hzx h)
+  · exact False.elim (hzx' h)
+  · exact h
+  · exact False.elim (hzy' h)
+
+lemma HyperEnv.substNames_tensor_parr_y'
+  {𝒢 : HyperEnv} {Γ₁ Γ₂ Δ : Env} {x x' y y' z : FPName} {A B : Types}
+  (hz𝒢 : z ∉ 𝒢.names) (hzΓ₁ : z ∉ Γ₁.names) (hzΓ₂ : z ∉ Γ₂.names) (hzΔ : z ∉ Δ.names)
+  (hzx : z ≠ x) (hzx' : z ≠ x') (hzy : z ≠ y) :
+  ∀ Ξ ∈ 𝒢 |ₕ [x ∶ B :: Γ₁] |ₕ [x' ∶ A :: Γ₂] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Δ],
+    ∀ C, (z, C) ∈ Ξ → z = y' := by
+  intros Ξ hΞ C hin
+  rcases HyperEnv.mem_tensor_parr_post_env hz𝒢 hzΓ₁ hzΓ₂ hzΔ Ξ hΞ C hin with h | h | h | h
+  · exact False.elim (hzx h)
+  · exact False.elim (hzx' h)
+  · exact False.elim (hzy h)
+  · exact h
+
+-- FIXME: Move to Environment
+lemma HyperEnv.PairwiseDisjoint_implies_disjoint {Γ Δ : Env} :
+  HyperEnv.PairwiseDisjoint [Γ, Δ] → Γ.disjoint Δ := by
+  simp [HyperEnv.PairwiseDisjoint]
