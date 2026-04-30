@@ -1,4 +1,5 @@
-import PiLL.Model.Process
+import PiLL.Model.Processes.Notation
+import PiLL.Model.Processes.LocalClosure
 
 -- inductive StructCong : Proc → Proc → Prop where
 --   | refl (P : Proc) : StructCong P P

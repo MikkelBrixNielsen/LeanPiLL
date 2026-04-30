@@ -1,5 +1,5 @@
 -- import PiLL.Model.Process
-
+-- FIXME: / TODO: Update imports and show AlphaEq collapse to structural Eq
 /-
   Alpha Equivalance becomes structural equality when using De Brujin / LN. Processes
   varying only on bound names will map to the exact same data structure.
