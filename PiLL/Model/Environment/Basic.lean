@@ -14,6 +14,7 @@ abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
 infixl:69 "‚ " => Env.merge
 
 def Env.Nodup (Γ : Env) : Prop := (Γ.map Prod.fst).Nodup
+
 @[simp] def Env.disjoint (Δ Γ : Env) : Prop :=
   Disjoint Δ.names Γ.names
 

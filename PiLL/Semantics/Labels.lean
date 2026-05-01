@@ -1,4 +1,4 @@
-import PiLL.Model.Process
+import PiLL.Model.Processes.Basic
 
 inductive Mu : Type
   | L
@@ -64,11 +64,6 @@ def Lbl.i : Lbl → Finset FPName
   | .link _ _   => ∅
   | .act a      => iNamesAct a
   | .par l l'   => iNamesAct l ∪ iNamesAct l'
-
--- FIXME: Unused
-@[simp]
-def Lbl.fresh (xs : List FPName) (l : Lbl) :=
-  ∀ n ∈ xs, n ∉ l.f ∪ l.i
 
 notation "𝐋"    => Mu.L
 notation "𝐑"    => Mu.R
