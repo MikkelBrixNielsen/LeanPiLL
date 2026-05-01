@@ -1,4 +1,7 @@
-import PiLL.Substitution
+import PiLL.Model.Judgement.Substitution.Names
+import PiLL.Model.Judgement.Properties.Names
+import PiLL.Model.Judgement.Properties.Linearity
+import PiLL.Model.Processes.Fresh
 
 macro "distribute_names " T:ident : tactic =>
   `(tactic|
@@ -156,7 +159,7 @@ lemma Typing_tensor_parr_post_f_avoid {m : Nat} {P : Proc} {𝒢 : HyperEnv}
   (hax : a ≠ x) (hax' : a ≠ x') (hay : a ≠ y) (hay' : a ≠ y')
   (ha𝒢 : a ∉ 𝒢.names) (haΓ₁ : a ∉ Γ₁.names) (haΓ₂ : a ∉ Γ₂.names) (haΔ : a ∉ Δ.names) :
   a ∉ (P⸨2 | #x, #y⸩⸨#x', #y'⸩).f := by
-  rw [Typing.f_eq_names 𝒟]
+  rw [Typing_f_eq_names 𝒟]
   simp only [List.append_assoc, List.cons_append, List.nil_append, HyperEnv.names_merge,
     HyperEnv.names_cons, Env.names_distributes, Finset.singleton_union, Finset.union_insert,
     HyperEnv.names_nil, Finset.union_empty, Finset.insert_union, Finset.mem_insert,
