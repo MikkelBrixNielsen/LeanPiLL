@@ -92,3 +92,109 @@ lemma TypingStepₘ_names_bound {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEn
     simp only [HyperEnv.names_cons, Finset.union_assoc] at ⊢ ih
     rw [← (Env.names_eq_of_perm hP)]
     exact ih
+
+lemma TypingStepₘ_names_preserved {n n' : ℕ} {P P' : Proc} {𝒢 𝒢' : HyperEnv} {l : Lbl}
+  {𝒟 : n ⊢ P ∷ 𝒢} {𝒟' : n' ⊢ P' ∷ 𝒢'} (hStep : TypingStepₘ 𝒟 l 𝒟') :
+  𝒢.names \ (l.f ∪ l.i) ⊆ 𝒢'.names := by
+  induction hStep
+  case one => simp only [HyperEnv.names_cons, Env.names_distributes, Env.names_nil,
+    Finset.union_empty, HyperEnv.names_nil, Lbl.f, fNamesAct, Lbl.i, iNamesAct, sdiff_self,
+    Finset.bot_eq_empty, List.empty_eq, subset_refl]
+  case bot Γ _ x _ hF _ =>
+    simp only [HyperEnv.names_cons, Env.names_distributes, Finset.singleton_union,
+      HyperEnv.names_nil, Finset.union_empty, Lbl.f, fNamesAct, Lbl.i, iNamesAct]
+    rw [← Finset.erase_eq, Finset.erase_insert_eq_erase,
+      Finset.erase_eq_of_notMem hF]
+  case tensor | parr  =>
+    simp only [HyperEnv.names_cons, Env.names_distributes, Env.names_merge, Finset.singleton_union,
+      HyperEnv.names_nil, Finset.union_empty, Lbl.f, fNamesAct, Lbl.i, iNamesAct,
+      Finset.insert_sdiff_insert, List.cons_append, List.nil_append, Finset.union_insert,
+      Finset.insert_union]
+    exact (Finset.sdiff_subset).trans
+      ((Finset.subset_insert _ _).trans (Finset.subset_insert _ _))
+  case par₁ ih =>
+    simp only [HyperEnv.names_merge, Finset.union_sdiff_distrib]
+    refine Finset.union_subset ?_ ?_
+    · exact ih.trans (Finset.subset_union_left)
+    · exact (Finset.sdiff_subset).trans (Finset.subset_union_right)
+  case par₂ ih =>
+    simp only [HyperEnv.names_merge, Finset.union_sdiff_distrib]
+    refine Finset.union_subset ?_ ?_
+    · exact (Finset.sdiff_subset).trans (Finset.subset_union_left)
+    · exact ih.trans (Finset.subset_union_right)
+  case syn ih1 ih2 =>
+    expose_names
+    simp only [HyperEnv.names_merge, Finset.union_sdiff_distrib]
+    refine Finset.union_subset ?_ ?_
+    · have hsubLabel :
+        Lbl.f l_1 ∪ Lbl.i l_1 ⊆ Lbl.f l_1 ∪ Lbl.f l' ∪ (Lbl.i l_1 ∪ Lbl.i l') := by
+        intro x hx
+        rcases Finset.mem_union.mp hx with hx | hx
+        · simp only [Finset.mem_union, or_assoc]
+          left ; exact hx
+        · simp only [Finset.mem_union, or_assoc]
+          right ; right ; left ; exact hx
+      have hsub : 𝒢_1.names \ ((l_1 |ₗ l').f ∪ (l_1 |ₗ l').i)
+        ⊆ 𝒢_1.names \ (Lbl.f l_1 ∪ Lbl.i l_1) := by
+        simp only [Lbl.i_par', Lbl.f_par']
+        intro a ha
+        rw [Finset.mem_sdiff] at ha ⊢
+        exact ⟨ha.1, fun h => ha.2 (hsubLabel h)⟩
+      exact hsub.trans (ih1.trans (Finset.subset_union_left))
+    · have hsubLabel :
+        Lbl.f l' ∪ Lbl.i l' ⊆ Lbl.f l_1 ∪ Lbl.f l' ∪ (Lbl.i l_1 ∪ Lbl.i l') := by
+        intro x hx
+        rcases Finset.mem_union.mp hx with hx | hx
+        · simp only [Finset.mem_union, or_assoc]
+          right ; left ; exact hx
+        · simp only [Finset.mem_union, or_assoc]
+          right ; right ; right ; exact hx
+      have hsub : ℋ.names \ ((l_1 |ₗ l').f ∪ (l_1 |ₗ l').i)
+        ⊆ ℋ.names \ (Lbl.f l' ∪ Lbl.i l') := by
+        simp only [Lbl.i_par', Lbl.f_par']
+        intro a ha
+        rw [Finset.mem_sdiff] at ha ⊢
+        exact ⟨ha.1, fun h => ha.2 (hsubLabel h)⟩
+      exact hsub.trans (ih2.trans (Finset.subset_union_right))
+  case one_bot | tensor_parr =>
+    simp only [List.append_assoc, HyperEnv.names_merge, HyperEnv.names_cons, Env.names_merge,
+      HyperEnv.names_nil, Finset.union_empty, Lbl.f, Lbl.i, Finset.union_idempotent,
+      Finset.sdiff_empty, subset_refl]
+  case res =>
+    expose_names
+    simp only [HyperEnv.names_merge, HyperEnv.names_singleton,
+      Env.names_merge, Env.names_distributes] at ⊢ hStep_ih
+    intro a ha
+    simp only [Finset.mem_sdiff, Finset.mem_union] at ha ⊢
+    rcases ha with ⟨h_in, h_notin⟩
+    have h_ih_app : a ∈ 𝒢'_1.names ∨
+      (a = x ∨ a ∈ Γ'.names) ∨ (a = y ∨ a ∈ Δ'.names) := by
+      have h_subset := hStep_ih (by
+        simp only [Finset.mem_sdiff, Finset.mem_union, Finset.mem_singleton]
+        refine ⟨?_, h_notin⟩
+        rcases h_in with hG | hΓ | hΔ
+        · exact Or.inl (Or.inl hG)
+        · exact Or.inl (Or.inr (Or.inr hΓ))
+        · exact Or.inr (Or.inr hΔ)
+      )
+      simp only [Finset.mem_union, Finset.mem_singleton, or_assoc] at ⊢ h_subset
+      exact h_subset
+    have ha_neq_x : a ≠ x := by grind only [Finset.mem_union]
+    have ha_neq_y : a ≠ y := by grind only [Finset.mem_union]
+    rcases h_ih_app with hG' | hΓ' | hΔ'
+    · exact Or.inl hG'
+    · rcases hΓ' with rfl | h_in_Γ'
+      · contradiction
+      · exact Or.inr (Or.inl h_in_Γ')
+    · rcases hΔ' with rfl | h_in_Δ'
+      · contradiction
+      · exact Or.inr (Or.inr h_in_Δ')
+  case perm_env =>
+    expose_names
+    simp only [HyperEnv.names_distributes] at hTS_ih ⊢
+    rw [← Env.names_eq_of_perm hP1]
+    exact hTS_ih
+  case perm_hyper =>
+    expose_names
+    rw [← HyperEnv.names_eq_of_perm hP1, ← HyperEnv.names_eq_of_perm hP2]
+    exact hTS_ih

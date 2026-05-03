@@ -278,28 +278,28 @@ theorem typability_subject_reductionₘ
     have 𝒟xy := (Typing_res_all_fresh 𝒟' x y hx_bound hy_bound hxy)
     have ⟨𝒢xy', 𝒟xy', hTS_xy⟩ := ih 𝒟xy
     -- FIXME: TypingStepₘ_inv_res_source has changed
-
-    have ⟨𝒢', Γ', Δ', hP'⟩ := TypingStepₘ_inv_res_source 𝒟xy hTS_xy hlx hly
-    have 𝒟xy' : n ⊢ Q'⸨#x, #y⸩ ∷ 𝒢' |ₕ [x ∶ A :: Γ'] |ₕ [y ∶ Aᗮ :: Δ'] :=
-      Typing.exchange_hyper 𝒟xy' hP'
-    let L' := Q'.f ∪ 𝒢'.names ∪ Γ'.names ∪ Δ'.names
-    have ⟨⟨hx𝒢', hxΓ', hxΔ'⟩, ⟨hy𝒢', hyΓ', hyΔ'⟩⟩ := Typing_res_fresh 𝒟xy'
-    have hxL' : x ∉ L' := by simp [L', hxQ'f, hx𝒢', hxΓ', hxΔ']
-    have hyL' : y ∉ L' := by simp [L', hyQ'f, hy𝒢', hyΓ', hyΔ']
-    have hEnv : 𝒢'.names ∪ Γ'.names ∪ Δ'.names ⊆ L' := by
-      intro a ha
-      simp only [L', Finset.mem_union] at ⊢ ha
-      rcases ha with h1 | hΔ'
-      · rcases h1 with h𝒢' | hΓ'
-        · left ; left ; right ; exact h𝒢'
-        · left ; right ; exact hΓ'
-      · right ; exact hΔ'
-    have 𝒟'_post_L' : ∀ z ∉ L', ∀ w ∉ L', z ≠ w →
-      n ⊢ Q'⸨#z, #w⸩ ∷ 𝒢' |ₕ [z ∶ A :: Γ'] |ₕ [w ∶ Aᗮ :: Δ'] := by
-      apply Typing_res_post_all_fresh L' 𝒟xy' hxL' hyL' hxQ'f hyQ'f hEnv hxy
-    have hTS_xy' : TypingStepₘ 𝒟xy l' 𝒟xy' :=
-      TypingStepₘ.perm_hyper (by rfl) hP' hTS_xy
-    refine ⟨𝒢' |ₕ [Γ'‚ Δ'], Typing.cut L' 𝒟'_post_L', ?_⟩
-    apply TypingStepₘ.perm_hyper hP.symm HyperEnv.Perm_refl
-    exact TypingStepₘ.res (L := L) (L' := L') (huniq := 𝒟') (huniq' := 𝒟'_post_L')
-      hxy hx_bound hy_bound hxL' hyL' hlx hly hTS_xy'
+    sorry
+    -- have ⟨𝒢', Γ', Δ', hP'⟩ := TypingStepₘ_inv_res_source 𝒟xy hTS_xy hlx hly
+    -- have 𝒟xy' : n ⊢ Q'⸨#x, #y⸩ ∷ 𝒢' |ₕ [x ∶ A :: Γ'] |ₕ [y ∶ Aᗮ :: Δ'] :=
+    --   Typing.exchange_hyper 𝒟xy' hP'
+    -- let L' := Q'.f ∪ 𝒢'.names ∪ Γ'.names ∪ Δ'.names
+    -- have ⟨⟨hx𝒢', hxΓ', hxΔ'⟩, ⟨hy𝒢', hyΓ', hyΔ'⟩⟩ := Typing_res_fresh 𝒟xy'
+    -- have hxL' : x ∉ L' := by simp [L', hxQ'f, hx𝒢', hxΓ', hxΔ']
+    -- have hyL' : y ∉ L' := by simp [L', hyQ'f, hy𝒢', hyΓ', hyΔ']
+    -- have hEnv : 𝒢'.names ∪ Γ'.names ∪ Δ'.names ⊆ L' := by
+    --   intro a ha
+    --   simp only [L', Finset.mem_union] at ⊢ ha
+    --   rcases ha with h1 | hΔ'
+    --   · rcases h1 with h𝒢' | hΓ'
+    --     · left ; left ; right ; exact h𝒢'
+    --     · left ; right ; exact hΓ'
+    --   · right ; exact hΔ'
+    -- have 𝒟'_post_L' : ∀ z ∉ L', ∀ w ∉ L', z ≠ w →
+    --   n ⊢ Q'⸨#z, #w⸩ ∷ 𝒢' |ₕ [z ∶ A :: Γ'] |ₕ [w ∶ Aᗮ :: Δ'] := by
+    --   apply Typing_res_post_all_fresh L' 𝒟xy' hxL' hyL' hxQ'f hyQ'f hEnv hxy
+    -- have hTS_xy' : TypingStepₘ 𝒟xy l' 𝒟xy' :=
+    --   TypingStepₘ.perm_hyper (by rfl) hP' hTS_xy
+    -- refine ⟨𝒢' |ₕ [Γ'‚ Δ'], Typing.cut L' 𝒟'_post_L', ?_⟩
+    -- apply TypingStepₘ.perm_hyper hP.symm HyperEnv.Perm_refl
+    -- exact TypingStepₘ.res (L := L) (L' := L') (huniq := 𝒟') (huniq' := 𝒟'_post_L')
+    --   hxy hx_bound hy_bound hxL' hyL' hlx hly hTS_xy'

@@ -1,21 +1,7 @@
 import PiLL.Semantics.JudgementStep.Basic
+import PiLL.Semantics.JudgementStep.Properties.Names
 import PiLL.Model.HyperEnvironment.Lemmas.Basic
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import PiLL.Model.Judgement.Properties.Linearity
 
 -- FIXME: Move to hyperenvironments
 lemma HyperEnv.Perm.length_eq {𝒢 ℋ : HyperEnv} (hP : 𝒢 ~ ℋ) :
@@ -77,6 +63,177 @@ lemma HyperEnv.Perm_merge_inv_two_blocks {𝒢 ℋ 𝒥 : HyperEnv} {Γ Δ : Env
     · right; right; left ; exact ⟨𝒢_rest2, ℋ_rest1,hG2, hH1, hJ2⟩
     · right ; left ; exact ⟨ℋ_rest2, HyperEnv.Perm.exchange_rhs_left hH2 hH1, hJ2⟩
 
+-- FIXME: Move to own file in properties
+lemma TypingStepₘ_preserves_block {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEnv} {l : Lbl}
+  {𝒟 : n ⊢ P ∷ 𝒢} {𝒟' : n' ⊢ P' ∷ 𝒢'} (hStep : TypingStepₘ 𝒟 l 𝒟')
+  {Γ : Env} (hΓ : Γ ∈ 𝒢) (hD : Disjoint Γ.names (l.f ∪ l.i)) :
+  ∃ Γ' ∈ 𝒢', Γ' ~ Γ := by
+  induction hStep generalizing Γ
+  case one | bot | tensor | parr =>
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hΓ
+    subst hΓ
+    simp only [Env.names_distributes, Env.names_merge, Finset.singleton_union, Lbl.f, fNamesAct,
+      Lbl.i, iNamesAct, Finset.disjoint_insert_right, Finset.mem_insert, Finset.mem_union,
+      Env.mem_pair_fst_in_names_iff, true_or, not_true_eq_false, Finset.disjoint_singleton_right,
+      not_or, not_exists, false_and] at hD
+  case par₁ ih =>
+    simp only [List.mem_append] at hΓ ⊢
+    · rcases hΓ with h1 | h2
+      · have ⟨Ξ, hΞ, hPΞ⟩ := ih h1 hD
+        use Ξ
+        exact ⟨Or.inl hΞ, hPΞ⟩
+      · use Γ
+        exact ⟨Or.inr h2, by rfl⟩
+  case par₂ ih =>
+    simp only [List.mem_append] at hΓ ⊢
+    · rcases hΓ with h1 | h2
+      · use Γ
+        exact ⟨Or.inl h1, by rfl⟩
+      · have ⟨Ξ, hΞ, hPΞ⟩ := ih h2 hD
+        use Ξ
+        exact ⟨Or.inr hΞ, hPΞ⟩
+  case syn ih1 ih2 =>
+    simp only [List.mem_append] at hΓ ⊢
+    rcases hΓ with h1 | h2
+    · have ⟨Ξ, hΞ, hPΞ⟩ := ih1 h1 ?_
+      · use Ξ
+        exact ⟨Or.inl hΞ, hPΞ⟩
+      · simp_all only [HyperEnv.disjoint, Lbl.i, iNamesAct, Proc.f_par, Lbl.WF, Lbl.f, fNamesAct,
+        Finset.disjoint_union_right, and_imp, Finset.union_assoc, and_self]
+    · have ⟨Ξ, hΞ, hPΞ⟩ := ih2 h2 ?_
+      · use Ξ
+        exact ⟨Or.inr hΞ, hPΞ⟩
+      · simp_all only [HyperEnv.disjoint, Lbl.i, iNamesAct, Proc.f_par, Lbl.WF, Lbl.f, fNamesAct,
+        Finset.disjoint_union_right, and_imp, Finset.union_assoc, and_self]
+  case one_bot => use Γ
+  case tensor_parr => use Γ ; rw [← Env.merge_assoc] ; exact ⟨hΓ, by rfl⟩
+  case res =>
+    expose_names
+    simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hΓ
+    rcases hΓ with h1 | h2
+    · have hΓ': Γ ∈ 𝒢_1 |ₕ [x ∶ A :: Γ_1] |ₕ [y ∶ Aᗮ :: Δ] := by
+        simp only [List.append_assoc, List.cons_append, List.nil_append, List.mem_append,
+        List.mem_cons, List.not_mem_nil, or_false]
+        left ; exact h1
+      obtain ⟨Γ'_post, h_post_in, h_post_perm⟩ := hStep_ih hΓ' hD
+      simp only [List.append_assoc, List.cons_append, List.nil_append, List.mem_append,
+        List.mem_cons, List.not_mem_nil, or_false] at h_post_in
+      rcases h_post_in with hin | rfl | rfl
+      · use Γ'_post
+        refine ⟨?_, h_post_perm⟩
+        simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] ; left ; exact hin
+      · exfalso
+        have hΓ := (List.Perm.mem_iff (a := x ∶ A) h_post_perm).mp (by simp)
+        simp only [Finset.union_assoc, Finset.mem_union, Env.mem_pair_fst_in_names_iff, not_or,
+          not_exists] at hx_pre
+        apply hx_pre.2.1 (HyperEnv.mem_of_mem_mem_names hΓ h1)
+      · exfalso
+        have hΓ := (List.Perm.mem_iff (a := y ∶ Aᗮ) h_post_perm).mp (by simp)
+        simp only [Finset.union_assoc, Finset.mem_union, Env.mem_pair_fst_in_names_iff, not_or,
+          not_exists] at hy_pre
+        apply hy_pre.2.1 (HyperEnv.mem_of_mem_mem_names hΓ h1)
+    · subst h2
+      use (Γ'‚ Δ')
+      refine ⟨?_, ?_⟩
+      · simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false, or_true]
+      · have h_x_pre : x ∶ A :: Γ_1 ∈ 𝒢_1 |ₕ [x ∶ A :: Γ_1] |ₕ [y ∶ Aᗮ :: Δ] := by simp
+        have h_x_disj : Disjoint (Env.names (x ∶ A :: Γ_1)) (l_1.f ∪ l_1.i) := by
+          simp only [Env.names_distributes]
+          rw [Finset.disjoint_union_left, Finset.disjoint_singleton_left]
+          refine ⟨hlx, ?_⟩
+          simp only [Env.names_merge, Finset.disjoint_union_left] at hD
+          exact hD.1
+        obtain ⟨x_post, h_x_post_in, h_x_perm⟩ := hStep_ih h_x_pre h_x_disj
+        have h_x_block_eq : x_post = x ∶ A :: Γ' := by
+          simp only [List.append_assoc, List.cons_append, List.nil_append, List.mem_append,
+            List.mem_cons, List.not_mem_nil, or_false] at h_x_post_in
+          have hx_in_x_post := (List.Perm.mem_iff (a := x ∶ A) h_x_perm).mpr (by simp)
+          rcases h_x_post_in with hin | rfl | rfl
+          · have hx_in_G'_1 := HyperEnv.mem_of_mem_mem_names hx_in_x_post hin
+            have h_contra : x ∈ P'_1.f ∪ 𝒢'_1.names ∪ Γ'.names ∪ Δ'.names := by
+              simp [hx_in_G'_1]
+            exact False.elim (hx_post h_contra)
+          · rfl
+          · exfalso
+            simp only [List.mem_cons, Prod.mk.injEq] at hx_in_x_post
+            rcases hx_in_x_post with ⟨rfl, _⟩ | hΔ
+            · exact hneq (by rfl)
+            · have h_contra : x ∈ P'_1.f ∪ 𝒢'_1.names ∪ Γ'.names ∪ Δ'.names := by
+                simp only [Finset.union_assoc, Finset.mem_union]
+                right ; right ; right ; exact Env.mem_pair_fst_in_names _ hΔ
+              exact (hx_post h_contra)
+        subst h_x_block_eq
+        have h_y_pre : y ∶ Aᗮ :: Δ ∈ 𝒢_1 |ₕ [x ∶ A :: Γ_1] |ₕ [y ∶ Aᗮ :: Δ] := by simp
+        have h_y_disj : Disjoint (Env.names (y ∶ Aᗮ :: Δ)) (l_1.f ∪ l_1.i) := by
+          simp only [Env.names_distributes]
+          rw [Finset.disjoint_union_left, Finset.disjoint_singleton_left]
+          refine ⟨hly, ?_⟩
+          simp only [Env.names_merge, Finset.disjoint_union_left] at hD
+          exact hD.2
+        obtain ⟨y_post, h_y_post_in, h_y_perm⟩ := hStep_ih h_y_pre h_y_disj
+        have h_y_block_eq : y_post = y ∶ Aᗮ :: Δ' := by
+          simp only [List.append_assoc, List.cons_append, List.nil_append, List.mem_append,
+            List.mem_cons, List.not_mem_nil, or_false] at h_y_post_in
+          have hy_in_y_post := (List.Perm.mem_iff (a := y ∶ Aᗮ) h_y_perm).mpr (by simp)
+          rcases h_y_post_in with hin | rfl | rfl
+          · have hy_in_G'_1 := HyperEnv.mem_of_mem_mem_names hy_in_y_post hin
+            have h_contra : y ∈ P'_1.f ∪ 𝒢'_1.names ∪ Γ'.names ∪ Δ'.names := by
+              simp [hy_in_G'_1]
+            exact False.elim (hy_post h_contra)
+          · exfalso
+            simp only [List.mem_cons, Prod.mk.injEq] at hy_in_y_post
+            rcases hy_in_y_post with ⟨rfl, _⟩ | hΓ
+            · exact hneq (by rfl)
+            · have h_contra : y ∈ P'_1.f ∪ 𝒢'_1.names ∪ Γ'.names ∪ Δ'.names := by
+                simp only [Finset.union_assoc, Finset.mem_union]
+                right ; right ; left ; exact Env.mem_pair_fst_in_names _ hΓ
+              exact (hy_post h_contra)
+          · rfl
+        subst h_y_block_eq
+        exact List.Perm.append
+          (List.Perm.cons_inv h_x_perm)
+          (List.Perm.cons_inv h_y_perm)
+  case perm_env ℋ Γ Γ' _ _ _ _ _ _ _ _ hP _ ih =>
+    expose_names
+    simp only [List.mem_cons] at hΓ
+    rcases hΓ with rfl | h_in_H
+    · have h_pre_in : Γ' ∈ Γ' :: ℋ := by simp
+      have hNames := Env.names_eq_of_perm hP
+      have hD_pre : Disjoint Γ'.names (l_1.f ∪ l_1.i) := by
+        rw [hNames]
+        exact hD
+      obtain ⟨Γ_post, h_post_in, h_post_perm⟩ := ih h_pre_in hD_pre
+      use Γ_post, h_post_in
+      exact h_post_perm.trans hP
+    · have h_pre_in : Γ ∈ Γ' :: ℋ := List.mem_cons_of_mem _ h_in_H
+      obtain ⟨Γ_post, h_post_in, h_post_perm⟩ := ih h_pre_in hD
+      use Γ_post, h_post_in
+  case perm_hyper =>
+    expose_names
+    obtain ⟨Γ_pre, h_pre_in, h_pre_perm⟩ := HyperEnv.Perm_mem hP1 hΓ
+    have hNames_pre := Env.names_eq_of_perm h_pre_perm
+    have hD_pre : Disjoint Γ_pre.names (l_1.f ∪ l_1.i) := by
+      rw [hNames_pre]
+      exact hD
+    obtain ⟨Γ_post, h_post_in, h_post_perm⟩ := hTS_ih h_pre_in hD_pre
+    obtain ⟨Γ_final, h_final_in, h_final_perm⟩ := HyperEnv.Perm_mem hP2.symm h_post_in
+    use Γ_final, h_final_in
+    exact h_final_perm.trans (h_post_perm.trans h_pre_perm)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 lemma TypingStepₘ_preserves_single_block {n n' : Nat} {P P' : Proc}
   {𝒢 ℋ : HyperEnv} {l : Lbl} {𝒟' : n' ⊢ P' ∷ ℋ}
   {𝒢' : HyperEnv} {Γ : Env} {A : Types} {x : FPName}
@@ -90,20 +247,26 @@ lemma TypingStepₘ_preserves_single_block {n n' : Nat} {P P' : Proc}
   case one =>
     expose_names
     have h_len := HyperEnv.Perm.length_eq hP
-    simp at h_len hxl
+    simp only [List.length_cons, List.length_nil, zero_add, List.length_append,
+      Nat.right_eq_add, List.length_eq_zero_iff, Lbl.f, fNamesAct, Lbl.i, iNamesAct,
+      Finset.union_empty, Finset.mem_singleton] at h_len hxl
     subst h_len
     rw [HyperEnv.merge_nilL] at hP
     have h_len := List.Perm.length_eq (HyperEnv.Perm_singleton_singleton.mp hP)
-    simp at h_len
+    simp only [List.length_cons, List.length_nil, zero_add, Nat.right_eq_add,
+      List.length_eq_zero_iff] at h_len
     subst h_len
     have := HyperEnv.Perm_singleton_singleton.mp hP
-    simp [HasPerm.perm] at this
+    simp only [HasPerm.perm, List.perm_singleton, List.cons.injEq,
+      Prod.mk.injEq, and_true] at this
     exfalso ; exact hxl this.1.symm
 
   case bot =>
     expose_names
     have h_len := HyperEnv.Perm.length_eq hP
-    simp at h_len hxl
+    simp only [List.length_cons, List.length_nil, zero_add, List.length_append, Nat.right_eq_add,
+      List.length_eq_zero_iff, Lbl.f, fNamesAct, Lbl.i, iNamesAct, Finset.union_empty,
+      Finset.mem_singleton] at h_len hxl
     subst h_len
     have hP' := HyperEnv.Perm_singleton_singleton.mp hP
     have hx_in_LHS : (x, A) ∈ (x_1 ∶ ⊥ :: Γ_1) := by
@@ -123,7 +286,9 @@ lemma TypingStepₘ_preserves_single_block {n n' : Nat} {P P' : Proc}
   case tensor =>
     expose_names
     have h_len := HyperEnv.Perm.length_eq hP
-    simp at h_len hxl
+    simp only [List.length_cons, List.length_nil, zero_add, List.length_append, Nat.right_eq_add,
+      List.length_eq_zero_iff, Lbl.f, fNamesAct, Lbl.i, iNamesAct, Finset.singleton_union,
+      Finset.mem_insert, Finset.mem_singleton, not_or] at h_len hxl
     subst h_len
     have hP' := HyperEnv.Perm_singleton_singleton.mp hP
     have hx_in_LHS : (x, A) ∈ x_1 ∶ A_1 ⨂ B :: Γ_1 ++ Δ := by
@@ -158,7 +323,9 @@ lemma TypingStepₘ_preserves_single_block {n n' : Nat} {P P' : Proc}
   case parr =>
     expose_names
     have h_len := HyperEnv.Perm.length_eq hP
-    simp at h_len hxl
+    simp only [List.length_cons, List.length_nil, zero_add, List.length_append, Nat.right_eq_add,
+      List.length_eq_zero_iff, Lbl.f, fNamesAct, Lbl.i, iNamesAct, Finset.singleton_union,
+      Finset.mem_insert, Finset.mem_singleton, not_or] at h_len hxl
     subst h_len
     have hP' := HyperEnv.Perm_singleton_singleton.mp hP
     have hx_in_LHS : (x, A) ∈ (x_1 ∶ A_1 ⅋ B :: Γ_1) := by
@@ -218,10 +385,146 @@ lemma TypingStepₘ_preserves_single_block {n n' : Nat} {P P' : Proc}
       rw [← HyperEnv.merge_assoc] at h_stapled
       exact h_stapled
 
-  case syn => sorry
-  case one_bot => sorry
-  case tensor_parr => sorry
-  case res => sorry
+  case syn =>
+    expose_names
+    simp only [Lbl.f, Lbl.i, Finset.notMem_union, and_assoc] at hxl h₁_ih h₂_ih
+    have h_split := HyperEnv.Perm_merge_inv_one hP
+    rcases h_split with ⟨𝒢ᵣ, hG, hJ⟩ | ⟨ℋᵣ, hH, hJ⟩
+    · obtain ⟨𝒢'_next, Γ', h_post⟩ := h₁_ih ⟨hxl.1, hxl.2.2.1⟩ hG
+      use 𝒢'_next |ₕ ℋ', Γ'
+      have h_stapled := HyperEnv.Perm.merge_right h_post ℋ'
+      have h_swapped : 𝒢'_next |ₕ [x ∶ A :: Γ'] |ₕ ℋ' ~
+        𝒢'_next |ₕ ℋ' |ₕ [x ∶ A :: Γ'] := by
+        apply HyperEnv.Perm_rotate_rhs_right
+        apply HyperEnv.Perm_merge_cancel_right_inv
+        exact HyperEnv.Perm.merge_comm
+      exact h_stapled.trans h_swapped
+    · obtain ⟨ℋ'_next, Γ', h_post⟩ := h₂_ih  ⟨hxl.2.1, hxl.2.2.2⟩ hH
+      use 𝒢'_1 |ₕ ℋ'_next, Γ'
+      have h_stapled := HyperEnv.Perm.merge_left h_post 𝒢'_1
+      rw [← HyperEnv.merge_assoc] at h_stapled
+      exact h_stapled
+
+  case one_bot =>
+    use 𝒢', Γ
+
+  case tensor_parr =>
+    use 𝒢', Γ
+    rw [← Env.merge_assoc]
+    exact hP
+
+  case res ih =>
+    expose_names
+    have h_split := HyperEnv.Perm_merge_inv_one hP
+    rcases h_split with ⟨𝒢ᵣ, hG, hJ⟩ | ⟨ℋᵣ, hH, hJ⟩
+    · have h_pre_inner : 𝒢_1 |ₕ [x_1 ∶ A_1 :: Γ_1] |ₕ [y ∶ A_1ᗮ :: Δ] ~
+        (𝒢ᵣ |ₕ [x_1 ∶ A_1 :: Γ_1] |ₕ [y ∶ A_1ᗮ :: Δ]) |ₕ [x ∶ A :: Γ] := by
+        apply HyperEnv.Perm_rotate_rhs_right
+        repeat rw [← HyperEnv.merge_assoc]
+        rw [HyperEnv.merge_assoc]
+        conv_rhs => rw [HyperEnv.merge_assoc]
+        exact HyperEnv.Perm.merge (hG.trans HyperEnv.Perm.merge_comm) (by rfl)
+      obtain ⟨𝒢'_post, Γ'_post, h_post⟩ := ih hxl h_pre_inner
+      rw [HyperEnv.merge_assoc] at h_post
+      have h_split_post := HyperEnv.Perm_merge_inv_one h_post
+      rcases h_split_post with ⟨𝒢'_1ᵣ, hG_post, hJ_post⟩ | ⟨ℋ_post, hH_post, hJ_post⟩
+      · use 𝒢'_1ᵣ |ₕ [Γ'‚ Δ'], Γ'_post
+        have h_stapled := HyperEnv.Perm.merge_right hG_post [Γ'‚ Δ']
+        have h_swapped : 𝒢'_1ᵣ |ₕ [x ∶ A :: Γ'_post] |ₕ [Γ'‚ Δ'] ~
+          𝒢'_1ᵣ |ₕ [Γ'‚ Δ'] |ₕ [x ∶ A :: Γ'_post] := by
+          apply HyperEnv.Perm_rotate_rhs_right
+          apply HyperEnv.Perm_merge_cancel_right_inv
+          exact HyperEnv.Perm.merge_comm
+        exact h_stapled.trans h_swapped
+      · exfalso
+        have hx_in_G1 : x ∈ 𝒢_1.names := by
+          have h_mem : x ∶ A :: Γ ∈ 𝒢ᵣ |ₕ [x ∶ A :: Γ] := by simp
+          obtain ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem hG h_mem
+          have h' := (List.Perm.mem_iff (a := x ∶ A) hPE).mpr (by simp)
+          exact HyperEnv.mem_of_mem_mem_names h' hE
+        have h_mem_RHS : x ∶ A :: Γ'_post ∈ ℋ_post |ₕ [x ∶ A :: Γ'_post] := by simp
+        obtain ⟨E, hE, hPE⟩ := HyperEnv.Perm_mem hH_post h_mem_RHS
+        simp only [List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil,
+          or_false] at hE
+        rcases hE with h1 | h2
+        · subst h1
+          have h_mem := (List.Perm.mem_iff (a := x ∶ A) hPE.symm).mp (by simp)
+          simp only [List.mem_cons, Prod.mk.injEq] at h_mem
+          rcases h_mem with ⟨rfl, _⟩ | h
+          · have h_contra : x ∈ P_1.f ∪ 𝒢_1.names ∪ Γ_1.names ∪ Δ.names := by
+              simp [hx_in_G1]
+            exact hx_pre h_contra
+          · obtain ⟨z, w, hz, hw, hzw⟩ := exists_two_fresh L'
+            have 𝒟zw := huniq' z hz w hw hzw
+            have ⟨hnd, hpw⟩ := Typing_preserves_linearity 𝒟zw
+            have := (HyperEnv.PairwiseDisjoint_merge.mp
+              (HyperEnv.PairwiseDisjoint_merge.mp hpw).1).2
+            simp only [HyperEnv.PairwiseDisjoint_singleton, List.mem_cons, List.not_mem_nil,
+              or_false, forall_eq, Env.names_distributes, Finset.singleton_union,
+              Finset.disjoint_insert_right, true_and] at this
+            have hx_in_Γ' := Env.mem_pair_fst_in_names _ h
+            have hin := (List.Perm.mem_iff (a := x_1 ∶ A_1) hPE).mp (by simp)
+            simp at hin
+            exfalso
+            rcases hin with ⟨rfl, _⟩| hΓ'
+            · simp only [Finset.union_assoc, Finset.mem_union, not_or] at hx_post
+              exact hx_post.2.2.1 hx_in_Γ'
+            · obtain ⟨Ξ, hΞ, hPΞ⟩ := HyperEnv.Perm_mem (Γ := x ∶ A :: Γ) hG (by simp)
+              have hNames := Env.names_eq_of_perm hPΞ
+
+              have hΞ_disj : Disjoint Ξ.names (l_1.f ∪ l_1.i) := by
+
+
+                sorry
+
+              have hx_in_Ξ : x ∈ Ξ.names := by
+                rw [hNames]
+                simp only [Env.names_distributes, Finset.singleton_union, Finset.mem_insert,
+                  Env.mem_pair_fst_in_names_iff, true_or]
+
+              have hΞ_expanded : Ξ ∈ 𝒢_1 |ₕ [x_1 ∶ A_1 :: Γ_1] |ₕ [y ∶ A_1ᗮ :: Δ] := by
+                simp only [List.append_assoc, List.cons_append, List.nil_append, List.mem_append,
+                  List.mem_cons, List.not_mem_nil, or_false]
+                left ; exact hΞ
+
+              obtain ⟨Ξ_post, hΞ_post_in, hΞ_post_perm⟩ :=
+                TypingStepₘ_preserves_block hStep hΞ_expanded hΞ_disj
+
+              have h_post_names : Ξ_post.names = Ξ.names := by
+                exact Env.names_eq_of_perm hΞ_post_perm
+
+              have hx_in_post : x ∈ Ξ_post.names := by
+                rw [h_post_names]
+                exact hx_in_Ξ
+
+              simp at hΞ_post_in
+              sorry
+              -- 6. The Final Blow! x cannot be in both our surviving block and Γ'
+              -- exact Finset.disjoint_left.mp h_disj_Γ' hx_in_post hx_in_Γ'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        · sorry
+    · sorry
+
+
+
 
   case perm_env =>
     expose_names
@@ -252,7 +555,6 @@ lemma TypingStepₘ_preserves_disjoint_or_merges {n n' : Nat} {P P' : Proc}
       List.nil_append, List.length_append, Nat.reduceAdd, Nat.right_eq_add, Nat.add_eq_zero_iff,
       List.length_eq_zero_iff, one_ne_zero, and_false] at h_len
 
-
   case par₁ =>
     expose_names
     have h_split := HyperEnv.Perm_merge_inv_two_blocks hP
@@ -277,7 +579,6 @@ lemma TypingStepₘ_preserves_disjoint_or_merges {n n' : Nat} {P P' : Proc}
         have h_stapled := HyperEnv.Perm.merge_right h_post ℋ_1
         have h_swapped := HyperEnv.Perm_pull_rhs_mid_right h_stapled
         exact h_swapped
-
     · left
       use 𝒢' |ₕ ℋᵣ, Γ, Δ
       have h_stapled := HyperEnv.Perm.merge_left hH 𝒢'
