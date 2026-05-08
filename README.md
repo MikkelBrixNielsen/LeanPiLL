@@ -13,10 +13,9 @@ This formalization follows the "Proofs as Processes" paradigm using Montesi and 
 
 # Repository Structure
 - PiLL/
-  - Model/: Contains the core definitions and syntax.
+  - Model/: Contains the core definitions, syntax and substitution proofs.
   - Semantics/: Contains the inductive step relations.
-  - SessionFidelity.lean: A proof of session fidelity.
-  - Substitution.lean: Proofs verifying Name and Type substitution.
+  - SessionFidelity/: Session fidelity proofs.
 
 # References
 [1] Fabrizio Montesi and Marco Peressotti. Linear logic, the π-calculus, and their metatheory: A recipe for proofs as processes. CoRR, abs/2106.11818, 2021.

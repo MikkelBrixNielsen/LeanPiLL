@@ -1,0 +1,820 @@
+% DOCUMENT OPTIONS -------------------------------------------------------------
+\makeatletter
+
+\newcommand*{\installoption}[2][acmart]{
+	\expandafter\newif\csname if#2\endcsname
+	\@ifclasswith{#1}{#2}{
+		\csname#2true\endcsname
+	}{}
+}
+\newcommand*{\obeyoption}[2]{
+	\csname if#2\endcsname\else\csname #1false\endcsname\fi
+}
+\newcommand*{\excludeoption}[2]{
+	\csname if#2\endcsname\csname #1false\endcsname\fi
+}
+\makeatother
+
+\installoption{highlight}
+\installoption{appendix}
+\installoption{final}
+\installoption{draft}
+\installoption{showframe}
+\obeyoption{showframe}{draft}
+
+% UTILS ------------------------------------------------------------------------
+\usepackage{aliascnt}
+\usepackage{xparse}
+%\usepackage{xpatch}
+\usepackage{etoolbox}
+%\usepackage{xspace}
+\usepackage{environ}
+%\usepackage{ragged2e}
+\usepackage{graphicx}
+
+\def\deprecated#1{\PackageWarning{preamble}{Don't use ``#1''}{}}
+
+% SPACING ----------------------------------------------------------------------
+
+%\widowpenalty10000
+%\clubpenalty10000
+
+\def\proofltsskipamount{6pt}
+\def\termltsskipamount{1\smallskipamount}
+\def\envltsskipamount{1\smallskipamount}
+\def\typerulesskipamount{1\smallskipamount}
+%\def\rulescaling{.94}
+%\newcommand\rulescalebox[2][\rulescaling]{\scalebox{#1}{$#2$}}
+\providecommand\rulescalebox[2][]{#2} % no scaling
+
+\makeatletter
+\newlength{\@parindent}
+\def\savepar{\setlength{\@parindent}{\parindent}}
+\def\restorepar{\setlength{\parindent}{\@parindent}}
+\makeatother
+
+% PAGE&FONT --------------------------------------------------------------------
+%\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage[normalem]{ulem}
+\usepackage{slantsc}
+
+\ifdefined\ifshowframe
+  \ifshowframe
+    \AtEndPreamble{%
+      \usepackage{showframe}%
+      \renewcommand*\ShowFrameColor{\color{black!50}}
+      \renewcommand*\ShowFrameLinethickness{.5pt}
+    }
+  \fi
+\fi
+
+\newcommand\hmmax{0}
+\newcommand\bmmax{0}
+
+% COLOURS ----------------------------------------------------------------------
+\usepackage{xcolor}
+
+\colorlet{type}{blue!60!black}
+\colorlet{process}{red!60!black}
+\definecolor{light-gray}{gray}{0.8}
+
+\colorlet{textcolor}{.}
+\newcommand\usecolor[2]{\begingroup%
+	\colorlet{uc@saved}{.}
+	\color{#1}#2\color{uc@saved}
+\endgroup}
+\newcommand\cboxed[2]{\begingroup%
+  \colorlet{cb@saved}{.}%
+  \color{#1}%
+  \boxed{\color{cb@saved}#2}%
+\endgroup}
+
+% TIKZ -------------------------------------------------------------------------
+\usepackage{tikz}
+\usepackage{hf-tikz} % highlighting boxes and annotations
+\usetikzlibrary{calc}
+\usetikzlibrary{arrows,matrix,positioning,scopes}
+
+% BABEL ------------------------------------------------------------------------
+\usepackage[british]{babel}
+\usepackage[all]{foreign}
+\renewcommand\foreignabbrfont{}
+\renewcommand\foreignfullfont{}
+%\defnotforeign[aka]{{aka}}
+\defnotforeign[wrt]{{wrt}}
+\defnotforeign[wl]{{wlog}}
+%\defasforeign[etsimilia]{et similia}
+%\defasforeign[perse]{per se}
+%\defasforeign[perdefinitionem]{per definitionem}
+%\defasforeign[perdef]{\xperiodafter{per def}}
+
+%\hyphenation{}
+
+% MATH -------------------------------------------------------------------------
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+% \usepackage{amssymb}
+\usepackage{stmaryrd}
+\SetSymbolFont{stmry}{bold}{U}{stmry}{m}{n}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{centernot}
+\usepackage{scalerel}
+
+%\makeatletter
+%\newcommand{\leqnomode}{\tagsleft@true}
+%\newcommand{\reqnomode}{\tagsleft@false}
+%\makeatother
+
+\makeatletter
+\newcommand{\pushright}[1]{\ifmeasuring@#1\else\omit\hfill$\displaystyle#1$\fi\ignorespaces}
+\newcommand{\pushleft}[1]{\ifmeasuring@#1\else\omit$\displaystyle#1$\hfill\fi\ignorespaces}
+\newcommand{\specialcell}[1]{\ifmeasuring@#1\else\omit$\displaystyle#1$\ignorespaces\fi}
+\makeatother
+
+\allowdisplaybreaks
+
+%% extensible rightarrowtriangle
+\makeatletter
+\@ifundefined{minaw@}{\newdimen\minaw@}{}
+\def\rightarrowtrianglefill@#1{\m@th\setboxz@h{$#1\relbar$}\ht\z@\z@
+  $#1\copy\z@\mkern-6mu\cleaders
+  \hbox{$#1\mkern-2mu\box\z@\mkern-2mu$}\hfill
+  \mkern-6mu\mathord{\smash\rightarrowtriangle\vphantom{\rightarrow}}$}
+\newcommand{\xrightarrowtriangle}[2][]{%
+  \mathrel{\mathop{%
+    \setbox\z@\vbox{\m@th
+      \hbox{$\scriptstyle\;{#1}\;\;\,$}%
+      \hbox{$\m@th\scriptstyle\;{#2}\;\;\,$}%
+    }%
+    \hbox to\ifdim\wd\z@>\minaw@\wd\z@\else\minaw@\fi{%
+      \rightarrowtrianglefill@\displaystyle}}%
+  \limits^{#2}\@ifnotempty{#1}{_{#1}}}%
+}
+% FIX \xRightarrow text padding
+\renewcommand{\xRightarrow}[2][]{\ext@arrow 0359\Rightarrowfill@{#1}{#2}}
+\makeatother
+
+% load arrows with stealth heads from mathabx
+%\DeclareFontFamily{U}{matha}{\hyphenchar\font45}
+%\DeclareFontShape{U}{matha}{m}{n}{
+%     <5> <6> <7> <8> <9> <10> gen * matha
+%     <10.95> matha10 <12> <14.4> <17.28> <20.74> <24.88> matha12
+%     }{}
+%\DeclareSymbolFont{matha}{U}{matha}{m}{n}
+%\DeclareMathSymbol{\varleftarrow}{3}{matha}{"D0}
+%\DeclareMathSymbol{\varrightarrow}{3}{matha}{"D1}
+%\DeclareMathSymbol{\varleftrightarrow}{3}{matha}{"D8}
+
+\def\lclens{{[\llap(}}
+\def\rclens{{\rlap)]}}
+
+%% load \lBrace, \rBrace from stix
+%\DeclareFontEncoding{LS2}{}{\noaccents@}
+%\DeclareFontSubstitution{LS2}{stix}{m}{n}
+%\DeclareSymbolFont{stix@largesymbols}{LS2}{stixex}{m}{n}
+%\SetSymbolFont{stix@largesymbols}{bold}{LS2}{stixex}{b}{n}
+%\DeclareMathDelimiter{\lBrace}{\mathopen} {stix@largesymbols}{"E8}%
+%                                          {stix@largesymbols}{"0E}
+%\DeclareMathDelimiter{\rBrace}{\mathclose}{stix@largesymbols}{"E9}%
+%                                          {stix@largesymbols}{"0F}
+
+\makeatletter
+\newcommand{\raisemath}[1]{\mathpalette{\raisem@th{#1}}}
+\newcommand{\raisem@th}[3]{\raisebox{#1}{$#2#3$}}
+\makeatother
+
+
+
+% TABULARS ---------------------------------------------------------------------
+\usepackage{array}
+%\usepackage{xtab}
+%\xentrystretch{-0.2}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{multicol}
+%\usepackage{colortbl}
+%\usepackage{arydshln}
+
+\makeatletter
+\def\crulefill#1{\leavevmode\leaders\hrule\@height#1 height 0.7ex depth \dimexpr0.4pt-0.7ex\hfill\kern0pt}
+\makeatother
+
+%\def\cdashfill{\leavevmode\cleaders\hbox{--}\hfill\kern0pt}
+
+\def\headertext#1{
+	\vspace{2pt}
+	\crulefill{\lightrulewidth}\ \textsf{\small \emph{#1}}\ \crulefill{\lightrulewidth}
+  \\[-2.7ex]%
+% 	\rule[-1ex]{\textwidth}{\heavyrulewidth}%
+% 	\vspace{-1.6\smallskipamount}%
+}
+
+\def\header{
+ 	\vspace{-1.6\smallskipamount}%
+ 	\rule[1\abovedisplayskip]{\textwidth}{\heavyrulewidth}%
+}
+
+\newcommand*{\footer}[1][1.6\belowdisplayskip]{%
+	\rule[#1]{\textwidth}{\lightrulewidth}%
+	\vspace{-1.6\smallskipamount}%
+}
+
+% FLOATS -----------------------------------------------------------------------
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{wrapfig}
+
+% ENUMS ------------------------------------------------------------------------
+\usepackage[inline]{enumitem}
+
+% CROSS REFS -------------------------------------------------------------------
+\usepackage{nameref}
+
+\usepackage[capitalise,nameinlink,noabbrev]{cleveref}
+ % extend cref with custom labels
+\makeatletter
+% #1 number (used sorting and intervals by cref); 
+% #2 type;  (used by cref for name and format)
+% #3 label; 
+% #4 tag
+\newcommand{\customlabel}[4][0]{%
+	\protected@write\@auxout{}{\string\newlabel{#3}{{#4}{\thepage}{#4}{#3}{}}}%
+	\protected@write\@auxout{}{\string\newlabel{#3@cref}{{[#2][#1][#1]#4}{\thepage}{}{}{}}}%
+}
+\newcommand{\phantomlabel}[4][0]{%
+	\customlabel[#1]{#2}{#3}{#4}%
+	\hypertarget{#3}{}%
+}
+\newcommand{\labelalias}[4][0]{
+	\customlabel[#1]{#2}{#3}{#4}%
+}
+\newcommand{\crefv}[1]{%
+	\begingroup\@cref@compressfalse\@cref@sortfalse\cref{#1}\endgroup%
+}
+\newcommand{\Crefv}[1]{%
+	\begingroup\@cref@compressfalse\@cref@sortfalse\Cref{#1}\endgroup%
+}
+\newcommand{\crefabbrev}[1]{%
+	\begingroup\@cref@abbrevtrue\cref{#1}\endgroup%
+}
+\makeatother
+
+\AtEndPreamble{\hypersetup{
+%	hidelinks,
+	final,
+}}
+
+% RULES & DERIVATIONS ----------------------------------------------------------
+
+\usepackage{proof-dashed}
+
+% internal counter for ordering rules in \cref by order of definition
+\newcounter{rule}
+
+% rule names
+\newcommand{\rname}[1]{\ensuremath{\textsc{\MakeLowercase{#1}}}}
+% rule labels
+% #1 tag; #2 label
+\newcommand{\rlabel}[2]{{%
+	\refstepcounter{rule}
+	\customlabel[\therule]{infrule}{#2}{#1}%
+	\hypertarget{#2}{#1}}}
+% cref support
+\crefname{infrule}{rule}{rules}
+\Crefname{infrule}{Rule}{Rules}
+%\creflabelformat{infrule}{#2\textup{(#1)}#3}
+
+% marking old rules
+\newcommand{\rrelabel}[2]{\rlabel{\ref*{#1}}{#2}}
+% forward a label
+% #1 target label (existing)
+% #2 alias label  (new)
+\newcommand{\rlabelfwd}[2]{
+	\refstepcounter{rule}
+	\customlabel[\therule]{infrule}{#2}{\ref*{#1}}%
+}
+
+% example:
+% \infer
+%   [\rlabel{\rname{Awesome!}}{rule:awesome}]
+%   {conclusion}
+%   {premises}
+% \cref{rule:awesome} -> Rule Awesome!
+
+% THEOREMS ET SIMILIA ----------------------------------------------------------
+
+% restatable theorems
+\usepackage{thmtools}
+\usepackage{thm-restate}
+
+\AtEndPreamble{
+	\theoremstyle{acmplain}
+	%\newtheorem{theorem}{Theorem}
+	%\newtheorem{corollary}[theorem]{Corollary}
+	%\newtheorem{proposition}[theorem]{Proposition}
+	%\newtheorem{lemma}[theorem]{Lemma}
+  \newtheorem{exercise}[theorem]{Exercise}
+	\newtheorem{fact}[theorem]{Fact}
+	\theoremstyle{acmdefinition}
+	%\newtheorem{definition}[theorem]{Definition}
+	%\newtheorem{assumption}[definition]{Assumption}
+	%\newtheorem{convention}[definition]{Convention}
+	%\newtheorem*{notation}{Notation}
+	\newtheorem{remark}[theorem]{Remark}
+}
+
+\crefname{fact}{Fact}{Facts}
+\Crefname{fact}{Fact}{Facts}
+
+\crefname{proof}{proof of}{proofs of}
+\Crefname{proof}{Proof of}{Proofs of}
+
+% #1 theorem; #2 label
+\newcommand{\prooflabel}[2]{{%
+	\customlabel{proof}{#2}{\cref*{#1}}%
+	\hypertarget{#2}{}}}
+
+% Biblio -----------------------------------------------------------------------
+\bibliographystyle{ACM-Reference-Format}
+\citestyle{acmauthoryear}
+
+% REVISION ---------------------------------------------------------------------
+\usepackage[
+	disable,     % hide all todos
+%	obeyDraft,   % show todos only in draft mode
+	obeyFinal,   % hide todos if in final mode
+	textsize=tiny,
+	colorinlistoftodos,
+	prependcaption
+]{todonotes}
+%\newcommand{\unsure}[2][]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
+%\newcommand{\change}[2][]{\todo[linecolor=blue,backgroundcolor=blue!25,bordercolor=blue,#1]{#2}}
+%\newcommand{\info}[2][]{\todo[linecolor=cyan,backgroundcolor=cyan!25,bordercolor=cyan,#1]{#2}}
+%\newcommand{\improvement}[2][]{\todo[linecolor=green,backgroundcolor=green!25,bordercolor=green,#1]{#2}}
+\usepackage{verbatim}
+
+% MACROS -----------------------------------------------------------------------
+
+%- acronyms --------------------------------------
+\makeatletter
+\def\new@acronym#1#2{%
+  \expandafter\def\csname#1@acr\endcsname{\text{\upshape #2}\xspace}%
+  \expandafter\def\csname#1\endcsname{{\upshape #2}\xspace}}
+\def\new@acronymexp#1#2{\expandafter\def\csname#1@exp\endcsname{{#2}}}
+\NewDocumentCommand{\newacronym}{o m o}{%
+	\IfNoValueTF{#1}{\def\n{#2}}{\def\n{#1}}
+  \new@acronym{\n}{#2}
+  \IfNoValueF{#3}{\new@acronymexp{\n}{#3}}
+}
+\def\acronym#1{\csname#1@acr\endcsname}
+\def\expandacronym#1{\csname#1@exp\endcsname}
+\makeatother
+
+\newacronym{CP}[Classical Processes]
+\newacronym{MCP}[Multiplicative Classical Processes]
+\newacronym[CPZero]{CP\textsubscript{0}}[Non-Polymorphic Classical Processes]
+\newacronym{CHOP}[Classical Higher-Order Processes]
+\newacronym{HCP}[Hypersequent Classical Processes]
+\newacronym{DHCP}[Hypersequent Classical Processes with Delayed Actions]
+\newacronym[HOpi]{HO$\pi$}[Higher-Order $\pi$-calculus]
+\newacronym{CLL}[Classical Linear Logic]
+\newacronym{MCLL}[Multiplicative Classical Linear Logic]
+\newacronym[CLLZero]{CLL\textsubscript{0}}[Quantifier-free Classical Linear Logic]
+\newacronym[CLLZeroOne]{CLL\textsubscript{01}}[Classical Linear Logic with first-order quantifiers]
+\newacronym{ILL}[Intuitionistic Linear Logic]
+\newacronym[lts]{lts}[labelled transition system]
+\newacronym[pill]{$\pi$LL\xspace}
+\newacronym[hopill]{HO$\pi$LL\xspace}[Higher-Order \pill]
+\newacronym[polypill]{Poly$\pi$LL\xspace}[Polymorphic \pill]
+\newacronym[pimll]{$\pi$MLL\xspace}[Multiplicative \pill]
+%\newacronym[pimell]{$\pi$MELL\xspace}
+%\newacronym[pimall]{$\pi$MALL\xspace}
+\newacronym[repill]{Re$\pi$LL\xspace}[\pill with Recursion]
+
+%- operators -------------------------------------
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\cod}{cod}
+\DeclareMathOperator{\img}{img} % image
+\DeclareMathOperator{\pre}{pre} % preimage
+
+\DeclareMathOperator{\prfhyp}{hyp}
+\DeclareMathOperator{\prfproc}{proc}
+\DeclareMathOperator{\cn}{n} % channel names (free + bound)
+\DeclareMathOperator{\fn}{fn} % free names
+\DeclareMathOperator{\bn}{bn} % bound names
+\DeclareMathOperator{\pv}{p} % process variables
+\DeclareMathOperator{\fp}{fp} % free process variables
+\DeclareMathOperator{\bp}{bp} % bound process variables
+\DeclareMathOperator{\ft}{ft} % free type variables
+\DeclareMathOperator{\bt}{bt} % bound type variables
+\DeclareMathOperator{\fs}{f} % free symbols (names+vars)
+\DeclareMathOperator{\bs}{b} % bound symbols
+\DeclareMathOperator{\is}{i} % introduced symbols
+
+
+\makeatletter
+\DeclareMathOperator{\bigtensor}{{\textstyle\bigotimes}}
+\DeclareMathOperator{\bigparr}{\scalerel*{\parr}{\bigtensor}}
+\makeatother
+
+\makeatletter
+\newcommand{\enc}{\@ifstar{\enc@}{\enc@@}}
+\def\enc@#1{\left\llbracket \mkern-7mu\array{c}#1\endarray\mkern-7mu \right\rrbracket}
+\def\enc@@#1{\llbracket#1\rrbracket}
+\makeatother
+
+\DeclareMathOperator{\disenop}{dis}  % disentanglement
+\DeclareMathOperator{\packop}{pack}  % packing
+\DeclareMathOperator{\unpackop}{unpack}
+
+\newcommand{\disen}[1]{\disenop(#1)}
+\newcommand{\pack}[3][]{\packop^{#1}_{#2}(#3)}
+\newcommand{\unpack}[3][]{\unpackop^{#1}_{#2}(#3)}
+
+\def\ppcount#1{\left\|#1\right\|} % num of parallel components 
+%\def\ppdrop#1#2{\mathrm{drop}_{#1}(#2)}
+%\def\ppkeep#1#2{\mathrm{keep}_{#1}(#2)}
+\def\ppdrop#1#2{\left\lceil#2\right\rceil_{#1}}
+\def\ppkeep#1#2{\left\lfloor#2\right\rfloor^{#1}}
+
+%- relations -------------------------------------
+
+% calligraphic letters for relations
+\def\crel#1{\mathrel{\mathcal{#1}}}
+
+% first and second projections
+\def\fst{\mathop{\mathit{fst}}}
+\def\snd{\mathop{\mathit{snd}}}
+
+% disjointness
+\def\disjoint{\mathrel{\#}}
+
+% definitions
+\let\defeq\triangleq
+\edef\defiff{\stackrel{\triangle}{\iff}}
+
+% alpha eq
+\edef\aleq{\mathbin{=_{\alpha}}}
+% structural congruence
+\let\congr\equiv
+% type equivalence
+\def\tyeq{\mathrel{\dashv\vdash}}
+% bisimulation, strong bis, barbed cong, forward congruence
+\let\bis\approx
+\let\sbis\sim
+\let\bcong\approxeq
+% denotational equivalence
+\let\deneq\bumpeq
+% strong similarity
+\def\ssimby{\lesssim}
+\def\ssims{\gtrsim}
+% (weak) similarity
+\def\simby{\lessapprox}
+\def\sims{\gtrapprox}
+
+% reductions
+\let\reducesto\rightarrow
+\def\breducesto{\mathbin{{\rightarrow}_\beta}}
+\def\kreducesto{\mathbin{{\rightarrow}_\kappa}}
+
+% lts arrows
+\makeatletter
+\def\lto#1{\xrightarrow{\lbox{#1}}} % labelled transitions
+\def\slto#1{\xRightarrow{\lbox{#1}}} % saturated ones
+\def\notlto#1{\centernot{\xrightarrow{\lbox{#1}}}}
+\def\notslto#1{\centernot{\xRightarrow{\lbox{#1}}}}
+% minimum width for labels
+\newcommand\lbox[2][.8em]{
+	\sbox0{$\scriptstyle #2$}
+	\ifdim \wd0 < #1%
+		\mathmakebox[#1]{\usebox0}%
+	\else%
+		\mathmakebox[\wd0]{\usebox0}%
+	\fi%
+}
+
+% labelled transitions between proofs.
+% * vertical layout; #1 source; #2 label; #3 target.
+\newcommand{\plto}{%
+	\@ifstar{\plto@v\downarrow}{\plto@h\lto}%
+}
+% saturated labelled transitions between proofs.
+\newcommand{\pslto}{%
+	\@ifstar{\plto@v\Downarrow}{\plto@h\slto}%
+}
+\def\pboxcolor{black!10}
+\def\pbox#1{\cboxed{\pboxcolor}{\mspace{-10mu}\array{c}#1\endarray\mspace{-10mu}}}
+\let\plto@b\pbox
+% #1 arrow; #2 source; #3 label; #4 target.
+\def\plto@h#1#2#3#4{%
+	\plto@b{#2}%
+	#1{#3}%
+	\plto@b{#4}%
+}
+\def\plto@v#1#2#3#4{%
+	\array[b]{l}%
+		\plto@b{#2}%
+		\\%
+		\quad%
+		\cboxed{white}{\scriptstyle\left#1\cboxed{white}{\scriptstyle#3}\right.}\\%
+		\plto@b{#4}%
+	\endarray%
+}
+\newcommand{\notplto}[2]{%
+	\plto@b{#1} \notlto{#2}%
+}
+\def\pvlto#1{\quad\cboxed{white}{\scriptstyle\left\plto@v\downarrow\cboxed{white}{\scriptstyle#1}\right.}}%
+\def\pvlto#1{\quad\cboxed{white}{\scriptstyle\left\plto@v\Downarrow\cboxed{white}{\scriptstyle#1}\right.}}%
+\makeatother
+
+\newenvironment{drules}
+  {\highlight\small\spreadlines{\proofltsskipamount}\csname gather*\endcsname}
+  {\csname endgather*\endcsname\endspreadlines\endhighlight}
+
+% TODO: add parenthesis like in eqref
+\crefname{ltstrace}{execution}{executions}
+\Crefname{ltstrace}{Execution}{Executions}
+\crefalias{equation}{ltstrace}
+
+%- preds -----------------------------------------
+
+\def\terminates{{\downharpoonright}}
+\def\diverges{{\upharpoonright}}
+\def\mayterminate{{\Downharpoonright}}
+\def\maydiverge{{\Upharpoonright}}
+
+%- languages -------------------------------------
+
+% highlighting for processes and types/propositions
+% 	enabled in environment highlight or \hl
+% 	globally governed by the option highlight
+\def\phl#1{#1}% process highlight
+\def\thl#1{#1}% type highlight
+\def\nohl#1{#1}% no highlight
+\newcommand{\hl}[1]{\highlight#1\endhighlight}
+\ifhighlight
+\newenvironment{highlight}
+	{\ignorespaces%
+	 \def\phl##1{\usecolor{process}{##1}}%
+	 \def\thl##1{\usecolor{type}{##1}}%
+	 \def\nohl##1{\usecolor{textcolor}{##1}}}%
+	{\def\phl##1{##1}%
+   \def\thl##1{##1}%
+   \def\nohl##1{##1}%
+	 \ignorespacesafterend}
+\else
+\newenvironment{highlight}{\ignorespaces}{\ignorespacesafterend}
+\fi
+
+\newenvironment{bnftable}[3][\phl]
+{\highlight%
+\setlength\LTleft{0pt}%
+\setlength\LTright{0pt}%
+\sbox0{$#2$}%
+\sbox1{$#3$}%
+\longtable{%
+  >{\raggedleft$}m{\wd0}<{$}%
+  >{\raggedright$#1\begingroup}m{\wd1}<{\endgroup$}%
+  >{\it}l<{}}}
+{\endlongtable\endhighlight}
+
+\newenvironment{bnftable2col}[4][\phl]
+{\highlight%
+\setlength\LTleft{0pt}%
+\setlength\LTright{0pt}%
+\sbox0{$#2$}%
+\sbox1{$#3$}%
+\sbox2{$#4$}%
+\longtable{%
+  >{\raggedleft$}m{\wd0}<{$}%
+  >{\raggedright$#1\begingroup}m{\wd1}<{\endgroup$}%
+  >{\it}l<{}
+	>{$}r<{$}%
+  >{\raggedright$#1\begingroup}m{\wd2}<{\endgroup$}%
+  >{\it}l<{}}}
+{\endlongtable\endhighlight}
+
+\newenvironment{bnftable2}[4][\phl]
+{\highlight%
+\setlength\LTleft{0pt}%
+\setlength\LTright{0pt}%
+\sbox0{$#2$}%
+\sbox1{$#3$}%
+\sbox2{#4}%
+\longtable{%
+  >{\raggedleft$}m{\wd0}<{$}%
+  >{\raggedright$#1\begingroup}m{\wd1}<{\endgroup$}%
+  >{\it}l<{}@{\extracolsep{\fill}}%
+  >{\hfill\it}m{\wd2}<{}}}
+{\endlongtable\endhighlight}
+%	{\vskip\abovedisplayskip\rmfamily\flushleft\highlight%
+%	  \sbox0{$#2$}%
+%	  \sbox1{$#3$}%
+% 	  \sbox2{#4}%
+%%	  \xentrystretch{-0.1}%
+%	  \begin{xtabular*}{\textwidth}{%
+%	      >{\raggedleft$}m{\wd0}<{$}%
+%	      >{\raggedright$#1\begingroup}m{\wd1}<{\endgroup$}%
+%	      >{\it}l<{}@{\extracolsep{\fill}}
+%	      >{\hfill\it}m{\wd2}<{}}}
+%	{\end{xtabular*}\endhighlight\endflushleft\vskip\belowdisplayskip}
+
+%\newenvironment{bnftable}[3][\phl]
+%	{\vskip\abovedisplayskip\rmfamily\flushleft\highlight%
+%	  \sbox0{$#2$}%
+%	  \sbox1{$#3$}%
+%%	  \xentrystretch{-0.1}%
+%	  \begin{xtabular*}{\textwidth}{%
+%	      >{\raggedleft$}m{\wd0}<{$}%
+%	      >{\raggedright$#1\begingroup}m{\wd1}<{\endgroup$}%
+%	      >{\it}l<{}}}
+%	{\end{xtabular*}\endhighlight\endflushleft\vskip\belowdisplayskip}
+%
+%\newenvironment{bnftable2}[4][\phl]
+%	{\vskip\abovedisplayskip\rmfamily\flushleft\highlight%
+%	  \sbox0{$#2$}%
+%	  \sbox1{$#3$}%
+% 	  \sbox2{#4}%
+%%	  \xentrystretch{-0.1}%
+%	  \begin{xtabular*}{\textwidth}{%
+%	      >{\raggedleft$}m{\wd0}<{$}%
+%	      >{\raggedright$#1\begingroup}m{\wd1}<{\endgroup$}%
+%	      >{\it}l<{}@{\extracolsep{\fill}}
+%	      >{\hfill\it}m{\wd2}<{}}}
+%	{\end{xtabular*}\endhighlight\endflushleft\vskip\belowdisplayskip}
+
+%- types and environments ------------------------
+
+\newcommand*{\bang}{\mathord{!}}
+\newcommand*{\query}{\mathord{?}}
+\newcommand*{\tensor}{\otimes}
+\newcommand*{\parr}{\mathbin{\bindnasrepma}}
+\newcommand*{\with}{\mathbin{\binampersand}}
+\newcommand*{\one}{1}
+\newcommand*{\zero}{0}
+\newcommand*{\dual}[1]{#1^{\bot}}
+\newcommand{\provide}[1]{{[#1]}}
+\newcommand{\assume}[1]{{\langle #1 \rangle}}
+
+\newcommand*{\cht}[2]{\phl{#1}\nohl{\colon}\mspace{-2mu}\thl{#2}} % channel type #1 : #2
+\newcommand*{\pvt}[2]{\phl{#1}\nohl{\colon}\mspace{-2mu}\thl{#2}} % process variable type #1 : #2
+\newcommand*{\emptyseq}{\bullet}
+\newcommand*{\emptyhyp}{\varnothing}
+\newcommand*{\emptyho}{\cdot}
+\newcommand*{\hyp}[1]{\mathcal{#1}}
+%\newcommand*{\ecx}[1]{\mathcal{#1}}
+
+\let\seq\vdash
+\newcommand*{\der}[1]{\ensuremath{\mathcal{#1}}}
+\let\prf\der
+\def\ccolon{\mathrel{:\mspace{-1mu}:}}
+\newcommand{\judge}[4][]{{{}\thl{#2} \nohl{\seq_{\thl{#1}}} \phl{#3} \nohl{\ccolon} \thl{#4}}}
+\newcommand{\cpjudge}[2]{{{}\nohl{\seq_{\text{\tiny\CP}}} \phl{#1} \nohl{\ccolon} \thl{#2}}}
+
+\def\tw{\mathop{\mathrm{u}}}
+\def\twstrip#1{\llparenthesis#1\rrparenthesis}
+\newcommand{\twjudge}[4]{{\thl{#2} \nohl{\seq^{#1}} \phl{#3} \nohl{\ccolon} \thl{#4}}}
+
+\def\twrname#1{{#1\textsuperscript{\tiny$\tw$}}} % \rname for potential
+\def\cprname#1{{#1\textsuperscript{\tiny\CP}}} % \rname for CP
+
+\def\DerSet{\mathit{Der}} % set of all typing derivations 
+\def\EnvSet{\mathit{Env}} % set of all typing environments
+\def\env{\mathit{env}} % project derivations to environments
+
+\newcommand{\hoenv}[2]{{\langle\thl{#1};\thl{#2}\rangle}}
+
+%- processes -------------------------------------
+\newcommand*{\prc}[1]{\mathit{#1}}
+%- messages
+\newcommand*{\msg}[1]{\ensuremath{\text{\upshape\scshape{\MakeLowercase{#1}}}}}
+\newcommand*{\minl} {\msg{l}}
+\newcommand*{\minr} {\msg{r}}
+\newcommand*{\muse} {\msg{use}}
+\newcommand*{\mdisp}{\msg{disp}}
+\newcommand*{\mdup} {\msg{dup}}
+%- prefixes
+\newcommand*{\asend}[2]{{#1[#2]}}
+\newcommand*{\arecv}[2]{{#1(#2)}}
+\newcommand*{\aclose}[1]{\asend{#1}{}}
+\newcommand*{\await}[1] {\arecv{#1}{}}
+\newcommand*{\ainl}[1]{\asend{#1}{\minl}}
+\newcommand*{\ainr}[1]{\asend{#1}{\minr}}
+\let\asendtype\asend
+\let\arecvtype\arecv
+\newcommand*{\aclientuse}[1] {\asend{#1}{\muse}}
+\newcommand*{\aclientdisp}[1]{\asend{#1}{\mdisp}}
+\newcommand*{\aclientdup}[2]{\asend{#1}{\mdup}(#2)}
+\newcommand*{\forwardop}{{\leftrightarrow}}
+\newcommand*{\aforward}[3][]{{#2 \forwardop^{#1} #3}}
+\let\asendho\asend
+\let\arecvho\arecv
+\newcommand{\asendfree}[2]{#1 \langle #2 \rangle}
+%- processes
+\newcommand{\nil}{\mathbf{0}}
+\let\forward\aforward
+\newcommand*{\pp}{\mathbin{\boldsymbol{|}}}
+\newcommand*{\resop}{\mathop{\boldsymbol{\nu}}}
+\newcommand*{\res}[2]{{\boldsymbol{\nu}{#1}\mspace{2mu}}{#2}}
+\newcommand*{\prefixed}[2]{{#1{.}#2}}
+\newcommand*{\send}[3]{\prefixed{\asend{#1}{#2}}{#3}}
+\newcommand*{\recv}[3]{\prefixed{\arecv{#1}{#2}}{#3}}
+\newcommand*{\close}[2]{\prefixed{\aclose{#1}}{#2}}
+\newcommand*{\wait}[2]{\prefixed{\await{#1}}{#2}}
+\newcommand*{\inl}[2]{\prefixed{\ainl{#1}}{#2}}
+\newcommand*{\inr}[2]{\prefixed{\ainr{#1}}{#2}}
+\def\achoice#1{{#1}.\mathsf{case}}
+\NewDocumentCommand{\choice}{s m m m}{
+	\IfBooleanTF{#1}
+	{\achoice{#2}\mspace{-2mu}\left\{\mspace{-10mu}\array{rl}%
+		\minl\colon&\mspace{-15mu}#3\\%
+		\minr\colon&\mspace{-15mu}#4%
+	\endarray\mspace{-8mu}\right\}}%
+	{\achoice{#2}\mspace{-2mu}\left\{%
+		\minl\colon\mspace{-4mu}#3,%
+		\minr\colon\mspace{-4mu}#4\right\}}}
+\NewDocumentCommand{\choicebit}{s m m m}{
+	\IfBooleanTF{#1}
+	{\achoice{#2}\left\{\mspace{-10mu}\array{rl}%
+		0\mapsto&\mspace{-15mu}#3\\%
+		1\mapsto&\mspace{-15mu}#4%
+	\endarray\mspace{-8mu}\right\}}%
+	{\achoice{#2}\left\{%
+		0\mapsto\mspace{-4mu}#3,%
+1\mapsto\mspace{-4mu}#4\right\}}}
+\newcommand*{\sendtype}[3]{\prefixed{\asendtype{#1}{#2}}{#3}}
+\newcommand*{\recvtype}[3]{\prefixed{\arecvtype{#1}{#2}}{#3}}
+\newcommand*{\clientdisp}[2]{\prefixed{\aclientdisp{#1}}{#2}}
+\newcommand*{\clientuse}[2]{\prefixed{\aclientuse{#1}}{#2}}
+\newcommand*{\clientdup}[3]{\prefixed{\aclientdup{#1}{#2}}{#3}}
+% \newcommand*{\serverOld}[2]{{\fboxsep=0pt\colorbox{yellow}{\ensuremath{\serverNoDep{#1}{#2}}}}}
+\newcommand*{\serverNoDep}[2]{{\mathsf{!}#1}.\mspace{-2mu}\left\{{#2}\right\}}
+\newcommand*{\server}[3]{{\mathsf{!}#1}{\langle{#2}\rangle}.\mspace{-2mu}\left\{{#3}\right\}}
+
+\newcommand*{\chopop}[2]{{[#1\,{\coloneqq}\,#2]}}
+\newcommand*{\chop}[3]{{{#3}\chopop{#1}{#2}}}
+\newcommand*{\sendho}[3]{\prefixed{\asendho{#1}{#2}}{#3}}
+\newcommand*{\recvho}[3]{\prefixed{\arecvho{#1}{#2}}{#3}}
+\newcommand*{\invoke}[3][]{{#2} \langle #3 \rangle}
+\newcommand*{\abstr}[2]{(#1)#2}
+\makeatletter
+\newcommand{\pabstr}{\@ifstar{\pabstr@}{\pabstr@@}}
+\newcommand*{\pabstr@}[2]{(#1)\cboxed{black!20}{%
+  \let\@ots\inferTabSkip%
+  \def\inferTabSkip{\hspace{1.4ex}}%
+  \scriptstyle#2}}
+\newcommand*{\pabstr@@}[4]{\pabstr@{#1}{\judge{#2}{#3}{#4#1}}}
+\makeatother
+\newcommand{\sendfree}[3]{\prefixed{\asendfree{#1}{#2}}{#3}}
+
+\NewDocumentCommand{\hole}{o}{\IfNoValueTF{#1}{\Box}{\boxed{#1}}}
+\let\ctx\mathbb
+
+\def\ProcSet{\mathit{Proc}} % set of all processes
+\def\proc{\mathit{proc}} % project derivations to processes
+
+%- labels ----------------------------------------
+
+\def\ActSet{\mathit{Act}} % set of action labels
+\def\LblSet{\mathit{Lbl}} % set of all labels
+
+%\newcommand{\co}[1]{\overline{#1}}
+
+\newcommand*{\lsync}[2]{{#1{\pp}#2}}
+\newcommand*{\lforward}[2]{{\aforward{#1}{#2}}}
+\newcommand*{\lsend}[2]{{\asend{#1}{#2}}}
+\newcommand*{\lrecv}[2]{{\arecv{#1}{#2}}}
+\newcommand*{\lclose}[1]{{\aclose{#1}}}
+\newcommand*{\lwait}[1]{{\await{#1}}}
+\newcommand*{\lsendtype}[2]{{\asendtype{#1}{#2}}}
+\newcommand*{\lrecvtype}[2]{{\arecvtype{#1}{#2}}}
+\newcommand*{\linl}[1]   {{\ainl{#1}}}
+\newcommand*{\lcoinl}[1] {{\lrecv{#1}{\minl}}}
+\newcommand*{\linr}[1]   {{\ainr{#1}}}
+\newcommand*{\lcoinr}[1] {{\lrecv{#1}{\minr}}}
+\newcommand*{\luse}[1]   {{\aclientuse{#1}}}
+\newcommand*{\lcouse}[1] {{\lrecv{#1}{\muse}}}
+\newcommand*{\ldup}[1]   {{\lsend{#1}{\mdup}}}
+\newcommand*{\lcodup}[1] {{\lrecv{#1}{\mdup}}}
+\newcommand*{\ldisp}[1]  {{\lsend{#1}{\mdisp}}}
+\newcommand*{\lcodisp}[1]{{\lrecv{#1}{\mdisp}}}
+\newcommand*{\lsendho}[2]{{\asendho{#1}{#2}}}
+\newcommand*{\lrecvho}[2]{{\arecvho{#1}{#2}}}
+
+\newcommand*{\lsubst}[3][]{\chopop{{#2}}{#3}}
+\newcommand*{\lchop}[2]{{#1\nohl{\seq\ccolon}#2}}
+
+\def\plbl#1#2{#1} % used in HCP papers (deprecated)
+%\let\alignatthis\relax % a little hack inject & in \plbl
+%\newcommand{\plbl}[2]{\phl{#1}\colon\mspace{-2mu}\thl{#2}}
+
+% categories and functors
+\def\Set{\mathsf{Set}}
+\def\pw{\mathcal{P}}
+\def\lb{\mathcal{L}}
+
+\newcommand{\newtext}[1]{{\color{blue} #1}}

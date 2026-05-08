@@ -1,0 +1,9 @@
+% ------- WIP
+\paragraph{Future Work.} 
+While the current development provides a complete formalization of syntax, typing, and substitution for all constructs, the operational semantics and associated metatheory have been established for the multiplicative fragment not including the restriction rule. A natural direction for future work is to extend the operational semantics by completely incorporating the res-rule into the proofs of session fidelity. This would likely require additional reasoning about its behavior when interacting under an application of itself (basically an inversion lemma), and the any permutation its associated hyperenvironment might have, which could require the knowledge that a non-active component in a hyperenvironment is preserved across steps. 
+
+Extending the formalization to the full $\pi$LL system, would be the ultimate end goal, and would require the addition of a constructors for each of the rules in the non-multiplicative fragment of $\pi$LL to the already existing TypingStep inductive. An adaptation of all the lemmas pertaining to the properties of the TypingStep relation would need to be updated to account for these new constructors, and similar reasoning as for the res-rule is expected to be needed for each of the new rules to complete their respective cases in the proof for session fidelity.  
+
+Given that the foundational infrastructure for binding and substitution is already in place, this extension is expected to integrate smoothly albeit with the existing development maybe a little tediously when it comes to proving the various multi-thousand line permutations lemmas, which will likely be required. Completing these step would then result in a fully mechanized account of $\pi$LL, providing a tool for rigid validity checking of the already sound and existing theory 
+
+% From the above delete mention of inversion lemma, specifics about permutations?, unecessary mention of long proofs being tideous.

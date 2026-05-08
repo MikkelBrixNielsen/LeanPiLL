@@ -9,3 +9,11 @@ lean_packages/
 Thumbs.db
 Notes-TODO/
 old/
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz

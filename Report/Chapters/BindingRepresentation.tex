@@ -1,0 +1,41 @@
+
+
+
+
+
+
+% When introducing LN say something like "We adopt a locally nameless representation to simplify mechanization and avoid α-equivalence reasoning.”
+
+% This sections should primarly focus on what tools have been chosen and why. Save the implementation details of how they have been used or influenced definitons to later when actually describing the formalization.
+    % The problem bindings in paper and conventions used to not have to reason directly about this but rather by assumptiosn one can get around them.
+    % What do we want to achieve by chaning the binding representation and using these tools (design goals / choices). 
+
+
+% This is probably to implementation heavy to be in this section, but some of it may be usable:
+    % The problem of papers using bergendt naming conventions, which is very convinient but does not hold in a mechanization.
+    % The burden of formalizing alpha equivalence, and capture avoiding substitution all because of having explicitly named variables (needs explicit freshness and essentially have no constraints). 
+    % Locally Namesless as a tool to lessen the burden of explicit names variables, while still keeping some readability but letting the free names of a process (resepctively the names mentioned in an environment) be explicit and turning the bound variables into indices, reducing AlphaEq to structural Eq, since it is defined to only care about the bound names, as they are the only relevant names when talking about the behaviour of a process, since the free names are simply local to the processes itself, so its behavior does not change whether we are talking about it saving a value to x or y and then using that variable later, where as whether or not the process sends through the bound variable z or w can have entirely different meanings.
+    % De Durijn as a tool to be able to reason about the safety of inserting a type into a Typing with out it accedentally capturing another Type name. (This made the proof of type substitution into a typing possible without having to default to assuming the bergendt variable convetion but rather formalizing it)
+    % The above supports a rigid mechanization in Lean being fully self contained i.e. not relying on assumed convetions but rather having the tools necessary to reason along these convetions without bogging down and simply writing sorry, or only enforcing a local hypothesis not supported by the underlying type system. By including the above into processes and types the foundation of the typing system now includes this notion and can use it in proofs.
+
+
+% ------- WIP
+\section{Binding and Variable Representation}
+Formal systems for process calculi and typed $\pi$-calculi typically rely on named variables together with a notion of $\alpha$-equivalence to identify terms that differ only by renaming of bound variables. While conceptually natural, this approach introduces a significant burden in mechanized developments, where reasoning modulo renaming must be made explicit through auxiliary lemmas and infrastructure for capture-avoiding substitution.
+
+In the setting of $\pi$LL, this issue is particularly pronounced due to the interplay between linear typing discipline and the structure of communication processes. Bound channel names appear both in process syntax and in typing derivations, and reasoning about their interaction requires repeated handling of freshness conditions and renaming invariance.
+
+\paragraph{Approach.}
+To address this, we adopt a \emph{locally nameless representation} of binders. In this approach, bound variables are represented using de Bruijn indices, while free variables are represented by named identifiers. This hybrid representation eliminates the need for $\alpha$-equivalence on bound variables, while preserving readability for free variables and top-level structure.
+Under this representation, $\alpha$-equivalent terms are identified by construction rather than by quotienting, and variable binding becomes a syntactic mechanism rather than a semantic equivalence relation. This significantly simplifies the treatment of substitution and binding-related lemmas in the mechanization.
+\paragraph{Comparison with the standard presentation.}
+In the original formulation of $\pi$LL, processes are typically defined using named binders together with an implicit identification of terms up to $\alpha$-equivalence. While this presentation is intuitive and widely used in the literature, it requires additional metatheoretic work to ensure that all definitions and proofs are invariant under renaming of bound variables.
+Our locally nameless reformulation avoids this layer of reasoning. In particular, substitution is defined in a capture-avoiding manner only for free variables, while bound variables are handled structurally via indices. This removes the need for repeated renaming arguments throughout the development.
+\paragraph{Impact on the formalization.}
+This design choice has several consequences for the mechanization in Lean:
+\begin{itemize}
+    \item Substitution lemmas become structurally recursive rather than $\alpha$-conversion dependent.
+    \item Proofs involving freshness conditions are reduced to simple index reasoning.
+    \item Binding-related invariants are enforced syntactically rather than proven separately.
+\end{itemize}
+Overall, this representation does not change the underlying theory of $\pi$LL, but provides a more robust foundation for formal reasoning. It enables a cleaner and more direct mechanization of the operational semantics and typing system, without the overhead of explicit $\alpha$-equivalence reasoning.

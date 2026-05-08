@@ -1,0 +1,130 @@
+\documentclass[
+    final,
+    highlight, % Enables highlighting
+    british, % Language package to use from bable
+    a4paper, % Paper size
+    acmsmall, % Single column journal format 
+    acmthm, % Load ACM's theorem styles
+    natbib, % Loads natbib and citation commands
+    screen, % Coloured hyperlinks
+    review, % Adds line numbers
+    nonacm, % Removes ACM footers and branding
+]{acmart}
+\setlength{\marginparwidth}{2cm}
+\input{preamble}
+
+% Caption 
+\usepackage{tabularx}
+\usepackage{caption}
+\renewcommand{\figurename}{Fig.}
+\usepackage{subcaption}
+\DeclareCaptionFormat{custom}
+{
+    \textbf{#1#2}{\footnotesize #3}
+}
+\captionsetup{format=custom}
+\captionsetup{width=0.7\textwidth}
+
+\newcommand{\code}[1]{{\fontfamily{qcr}\selectfont #1}}
+\DeclareGraphicsExtensions{.png}	\graphicspath{{Images/}}               
+\renewcommand{\arraystretch}{1.15}
+\setlength{\headheight}{15pt}
+\usepackage{tikz} 
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+
+\title[Formalising \texorpdfstring{$\pi$}{pi}LL in Lean]{Formalising \texorpdfstring{$\pi$}{pi}LL in Lean}
+
+\begin{document}
+
+\begin{titlepage}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+% Defines a new command for 
+% horizontal lines, change thickness here
+
+\center % Centre everything on the page
+
+	%------------------------------------------------
+	%	Headings
+	%------------------------------------------------
+
+	\textsc{\LARGE University of Southern Denmark}\\[1.5cm]
+	% Main heading such as the name of your university/college
+
+	\textsc{\Large Department of Mathematics and Computer Science}\\[0.5cm]
+	%Major heading such as course name
+
+	\textsc{\large SPD801: Master Thesis in Computer Science }\\[0.5cm]
+	% COURSE ID AND NAME
+
+	%------------------------------------------------
+	%	Title
+	%------------------------------------------------
+
+	\HRule\\[0.7cm]
+
+    % Title of document
+	{\huge\bfseries Formalising $\pi$LL in Lean}\\[0.4cm]
+
+	\HRule\\[1.0cm]
+
+	%------------------------------------------------
+    % Author and Supervisors
+    %------------------------------------------------
+    \large   
+    \vfill
+    \begin{center}
+        \begin{minipage}[t]{0.45\textwidth}
+            \centering
+            \textit{Author}\\[0.3cm]
+            \normalsize
+            Mikkel Brix Nielsen\\
+            {\small mikke21} \\
+            \vspace{1cm}
+            \centering
+            \large   
+            \textit{Supervisors}\\[0.3cm]
+            \normalsize
+            Supervisor: Fabrizio Montesi\\
+            Cosupervisor: Marco Peressotti\\
+            Cosupervisor: Xueying Qin
+        \end{minipage}
+    \end{center}
+
+	%------------------------------------------------
+	%	Date
+	%------------------------------------------------
+
+	\vfill\vfill\vfill % Position the date 3/4 down the remaining page
+
+	{\large \today}
+
+	%------------------------------------------------
+	%	Logo
+	%------------------------------------------------
+
+	\vfill\vfill
+	\begin{centering}
+	\includegraphics[width=0.3\textwidth]{Images/SDU_logo.png}\\[1cm]
+	\end{centering}
+	
+%-------------------------------------------------------------------------------
+
+\vfill % Push the date up 1/4 of the remaining page
+\end{titlepage}
+
+\begin{abstract}
+    words words words words words
+\end{abstract}
+\include{Chapters/Introduction}
+\include{Chapters/background}
+\include{Chapters/PiLL}
+\include{Chapters/BindingRepresentation}
+\include{Chapters/Formalization}
+\include{Chapters/FutureWork}
+\include{Chapters/Conclusion}
+\bibliography{references}
+%include appendix
+
+\end{document}
