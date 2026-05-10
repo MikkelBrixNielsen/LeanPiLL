@@ -1,6 +1,6 @@
 \section{Background} % 2
 \label{sec:background}
-This section begins by introducing the theoretical foundations underlying the formalization following the presentation of ~\citep{MP-pill}, We cover the full \pill calculus, including processes, types, typing, environments / hyperenvironments, and judgements, then restrict attention to the multiplicative fragment \pimll when discussing operational semantics.
+This section begins by introducing the theoretical foundations underlying the formalisation following the presentation of ~\citep{MP-pill}, We cover the full \pill calculus, including processes, types, typing, environments / hyperenvironments, and judgements, then restrict attention to the multiplicative fragment \pimll when discussing operational semantics.
 
 Following~\citep{MP-pill}, we use \hl{$\thl{blue}$} to highlight types and \hl{$\phl{red}$} for process terms throughout this thesis.
 
@@ -87,7 +87,11 @@ Programs in \pimll are processes \hl{($\phl{P}$, $\phl{Q}$, $\phl{R}$, $\dots$)}
 \end{bnftable}
 
 % -------- FIXME: Feels necessary to mention, but a too much like copy pate
-Term $\send{x}{y}{P}$ allocates a fresh name $y$, outputs it over $x$, and proceeds as $P$. Dually, $\recv{x}{y}{P}$ inputs a name over $x$, binding it to $y$ in $P$. Terms $\close{x}{P}$ and $\wait{x}{P}$ model output and input with no content. Restriction $\res{xy}{P}$ connects the two endpoints $x$ and $y$ of $P$ to form a session, where the order of $x$ and $y$ is irrelevant and $\res{xy}{P} = \res{yx}{P}$. Parallel composition $P \pp Q$ runs $P$ and $Q$ concurrently, and $\nil$ is the terminated process, acting as the unit of parallel composition.
+Term \hl{\phl{$\send{x}{y}{P}$}} allocates a fresh name \hl{\phl{$y$}}, outputs it over \hl{\phl{$x$}}, and proceeds as \hl{\phl{$P$}}. Dually, \hl{\phl{$\recv{x}{y}{P}$}} inputs a name over \hl{\phl{$x$}}, binding it to \hl{\phl{$y$}} in \hl{\phl{$P$}}. Terms \hl{\phl{$\close{x}{P}$}} and \hl{\phl{$\wait{x}{P}$}} model empty output and input. Restriction \hl{\phl{$\res{xy}{P}$}} connects the two endpoints \hl{\phl{$x$}} and \hl{\phl{$y$}} of \hl{\phl{$P$}} to form a session, where the order of \hl{\phl{$x$}} and \hl{\phl{$y$}} is irrelevant and \hl{\phl{$\res{xy}{P} = \res{yx}{P}$}}. Parallel composition \hl{\phl{$P \pp Q$}} runs \hl{\phl{$P$}} and \hl{\phl{$Q$}} concurrently, and \hl{\phl{$\nil$}} is the terminated process, acting as the unit of parallel composition.
+
+\begin{example}\label{ex:cut-unit}
+  Consider the process \hl{$\phl{P} \defeq \phl{\res{zx}{(\recv{z}{}{\send{y}{}{\nil}} \pp \send{x}{}{\nil})}}$}. This process creates a private session between the restricted endpoints \hl{$\phl{x}$} and \hl{$\phl{z}$}. The right process, \hl{$\phl{\send{x}{}{\nil}}$}, signals termination on \hl{$\phl{x}$} before terminating, while the left process, \hl{$\phl{\recv{z}{}{\send{y}{}{\nil}}}$}, waits for a termination signal on \hl{$\phl{z}$} before proceeding by sending a termination signal on \hl{$\phl{y}$} and then terminating.
+\end{example}
 
 This calculus provides the operational foundation for \pill. In the following section, we introduce the type system that governs how names are used, ensuring that each session endpoint is used exactly according to its protocol.
 
@@ -102,7 +106,7 @@ The correspondence between linear logic and session types as presented in~\citep
     {\thl{A},\thl{B} \Coloneqq {}}
     {A \tensor B}{A \tensor B}
     \thl{A},\thl{B} \Coloneqq {} & A \tensor B & send $A$, proceed as $B$ &
-    \mid {} & A \parr B   & receive $A$, proceed as $B$ \\
+    \mid {} & A \parr{B}   & receive $A$, proceed as $B$ \\
     \mid {} & \one        & empty output, unit for $\tensor$ &
     \mid {} & \bot        & empty input, unit for $\parr$ \\
     \mid {} & {A \with B} & offer $A$ or $B$ &
@@ -194,7 +198,7 @@ interaction by construction:
 %\end{highlight}
 
 \subsection{Environments, Hyperenvironments and Judgements}
-Typing in \pill is organized into two layers: environments track how 
+Typing in \pill is organised into two layers: environments track how 
 individual names are typed, while hyperenvironments track which names 
 are used independently in parallel.
 
@@ -311,21 +315,319 @@ Environments dictate how names are used, but it does not distinguish whether nam
   \label{fig:pill-typing-rules}
 \end{figure}
 
-The multiplicative rules form the core of the system. \cref{rule:pill-cut} composes two processes in \hl{$\phl{P}$} sharing dual endpoints \hl{$\phl{x} : \thl{A}$} and \hl{$\phl{y} : \thl{A^\bot}$}, hiding them via restriction. This is the logical counterpart of communication. The \cref{rule:pill-mix} and \cref{rule:pill-mix-0} rules compose independent processes in parallel and introduce the terminated process, respectively.
+The multiplicative rules form the core of the system. \Cref{rule:pill-cut} composes two processes in \hl{$\phl{P}$} sharing dual endpoints \hl{$\phl{x} : \thl{A}$} and \hl{$\phl{y} : \thl{A^\bot}$}, hiding them via restriction. This is the logical equivalent of communication. \Cref{rule:pill-mix} and \cref{rule:pill-mix-0} compose independent processes in parallel and introduce the terminated process, respectively.
 
-\cref{rule:pill-tensor} and \cref{rule:pill-parr} type output and input. Note that \cref{rule:pill-tensor} splits the context: the sent name \hl{$\phl{y}$} is typed in a \emph{separate} environment from the continuation, reflecting that the two are independent resources. By contrast, \cref{rule:pill-parr} keeps \hl{$\phl{y}$} and the continuation \hl{$\phl{x}$} in the \emph{same} environment, reflecting their sequential dependency. The units \cref{rule:pill-one} and \cref{rule:pill-bot} type empty output and empty input, where \cref{rule:pill-one} requires the continuation to be well-typed in the empty hyperenvironment, meaning \hl{\phl{$P$}} is necessarily semantically equivalent to $\nil$.
+\Cref{rule:pill-tensor} and \cref{rule:pill-parr} type output and input. Note that \cref{rule:pill-tensor} types the sent name \hl{$\phl{y}$} in a \emph{separate} environment from the continuation, reflecting that the two are independent resources. By contrast, \cref{rule:pill-parr} keeps \hl{$\phl{y}$} and the continuation \hl{$\phl{x}$} in the \emph{same} environment, reflecting their sequential dependency. The units \cref{rule:pill-one} and \cref{rule:pill-bot} type empty output and empty input, where \cref{rule:pill-one} requires the continuation to be well-typed in the empty hyperenvironment, meaning \hl{$\phl{P}$} is necessarily semantically equivalent to $\nil$.
 
-The additive \cref{rule:pill-oplus-1}, \cref{rule:pill-oplus-2}, and \cref{rule:pill-with} type selection and offering of alternatives. Note that \cref{rule:pill-with} requires both branches to be typed in the \emph{same} context \hl{$\thl{\Gamma}$}, reflecting that the choice of branch is made by the other endpoint.
+The additive rules (\cref{rule:pill-oplus-1}, \cref{rule:pill-oplus-2}, and \cref{rule:pill-with}) type selection and offering of alternative processing paths. Note that \cref{rule:pill-with} requires both branches to be typed in the \emph{same} context \hl{$\thl{\Gamma}$}, reflecting that the choice of branch is made by the other endpoint.
 
-The exponential rules type server replication. The \cref{rule:pill-!} requires all free names except \hl{$\phl{x}$} to be typed under \hl{$\thl{\query}$}, enforcing that a server only depends on other servers. The \cref{rule:pill-?}, \cref{rule:pill-weaken}, and \cref{rule:pill-contract} allow a client to use, discard, or duplicate a server respectively, corresponding to the standard structural rules of linear logic.
+The exponential rules type server replication. The \cref{rule:pill-!} requires all free names except \hl{$\phl{x}$} to be typed using \hl{$\thl{\query}$}, enforcing that a server only depends on other servers. The \cref{rule:pill-?}, \cref{rule:pill-weaken}, and \cref{rule:pill-contract} allow a client to use, discard, or duplicate a server respectively.
 
-The \cref{rule:pill-axiom} rule types the forwarder $\forward{x}{y}$, linking two dual endpoints directly. The \cref{rule:pill-exists} and \cref{rule:pill-forall} type polymorphic communication, where the side condition \hl{$\thl{X \notin \ft(\Gamma)}$} in \cref{rule:pill-forall} ensures the received type variable does not escape its scope.
-
-
+The \cref{rule:pill-axiom} types a link between two dual endpoints, \hl{$\phl{\forward{x}{y}}$}, forwarding all messages sent on \hl{$\phl{x}$} safely to \hl{$\phl{y}$} and vice versa. \Cref{rule:pill-exists} and \cref{rule:pill-forall} type polymorphic communication, where the side condition \hl{$\thl{X \notin \ft(\Gamma)}$} in \cref{rule:pill-forall}, ensures the introduced type variable, \hl{$\thl{X}$}, does not accendentally shadow one already existing in \hl{$\thl{\Gamma}$}.
 
 
-% -------- FIXME: Add an example process to section 2.2
-% -------- FIXME: Show the typed version of the example in section 2.2
+\begin{example}
+  \begin{highlight}
+    The process from~\Cref{ex:cut-unit} has the typing $\judge{}{\res{zx}{(\recv{z}{}{\send{y}{}{\nil}} \pp \send{x}{}{\nil})}}{\cht{y}{1}}$, as shown by the derivation below:
+
+    \[
+      \infer[\ref{rule:pill-cut}]
+        {\judge{}{\res{zx}{(\recv{z}{}{\send{y}{}{\nil}} \pp \send{x}{}{\nil})}}{\cht{y}{1}}}
+          {\infer[\ref{rule:pill-mix}]
+          {\judge{}{\recv{z}{}{\send{y}{}{\nil}} \pp \send{x}{}{\nil}} {\cht{y}{1}, \cht{z}{\bot} \pp \cht{x}{1}}}
+          {\infer[\ref{rule:pill-bot}]
+            {\judge{}{\recv{z}{}{\send{y}{}{\nil}}}{\cht{y}{1}, \cht{z}  {\bot}}}
+            {\infer[\ref{rule:pill-one}]{\judge{}{\send{y}{}{\nil}}{\cht {y}{1}}}{\infer[\ref{rule:pill-mix-0}]{\judge{}{\nil}  {\emptyhyp}}{}}}
+            &\infer[\ref{rule:pill-one}]{\judge{}{\send{x}{}{\nil}}{\cht {x}{1}}}{\infer[\ref{rule:pill-mix-0}]{\judge{}{\nil}{\emptyhyp}}{}}
+          }
+        }
+    \]
+  \end{highlight}
+\end{example}
+
+
+Note that, for the typing context \hl{$\thl{\cht{y}{1}, \cht{z}{\bot} \pp \cht{x}{1}}$} to match the premise of~\cref{rule:pill-cut}, we rely on the monoidal properties of environments and hyperenvironments. In particular, using their identity laws, we instantiate the rule's meta-variables as \hl{$\thl{\hyp{G}} = \thl{\emptyhyp}$} and \hl{$\thl{\Delta} = \thl{\emptyseq}$}. Under these instantiations, the premise of the~\ref{rule:pill-cut} rule takes the form \hl{$\thl{\Gamma, \cht{x}{A} \pp \cht{y}{\dual{A}}}$}, which matches the original typing context with \hl{$\thl{\Gamma} = \cht{y}{1}$}. This allows an application of~\cref{rule:pill-cut} over the dual channels \hl{$\phl{x}$} and \hl{$\phl{z}$}.
+
+Since \hl{$\phl{x}$} and \hl{$\phl{z}$} are restricted, they must implement dual session behaviours, reflected in their types by \hl{$\phl{x}$} being assigned \hl{$\thl{1}$} and \hl{$\phl{z}$} being assigned its dual \hl{$\thl{\bot}$}.
+
+Note that, for the typing context \hl{$\thl{\cht{y}{1}, \cht{z}{\bot} \pp \cht{x}{1}}$} to match the premise of~\cref{rule:pill-cut}, we rely on the monoidal properties of environments and hyperenvironments. In particular, using their identity laws, we instantiate the meta-variables of the rule as \hl{$\thl{\hyp{G}} = \thl{\emptyhyp}$} and \hl{$\thl{\Delta} = \thl{\emptyseq}$}. Under these instantiations, the premise of~\cref{rule:pill-cut} takes the form \hl{$\thl{\Gamma, \cht{x}{A} \pp \cht{z}{\dual{A}}}$}, which matches the original typing context with \hl{$\thl{\Gamma} = \cht{y}{1}$}. Since \hl{$\phl{x}$} and \hl{$\phl{z}$} are restricted together, they must implement dual session behaviours, reflected in their types by \hl{$\phl{x}$} being assigned \hl{$\thl{1}$} and \hl{$\phl{z}$} being assigned its dual \hl{$\thl{\bot}$}. Thus, allowing an application of~\cref{rule:pill-cut} over the dual channels \hl{$\phl{x}$} and \hl{$\phl{z}$}.
+
+\subsection{Operational Semantics}
+\label{sec:mpill-sos}
+The operational semantics of \pill are given as a labelled transition system (LTS), in which processes evolve by performing actions on their free names~\citep{MP-pill}. The semantics follow a Structural Operational Semantics (SOS) style presentation and form the basis for the metatheoretic results of the calculus. We present the multiplicative fragment here; the full LTS is given in~\citet{MP-pill}.
+
+\begin{figure}[p]
+  \begin{drules}
+  \plto
+    {\infer[\ref{rule:mpill-one}]
+      {\judge{}{\close{x}{P}}{\cht{x}{\one}}}
+      {\deduce
+        {\judge{}{P}{\emptyhyp}}
+        {\der{D}}}}
+    {\lclose{x}}
+    {\deduce
+      {\judge{}{P}{\emptyhyp}}
+      {\der{D}}}
+  \quad
+  \plto
+    {\infer[\ref{rule:mpill-tensor}]
+      {\judge{}{\send{x}{x'}{P}}{\Gamma,\Delta,\cht{x}{A \tensor B}}}
+      {\deduce
+        {\judge{}{P}{\Gamma,\cht{x'}{A} \pp \Delta,\cht{x}{B}}}
+        {\der{D}}}}
+    {\lsend{x}{x'}}
+    {\deduce
+      {\judge{}{P}{\Gamma,\cht{x'}{A} \pp \Delta,\cht{x}{B}}}
+      {\der{D}}}
+  \\
+  \plto
+    {\infer[\ref{rule:mpill-bot}]
+        {\judge{}{\wait{x}{P}}{\Gamma, \cht{x}{\bot}}}
+        {\deduce
+          {\judge{}{P}{\Gamma}}
+          {\der{D}}}}
+    {\lwait{x}}
+    {\deduce
+      {\judge{}{P}{\Gamma}}
+      {\der{D}}}
+  \quad
+  \plto
+    {\infer[\ref{rule:mpill-parr}]
+      {\judge{}{\recv{x}{x'}{P}}{\Gamma, \cht{x}{A \parr B}}}
+      {\deduce
+        {\judge{}{P}{\Gamma, \cht{x'}{A}, \cht{x}{B}}}
+        {\der{D}}}}
+    {\lrecv{x}{x'}}
+    {\deduce
+      {\judge{}{P}{\Gamma, \cht{x'}{A}, \cht{x}{B}}}
+      {\der{D}}}
+  \\
+  \def\regh{\vphantom{\hyp{G}'\pp}}
+  \infer[\rlabel{\rname{Par\textsubscript{1}}}{rule:mpill-mix-1}]
+    {\plto
+      {\infer[\ref{rule:mpill-mix}]
+        {\judge{}{P \pp Q}{\hyp{G} \pp \hyp{H}}\regh}
+        {\deduce
+          {\judge{}{P}{\hyp{G}}\regh}
+          {\der{D}}
+        &\deduce
+          {\judge{}{Q}{\hyp{H}}\regh}
+          {\der{E}}}}
+      {l}
+      {\infer[\ref{rule:mpill-mix}]
+        {\judge{}{P' \pp Q}{\hyp{G}' \pp \hyp{H}}\regh}
+        {\deduce
+          {\judge{}{P'}{\hyp{G}'}\regh}
+          {\der{D}'}
+        &\deduce
+          {\judge{}{Q}{\hyp{H}}\regh}
+          {\der{E}}}}}
+    {\plto
+      {\deduce
+        {\judge{}{P}{\hyp{G}}\regh}
+        {\der{D}}}
+      {l}
+      {\deduce
+        {\judge{}{P'}{\hyp{G}'}\regh}
+        {\der{D}'}}
+    &\phl{\is(l) \cap \fs(Q) = \emptyset}}
+  \\
+  \def\regh{\vphantom{\pp\hyp{H}'}}
+  \infer[\rlabel{\rname{Par\textsubscript{2}}}{rule:mpill-mix-2}]
+    {\plto
+      {\infer[\ref{rule:mpill-mix}]
+        {\judge{}{P \pp Q}{\hyp{G} \pp \hyp{H}}\regh}
+        {\deduce
+          {\judge{}{P}{\hyp{G}}\regh}
+          {\der{D}}
+        &\deduce
+          {\judge{}{Q}{\hyp{H}}\regh}
+          {\der{E}}}}
+      {l}
+      {\infer[\ref{rule:mpill-mix}]
+        {\judge{}{P \pp Q'}{\hyp{G} \pp \hyp{H}'}\regh}
+        {\deduce
+          {\judge{}{P}{\hyp{G}}\regh}
+          {\der{D}}
+        &\deduce
+          {\judge{}{Q'}{\hyp{H}'}\regh}
+          {\der{E}'}}}}
+    {\plto
+      {\deduce
+        {\judge{}{Q}{\hyp{H}}\regh}
+        {\der{E}}}
+      {l}
+      {\deduce
+        {\judge{}{Q'}{\hyp{H}'}\regh}
+        {\der{E}'}}
+    &\phl{\is(l) \cap \fs(P) = \emptyset}}
+  \\
+  \def\regh{\vphantom{\hyp{G}'\pp\hyp{H}'}}
+  \infer[\rlabel{\rname{Syn}}{rule:mpill-mix-sync}]
+    {\plto
+      {\infer[\ref{rule:mpill-mix}]
+        {\judge{}{P \pp Q}{\hyp{G} \pp \hyp{H}}\regh}
+        {\deduce
+          {\judge{}{P}{\hyp{G}}\regh}
+          {\der{D}}
+        &\deduce
+          {\judge{}{Q}{\hyp{H}}\regh}
+          {\der{E}}}}
+      {\lsync{l}{l'}}
+      {\infer[\ref{rule:mpill-mix}]
+        {\judge{}{P' \pp Q'}{\hyp{G}' \pp \hyp{H}'}\regh}
+        {\deduce
+          {\judge{}{P'}{\hyp{G}'}\regh}
+          {\der{D}'}
+        &\deduce
+          {\judge{}{Q'}{\hyp{H}'}\regh}
+          {\der{E}'}}}}
+    {\plto
+      {\deduce
+        {\judge{}{P}{\hyp{G}}\regh}
+        {\der{D}}}
+      {l}
+      {\deduce
+        {\judge{}{P'}{\hyp{G}'}\regh}
+        {\der{D}'}}
+    &\plto
+      {\deduce
+        {\judge{}{Q}{\hyp{H}}\regh}
+        {\der{E}}}
+      {l'}
+      {\deduce
+        {\judge{}{Q'}{\hyp{H}'}\regh}
+        {\der{E}'}}
+    & \phl{\is(\lsync{l}{l'}) \cap \fs(P \pp Q) = \emptyset}}
+  \\
+  \infer[\rlabel{\rname{$\aleq$}}{rule:mpill-alpha}]
+    {\plto
+      {\deduce
+        {\judge{}{P}{\hyp{G}}}
+        {\der{D}}}
+      {l}
+      {\deduce
+        {\judge{}{Q'}{\hyp{G'}}}
+        {\der{E'}}}}
+    {\phl{P \aleq Q}
+    &\plto
+      {\deduce
+        {\judge{}{Q}{\hyp{G}}}
+        {\der{E}}}
+      {l}
+      {\deduce
+        {\judge{}{Q'}{\hyp{G'}}}
+        {\der{E'}}}}
+  \quad
+  \infer[\rlabel{\rname{\ref*{rule:mpill-one}\ref*{rule:mpill-bot}}}  {rule:mpill-cut-one}]
+    {\plto
+      {\infer[\ref{rule:mpill-cut}]
+        {\judge{}{\res{xy}{P}}{\hyp{G} \pp \Gamma}}
+        {\deduce
+          {\judge{}{P}{\hyp{G}\pp \cht{x}{\one} \pp \Gamma, \cht{y} {\bot}}}
+          {\der{D}}}}
+      {\tau}
+      {\deduce
+        {\judge{}{P'}{\hyp{G}\pp \Gamma}}
+        {\der{D'}}}}
+    {\plto
+      {\deduce
+        {\judge{}{P}{\hyp{G}\pp \cht{x}{\one} \pp \Gamma, \cht{y}{\bot}}}
+        {\der{D}}}
+      {\lsync
+        {\lclose{x}}
+        {\lwait{y}}}
+      {\deduce
+        {\judge{}{P'}{\hyp{G}\pp \Gamma}}
+        {\der{D'}}}}
+  \\
+  \infer[\rlabel{\rname{\ref*{rule:mpill-tensor}\ref*{rule:mpill-parr}}}  {rule:mpill-cut-tensor}]
+    {\plto
+      {\infer[\ref{rule:mpill-cut}]
+        {\judge{}{\res{xy}{P}}{\hyp{G} \pp \Gamma,\Delta, \Xi}}
+        {\deduce
+          {\judge{}{P}{\hyp{G}\pp\Gamma,\Delta, \cht{x}{A \tensor B} \pp  \Xi, \cht{y}{\dual{A} \parr \dual{B}}}}
+          {\der{D}}}}
+      {\tau}
+      {\infer[\ref{rule:mpill-cut}]
+        {\judge{}{\res{xy}{\res{x'y'}{P'}}}{\hyp{G} \pp \Gamma, \Delta,   \Xi}}
+        {\infer[\ref{rule:mpill-cut}]
+          {\judge{}{\res{x'y'}{P'}}{\hyp{G} \pp \Gamma,\cht{x}{B} \pp   \Delta, \Xi,\cht{y}{\dual{B}}}}
+          {\deduce
+            {\judge{}{P'}{\hyp{G} \pp \Gamma, \cht{x}{B} \pp \Delta,\cht  {x'}{A} \pp \Xi, \cht{y}{\dual{B}}, \cht{y'}{\dual{A}}}}
+            {\der{D}'}}}}}
+    {\plto
+      {\deduce
+        {\judge{}{P}{\hyp{G}\pp\Gamma,\Delta, \cht{x}{A \tensor B} \pp  \Xi, \cht{y}{\dual{A} \parr \dual{B}}}}
+        {\der{D}}}
+      {\lsync
+        {\lsend{x}{x'}}
+        {\lrecv{y}{y'}}}
+      {\deduce
+        {\judge{}{P'}{\hyp{G} \pp \Gamma, \cht{x}{B} \pp \Delta,\cht{x'}  {A} \pp \Xi, \cht{y}{\dual{B}}, \cht{y'}{\dual{A}}}}
+        {\der{D}'}}}
+  \\
+  \infer[\rlabel{\rname{Res}}{rule:mpill-cut-res}]
+    {\plto
+      {\infer[\ref{rule:mpill-cut}]
+        {\judge{}{\res{xy}{P}}{\hyp{G} \pp \Gamma,\Delta}}
+        {\deduce
+          {\judge{}{P}{\hyp{G} \pp \Gamma,\cht{x}{A} \pp \Delta,\cht{y} {\dual{A}}}}
+          {\der{D}}}}
+      {l}
+      {\infer[\ref{rule:mpill-cut}]
+        {\judge{}{\res{xy}{P'}}{\hyp{G}' \pp \Gamma',\Delta'}}
+        {\deduce
+          {\judge{}{P'}{\hyp{G}' \pp \Gamma',\cht{x}{A} \pp \Delta',\cht  {y}{\dual{A}}}}
+          {\der{D'}}}}}
+    {\plto
+      {\deduce
+        {\judge{}{P}{\hyp{G} \pp \Gamma,\cht{x}{A} \pp \Delta,\cht{y} {\dual{A}}}}
+        {\der{D}}}
+      {l}
+      {\deduce
+        {\judge{}{P'}{\hyp{G}' \pp \Gamma',\cht{x}{A} \pp \Delta',\cht{y} {\dual{A}}}}
+        {\der{D'}}}
+    &\phl{x,y \notin \fs(l) \cup \is(l)}}
+  \end{drules}
+  \caption{\pimll, transition rules for derivations.}
+  \label{fig:mpill-sos}
+\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsubsection{Operational Semantics for Processes}
+% -------- FIXME: Add more depth, show syntax 
+A central metatheoretic result of \pill is \emph{session fidelity}, which states that the LTS of a well-typed process is homomorphic to the LTS induced by its type. Intuitively, a process typed with \hl{$\thl{A tensor B}$} will only ever perform an output action, and its continuation will be typed with \hl{$\thl{B}$}. This guarantees that well-typed processes always communicate according to their protocols. The result is established in~\citet{MP-pill} for the full \pill calculus; we restrict attention to mechanizing the multiplicative fragment in this thesis.
+
+
+\subsubsection{Operational Semantics for Typinh Environments}
+
+
+
+With the operational semantics in place, the remaining challenge for mechanisation is the treatment of name binding. The following section
+introduces the locally nameless representation used in the formalisation to handle bound names without reasoning up to $\alpha$-equivalence.
+
+
+
+
+
+
+
+
+% -------- TODO: Check that all \thl and \phl are incapsulated in $$
+% -------- TODO: Turn 'Note' paragraphs into remarks
 
 
 % Operational Semantics
