@@ -354,12 +354,15 @@ Note that, for the typing context \hl{$\thl{\cht{y}{1}, \cht{z}{\bot} \pp \cht{x
 
 \subsection{Operational Semantics}
 \label{sec:mpill-sos}
-The operational semantics of \pill are given as a labelled transition system (LTS), in which processes evolve by performing actions on their free names~\citep{MP-pill}. The semantics follow a Structural Operational Semantics (SOS) style presentation and form the basis for the metatheoretic results of the calculus. We present the multiplicative fragment here; the full LTS is given in~\citet{MP-pill}.
+The operational semantics of \pill are given as a labelled transition system (LTS) defined over \emph{typing derivations}, in which processes evolve by performing actions on their free names. The semantics follow a Structural Operational Semantics (SOS) style presentation and form the basis for the metatheoretic results of the calculus. We will be focusing on the multiplicative fragment for this part, which is given in \cref{fig:mpill-sos}. The full LTS is given in~\citet{MP-pill}.
+
+
+
 
 \begin{figure}[p]
   \begin{drules}
   \plto
-    {\infer[\ref{rule:mpill-one}]
+    {\infer[\ref{rule:pill-one}]
       {\judge{}{\close{x}{P}}{\cht{x}{\one}}}
       {\deduce
         {\judge{}{P}{\emptyhyp}}
@@ -370,7 +373,7 @@ The operational semantics of \pill are given as a labelled transition system (LT
       {\der{D}}}
   \quad
   \plto
-    {\infer[\ref{rule:mpill-tensor}]
+    {\infer[\ref{rule:pill-tensor}]
       {\judge{}{\send{x}{x'}{P}}{\Gamma,\Delta,\cht{x}{A \tensor B}}}
       {\deduce
         {\judge{}{P}{\Gamma,\cht{x'}{A} \pp \Delta,\cht{x}{B}}}
@@ -381,7 +384,7 @@ The operational semantics of \pill are given as a labelled transition system (LT
       {\der{D}}}
   \\
   \plto
-    {\infer[\ref{rule:mpill-bot}]
+    {\infer[\ref{rule:pill-bot}]
         {\judge{}{\wait{x}{P}}{\Gamma, \cht{x}{\bot}}}
         {\deduce
           {\judge{}{P}{\Gamma}}
@@ -392,7 +395,7 @@ The operational semantics of \pill are given as a labelled transition system (LT
       {\der{D}}}
   \quad
   \plto
-    {\infer[\ref{rule:mpill-parr}]
+    {\infer[\ref{rule:pill-parr}]
       {\judge{}{\recv{x}{x'}{P}}{\Gamma, \cht{x}{A \parr B}}}
       {\deduce
         {\judge{}{P}{\Gamma, \cht{x'}{A}, \cht{x}{B}}}
@@ -403,9 +406,9 @@ The operational semantics of \pill are given as a labelled transition system (LT
       {\der{D}}}
   \\
   \def\regh{\vphantom{\hyp{G}'\pp}}
-  \infer[\rlabel{\rname{Par\textsubscript{1}}}{rule:mpill-mix-1}]
+  \infer[\rlabel{\rname{Par\textsubscript{1}}}{rule:pill-mix-1}]
     {\plto
-      {\infer[\ref{rule:mpill-mix}]
+      {\infer[\ref{rule:pill-mix}]
         {\judge{}{P \pp Q}{\hyp{G} \pp \hyp{H}}\regh}
         {\deduce
           {\judge{}{P}{\hyp{G}}\regh}
@@ -414,7 +417,7 @@ The operational semantics of \pill are given as a labelled transition system (LT
           {\judge{}{Q}{\hyp{H}}\regh}
           {\der{E}}}}
       {l}
-      {\infer[\ref{rule:mpill-mix}]
+      {\infer[\ref{rule:pill-mix}]
         {\judge{}{P' \pp Q}{\hyp{G}' \pp \hyp{H}}\regh}
         {\deduce
           {\judge{}{P'}{\hyp{G}'}\regh}
@@ -433,9 +436,9 @@ The operational semantics of \pill are given as a labelled transition system (LT
     &\phl{\is(l) \cap \fs(Q) = \emptyset}}
   \\
   \def\regh{\vphantom{\pp\hyp{H}'}}
-  \infer[\rlabel{\rname{Par\textsubscript{2}}}{rule:mpill-mix-2}]
+  \infer[\rlabel{\rname{Par\textsubscript{2}}}{rule:pill-mix-2}]
     {\plto
-      {\infer[\ref{rule:mpill-mix}]
+      {\infer[\ref{rule:pill-mix}]
         {\judge{}{P \pp Q}{\hyp{G} \pp \hyp{H}}\regh}
         {\deduce
           {\judge{}{P}{\hyp{G}}\regh}
@@ -444,7 +447,7 @@ The operational semantics of \pill are given as a labelled transition system (LT
           {\judge{}{Q}{\hyp{H}}\regh}
           {\der{E}}}}
       {l}
-      {\infer[\ref{rule:mpill-mix}]
+      {\infer[\ref{rule:pill-mix}]
         {\judge{}{P \pp Q'}{\hyp{G} \pp \hyp{H}'}\regh}
         {\deduce
           {\judge{}{P}{\hyp{G}}\regh}
@@ -463,9 +466,9 @@ The operational semantics of \pill are given as a labelled transition system (LT
     &\phl{\is(l) \cap \fs(P) = \emptyset}}
   \\
   \def\regh{\vphantom{\hyp{G}'\pp\hyp{H}'}}
-  \infer[\rlabel{\rname{Syn}}{rule:mpill-mix-sync}]
+  \infer[\rlabel{\rname{Syn}}{rule:pill-mix-sync}]
     {\plto
-      {\infer[\ref{rule:mpill-mix}]
+      {\infer[\ref{rule:pill-mix}]
         {\judge{}{P \pp Q}{\hyp{G} \pp \hyp{H}}\regh}
         {\deduce
           {\judge{}{P}{\hyp{G}}\regh}
@@ -474,7 +477,7 @@ The operational semantics of \pill are given as a labelled transition system (LT
           {\judge{}{Q}{\hyp{H}}\regh}
           {\der{E}}}}
       {\lsync{l}{l'}}
-      {\infer[\ref{rule:mpill-mix}]
+      {\infer[\ref{rule:pill-mix}]
         {\judge{}{P' \pp Q'}{\hyp{G}' \pp \hyp{H}'}\regh}
         {\deduce
           {\judge{}{P'}{\hyp{G}'}\regh}
@@ -500,7 +503,7 @@ The operational semantics of \pill are given as a labelled transition system (LT
         {\der{E}'}}
     & \phl{\is(\lsync{l}{l'}) \cap \fs(P \pp Q) = \emptyset}}
   \\
-  \infer[\rlabel{\rname{$\aleq$}}{rule:mpill-alpha}]
+  \infer[\rlabel{\rname{$\aleq$}}{rule:pill-alpha}]
     {\plto
       {\deduce
         {\judge{}{P}{\hyp{G}}}
@@ -519,9 +522,9 @@ The operational semantics of \pill are given as a labelled transition system (LT
         {\judge{}{Q'}{\hyp{G'}}}
         {\der{E'}}}}
   \quad
-  \infer[\rlabel{\rname{\ref*{rule:mpill-one}\ref*{rule:mpill-bot}}}  {rule:mpill-cut-one}]
+  \infer[\rlabel{\rname{\ref*{rule:pill-one}\ref*{rule:pill-bot}}}  {rule:pill-cut-one}]
     {\plto
-      {\infer[\ref{rule:mpill-cut}]
+      {\infer[\ref{rule:pill-cut}]
         {\judge{}{\res{xy}{P}}{\hyp{G} \pp \Gamma}}
         {\deduce
           {\judge{}{P}{\hyp{G}\pp \cht{x}{\one} \pp \Gamma, \cht{y} {\bot}}}
@@ -541,17 +544,17 @@ The operational semantics of \pill are given as a labelled transition system (LT
         {\judge{}{P'}{\hyp{G}\pp \Gamma}}
         {\der{D'}}}}
   \\
-  \infer[\rlabel{\rname{\ref*{rule:mpill-tensor}\ref*{rule:mpill-parr}}}  {rule:mpill-cut-tensor}]
+  \infer[\rlabel{\rname{\ref*{rule:pill-tensor}\ref*{rule:pill-parr}}}  {rule:pill-cut-tensor}]
     {\plto
-      {\infer[\ref{rule:mpill-cut}]
+      {\infer[\ref{rule:pill-cut}]
         {\judge{}{\res{xy}{P}}{\hyp{G} \pp \Gamma,\Delta, \Xi}}
         {\deduce
           {\judge{}{P}{\hyp{G}\pp\Gamma,\Delta, \cht{x}{A \tensor B} \pp  \Xi, \cht{y}{\dual{A} \parr \dual{B}}}}
           {\der{D}}}}
       {\tau}
-      {\infer[\ref{rule:mpill-cut}]
+      {\infer[\ref{rule:pill-cut}]
         {\judge{}{\res{xy}{\res{x'y'}{P'}}}{\hyp{G} \pp \Gamma, \Delta,   \Xi}}
-        {\infer[\ref{rule:mpill-cut}]
+        {\infer[\ref{rule:pill-cut}]
           {\judge{}{\res{x'y'}{P'}}{\hyp{G} \pp \Gamma,\cht{x}{B} \pp   \Delta, \Xi,\cht{y}{\dual{B}}}}
           {\deduce
             {\judge{}{P'}{\hyp{G} \pp \Gamma, \cht{x}{B} \pp \Delta,\cht  {x'}{A} \pp \Xi, \cht{y}{\dual{B}}, \cht{y'}{\dual{A}}}}
@@ -567,15 +570,15 @@ The operational semantics of \pill are given as a labelled transition system (LT
         {\judge{}{P'}{\hyp{G} \pp \Gamma, \cht{x}{B} \pp \Delta,\cht{x'}  {A} \pp \Xi, \cht{y}{\dual{B}}, \cht{y'}{\dual{A}}}}
         {\der{D}'}}}
   \\
-  \infer[\rlabel{\rname{Res}}{rule:mpill-cut-res}]
+  \infer[\rlabel{\rname{Res}}{rule:pill-cut-res}]
     {\plto
-      {\infer[\ref{rule:mpill-cut}]
+      {\infer[\ref{rule:pill-cut}]
         {\judge{}{\res{xy}{P}}{\hyp{G} \pp \Gamma,\Delta}}
         {\deduce
           {\judge{}{P}{\hyp{G} \pp \Gamma,\cht{x}{A} \pp \Delta,\cht{y} {\dual{A}}}}
           {\der{D}}}}
       {l}
-      {\infer[\ref{rule:mpill-cut}]
+      {\infer[\ref{rule:pill-cut}]
         {\judge{}{\res{xy}{P'}}{\hyp{G}' \pp \Gamma',\Delta'}}
         {\deduce
           {\judge{}{P'}{\hyp{G}' \pp \Gamma',\cht{x}{A} \pp \Delta',\cht  {y}{\dual{A}}}}
@@ -597,8 +600,14 @@ The operational semantics of \pill are given as a labelled transition system (LT
 
 
 
+% -------- FIXME: Should there be highlighting on these
+%                 Also rewrite / expand
+%Transitions are labelled by actions in $\text{Act} = \{, x(), x[y], x(y) \mid x, y \text{ names}\}$, representing empty output, empty input, name output, and name input respectively, together with the silent label $\tau$ for internal communication and parallel composition of labels $l \mid l'$. Communication occurs when two compatible actions are performed over endpoints connected by a restriction producing a $\tau$ transition. This can happen by applying the\cref{rule:mpill-mix-sync,rule:mpill-cut-one,rule:mpill-cut-tensor}.
 
 
+
+
+% -------- FIXME: Example derivation.
 
 
 
@@ -609,29 +618,31 @@ The operational semantics of \pill are given as a labelled transition system (LT
 
 \subsubsection{Operational Semantics for Processes}
 % -------- FIXME: Add more depth, show syntax 
-A central metatheoretic result of \pill is \emph{session fidelity}, which states that the LTS of a well-typed process is homomorphic to the LTS induced by its type. Intuitively, a process typed with \hl{$\thl{A tensor B}$} will only ever perform an output action, and its continuation will be typed with \hl{$\thl{B}$}. This guarantees that well-typed processes always communicate according to their protocols. The result is established in~\citet{MP-pill} for the full \pill calculus; we restrict attention to mechanizing the multiplicative fragment in this thesis.
+% Define the proc : Der -> Proc function + Erasure (homomorphism ltsd -> ltsp)
+% Show derivation example but only proc part
+
+\subsubsection{Operational Semantics for Typing Environments}
+% The same as for proc but with typing environments instead.
 
 
-\subsubsection{Operational Semantics for Typinh Environments}
+% Rounding out section
+% Mention \emph{session fidelity}
 
-
-
-With the operational semantics in place, the remaining challenge for mechanisation is the treatment of name binding. The following section
-introduces the locally nameless representation used in the formalisation to handle bound names without reasoning up to $\alpha$-equivalence.
-
-
-
-
-
+%With the operational semantics in place, the remaining challenge for mechanisation is the treatment of name binding. The following section introduces the locally nameless representation used in the formalisation to handle bound names without reasoning up to $\alpha$-equivalence.
 
 
 
-% -------- TODO: Check that all \thl and \phl are incapsulated in $$
-% -------- TODO: Turn 'Note' paragraphs into remarks
 
 
-% Operational Semantics
-% Semantics of Processes and Typing Environments? 
+
+
+
+
+% TODO: Check that all \thl and \phl are incapsulated in $$
+% TODO: Turn 'Note' paragraphs into remarks
+
+
+% TODO: Hold off on explaining the rules and their side conditions too deeply before, wait until the formalization chapter where these can be mentioned in relation to why my rules look the way they do.  
 
 
 
