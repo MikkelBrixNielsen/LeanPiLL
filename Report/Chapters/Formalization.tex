@@ -1,11 +1,13 @@
-
-
-
 % Refer back to paper syntax and definitons - Don't repeat what has already been written instead use what has been defined as basis and show important differences in how the formalization differes from the paper syntax.
 
 % This chapter is supposed to be where backgroundm binding representation and the $\pi$LL syntax comes together to creates a mechanization of the pre established theory. Should probably include:
-    % How Processes are defined in Lean and how LN has influences the constructors
-    % How Types are defined in Lean and how De Bruijn influced the constructors
-    % How Processes and Types are used together to define the Typing system, as well as what influence LN and De Bruijn had on the constructors in the form of including co-finite quantification.
-    % Define the operational semantics for the Typing sytem and how it can be mapped to an operational semantic for Processes and Types, resepctively.
-    % Mention the elimination of Alpha equivalence, (Would be good to have a proof that it has been reduced to structural equivalence)
+  % How Processes are defined in Lean and how LN has influences the constructors
+  % How Types are defined in Lean and how De Bruijn influced the constructors
+  % How Processes and Types are used together to define the Typing system, as well as what influence LN and De Bruijn had on the constructors in the form of including co-finite quantification.
+  % Define the operational semantics for the Typing sytem and how it can be mapped to an operational semantic for Processes and Types, resepctively.
+  % Mention the elimination of Alpha equivalence, (Would be good to have a proof that it has been reduced to structural equivalence)
+
+% When talking about the formlization, maybe show a Lean version of a mapping to the reports running example, and comment on how, due to it being a strict application, there are sometimes empty hyperenv or env artifacts which roam around the derivation. Contextualize this in process congruence and the monoidal structure of typing environments, and mention that this property has yet to be added to the formalization.
+  % Maybe something along the lines of:
+  % Notice that in the intermediate transition, the strict application of the \textsc{Mix} rule yields the typing context $\emptyset \mid y:1$. By maintaining the structural footprint of the terminated left-hand process ($\vdash \textbf{0} :: \emptyset$), the exact correspondence with the parallel transition rule remains visually explicit. Following the final $y[]$ transition, the process fully terminates as $\textbf{0} \mid \textbf{0}$. At this stage, we can apply process congruence ($P \mid \textbf{0} \equiv P$) alongside the monoidal identity laws of the hyperenvironment ($\emptyset \mid \emptyset = \emptyset$) to cleanly resolve the derivation to its final state: $\vdash \textbf{0} :: \emptyset$
+
