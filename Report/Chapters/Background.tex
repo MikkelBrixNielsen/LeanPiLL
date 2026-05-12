@@ -858,11 +858,24 @@ Session Fidelity is the ultimate touchstone for the safety of a session-typed la
 
 
 
-%With the operational semantics in place, the remaining challenge for mechanisation is the treatment of name binding. The following section introduces the locally nameless representation used in the formalisation to handle bound names without reasoning up to $\alpha$-equivalence.
 
 \subsection{The Burden of Bound variables}
+\label{sec:burden-of-bound-variables}
 % Explain paper problem, what alpha equivalence is, the Barendregt convention, explicit freshness conditions, and why paper-proofs usually assume alpha equivalence implicitly, or swipe it under the rug.
 
+% ------- Potentially usefull ------- %
+
+%Having established the operational semantics of \pill and the ultimate goal of verifying Session Fidelity, we must address a silent mathematical challenge that underpins this entire system: the management of bound variables. To prove that an environment correctly mimics a process's transitions, we must perform exact syntactic matching of channel names. However, variables are routinely bound during the restriction of channels ($\res{xy}{P}$) and the reception of names ($\recv{x}{y}{P}$). The precise identity of these bound names is irrelevant to the behavior of the process; what matters is the structural relationship between the binder and its occurrences.
+
+%This principle is formalized as \textbf{$\alpha$-equivalence} ($\aleq$), which states that two terms are identical if they differ only by the renaming of their bound variables. For instance, the process $\res{xw}{(\send{x}{}{\nil} \pp \recv{w}{}{\nil})}$ is $\alpha$-equivalent to $\res{xy}{(\send{x}{}{\nil} \pp \recv{y}{}{\nil})}$. In the operational semantics, the structural congruence rule (\cref{rule:pill-alpha}) explicitly relies on $\alpha$-equivalence to rename variables on the fly, ensuring that transitions do not accidentally capture or collide with existing free names in the environment.
+
+%When defining operations like substitution, preventing accidental capture requires explicitly defining freshness conditions. To substitute a name $z$ for a free name $x$ in a restricted process $\res{yw}{P}$, one must ensure that $z \neq y$ and $z \neq w$. If $z$ is already in use, the bound variables $y$ and $w$ must be safely $\alpha$-renamed to completely fresh names before the substitution can proceed. 
+
+%In paper-based presentations of process calculi, managing these $\alpha$-renamings and explicit freshness conditions is notoriously tedious. To avoid cluttering proofs with renaming arithmetic, authors universally adopt \textbf{Barendregt's Variable Convention}. This convention simply assumes that, at all times, the set of bound variables in a formula is chosen to be completely disjoint from the set of free variables, and that any newly introduced binder uses a universally fresh name.
+
+%While Barendregt's convention is an elegant and effective tool for human-readable mathematics, it is a purely informal meta-linguistic agreement. A proof assistant, which requires rigorous, algorithmic verification of every logical step, cannot simply `assume' that a variable is fresh. In a mechanized setting, explicitly tracking named variables, computing freshness conditions, and manually applying $\alpha$-equivalence across parallel components introduces an overwhelming amount of proof boilerplate. 
+
+%Consequently, the gap between the fluid, paper-based operational semantics of \pill and its concrete mechanization is defined largely by the burden of bound variables. To formalize the metatheory without being paralyzed by variable capture, we must abandon the informal Barendregt convention and adopt a structural architecture that inherently solves the $\alpha$-equivalence problem. The design and implementation of this architecture is the focus of the following chapter.
 
 
 
