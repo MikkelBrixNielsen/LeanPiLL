@@ -1,5 +1,4 @@
-\section{Background} % 2
-\label{sec:background}
+\section{Background}\label{sec:background} % 2
 This section begins by introducing the theoretical foundations underlying the formalisation following the presentation of ~\citep{abs-2106-11818}, We cover the full \pill calculus, including processes, types, typing, environments / hyperenvironments, and judgements, then restrict attention to the multiplicative fragment \pimll when discussing operational semantics.
 
 Following~\citep{abs-2106-11818}, we use \hl{$\thl{blue}$} to highlight types and \hl{$\phl{red}$} for process terms throughout this thesis.
@@ -61,7 +60,7 @@ This resource-oriented view of logic provides the foundation for its application
 \label{subsec:processes}
 The $\pi$-calculus~\citep{MPW92} is a process calculus for modeling concurrent computation with dynamic communication topology, where channel names themselves can be transmitted, allowing the communication network to evolve during execution. We follow the presentation of~\citet{abs-2106-11818}, which adopts~\citeauthor{W14}'s convention of using square brackets '$[\text{-}]$' for output and round parentheses '$(\text{-})$' for input.
 
-Programs in \pimll are processes \hl{($\phl{P}$, $\phl{Q}$, $\phl{R}$, $\dots$)}, which communicate over names \hl{($\phl{x}$, $\phl{y}$, $\phl{z}$, $\dots$)} representing session endpoints. Sessions are binary (they involve exactly two endpoints), a discipline enforced by the typing system introduced in \ref{subsec:types}. We assume an infinite set of names with decidable equality. The process terms of \pimll are defined by the following grammar:
+Programs in \pimll are processes \hl{($\phl{P}$, $\phl{Q}$, $\phl{R}$, $\dots$)}, which communicate over names \hl{($\phl{x}$, $\phl{y}$, $\phl{z}$, $\dots$)} representing session endpoints. Sessions are binary (they involve exactly two endpoints), a discipline enforced by the typing system introduced in~\ref{subsec:types}. We assume an infinite set of names with decidable equality. The process terms of \pimll are defined by the following grammar:
 
 \begin{bnftable}
   {\phl{P}, \phl{Q} \Coloneqq{}}
@@ -126,7 +125,7 @@ interaction by construction:
 
 \begin{highlight}
 \begin{gather*}
-    \thl{(A \tensor B)^\bot} = \thl{A^\bot \parr B^\bot}
+    \thl{{(A \tensor B)}^\bot} = \thl{A^\bot \parr B^\bot}
     \qquad
     \thl{\one^\bot} = \thl{\bot}
     \qquad
@@ -136,7 +135,7 @@ interaction by construction:
     \qquad
     \thl{(\exists X.A)}\thl{^\bot} = \thl{\forall X.A^\bot}
     \qquad
-    \thl{(X)^\bot} = \thl{X^\bot}
+    \thl{{(X)}^\bot} = \thl{X^\bot}
 \end{gather*}
 \end{highlight}
 
@@ -229,7 +228,7 @@ Environments dictate how names are used, but it does not distinguish whether nam
 
 \emph{Judgements}, written as \hl{$\judge{}{P}{\hyp{G}}$}, states that the process \hl{\phl{$P$}} uses its free names in accordance with \hl{\thl{$\hyp G$}} and can be derived using the inference rules displayed in \cref{fig:pill-typing-rules}.
 
-\emph{Typing Derivations} (\der{D}, \der{E}, \der{F}, \dots) are written as \hl{$\deduce{\judge{}{P}{\hyp G}}{\der D}$} and are read as the derivation \der D having the judgement \hl{$\judge{}{P}{\hyp{G}}$} as its conclusion. The meaning of this statement is that the process, \hl{\phl{$P$}}, appearing in the judgement concluding a derivations is well-typed.
+\emph{Typing Derivations} (\der{D}, \der{E}, \der{F}, \dots) are written as \hl{$\deduce{\judge{}{P}{\hyp G}}{\der D}$} and are read as the derivation \der{D} having the judgement \hl{$\judge{}{P}{\hyp{G}}$} as its conclusion. The meaning of this statement is that the process, \hl{\phl{$P$}}, appearing in the judgement concluding a derivations is well-typed.
 
 \begin{figure}[htbp]
   \begin{highlight}\small 
@@ -313,7 +312,7 @@ Environments dictate how names are used, but it does not distinguish whether nam
     \end{spreadlines}
   \end{highlight}
   \caption{\pill, typing rules.}
-  \label{fig:pill-typing-rules}
+\label{fig:pill-typing-rules}
 \end{figure}
 
 The multiplicative rules form the core of the system. \Cref{rule:pill-cut} composes two processes in \hl{$\phl{P}$} sharing dual endpoints \hl{$\phl{x} : \thl{A}$} and \hl{$\phl{y} : \thl{A^\bot}$}, hiding them via restriction. This is the logical equivalent of communication. \Cref{rule:pill-mix} and \cref{rule:pill-mix-0} compose independent processes in parallel and introduce the terminated process, respectively.
@@ -325,7 +324,6 @@ The additive rules (\cref{rule:pill-oplus-1}, \cref{rule:pill-oplus-2}, and \cre
 The exponential rules type server replication. The \cref{rule:pill-!} requires all free names except \hl{$\phl{x}$} to be typed using \hl{$\thl{\query}$}, enforcing that a server only depends on other servers. The \cref{rule:pill-?}, \cref{rule:pill-weaken}, and \cref{rule:pill-contract} allow a client to use, discard, or duplicate a server respectively.
 
 The \cref{rule:pill-axiom} types a link between two dual endpoints, \hl{$\phl{\forward{x}{y}}$}, forwarding all messages sent on \hl{$\phl{x}$} safely to \hl{$\phl{y}$} and vice versa. \Cref{rule:pill-exists} and \cref{rule:pill-forall} type polymorphic communication, where the side condition \hl{$\thl{X \notin \ft(\Gamma)}$} in \cref{rule:pill-forall}, ensures the introduced type variable, \hl{$\thl{X}$}, does not accendentally shadow one already existing in \hl{$\thl{\Gamma}$}.
-
 
 \begin{example}
   \begin{highlight}
@@ -591,7 +589,19 @@ The operational semantics of \pill are given as a labelled transition system (LT
   \label{fig:mpill-sos}
 \end{figure}
 
-Actions are defined in the set $Act = \{\lclose{x}, \lwait{x}, \lsend{x}{y}, \lrecv{x}{y} \mid x, y \text{ names}\}$, representing empty output, empty input, name output, and name input respectively. These come together with the silent label $\tau$ for internal communication and the parallel composition of labels $l \mid l'$ to form the set of transition labels, defined as $Lbl = \{\tau, l, (\lsync{l}{l'}) \mid l, l' \in Act, \is(l) \cap \is(l') = \emptyset\}$. The restriction imposed on the parallel composition of labels exists to ensure two labels do not introduce the same name, which would break linear resource management. 
+% FIXME: Refernces the correct section
+\begin{remark}
+  The operational semantics rely explicitly on the structural equivalence rule (\cref{rule:pill-alpha}) to rename restricted variables (via $\aleq$) prior to a transition. In paper-based proofs, $\alpha$-equivalence is often treated implicitly or swept under the rug via Barendregt's Variable Convention. However, in a mechanized setting, explicitly reasoning about $\alpha$-equivalence over named variables is notoriously difficult and introduces overwhelming boilerplate, as variable capture must be manually avoided during substitution \citep{A05,C12}. As we will see in \cref{ch:mechanization}, this challenge motivates the use of a Locally Nameless representation for the syntax of \pill, which structurally enforces $\alpha$-equivalence and natively resolves the complexities of bound variable renaming.
+\end{remark}
+
+\def\Actset{\mathit{Act}}
+\def\Lblset{\mathit{Lbl}}
+
+Actions are defined in the set $\Actset = \{\lclose{x}, \lwait{x}, \lsend{x}{y}, \lrecv{x}{y} \mid x, y \text{ names}\}$, representing empty output, empty input, name output, and name input respectively. These come together with the silent label $\tau$ for internal communication and the parallel composition of labels $l \mid l'$ to form the set of transition labels, defined as $\LblSet = \{\tau, l, (\lsync{l}{l'}) \mid l, l' \in \Actset, \is(l) \cap \is(l') = \emptyset\}$. The restriction imposed on the parallel composition of labels exists to ensure two labels do not introduce the same name, which would break linear resource management.
+
+\begin{example}
+  \Cref{fig:cut-unit-trans} shows a possible execution for the derivation of the process from~\cref{ex:cut-unit-proc}.
+\end{example}
 
 Each logical rule (\ref{rule:pill-one},~\ref{rule:pill-bot},~\ref{rule:pill-tensor},~\ref{rule:pill-parr}) has a corresponding transition axiom. These follow the prefix-continuation pattern \hl{$\phl{\prefixed{\pi}{P}} \lto{\pi} \phl{P}$}, where performing the action $\pi$ leads to the remainder of the process. \Cref{rule:pill-mix-sync} allows for the pairing of concurrent actions via $\lsync{l}{l'}$, which is used to facilitate communication by letting two endpoints connected by a restriction perform compatible actions. When two compatible actions are performed over endpoints connected by a restriction, \cref{rule:pill-cut-one,rule:pill-cut-tensor} simplify the term into an internal $\tau$-transition, modeling the synchronization of the session.
 
@@ -639,39 +649,62 @@ Each logical rule (\ref{rule:pill-one},~\ref{rule:pill-bot},~\ref{rule:pill-tens
   }
 \end{figure}
 
-\begin{example}
-  \Cref{fig:cut-unit-trans} shows a possible execution for the derivation of the process from~\cref{ex:cut-unit-proc}.
-\end{example}
-
-\subsection{Process Semantics and Erasure}
-\label{subsubsec:process-semantics-erasure}
-While the typing derivations of \pill dictate the valid interactions within a session, the underlying process terms possess a standard, untyped operational behavior that closely mirrors the classic $\pi$-calculus. To formally relate the typed derivations to their untyped execution, we follow \citep{abs-2106-11818} and define an erasure function, $proc : Der \to Proc$, which strips away the typing information from a derivation. Recursively, $proc$ maps the head of a typing derivation to the specific process constructor it introduces, continuing structurally onto the process's continuation. For any well-typed \pill term, $proc(\hyp{D})$ effectively extracts the pure process term from the derivation's conclusion.
 
 
+\subsection{Process Semantics and Erasure}\label{subsubsec:process-semantics-erasure}
+While the typing derivations of \pill dictate the valid interactions within a session, the underlying process terms possess a standard, untyped operational behavior that closely mirrors the classic $\pi$-calculus. To formally relate the typed derivations to their untyped execution, we follow \citep{abs-2106-11818} and define an erasure function, $proc : \DerSet \to Proc$, which strips away the typing information from a derivation. Recursively, $proc$ maps the head of a typing derivation to the specific process constructor it introduces, continuing structurally onto the process's continuation. For any well-typed \pill term, $proc(\hyp{D})$ effectively extracts the pure process term from the derivation's conclusion.
 
-
+\begin{figure}[htbp]
 \begin{highlight}
   \[
     \infer[\ref{rule:pill-cut}]
-    {\judge{}{\res{xz}{(\recv{z}{}{\send{y}{}{\nil}} \pp \send{x}{}{\nil} \pp \recv{w}{}{\send{v}{}{\nil}})}}{\cht{y}{1} \pp \cht{w}{\bot}, \cht{v}{1}}}
-    {\infer[\ref{rule:pill-mix}]
-      {} % Original example derivation
-      {} % Derivation for w().v().\nil
+    {\judge{}{\res{xz}{(\recv{w}{}{\send{v}{}{\nil}} \pp \send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}})}}{\cht{v}{1}, \cht{w}{\bot} \pp \cht{y}{1}}}
+    {
+      \infer[\ref{rule:pill-mix}]
+      {\judge{}{(\recv{w}{}{\send{v}{}{\nil}} \pp \send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}})}{\cht{v}{1}, \cht{w}{\bot} \pp \cht{x}{1} \pp \cht{y}{1}, \cht{z}{\bot}}}
+      {
+        \infer[\ref{rule:pill-bot}]{\judge[]{}{\recv{w}{}{\send{v}{}{\nil}}}{\cht{v}{1}, \cht{w}{\bot}}}{\infer[\ref{rule:pill-one}]{\judge{}{\send{v}{}{\nil}}{\cht{v}{1}}}{\infer[\ref{rule:pill-mix-0}]{\judge{}{\nil}{\emptyhyp}}{}}}
+        &
+        \infer[\ref{rule:pill-mix}]{\judge{}{\send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}}}{\cht{x}{1} \pp \cht{y}{1}, \cht{z}{\bot}}}
+        {\infer[\ref{rule:pill-one}]{\judge{}{\send{x}{}{\nil}}{\cht{x}{1}}}{\infer[\ref{rule:pill-mix-0}]{\judge{}{\nil}{\emptyhyp}}{}}
+        &
+        \infer[\ref{rule:pill-bot}]{\judge{}{\recv{z}{}{\send{y}{}{\nil}}}{\cht{y}{1}, \cht{z}{\bot}}}{\infer[\ref{rule:pill-one}]{\judge{}{\send{y}{}{\nil}}{\cht{y}{1}}}{\infer[\ref{rule:pill-mix-0}]{\judge{}{\nil}{\emptyhyp}}{}}}
+        }
       }
+    }
   \]
 \end{highlight}
+\caption{A derivation for the process $\res{xz}{\recv{w}{}{\send{y}{}{\nil}} \pp \send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}}}$}
+\label{fig:expanded-cut-unit}
+\end{figure}
 
+\begin{example}
+Consider the well-typed process $P$ formed by adding a third parallel component to the derivation of \cref{ex:cut-unit-der} before the cut (A derivation of which can be seen on \cref{fig:expanded-cut-unit}):
+\[P = \res{xz}{(\recv{w}{}{\send{v}{}{\nil}} \pp \send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}})}\]
 
+The component containing $w$ and $v$ is independent from the component containing $x$, $z$, and $y$. This allows their respective actions to interleave freely, resulting in the following execution traces, illustrating the concurrency of the calculus:
+\begin{align*}
+  P &\lto{\tau}\lto{\lwait{w}}\lto{\lsend{v}{}}\lto{\lsend{y}{}}\nil &
+  P &\lto{\tau}\lto{\lwait{w}}\lto{\lsend{y}{}}\lto{\lsend{v}{}}\nil &
+  P &\lto{\tau}\lto{\lsend{y}{}}\lto{\lwait{w}}\lto{\lsend{v}{}}\nil \\
+  P &\lto{\lwait{w}{}}\lto{\lsend{v}{}}\lto{\tau}\lto{\lsend{y}{}}\nil &
+  P &\lto{\lwait{w}{}}\lto{\tau}\lto{\lsend{v}{}}\lto{\lsend{y}{}}\nil &
+  P &\lto{\lwait{w}{}}\lto{\tau}\lto{\lsend{y}{}}\lto{\lsend{v}{}}\nil
+\end{align*}
+\label{ex:expanded-cut-unit-execution}
+\end{example}
 
+\def\mlts#1{\mathit{lts_{#1}}}
 
+The semantics for process terms must inherently agree with the semantics of derivations for well-typed terms. As formulated in~\citep{abs-2106-11818}, this relationship is established functorially. Let 
 
-% [INSERT EXAMPLES HERE: An example of proc mapping a rule to just the process]
+$\mathcal{P}(X) = \{X' \mid X' \subseteq X\}$ and $\mathcal{L}(X) = X \times \LblSet$ 
 
-
-
-% [INSERT EXAMPLE HERE: An example of a process having multiple execution paths]
-
-The semantics for process terms must inherently agree with the semantics of derivations for well-typed terms. As formulated in Montesi and Peressotti~\cite{abs-2106-11818}, this relationship is established functorially. Let $\mathcal{P}(X) = \{X' \mid X' \subseteq X\}$ and $\mathcal{L}(X) = X \times \text{Lbl}$ be endofunctors representing the states and labeled transitions, respectively. The erasure function $proc$ acts as a homomorphism from the Labeled Transition System (LTS) of derivations to the LTS of processes, ensuring that the square of these LTS mappings commutes.
+be endofunctors representing the states and labeled transitions, respectively. The erasure function $proc$ acts as a homomorphism from LTS of derivations 
+($\mlts{d}$) 
+to the LTS of processes 
+($\mlts{p}$)
+, ensuring that the square of these LTS mappings commutes.
 
 In the context of operational semantics, this functorial homomorphism yields a standard Operational Correspondence (or Erasure) theorem. It guarantees that the Labeled Transition System for derivations and the SOS for untyped processes simulate each other exactly:
 
@@ -769,22 +802,66 @@ This theorem allows us to define the operational target for \pill processes with
   \label{fig:mpill-sos-processes}
 \end{figure}
 
-\begin{remark}[On the Redundancy of Side Conditions]
+\begin{remark}
 The untyped LTS for processes relies heavily on explicit side conditions regarding free and introduced names to prevent the collision of bound variables (e.g., ensuring $i(l) \cap i(l') = \emptyset$). However, when operating at the level of typing derivations, these side conditions become inherently redundant. Because \pill enforces linear resource management, the structural rules of the typed LTS dictate that hyperenvironments can only be merged when their domains are strictly disjoint. Consequently, any well-typed derivation inherently satisfies the name-distinctness and freshness requirements of the underlying untyped calculus, shifting the burden of safety from dynamic transition checks to static structural typing.
+\end{remark}
+
+\begin{proposition}
+\label{prop:name-respect}
+The operational semantics of \pill processes strictly respects the introduction of names via transition labels. Formally, if $P \lto{l} P'$, then:
+\begin{itemize}
+    \item $\is(l) \cap \fs(P) = \emptyset$
+    \item If $P$ is well-typed, then $\is(l) = \fs(P') \setminus \fs(P)$
+\end{itemize}
+\end{proposition}
+
+\begin{remark}
+\Cref{prop:name-respect} is vital for mechanizing the metatheory of \pill. Because proof assistants tools require explicit tracking of fresh and bound variable to prevent accidental capture, this proposition acts as the formal bridge between the dynamic semantics and the static typing. It guarantees that a well-typed process evolves predictably, ensuring that it does not spontaneously generate resources during a transition.
+\end{remark}
+
+% WIP
+% FIXME: Highlighting and maybe switch to use the same example as in previous section.
+\subsection{Semantics of Typing Environments}\label{subsec:semantics-environments}
+Just as processes evolve through computation, the typing environments that govern them must also evolve to accurately track the state of a session. In \pill, types capture communication protocols. Consequently, the transition rules for typing environemnts specify exactly which actions are permitted and how the available resources are consumed by those actions. 
+
+Similar to how we defined the process erasure function, we again follow \citep{abs-2106-11818} and define a function $env : \DerSet \to \text{Env}$ that maps a valid typing derivation directly to the hyperenvironment in its conclusion (i.e., $env(\vdash P :: \hyp{G}) = \hyp{G}$). Using this extraction, Montesi and Peressotti~\cite{abs-2106-11818} derive a LTS specifically for typing environments ($\mlts{e}$). 
+
+In this LTS, observable actions actively consume resources from the environment. For example, if a hyperenvironment contains a waiting channel \hl$\cht{x}{\bot}$, performing an input action $\lwait{x}$ will consume this type, removing it from the resulting environment. Conversely, internal communications do not alter the available external resources. This is formalized by the $\tau$-reflexivity axiom:
+\[
+    \hyp{G} \mid \Gamma \lto{\tau} \hyp{G} \mid \Gamma
+\]
+This axiom states that any valid hyperenvironment transitions to itself under a silent $\tau$-action. 
+
+\begin{example}
+\begin{highlight}  
+Consider a process typed by the environment $\phl{\hyp{G}} = \cht{x}{\bot}, \cht{y}{\bot}, \cht{z}{1}$. If the process performs the observable action $x()$, the environment must mimic this action, consuming the type for $x$:
+\[
+    \cht{x}{\bot}, \cht{y}{\bot}, \cht{z}{1} \lto{\lwait{x}} \cht{y}{\bot}, \cht{z}{1}
+\]
+If the process subsequently performs an internal $\tau$-synchronization, the environment remains completely unchanged:
+\[
+    \cht{y}{\bot}, \cht{z}{1} \lto{\tau} \cht{y}{\bot}, \cht{z}{1}
+\]
+\end{highlight}
+\end{example}
+
+The requirement that a process can only perform actions permitted by its typing environment is known as \textbf{Session Fidelity}. Just as the $proc$ function established operational correspondence for processes, the $env$ function establishes a correspondence for environments. 
+
+\begin{theorem}[Session Fidelity]
+\label{thm:session-fidelity}
+Let $\der{D}$ be a valid typing derivation such that $env(\der{D}) = \hyp{G}$ and $proc(\der{D}) = P$. If the process transitions such that $P \lto{l} P'$, then the environment can mimic this transition $\hyp{G} \lto{l} \hyp{G}'$, and there exists a new valid derivation $\der{D}'$ for $P'$ under $\hyp{G}'$.
+\end{theorem}
+
+\begin{remark}
+Session Fidelity is the ultimate touchstone for the safety of a session-typed language. However, proving this in a proof assistant introduces distinct challenges. While rules like $\tau$-reflexivity are trivial on paper, mechanizing the invariant that `an environment does not change' requires robust structural equivalence proofs for contexts. Furthermore, properly tracking the consumption and preservation of types dynamically necessitates a rigorous representation of bound variables and freshness, which heavily dictates the architectural choices discussed in the following chapters.
 \end{remark}
 
 
 
-
-\subsection{Operational Semantics for Typing Environments}
-% The same as for proc but with typing environments instead.
-
-
-% Rounding out section
-% Mention \emph{session fidelity}
-
 %With the operational semantics in place, the remaining challenge for mechanisation is the treatment of name binding. The following section introduces the locally nameless representation used in the formalisation to handle bound names without reasoning up to $\alpha$-equivalence.
 
+\subsection{The Burden of Bound variables}
+% Explain paper problem, what alpha equivalence is, the Barendregt convention, explicit freshness conditions, and why paper-proofs usually assume alpha equivalence implicitly, or swipe it under the rug.
 
 
 
@@ -792,12 +869,33 @@ The untyped LTS for processes relies heavily on explicit side conditions regardi
 
 
 
+
+
+
+
+
+% TODO: Fix the section talking about environments and figur out which example to use, is the current one good enough, or use the same as the one in the process semantics section. 
 
 % TODO: Check that all \thl and \phl are incapsulated in $$
+
 % TODO: Turn 'Note' paragraphs into remarks
 
+% TODO: Look at all instances of using the letter 'z' and check that this is in accordance with britsh (AND NOT AMERICAN) english.
 
-% TODO: Hold off on explaining the rules and their side conditions too deeply before, wait until the formalization chapter where these can be mentioned in relation to why my rules look the way they do.  
+% TODO: Make bib entries and cite
+  % POPLmark Challenge (Aydemir et al., 2005) AlphaEq (A05)
+  % Arthur Charguéraud's (Charguéraud, 2012) LN (C12)
+
+% TODO: Fix contents spread between the BindingRepresentation section and teh Formalisation section
+
+% TODO: When having created the section talking about LN for processes and it replacing alphaeq fix remark 2.3 to properly reference it.
+
+% TODO: Hold off on explaining the rules and their side conditions too deeply before, wait until the formalisation chapter where these can be mentioned in relation to why my rules look the way they do.  
+
+% TODO: Reference back to \cref{prop:name-respect}, when talking about why we have Typing_f_eq_names and how it is usefull. 
+
+
+
 
 
 

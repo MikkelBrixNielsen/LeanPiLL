@@ -1,9 +1,9 @@
 \section{Introduction}
-The Curry–Howard correspondence establishes a deep connection between logic and computation, where proofs correspond to programs and logical propositions correspond to types. This perspective has been particularly influential in the study of concurrent systems, where linear logic and session types provide a logical foundation for structured communication.
+The Curry-Howard correspondence establishes a deep connection between logic and computation, where proofs correspond to programs and logical propositions correspond to types. This perspective has been particularly influential in the study of concurrent systems, where linear logic and session types provide a logical foundation for structured communication.
 
 In this setting, linear logic captures resource-sensitive reasoning, while session types describe communication protocols between concurrent processes. The resulting correspondence, often referred to as propositions-as-sessions, provides a principled interpretation of interaction as logical proof transformation, and has been further related to process calculi such as the $\pi$-calculus.
 
-This line of work has been further developed by ~\cite{MP-pill}, who provide a unified account reconciling linear logic, the $\pi$-calculus, and their metatheory. Their framework serves as the formal basis for the system \pill considered in this thesis.
+This line of work has been further developed by ~\cite{abs-2106-11818}, who provide a unified account reconciling linear logic, the $\pi$-calculus, and their metatheory. Their framework serves as the formal basis for the system \pill considered in this thesis.
 
 \paragraph{Motivation and correctness concerns.}
 Despite the elegance of these theoretical correspondences, their informal and paper-based presentations are prone to subtle errors. In particular, the application of inference rules in linear logic and session-typed systems often relies on implicit ordering conventions and intuitive interpretations of syntax. This can lead to mistakes that are not immediately apparent in written derivations.
@@ -30,6 +30,6 @@ In this thesis, we present a mechanized formalization of the $\pi$-calculus-base
 \end{itemize}
 
 \paragraph{Scope of the formalization.}
-This thesis focuses on a mechanized reconstruction of the \pill system of ~\cite{MP-pill}, with particular emphasis on its multiplicative fragment. The syntactic and typing components of \pill have been fully mechanized, including processes, session types, typing judgments, and substitution operations. The operational semantics are defined for the multiplicative fragment, with the exception of the res-rule.
+This thesis focuses on a mechanized reconstruction of the \pill system of ~\cite{abs-2106-11818}, with particular emphasis on its multiplicative fragment. The syntactic and typing components of \pill have been fully mechanized, including processes, session types, typing judgments, and substitution operations. The operational semantics are defined for the multiplicative fragment, with the exception of the res-rule.
 
 Consequently, metatheoretic results concerning typing apply to the full system, while results involving operational semantics are restricted to the multiplicative fragment. The aim of this work is not to extend the theory, but to provide a mechanically verified account of an existing theoretical framework.
