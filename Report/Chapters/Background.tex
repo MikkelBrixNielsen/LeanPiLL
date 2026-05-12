@@ -593,7 +593,7 @@ The operational semantics of \pill are given as a labelled transition system (LT
 
 Actions are defined in the set $Act = \{\lclose{x}, \lwait{x}, \lsend{x}{y}, \lrecv{x}{y} \mid x, y \text{ names}\}$, representing empty output, empty input, name output, and name input respectively. These come together with the silent label $\tau$ for internal communication and the parallel composition of labels $l \mid l'$ to form the set of transition labels, defined as $Lbl = \{\tau, l, (\lsync{l}{l'}) \mid l, l' \in Act, \is(l) \cap \is(l') = \emptyset\}$. The restriction imposed on the parallel composition of labels exists to ensure two labels do not introduce the same name, which would break linear resource management. 
 
-Each logical rule (\ref{rule:pill-one},~\ref{rule:pill-bot},~\ref{rule:pill-tensor},~\ref{rule:pill-parr}) has a corresponding transition axiom. These follow the prefix-continuation pattern $\prefixed{\pi}{P} \lto{\pi} P$, where performing the action $\pi$ leads to the remainder of the process. \Cref{rule:pill-mix-sync} allows for the pairing of concurrent actions via $\lsync{l}{l'}$, which is used to facilitate communication by letting two endpoints connected by a restriction perform compatible actions. When two compatible actions are performed over endpoints connected by a restriction, \cref{rule:pill-cut-one,rule:pill-cut-tensor} simplify the term into an internal $\tau$-transition, modeling the synchronization of the session.
+Each logical rule (\ref{rule:pill-one},~\ref{rule:pill-bot},~\ref{rule:pill-tensor},~\ref{rule:pill-parr}) has a corresponding transition axiom. These follow the prefix-continuation pattern \hl{$\phl{\prefixed{\pi}{P}} \lto{\pi} \phl{P}$}, where performing the action $\pi$ leads to the remainder of the process. \Cref{rule:pill-mix-sync} allows for the pairing of concurrent actions via $\lsync{l}{l'}$, which is used to facilitate communication by letting two endpoints connected by a restriction perform compatible actions. When two compatible actions are performed over endpoints connected by a restriction, \cref{rule:pill-cut-one,rule:pill-cut-tensor} simplify the term into an internal $\tau$-transition, modeling the synchronization of the session.
 
 \begin{figure}[t]
   {\def\vlto#1#2{\mspace{6mu}\left\downarrow\vcenter{\hbox to 84ex{$\mspace{3mu}\vcenter{\hbox{$\scriptstyle #1$}}\hfill\vcenter{\hbox{#2}}\hfill$}}\right.}
@@ -643,12 +643,140 @@ Each logical rule (\ref{rule:pill-one},~\ref{rule:pill-bot},~\ref{rule:pill-tens
   \Cref{fig:cut-unit-trans} shows a possible execution for the derivation of the process from~\cref{ex:cut-unit-proc}.
 \end{example}
 
-\subsubsection{Operational Semantics for Processes}
-% -------- FIXME: Add more depth, show syntax 
-% Define the proc : Der -> Proc function + Erasure (homomorphism ltsd -> ltsp)
-% Show derivation example but only proc part
+\subsection{Process Semantics and Erasure}
+\label{subsubsec:process-semantics-erasure}
+While the typing derivations of \pill dictate the valid interactions within a session, the underlying process terms possess a standard, untyped operational behavior that closely mirrors the classic $\pi$-calculus. To formally relate the typed derivations to their untyped execution, we follow \citep{abs-2106-11818} and define an erasure function, $proc : Der \to Proc$, which strips away the typing information from a derivation. Recursively, $proc$ maps the head of a typing derivation to the specific process constructor it introduces, continuing structurally onto the process's continuation. For any well-typed \pill term, $proc(\hyp{D})$ effectively extracts the pure process term from the derivation's conclusion.
 
-\subsubsection{Operational Semantics for Typing Environments}
+
+
+
+\begin{highlight}
+  \[
+    \infer[\ref{rule:pill-cut}]
+    {\judge{}{\res{xz}{(\recv{z}{}{\send{y}{}{\nil}} \pp \send{x}{}{\nil} \pp \recv{w}{}{\send{v}{}{\nil}})}}{\cht{y}{1} \pp \cht{w}{\bot}, \cht{v}{1}}}
+    {\infer[\ref{rule:pill-mix}]
+      {} % Original example derivation
+      {} % Derivation for w().v().\nil
+      }
+  \]
+\end{highlight}
+
+
+
+
+
+% [INSERT EXAMPLES HERE: An example of proc mapping a rule to just the process]
+
+
+
+% [INSERT EXAMPLE HERE: An example of a process having multiple execution paths]
+
+The semantics for process terms must inherently agree with the semantics of derivations for well-typed terms. As formulated in Montesi and Peressotti~\cite{abs-2106-11818}, this relationship is established functorially. Let $\mathcal{P}(X) = \{X' \mid X' \subseteq X\}$ and $\mathcal{L}(X) = X \times \text{Lbl}$ be endofunctors representing the states and labeled transitions, respectively. The erasure function $proc$ acts as a homomorphism from the Labeled Transition System (LTS) of derivations to the LTS of processes, ensuring that the square of these LTS mappings commutes.
+
+In the context of operational semantics, this functorial homomorphism yields a standard Operational Correspondence (or Erasure) theorem. It guarantees that the Labeled Transition System for derivations and the SOS for untyped processes simulate each other exactly:
+
+\begin{theorem}[Operational Correspondence]
+\label{thm:operational-correspondence}
+Let $\mathcal{D}$ be a valid typing derivation such that $proc(\mathcal{D}) = P$.
+\begin{enumerate}
+    \item \textbf{Soundness of Erasure:} If $\mathcal{D} \xrightarrow{l} \mathcal{D}'$, then $proc(\mathcal{D}) \xrightarrow{l} proc(\mathcal{D}')$.
+    \item \textbf{Completeness of Erasure:} If $proc(\mathcal{D}) \xrightarrow{l} P'$, then there exists a derivation $\mathcal{D}'$ such that $\mathcal{D} \xrightarrow{l} \mathcal{D}'$ and $proc(\mathcal{D}') = P'$.
+\end{enumerate}
+\end{theorem}
+
+This theorem allows us to define the operational target for \pill processes without the syntactic overhead of typing environments. Using the erasure formulation, we can transform the operational semantics for derivations directly into an SOS specification for processes.
+
+\begin{figure}
+  \begin{minipage}{.745\textwidth}
+  \begin{highlight}\small
+  \begin{spreadlines}{\termltsskipamount}
+    \begin{gather*}
+        \phl{\send{x}{x'}{P}}
+        \lto{\lsend{x}{x'}}
+        \phl{P}
+      \qquad
+        \phl{\recv{x}{x'}{P}}
+        \lto{\lrecv{x}{x'}}
+        \phl{P}
+      \qquad
+        \phl{\close{x}{P}}
+        \lto{\lclose{x}}
+        \phl{P}
+      \qquad
+        \phl{\wait{x}{P}}
+        \lto{\lwait{x}}
+        \phl{P}
+     \\
+     \infer[\rlabel{\ref*{rule:pill-mix-1}}{rule:pill-proc-mix-1}]
+       {\phl{P \pp Q} \lto{l} \phl{P' \pp Q}}
+       {\phl{P} \lto{l} \phl{P'}
+       &\phl{\is(l) \cap \fs(Q) = \emptyset}}
+     \quad
+     \infer[\rlabel{\ref*{rule:pill-mix-2}}{rule:pill-proc-mix-2}]
+       {\phl{P \pp Q} \lto{l} \phl{P \pp Q'}}
+       {\phl{Q} \lto{l} \phl{Q'}
+       &\phl{\is(l) \cap \fs(P) = \emptyset}}
+     \\
+     \infer[\rlabel{\ref*{rule:pill-mix-sync}}{rule:pill-proc-mix-sync}]
+       {\phl{P \pp Q} \lto{\lsync{l}{l'}} \phl{P' \pp Q'}}
+       {\phl{P} \lto{l} \phl{P'}
+       &\phl{Q} \lto{l'} \phl{Q'}
+       &\phl{\is(\lsync{l}{l'}) \cap \fs(P \pp Q) = \emptyset}}
+    \quad
+    \infer[\rlabel{\ref*{rule:pill-cut-tensor}}{rule:pill-proc-cut-tensor}]
+      {\phl{\res{xy}{P}} \lto{\tau} \phl{\res{xy}{\res{x'y'}{P'}}}}
+      {\phl{P} \lto{\lsync{\lsend{x}{x'}}{\lrecv{y}{y'}}} \phl{P'}}
+    \\
+    \infer[\rlabel{\ref*{rule:pill-cut-one}}{rule:pill-proc-cut-one}]
+      {\phl{\res{xy}{P}} \lto{\tau} \phl{P'}}
+      {\phl{P} \lto{\lsync{\lclose{x}}{\lwait{y}}} \phl{P'}}
+    \quad
+    \infer[\rlabel{\ref*{rule:pill-cut-res}}{rule:pill-proc-cut-res}]
+      {\phl{\res{xy}{P}} \lto{l} \phl{\res{xy}{P'}}}
+      {\phl{P} \lto{l} \phl{P'}
+      &\phl{x,y \notin \fs(l) \cup \is(l)}}
+    \quad
+    \infer[\rlabel{\ref*{rule:pill-alpha}}{rule:pill-proc-alpha}]
+      {\phl{P} \lto{l} \phl{Q'}}
+      {\phl{P \aleq Q}
+      &\phl{Q} \lto{l} \phl{Q'}}
+    \end{gather*}
+  \end{spreadlines}
+  \end{highlight}
+  \end{minipage}\hfill\begin{minipage}{.245\textwidth}%
+    \small%
+    \begin{spreadlines}{5pt}
+    \begin{gather*}
+      \is(\lsync{l}{l'}) = \is(l) \cup \is(l')
+      \\
+      \fs(\lsync{l}{l'}) = \fs(l) \cup \fs(l')
+      \\
+      \is(\tau) = \emptyset
+      \\
+      \fs(\tau) = \emptyset
+      \\ 
+      \is(\lclose{x}) = \is(\lwait{x}) = \emptyset
+      \\
+      \fs(\lclose{x}) = \fs(\lwait{x}) =  \{x\}
+      \\
+      \is(\lsend{x}{x'}) = \is(\lrecv{x}{x'}) = \{x'\}
+      \\
+      \fs(\lsend{x}{x'}) = \fs(\lrecv{x}{x'}) = \{x\}
+    \end{gather*}
+    \end{spreadlines}
+  \end{minipage}
+  \caption{\pimll, transition rules for processes.}
+  \label{fig:mpill-sos-processes}
+\end{figure}
+
+\begin{remark}[On the Redundancy of Side Conditions]
+The untyped LTS for processes relies heavily on explicit side conditions regarding free and introduced names to prevent the collision of bound variables (e.g., ensuring $i(l) \cap i(l') = \emptyset$). However, when operating at the level of typing derivations, these side conditions become inherently redundant. Because \pill enforces linear resource management, the structural rules of the typed LTS dictate that hyperenvironments can only be merged when their domains are strictly disjoint. Consequently, any well-typed derivation inherently satisfies the name-distinctness and freshness requirements of the underlying untyped calculus, shifting the burden of safety from dynamic transition checks to static structural typing.
+\end{remark}
+
+
+
+
+\subsection{Operational Semantics for Typing Environments}
 % The same as for proc but with typing environments instead.
 
 
