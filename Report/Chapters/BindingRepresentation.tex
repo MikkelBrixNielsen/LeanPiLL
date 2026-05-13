@@ -14,7 +14,7 @@
 
 
 % ------- WIP
-\section{Binding and Variable Representation}
+\section{Binding and Variable Representation (WIP)}
 Formal systems for process calculi and typed $\pi$-calculi typically rely on named variables together with a notion of $\alpha$-equivalence to identify terms that differ only by renaming of bound variables. While conceptually natural, this approach introduces a significant burden in mechanized developments, where reasoning modulo renaming must be made explicit through auxiliary lemmas and infrastructure for capture-avoiding substitution.
 
 In the setting of $\pi$LL, this issue is particularly pronounced due to the interplay between linear typing discipline and the structure of communication processes. Bound channel names appear both in process syntax and in typing derivations, and reasoning about their interaction requires repeated handling of freshness conditions and renaming invariance.

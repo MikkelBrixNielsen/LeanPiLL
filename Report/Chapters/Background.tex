@@ -196,9 +196,7 @@ Duality is defined structurally on session types by exchanging each connective w
 %\end{highlight}
 
 \subsection{Environments, Hyperenvironments and Judgements}
-Typing in \pill is organised into two layers: environments track how 
-individual names are typed, while hyperenvironments track which names 
-are used independently in parallel.
+Typing in \pill{} is organised into two layers. Environments track how individual names are typed, while hyperenvironments track which names are used independently in parallel.
 
 Following the presentation in \citep{abs-2106-11818}, \emph{environments}~(\hl{$\thl{\Gamma}$, $\thl{\Delta}$, $\thl{\Xi}$, \dots}) are defined as lists allowing exchange, meaning order is irrelevant. They can be written as \hl{$\thl{\Gamma} = \phl{x_1}:\thl{A}, \dots, \phl{x_n}:\thl{A_n}$}, where each \hl{\phl{$x_i$}} is associated to its respective \hl{\thl{$A_i$}}, for $1\leq i \leq n$. Environments can be merged as long as they do not share any names for example assume \hl{\thl{$\Gamma$}} and \hl{\thl{$\Delta$}} do not share any names, then \hl{\thl{$\Gamma, \Delta$}} is the environment containing exactly the associations in \hl{\thl{$\Gamma$}} and \hl{\thl{$\Delta$}} regardless of ordering. Environments act as a partial commutative monoid, using '$,$' as the sum and the empty environment \hl{\thl{$\emptyseq$}} as unit:
 
@@ -313,7 +311,7 @@ Environments dictate how names are used, but it does not distinguish whether nam
 \label{fig:pill-typing-rules}
 \end{figure}
 
-The multiplicative rules form the core of the system. \Cref{rule:pill-cut} composes two processes in \hl{$\phl{P}$} sharing dual endpoints \hl{$\phl{x} : \thl{A}$} and \hl{$\phl{y} : \thl{A^\bot}$}, hiding them via restriction. This is the logical equivalent of communication. \Cref{rule:pill-mix} and \cref{rule:pill-mix-0} compose independent processes in parallel and introduce the terminated process, respectively.
+The multiplicative rules form the core of the system. \Cref{rule:pill-cut} composes two processes in \hl{$\phl{P}$} sharing dual endpoints \hl{$\cht{x}{A}$} and \hl{$\cht{y}{A^\bot}$}, hiding them via restriction. This is the logical equivalent of communication. \Cref{rule:pill-mix} and \cref{rule:pill-mix-0} compose independent processes in parallel and introduce the terminated process, respectively.
 
 \Cref{rule:pill-tensor} and \cref{rule:pill-parr} type output and input. Note that \cref{rule:pill-tensor} types the sent name \hl{$\phl{y}$} in a \emph{separate} environment from the continuation, reflecting that the two are independent resources. By contrast, \cref{rule:pill-parr} keeps \hl{$\phl{y}$} and the continuation \hl{$\phl{x}$} in the \emph{same} environment, reflecting their sequential dependency. The units \cref{rule:pill-one} and \cref{rule:pill-bot} type empty output and empty input, where \cref{rule:pill-one} requires the continuation to be well-typed in the empty hyperenvironment, meaning \hl{$\phl{P}$} is necessarily semantically equivalent to $\nil$.
 
@@ -807,7 +805,7 @@ The operational semantics of \pill{} processes strictly respects the introductio
 \end{remark}
 
 \subsection{Semantics of Typing Environments}\label{subsec:semantics-environments}
-Just as processes evolve through computation, the typing environments that govern them must also evolve to accurately track the state of a session. In \pill, types capture communication protocols. Consequently, the transition rules for typing environemnts specify exactly which actions are permitted and how the available resources are consumed by those actions. 
+Just as processes evolve through computation, the typing environments that govern them must also evolve to accurately track the state of a session. In \pill, types capture communication protocols. Consequently, the transition rules for typing environments specify exactly which actions are permitted and how the available resources are consumed by those actions. 
 
 Similar to how we defined the process erasure function, we again follow \citet{abs-2106-11818} and define a function $env : \DerSet \to \mathit{Env}$ that maps a valid typing derivation directly to the hyperenvironment in its conclusion (i.e., \hl{$env(\judge{}{P}{\hyp{G}}) = \hyp{G}$}). Using this extraction,~\citet{abs-2106-11818} derive a LTS specifically for typing environments ($\mlts{e}$), shown in~\ref{fig:mpill-sos-types}.
 
@@ -928,61 +926,84 @@ Only after this synchronization unblocks the continuation can the process perfor
 Session Fidelity is the ultimate touchstone for validating the safety of a session-typed language. However, verifying this property in a proof assistant exposes a stark gap between paper mathematics and mechanized logic. On paper, the invariant that an environment \emph{dynamically mirrors} a process is highly intuitive, and transitions are easily massaged using structural equivalences and implicit variable conventions. In a machine, however, formally proving that types are consumed correctly requires a rigorous, algorithmic representation of bound variables and explicit freshness. The theoretical elegance of the environment LTS cannot be mechanized without first establishing a concrete architectural foundation for these variables, which dictates the design choices discussed in the following chapters.
 \end{remark}
 
-\subsection{The Burden of Bound variables}
+\subsection{Managing Bound Variables}
 \label{subsec:burden-of-bound-variables}
-Having established the operational semantics of \pill{} and the ultimate goal of verifying Session Fidelity, we must address a silent mathematical challenge that underpins this entire system: the management of bound variables. To prove that an environment correctly mimics a process's transitions, we must perform exact syntactic matching of channel names. However, variables are routinely bound during the restriction of channels ($\res{xy}{P}$) and the reception of names ($\recv{x}{y}{P}$). The precise identity of these bound names is irrelevant to the behavior of the process; what matters is the structural relationship between the binder and its occurrences.
+Having established the operational semantics of \pill{} and the ultimate goal of verifying Session Fidelity, we must address a central technical challenge underlying the formalization. Namely, the treatment of bound variables and freshness.
 
-This principle is formalized as \textbf{$\alpha$-equivalence} ($\aleq$), which states that two terms are identical if they differ only by the renaming of their bound variables. For instance, consider a process where channels $x$ and $y$ are restricted, and an input on $y$ binds a new name $w$: 
-\[ \res{xy}{(\send{x}{v}{\nil} \pp \recv{y}{w}{\wait{w}{\nil}})} \]
-This process is $\alpha$-equivalent to one where the restricted endpoints are renamed to $a$ and $b$, and the bound input variable is renamed to $z$:
-\[ \res{ab}{(\send{a}{v}{\nil} \pp \recv{b}{z}{\wait{z}{\nil}})} \]
-In the operational semantics, the structural congruence rule (\cref{rule:pill-alpha}) explicitly relies on $\alpha$-equivalence to rename bound variables on the fly. This ensures that as processes evolve and parallel components interact, restricted scopes and input prefixes do not accidentally capture or collide with existing free names in the environment.
+As we have seen, many constructs in \pill{} introduce scoped identifiers. Restriction binds pairs of session endpoints, input constructs bind received channel names, polymorphic communication binds type variables, and duplication constructs introduce fresh channel endpoints. These bindings appear throughout both the process syntax and the labelled transition system.
 
-When defining operations like substitution, preventing accidental capture requires explicitly defining freshness conditions. To substitute a name $z$ for a free name $x$ in a restricted process $\res{yw}{P}$, one must ensure that $z \neq y$ and $z \neq w$. If $z$ is already in use, the bound variables $y$ and $w$ must be safely $\alpha$-renamed to completely fresh names before the substitution can proceed. 
+The concrete choice of introduced names is semantically irrelevant provided the binding structure is preserved. For example, renaming a restricted channel or an input-bound variable does not change the behaviour of a process. However, reasoning formally about substitutions, transitions, and typing derivations requires these names, scopes, and freshness conditions to be tracked explicitly.
 
-In paper-based presentations of process calculi, managing these $\alpha$-renamings and explicit freshness conditions is notoriously tedious. To avoid cluttering proofs with renaming arithmetic, authors universally adopt \textbf{Barendregt's Variable Convention}. This convention simply assumes that, at all times, the set of bound variables in a formula is chosen to be completely disjoint from the set of free variables, and that any newly introduced binder uses a universally fresh name.
+This principle is formalised as \emph{$\alpha$-equivalence}, which identifies terms that differ only in the names of their bound variables. For instance, the following two processes are $\alpha$-equivalent:
+\begin{highlight}
+%
+\[
+\phl{\res{xy}{(\send{x}{v}{P} \pp \recv{y}{w}{\wait{w}{Q}})}}
+\aleq
+\phl{\res{ab}{(\send{a}{v}{P} \pp \recv{b}{z}{\wait{z}{Q}})}}
+\]
+%
+\end{highlight}
+The operational semantics of \pill{} relies on $\alpha$-equivalence using \cref{rule:pill-alpha} to rename bound variables on the fly, ensuring that restricted scopes and input prefixes do not accidentally capture free names as processes evolve.
 
-While Barendregt's convention is an elegant and effective tool for human-readable mathematics, it is a purely informal meta-linguistic agreement. A proof assistant, which requires rigorous, algorithmic verification of every logical step, cannot simply \emph{assume} that a variable is fresh. In a mechanized setting, explicitly tracking named variables, computing freshness conditions, and manually applying $\alpha$-equivalence across parallel components introduces an overwhelming amount of proof boilerplate. 
-
-Consequently, the gap between the fluid, paper-based operational semantics of \pill{} and its concrete mechanization is defined largely by the burden of bound variables. To formalize the metatheory without being paralyzed by variable capture, we must abandon the informal Barendregt convention and adopt a structural architecture that inherently solves the $\alpha$-equivalence problem. The design and implementation of this architecture is the focus of the following chapter.
-
-
-
-
-
-
+\begin{highlight}[WIP] % FIXME: Better example instead of all of this yapping regarding shadowing (show don't tell?) 
 
 
+% V1
+Substitution raises the same issue. To safely substitute a name $\phl{z}$ for $\phl{x}$ in a restricted process like $\phl{\res{yw}{P}}$, one must verify two distinct properties. First, $\phl{z}$ must not be captured by the outer restriction ($\phl{z} \notin \{\phl{y}, \phl{w}\}$) or any deeper binder within $\phl{P}$. Second, because \pill{} enforces linear resource management, $\phl{z}$ must not already exist as a free name in $\phl{P}$ ($\phl{z} \notin \fs(P)$), 
+
+otherwise substituting $\phl{z}$ for $\phl{x}$ could collapse distinct free names, making the required environment and hyperenvironment compositions undefined.
+
+
+If either of these freshness conditions are violated, the conflicting variables must undergo $\alpha$-renaming to entirely fresh identifiers before the substitution can safely proceed.
+
+In paper-based presentations this is commonly handled by \emph{Barendregt's variable convention}, which assumes bound variables are chosen distinct from free variables and from one another whenever convenient. This makes proofs readable but remains an informal meta-level assumption.
+
+% V2
+
+Substitution raises the same issue. Consider substituting $\phl{z}$ for $\phl{x}$ in:
+%
+\[
+\res{zw}{(\send{z}{v}{P} \pp \recv{w}{x}{\wait{x}{\nil}})}
+\]
+%
+Here $\phl{z}$ is already bound by the restriction, so naively replacing $\phl{x}$ with $\phl{z}$ would cause $\phl{z}$ to be captured, conflating the free name being substituted with the bound endpoint. Before the substitution can proceed, the bound $\phl{z}$ must be $\alpha$-renamed to a fresh name. Similarly, any binder within $\phl{P}$ that would capture $\phl{z}$ must be also be renamed before substitution continues. In paper-based presentations this is handled by \emph{Barendregt's variable convention}, which assumes bound variables are always chosen distinct from free variables and  one another whenever convenient. This makes proofs readable but remains an informal meta-level assumption.
+
+% V3
+
+Substitution raises the same issue, as it requires strict adherence to two distinct freshness properties. To safely substitute a name $\phl{z}$ for a free name $\phl{x}$ in a process, one must verify:
+\begin{enumerate}
+    \item \textbf{Avoidance of Syntactic Capture:} The incoming name $\phl{z}$ must not be captured by any binders. For example, consider substituting $\phl{z}$ for $\phl{x}$ in the process $\phl{\res{zw}{(\send{x}{v}{\nil} \pp P)}}$. Naively replacing the free $\phl{x}$ with $\phl{z}$ yields $\phl{\res{zw}{(\send{z}{v}{\nil} \pp P[z/x])}}$. This illegally captures the newly introduced $\phl{z}$, conflating the substituted free channel with the locally restricted endpoint.
+    \item \textbf{Avoidance of Resource Contraction:} Because \pill enforces strict linear resource management, $\phl{z}$ must not already exist as a free name in the process ($\phl{z} \notin \fs(P)$). If $\phl{z}$ is already free, substituting $\phl{z}$ for $\phl{x}$ would alias two distinct channels together. This violates linearity, making the required disjoint composition of typing environments undefined.
+\end{enumerate}
+
+If either of these freshness conditions are violated, the conflicting bound variables must undergo $\alpha$-renaming to entirely fresh identifiers before the substitution can safely proceed. 
+
+In paper-based presentations, managing these explicit capture and contraction checks is notoriously tedious. To avoid cluttering proofs, authors universally adopt \textbf{Barendregt's Variable Convention}, which assumes that bound variables are chosen to be completely distinct from free variables and from one another whenever convenient. While this makes paper proofs readable, it remains an informal, meta-level assumption.
+
+\end{highlight}
+
+Consequently, a direct mechanisation of \pill{} using named variables would require explicit reasoning about bound names, variable freshness, and capture avoidance throughout, introducing substantial proof overhead. To avoid this, we adopt a \emph{locally nameless} representation of binding, which eliminates $\alpha$-equivalence as a proof obligation by construction. This is the subject of the following chapter.
 
 
 
-% TODO: Check that all \thl and \phl are incapsulated in $$
-
-% TODO: Turn 'Note' paragraphs into remarks
-
-% TODO: Look at all instances of using the letter 'z' and check that this is in accordance with britsh (AND NOT AMERICAN) english.
-
-% TODO: Make bib entries and cite
-  % POPLmark Challenge (Aydemir et al., 2005) AlphaEq (A05)
-  % Arthur Charguéraud's (Charguéraud, 2012) LN (C12)
-
-% TODO: Fix contents spread between the BindingRepresentation section and teh Formalisation section
-
-% TODO: When having created the section talking about LN for processes and it replacing alphaeq fix remark 2.3 to properly reference it.
-
-% TODO: Hold off on explaining the rules and their side conditions too deeply before, wait until the formalisation chapter where these can be mentioned in relation to why my rules look the way they do.  
-
-% TODO: Reference back to \cref{prop:name-respect}, when talking about why we have Typing_f_eq_names and how it is usefull. 
-
-% TODO: In the section talking about metatheory and proof strategies, specifically erasure talk about the structural vs step induction dilemma
-
-
-
-
-
-
-
-
-
-
-
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X}
+    \toprule
+    \textbf{Priority} & \textbf{TODO} \\
+    \midrule
+    Writing  & Check that introduced/free names are mentioned and that bound/introduced is used consistently throughout \\
+    Writing  & Turn \texttt{Note} paragraphs into \texttt{remark} environments \\
+    Writing  & Check all instances of words containing the letter `z' for British spelling (e.g.\ \emph{formalise} not \emph{formalize}) \\
+    Writing  & Fix content spread between the Binding Representation and Formalisation sections \\
+    Writing  & Hold off on explaining rule side conditions too deeply in background; defer to formalisation chapter \\
+    Writing  & In the metatheory/proof strategies section, discuss the structural vs.\ step induction dilemma for erasure \\
+    LaTeX    & Check all \texttt{\textbackslash thl} and \texttt{\textbackslash phl} are enclosed in \texttt{\$\ldots\$} \\
+    LaTeX    & Fix \cref{prop:name-respect} reference in the section on \texttt{Typing\_f\_eq\_names} \\
+    LaTeX    & When the section on LN for processes replacing $\alpha$-equivalence, fix Remark~2.3 to properly reference it \\
+    Bib      & Add and cite POPLmark Challenge --- Aydemir et al.\ (2005), key \texttt{A05} \\
+    Bib      & Add and cite Arthur Charguéraud locally nameless --- Charguéraud (2012), key \texttt{C12} \\
+    \bottomrule
+\end{tabularx}
+\end{center}
