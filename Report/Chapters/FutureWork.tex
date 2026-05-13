@@ -16,3 +16,10 @@ Furthermore, mechanizing other standard congruences, such as Scope Extrusion, in
 Formally proving that these De Bruijn index manipulations distribute and commute safely across explicit list permutations and structural merges adds substantial proof overhead. 
 
 While replacing binary parallel composition with unordered multisets of processes is a common theoretical remedy to these rigidities, implementing this in a dependent type theory like Lean introduces severe dependent elimination issues. Because multisets are formalized as quotients of lists, indexing inductive typing judgments over them destroys syntax-based matching and inversion, drastically complicating proof search. Consequently, future iterations would be best served by maintaining the rigid binary abstract syntax tree and list-based environments. While the existing permutation rules allow for necessary flexibility in the typing context (background), adding a process congruence rule would make the transition system significantly heavier by collapsing the 1-to-1 mapping between syntax and behavior. Instead, extending the semantics with explicit symmetric structural rules (e.g., syn-symm) allows transitions modulo congruence while maintaining the syntactic tractability and index stability essential for manageable proofs in Lean.
+
+
+
+% A list of things which could also be mentioned
+  % (Bi)similarity theorem 4.12
+  % Diamond property
+  % Readiness + potential + deadlock freedom
