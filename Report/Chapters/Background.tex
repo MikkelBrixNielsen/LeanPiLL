@@ -804,7 +804,7 @@ The operational semantics of \pill{} processes strictly respects the introductio
 \subsection{Semantics of Typing Environments}\label{subsec:semantics-environments}
 Just as processes evolve through computation, the typing environments that govern them must also evolve to accurately track the state of a session. In \pill, types capture communication protocols. Consequently, the transition rules for typing environments specify exactly which actions are permitted and how the available resources are consumed by those actions. 
 
-Similar to how we defined the process erasure function, we again follow \citet{abs-2106-11818} and define a function $env : \DerSet \to \mathit{Env}$ that maps a valid typing derivation directly to the hyperenvironment in its conclusion (i.e., \hl{$env(\judge{}{P}{\hyp{G}}) = \hyp{G}$}). Using this extraction,~\citet{abs-2106-11818} derive a LTS specifically for typing environments ($\mlts{e}$), shown in~\ref{fig:mpill-sos-types}.
+Similar to how we defined the process erasure function, we again follow \citet{abs-2106-11818} and define a function $env : \DerSet \to \mathit{Env}$ that maps a valid typing derivation directly to the hyperenvironment in its conclusion (i.e., \hl{$env(\judge{}{P}{\hyp{G}}) = \thl{\hyp{G}}$}). Using this extraction,~\citet{abs-2106-11818} derive a LTS specifically for typing environments ($\mlts{e}$), shown in~\cref{fig:mpill-sos-types}.
 
 \begin{figure}[htbp] % Taken directly from \cite{abs-2106-11818}
 \begin{highlight}
@@ -870,7 +870,11 @@ The requirement that a process can only perform actions permitted by its typing 
 While the rules in \cref{fig:mpill-sos-types} define how environments can transition in isolation, the execution of a well-typed program requires the process and its environment to step in unison. This co-dependent relationship has processes only perform actions permitted by its typing environment, while the environment dynamically mirrors the physical control flow of the process, and is formally captured by the property of \textbf{Session Fidelity}. Just as the $\mathit{proc}$ function established operational correspondence for the untyped calculus, the $\mathit{env}$ function establishes this exact behavioral correspondence for the typing contexts.
 
 \begin{theorem}[Session Fidelity]\label{thm:session-fidelity}
-Let $\der{D}$ be a valid typing derivation such that $env(\der{D}) = \hyp{G}$ and $proc(\der{D}) = P$. If the process transitions such that $P \lto{l} P'$, then the environment can mimic this transition $\hyp{G} \lto{l} \hyp{G}'$, and there exists a new valid derivation $\der{D}'$ for $P'$ under $\hyp{G}'$.
+Let $\der{D}$ be a valid typing derivation such that $env(\der{D}) = \hl{\thl{\hyp{G}}$} and \hl{$proc(\der{D}) = \phl{P}$}. If the process transitions such that \hl{$\phl{P} \lto{l} \phl{P'}$}, then the environment can mimic this transition 
+
+\hl{$\thl{\hyp{G}} \lto{l} \thl{\hyp{G}'}$},
+
+and there exists a new valid derivation $\der{D}'$ for \hl{$\phl{P'}$} under \hl{$\thl{\hyp{G}'}$}.
 \end{theorem}
 
 To illustrate Session Fidelity in action, we can observe how the environment is constrained to follow the exact execution traces of the process it types.
@@ -899,6 +903,7 @@ To illustrate Session Fidelity in action, we can observe how the environment is 
 % \end{example}
 
 \begin{example}[Session Fidelity in Execution]
+\begin{highlight}    
 Recall the process derivation from \cref{ex:expanded-cut-unit-execution}, typed by the environment $\thl{\hyp{G}} = \cht{v}{1}, \cht{w}{\bot} \pp \cht{y}{1}$. The process begins by performing an observable input action on $w$. By Session Fidelity, the environment must faithfully mimic this action, consuming the corresponding type:
 \[ 
   \cht{v}{1}, \cht{w}{\bot} \pp \cht{y}{1} \lto{\lwait{w}} \cht{v}{1} \pp \cht{y}{1} 
@@ -915,6 +920,7 @@ Only after this synchronisation unblocks the continuation can the process perfor
 \[ 
   \cht{v}{1} \pp \cht{y}{1} \lto{\lsend{y}{}} \cht{v}{1} 
 \]
+\end{highlight}
 \end{example}
 
 \begin{remark}[The Mechanisation Gap]
@@ -941,13 +947,13 @@ This principle is formalised as \emph{$\alpha$-equivalence}, which identifies te
 The operational semantics of \pill{} relies on $\alpha$-equivalence using \cref{rule:pill-alpha} to rename bound variables on the fly, ensuring that restricted scopes and input prefixes do not accidentally capture free names as processes evolve.
 
 \begin{highlight}
-Substitution raises this exact issue. Consider the substitution where the free name $\phl{x}$ is replaced by $\phl{z}$ in the right-hand process from the previous example:
+Substitution raises this exact issue. Consider the substitution where the free name $x$ is replaced by $z$ in the right-hand process from the previous example:
 %
 \[
 \phl{\res{zw}{(\send{z}{}{\nil} \pp \recv{w}{}{\send{x}{}{\nil}})}} 
 \]
 %
-Here $\phl{z}$ is already bound by the restriction, so naively replacing $\phl{x}$ with $\phl{z}$ would cause the restriction to capture the newly inserted $\phl{z}$. Before the substitution can proceed, and because restriction binds session endpoints as pairs, both the bound $\phl{z}$ and $\phl{w}$ must be $\alpha$-renamed to fresh names, such as to $\phl{a}$ and $\phl{b}$. Similarly, any binder within the process that would capture the substituted name must also be renamed before substitution continues.
+Here $z$ is already bound by the restriction, so naively replacing $x$ with $z$ would cause the restriction to capture the newly inserted $z$. Before the substitution can proceed, and because restriction binds session endpoints as pairs, both the bound $z$ and $w$ must be $\alpha$-renamed to fresh names, such as to $a$ and $b$. Similarly, any binder within the process that would capture the substituted name must also be renamed before substitution continues.
 
 In paper-based presentations this is commonly handled by \emph{Barendregt's variable convention}, which assumes bound variables are always chosen distinct from free variables and one another whenever convenient. This makes proofs readable but remains an informal meta-level assumption.
 \end{highlight}
