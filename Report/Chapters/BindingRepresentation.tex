@@ -12,24 +12,175 @@
     % De Durijn as a tool to be able to reason about the safety of inserting a type into a Typing with out it accedentally capturing another Type name. (This made the proof of type substitution into a typing possible without having to default to assuming the bergendt variable convetion but rather formalizing it)
     % The above supports a rigid mechanization in Lean being fully self contained i.e. not relying on assumed convetions but rather having the tools necessary to reason along these convetions without bogging down and simply writing sorry, or only enforcing a local hypothesis not supported by the underlying type system. By including the above into processes and types the foundation of the typing system now includes this notion and can use it in proofs.
 
+\section{Binding Architecture}\label{sec:binding-architecture}
+As established in the previous chapter, formal systems for typed process calculi traditionally rely on explicitly named variables. Under this standard presentation, terms that differ only in their choice of bound names are identified via an implicit meta-level quotient known as $\alpha$-equivalence. While this is conceptually natural for paper-based proofs, where Barendregt's variable convention effortlessly resolves naming collisions, it introduces a significant proof overhead in mechanised metatheory \citep{A05}. In a proof assistant, reasoning modulo renaming must instead be represented explicitly through auxiliary lemmas, freshness conditions, and complex infrastructure for capture-avoiding substitution. 
 
-% ------- WIP
-\section{Binding and Variable Representation (WIP)}
-Formal systems for process calculi and typed $\pi$-calculi typically rely on named variables together with a notion of $\alpha$-equivalence to identify terms that differ only by renaming of bound variables. While conceptually natural, this approach introduces a significant burden in mechanized developments, where reasoning modulo renaming must be made explicit through auxiliary lemmas and infrastructure for capture-avoiding substitution.
+In the setting of \pill{}, this issue is particularly pronounced due to the interplay between the linear typing discipline and concurrent communication. Bound identifiers arise throughout the calculus. Restriction introduces bound session endpoints, input constructs bind received names, and polymorphic communication binds type variables. Reasoning about their interaction requires continual management of renaming and freshness conditions.
 
-In the setting of $\pi$LL, this issue is particularly pronounced due to the interplay between linear typing discipline and the structure of communication processes. Bound channel names appear both in process syntax and in typing derivations, and reasoning about their interaction requires repeated handling of freshness conditions and renaming invariance.
+To formalise \pill{} in a proof assistant without relying on Barendregt's variable convention, we adopt a binding representation that handles binding and capture avoidance structurally.
 
-\paragraph{Approach.}
-To address this, we adopt a \emph{locally nameless representation} of binders. In this approach, bound variables are represented using de Bruijn indices, while free variables are represented by named identifiers. This hybrid representation eliminates the need for $\alpha$-equivalence on bound variables, while preserving readability for free variables and top-level structure.
-Under this representation, $\alpha$-equivalent terms are identified by construction rather than by quotienting, and variable binding becomes a syntactic mechanism rather than a semantic equivalence relation. This significantly simplifies the treatment of substitution and binding-related lemmas in the mechanization.
-\paragraph{Comparison with the standard presentation.}
-In the original formulation of $\pi$LL, processes are typically defined using named binders together with an implicit identification of terms up to $\alpha$-equivalence. While this presentation is intuitive and widely used in the literature, it requires additional metatheoretic work to ensure that all definitions and proofs are invariant under renaming of bound variables.
-Our locally nameless reformulation avoids this layer of reasoning. In particular, substitution is defined in a capture-avoiding manner only for free variables, while bound variables are handled structurally via indices. This removes the need for repeated renaming arguments throughout the development.
-\paragraph{Impact on the formalization.}
-This design choice has several consequences for the mechanization in Lean:
+\subsection{Design Goals and the Unified Approach}\label{subsec:design-goals}
+The primary objective of this chapter is to introduce the binding representation used throughout the formalisation. The representation is motivated by three primary design goals:
+
+\begin{enumerate}
+    \item \textbf{Eliminate $\alpha$-equivalence overhead.} $\alpha$-equivalent terms should be represented identically, reducing $\alpha$-equivalence reasoning to definitional equality within the proof assistant.
+    \item \textbf{Preserve human readability.} Terms should remain explicit and concrete, keeping substitution and freshness reasoning close to their paper-based presentation.
+    \item \textbf{Avoid informal meta-level conventions.} The representation should not rely on Barendregt's convention or unverified freshness assumptions; capture avoidance and freshness conditions should instead be enforced by construction.
+\end{enumerate}
+
+To achieve these goals, we adopt a unified \emph{Locally Nameless} (LN) architecture across the entire calculus \citep{C12}, strictly separating the treatment of free and bound identifiers, whether they are session channels or polymorphic type variables.
+
+This representation preserves the original semantic theory of \pill{} while eliminating explicit $\alpha$-equivalence reasoning. Bound variables are represented using indices, causing $\alpha$-equivalent terms to coincide structurally. Free variables, however, remain explicit and readable.
+
+This separation simplifies substitution to only operate on free variables structurally ignoring the bound indices, avoiding accendental capture. As a result, many proofs that traditionally require substantial renaming infrastructure reduce to structural recursion and index manipulations, while remaining more readable than a pure index-based approach.
+
+The remainder of this chapter develops the theoretical machinery underlying this representation.
+
+
+
+
+
+
+\subsection{The Locally Nameless Representation}\label{subsec:locally-nameless}[\emph{WIP}]
+The Locally Nameless representation, consolidated in its modern form by \citet{C12}, is designed to resolve the inherent tension between human-readable syntax and machine-verifiable binding logic. It achieves this by abandoning the homogeneous treatment of variables. Instead, it strictly segregates variables into two disjoint syntactic categories based on their binding status.
+
+\begin{enumerate}
+    \item \textbf{Bound variables} are represented positionally using \emph{De Bruijn indices} \citep{DB72}. An index is a natural number ($0, 1, 2, \dots$) that denotes the structural distance from the variable to its corresponding binder in the abstract syntax tree. Because they are purely positional, terms that are mathematically $\alpha$-equivalent naturally share the exact same indexed representation, effectively reducing $\alpha$-equivalence to strict syntactic equality.
+    \item \textbf{Free variables} are represented nominally using explicitly named identifiers (typically strings or globally unique natural numbers). This preserves the readability of open terms and allows for standard, name-based reasoning about global environments and transition labels.
+\end{enumerate}
+
+By structurally separating these two concepts, the LN approach ensures that standard operations, such as capture-avoiding substitution, no longer require complex renaming arithmetic. Because free variables (names) and bound variables (indices) occupy completely different syntactic domains, substituting a name for a name can never accidentally capture an index. We apply this unified theory to both the structural and operational layers of \pill{}. % Last sentence is a bit repetitive in regard to entire section
+
+\paragraph{LN Syntax for Types.}
+In the original presentation of \pill{}, polymorphic types rely on standard named variables. Under the locally nameless architecture, we expand the syntax of type variables to explicitly distinguish between free and bound occurrences. The grammar for types is updated as follows:
+
+\[
+\begin{array}{rcll}
+  \thl{TVar} & \Coloneqq & \thl{\text{free}(x)} \mid \thl{\text{bound}(k)} & \text{(where } x, k \in \mathbb{N} \text{)} \\
+  \thl{A, B} & \Coloneqq & \dots \mid \thl{v} \mid \thl{v^\bot} & \text{(where } v \in \thl{TVar} \text{)} 
+\end{array}
+\]
+
+Here, a free type variable carries a unique identifier $x$, while a bound type variable carries a De Bruijn index $k$. For example, the polymorphic identity type $\thl{\forall X. \exists Y. (X \parr Y)}$ is structurally represented without names as $\thl{\forall. \exists. (\text{bound}(1) \parr \text{bound}(0))}$, where $0$ points to the inner existential binder and $1$ points to the outer universal binder.
+
+\paragraph{LN Syntax for Processes.}
+Similarly, the process syntax is updated to reflect the locally nameless segregation of channel endpoints. Bound channel names, introduced by restriction ($\nu$) and input prefixes, are replaced by indices, while free channels remain explicit identifiers. 
+
+\[
+\begin{array}{rcll}
+  \phl{Var} & \Coloneqq & \phl{\text{free}(x)} \mid \phl{\text{bound}(k)} & \text{(where } x, k \in \mathbb{N} \text{)} \\
+  \phl{P, Q} & \Coloneqq & \dots \mid \phl{\res{}{P}} \mid \phl{\recv{x}{}{P}} \mid \phl{\send{x}{y}{P}} & 
+\end{array}
+\]
+
+Notice that binding constructors no longer mention the bound variable's name. A restriction $\phl{\res{xy}{P}}$ becomes simply $\phl{\res{}{P}}$, as the binder itself is anonymous and any bound occurrences of $x$ and $y$ inside $P$ are replaced by appropriate indices. Likewise, an input prefix $\phl{\recv{x}{y}{P}}$ becomes $\phl{\recv{x}{}{P}}$, binding the received value implicitly. Because free variables are used strictly for observable communication channels, the transition labels of the calculus remain unchanged and easily interpretable.
+
+\vspace{1em}
+
+While the LN architecture elegantly resolves $\alpha$-equivalence, managing the transition of variables between their ``bound'' (indexed) and ``free'' (named) states requires specialised operations. To execute a substitution or evaluate a process across a binder, we must formally define how to open and close these terms.
+
+
+
+
+
+
+
+\subsection{Opening and Closing Binders}\label{subsec:opening-and-closing}[\emph{WIP}]
+
+Because the Locally Nameless architecture fundamentally separates free and bound variables, we can no longer rely on standard substitution to evaluate terms under a binder. Instead, transitioning variables between their bound (indexed) and free (named) states requires two dual operations: \emph{opening} and \emph{closing} \citep{C12}.
+
+\paragraph{Opening (Instantiation).} 
+Opening is the operation of traversing into a binding construct and replacing its newly exposed bound index with a concrete free name. Formally, opening a process $P$ at depth $k$ with a free name $x$ is denoted $\{k \mapsto x\}P$. 
+
+The operation proceeds via structural recursion. A depth counter, initially set to $0$, tracks the number of binders traversed. When the recursion reaches a bound variable $\phl{\text{bound}(n)}$, it compares the variable's index $n$ to the current depth $k$:
 \begin{itemize}
-    \item Substitution lemmas become structurally recursive rather than $\alpha$-conversion dependent.
-    \item Proofs involving freshness conditions are reduced to simple index reasoning.
-    \item Binding-related invariants are enforced syntactically rather than proven separately.
+    \item If $n = k$, the index points to the binder currently being opened, and it is replaced by the free name $\phl{\text{free}(x)}$.
+    \item If $n \neq k$, the index belongs to a different (outer or inner) binder and is left completely unchanged.
 \end{itemize}
-Overall, this representation does not change the underlying theory of $\pi$LL, but provides a more robust foundation for formal reasoning. It enables a cleaner and more direct mechanization of the operational semantics and typing system, without the overhead of explicit $\alpha$-equivalence reasoning.
+Crucially, when the opening operation encounters a free variable $\phl{\text{free}(y)}$, it simply ignores it. This guarantees that opening is entirely capture-avoiding by construction. In the operational semantics, when a restriction $\phl{\res{}{P}}$ is eliminated or an input prefix $\phl{\recv{z}{}{P}}$ receives a channel $x$, the continuation $P$ is opened as $\{0 \mapsto x\}P$.
+
+\paragraph{Closing (Abstraction).} 
+Closing is the exact inverse of opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted $\{x \mapsto k\}P$. When the structural recursion encounters $\phl{\text{free}(y)}$, it checks if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$. This operation is primarily used when constructing new binders, such as moving a free channel into a restricted scope.
+
+\paragraph{Locally Closed Terms.}
+The separation of names and indices introduces a new syntactic anomaly: a term can contain a "dangling" index that does not point to any enclosing binder. For example, the process term $\phl{\send{x}{y}{\text{bound}(0)}}$ is syntactically valid according to the data type grammar, but it is mathematically meaningless because the index $0$ has no corresponding restriction or input binder.
+
+To filter out these meaningless terms, the LN architecture introduces the predicate of being \emph{locally closed}, often denoted $\mathit{lc}(P)$. A term is locally closed if and only if all of its De Bruijn indices are properly bound by an enclosing constructor. 
+Consequently, the standard, untyped $\pi$-calculus terms of \pill{}, those that represent actual, executable programs, are precisely defined as the subset of the LN syntax tree that satisfies the $\mathit{lc}$ predicate.
+
+
+
+
+
+
+
+\subsection{Co-finite Quantification}\label{subsec:co-finite-quantification}[\emph{WIP}]
+
+With the syntax partitioned into names and indices, and the mechanics of opening and closing established, the final theoretical hurdle is defining how inductive relations, such as typing judgements and labelled transitions, operate across binders. 
+
+In paper-based proofs, when a rule requires opening a binder, Barendregt's variable convention allows the author to simply state: ``pick a fresh name $x$''. In a proof assistant, this informal generation of a fresh name must be rigidly encoded into the constructors of the inductive relations. Historically, formalisations have attempted two naive approaches to bind this fresh name, both of which introduce severe mechanical flaws:
+
+\begin{enumerate}
+    \item \textbf{Existential Quantification ($\exists x \notin \fs(P)$):} The rule requires the property to hold for \emph{at least one} fresh name. While this makes it very easy to construct a proof tree (since you only need to provide a single valid name), it creates notoriously weak induction hypotheses. During structural induction, you only know the property holds for some opaque, specific name $x$, which is rarely the exact name required by the current proof context. 
+    \item \textbf{Universal Quantification ($\forall x$):} The rule requires the property to hold for \emph{every} possible name. This yields a flawlessly strong induction hypothesis, but makes constructing the proof tree physically impossible. You cannot prove the property holds for names that are already free in $P$, as doing so would cause accidental capture and violate the freshness conditions of the calculus.
+\end{enumerate}
+
+To solve this dilemma, the LN architecture employs \textbf{co-finite quantification} \citep{C12}. Rather than quantifying over one name or all names, an inductive rule quantifies universally over all names \emph{except} those in an arbitrary, finite set $L$. Formally, a rule requiring a fresh name uses the premise: $\forall x \notin L$.
+
+By deferring the exact choice of the forbidden set $L$ to the user at the time of proof, co-finite quantification achieves the best of both worlds. 
+When constructing a proof tree (applying the constructor), the user can instantiate $L$ as the set of all free variables currently in the environment, process, and transition labels ($\fs(P) \cup \fs(\Gamma) \dots$). This ensures the premise is trivially satisfiable.
+Conversely, when performing structural induction (consuming the constructor), the co-finite universal quantifier guarantees that the induction hypothesis applies to \emph{any} fresh name the user could possibly need, provided they pick one outside the finite set $L$.
+
+\paragraph{Application to \pill.}
+This quantification strategy fundamentally reshapes the inductive definitions of the calculus. For example, consider a theoretical typing rule that introduces a binder, such as the polymorphic universal type ($\forall X. B$). Under a paper-based presentation, the premise simply requires $\thl{X \notin \ft(\Gamma)}$. Under the locally nameless architecture, the rule is transformed to use co-finite quantification and the opening operation:
+\[
+\infer[\rlabel{\rname{$\forall$\textsubscript{LN}}}{rule:pill-forall-ln}]
+  {\judge{}{\recvtype{x}{}{P}}{\Gamma,\cht{x}{\forall. B}}}
+  {\forall X \notin L, \quad \judge{}{\{0 \mapsto X\}P}{\Gamma,\cht{x}{\{0 \mapsto X\}B}}}
+\]
+Here, the rule states that the polymorphic input is well-typed if, for any fresh type variable $X$ outside some finite set of forbidden variables $L$, the opened continuation $P$ is well-typed under the opened type $B$. 
+
+\vspace{1em}
+
+\subsection{Summary}
+The transition from an informal, paper-based calculus to a rigorous, machine-checked theorem requires bridging a vast mechanical gap. By abandoning Barendregt's meta-level assumptions and adopting a unified Locally Nameless architecture, we resolve the ambiguities of variable binding. Bound variables are structurally anonymized via De Bruijn indices, free variables remain readable nominal identifiers, and co-finite quantification provides an elegant, mechanically tractable method for generating fresh names. 
+
+With this mathematical foundation firmly established, the conceptual theory of \pill{} is fully prepared for implementation. The following chapter details how this Locally Nameless architecture is concretely mechanised in the Lean 4 proof assistant.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+% In chapter 4 when talking about the Basic.lean for types mayeb mention why both atom and TVar exist (differentiate between substitution targets (dynamic) and unit types (rigid))
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X}
+    \toprule
+    \textbf{Priority} & \textbf{TODO} \\
+    Writing  & Turn \texttt{Note} paragraphs into \texttt{remark} environments \\
+
+    Writing  & Fix content spread between the Binding Representation and Formalisation sections \\
+    Writing  & Hold off on explaining rule side conditions too deeply in background; defer to formalisation chapter \\
+    Writing  & In the metatheory/proof strategies section, discuss the structural vs.\ step induction dilemma for erasure \\
+    LaTeX    & Fix \cref{prop:name-respect} reference in the section on \texttt{Typing\_f\_eq\_names} \\
+    LaTeX    & When the section on LN for processes replacing $\alpha$-equivalence is made, fix Remark~2.3 to properly reference it \\
+    Bib      & Add and cite POPLmark Challenge --- Aydemir et al.\ (2005), key \texttt{A05} \\
+    Bib      & Add and cite Arthur Charguéraud locally nameless --- Charguéraud (2012), key \texttt{C12} \\
+    \bottomrule
+\end{tabularx}
+\end{center}
