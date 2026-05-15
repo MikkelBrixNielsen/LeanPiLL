@@ -116,36 +116,51 @@ Crucially, satisfying the $\mathit{lc}$ predicate is what elevates a raw syntax 
 
 
 
+\subsection{Co-finite Quantification}\label{subsec:co-finite-quantification}
+With the syntax partitioned into names and indices, and the mechanics of opening and closing established, the final theoretical hurdle is defining how inductive relations, such as typing judgements and labelled transitions, operate across binders. 
+
+In paper-based proofs, when a rule requires opening a binder, Barendregt's variable convention allows the author to simply state: \emph{pick a fresh name $x$}. In a proof assistant, this informal generation of a fresh name must be encoded into the constructors of the inductive relations. 
+
+
+
+
+% Mhmmmmm don't like. 
+Historically, formalisations have attempted two naive approaches to bind this fresh name, both of which introduce severe mechanical flaws:
+
+\begin{enumerate}
+    \item \textbf{Existential Quantification ($\exists x \notin \fs(P)$):} The rule requires the property to hold for \emph{at least one} fresh name. While this makes it very easy to construct a proof tree (since you only need to provide a single valid name), it creates notoriously weak induction hypotheses. During structural induction, you only know the property holds for some opaque, specific name $x$, which is rarely the exact name required by the current proof context. 
+    \item \textbf{Universal Quantification ($\forall x$):} The rule requires the property to hold for \emph{every} possible name. This yields a flawlessly strong induction hypothesis, but makes constructing the proof tree physically impossible. You cannot prove the property holds for names that are already free in $P$, as doing so would cause accidental capture and violate the freshness conditions of the calculus.
+\end{enumerate} % FIXME: Citation
 
 
 
 
 
-% \subsection{Co-finite Quantification}\label{subsec:co-finite-quantification}[\emph{WIP}]
+To solve this dilemma, the locally nameless architecture employs \textbf{co-finite quantification} \citep{C12}. Rather than quantifying over one name or all names, the inductive rules quantifies universally over all names \emph{except} those not in an arbitrary, finite set $L$. Formally, a rule requiring a fresh name uses the premise: $\forall x \notin L$.
 
-% With the syntax partitioned into names and indices, and the mechanics of opening and closing established, the final theoretical hurdle is defining how inductive relations, such as typing judgements and labelled transitions, operate across binders. 
+By deferring the exact choice of the forbidden set $L$ to the user at the time of proof, co-finite quantification achieves the best of both worlds. 
+When constructing a proof tree, the user can instantiate $L$ as the set of all free variables currently in the environment, process, and transition labels \hl{($\fs(\phl{P}) \cup \fs(\thl{\Gamma}) \cup \dots$)}. This ensures the premise is trivially satisfiable. Conversely, when performing structural induction, the co-finite universal quantifier guarantees that the induction hypothesis applies to \emph{any} fresh name the user could possibly need, provided they pick one outside the finite set $L$.
 
-% In paper-based proofs, when a rule requires opening a binder, Barendregt's variable convention allows the author to simply state: ``pick a fresh name $x$''. In a proof assistant, this informal generation of a fresh name must be rigidly encoded into the constructors of the inductive relations. Historically, formalisations have attempted two naive approaches to bind this fresh name, both of which introduce severe mechanical flaws:
+\paragraph{Application to \pill.}
+This quantification strategy fundamentally reshapes the inductive definitions of the calculus. For example, consider a theoretical typing rule that introduces a binder, such as the polymorphic universal type (\hl{$\thl{\forall X. B}$}). Under a paper-based presentation, the premise simply requires \hl{$\thl{X \notin \ft(\Gamma)}$}. Under the locally nameless architecture, the rule is transformed to use co-finite quantification and the opening operation:
+\begin{highlight}    
+\[
+\infer[\rlabel{\rname{$\forall$\textsubscript{LN}}}{rule:pill-forall-ln}]
+  {\judge{}{\recvtype{x}{}{P}}{\Gamma,\cht{x}{\forall. B}}}
+  {\forall X \notin L, \quad \judge{}{\{0 \mapsto X\}P}{\Gamma,\cht{x}{\{0 \mapsto X\}B}}}
+\]
+Here, the rule states that the polymorphic input is well-typed if, for any fresh type variable $\thl{X}$ outside some finite set of forbidden variables $L$, the opened continuation $\thl{P}$ is well-typed under the opened type $\thl{B}$. 
+\end{highlight}
 
-% \begin{enumerate}
-%     \item \textbf{Existential Quantification ($\exists x \notin \fs(P)$):} The rule requires the property to hold for \emph{at least one} fresh name. While this makes it very easy to construct a proof tree (since you only need to provide a single valid name), it creates notoriously weak induction hypotheses. During structural induction, you only know the property holds for some opaque, specific name $x$, which is rarely the exact name required by the current proof context. 
-%     \item \textbf{Universal Quantification ($\forall x$):} The rule requires the property to hold for \emph{every} possible name. This yields a flawlessly strong induction hypothesis, but makes constructing the proof tree physically impossible. You cannot prove the property holds for names that are already free in $P$, as doing so would cause accidental capture and violate the freshness conditions of the calculus.
-% \end{enumerate}
 
-% To solve this dilemma, the locally nameless architecture employs \textbf{co-finite quantification} \citep{C12}. Rather than quantifying over one name or all names, an inductive rule quantifies universally over all names \emph{except} those in an arbitrary, finite set $L$. Formally, a rule requiring a fresh name uses the premise: $\forall x \notin L$.
+% FIXME: Change the LN description of Types to be de bruijn instead and mention the implementation being a mixed architecture instead of both parts relying on LN.
 
-% By deferring the exact choice of the forbidden set $L$ to the user at the time of proof, co-finite quantification achieves the best of both worlds. 
-% When constructing a proof tree (applying the constructor), the user can instantiate $L$ as the set of all free variables currently in the environment, process, and transition labels ($\fs(P) \cup \fs(\Gamma) \dots$). This ensures the premise is trivially satisfiable.
-% Conversely, when performing structural induction (consuming the constructor), the co-finite universal quantifier guarantees that the induction hypothesis applies to \emph{any} fresh name the user could possibly need, provided they pick one outside the finite set $L$.
 
-% \paragraph{Application to \pill.}
-% This quantification strategy fundamentally reshapes the inductive definitions of the calculus. For example, consider a theoretical typing rule that introduces a binder, such as the polymorphic universal type ($\forall X. B$). Under a paper-based presentation, the premise simply requires $\thl{X \notin \ft(\Gamma)}$. Under the locally nameless architecture, the rule is transformed to use co-finite quantification and the opening operation:
-% \[
-% \infer[\rlabel{\rname{$\forall$\textsubscript{LN}}}{rule:pill-forall-ln}]
-%   {\judge{}{\recvtype{x}{}{P}}{\Gamma,\cht{x}{\forall. B}}}
-%   {\forall X \notin L, \quad \judge{}{\{0 \mapsto X\}P}{\Gamma,\cht{x}{\{0 \mapsto X\}B}}}
-% \]
-% Here, the rule states that the polymorphic input is well-typed if, for any fresh type variable $X$ outside some finite set of forbidden variables $L$, the opened continuation $P$ is well-typed under the opened type $B$. 
+
+
+
+
+
 
 % \subsection{Summary}
 % The transition from an informal, paper-based calculus to a rigorous, machine-checked theorem requires bridging a vast mechanical gap. By abandoning Barendregt's meta-level assumptions and adopting a unified locally nameless architecture, we resolve the ambiguities of variable binding. Bound variables are structurally anonymized via De Bruijn indices, free variables remain readable nominal identifiers, and co-finite quantification provides an elegant, mechanically tractable method for generating fresh names. 
