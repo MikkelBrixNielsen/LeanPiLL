@@ -36,9 +36,10 @@ instance : HasOpen Proc Channel Nat where open_ P v k := Proc.open P v k
 
 instance : HasOpenTwo Proc Channel Channel Nat where open_ P u v k :=
   (Proc.open (Proc.open P v (k + 1)) u k)
+
 def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
   match u with
-  | Channel.free name => if x == name then .bound k else .free name
+  | .free name => if x == name then .bound k else .free name
   | .bound i  => .bound i
 
 instance : HasClose Channel FPName Nat where close_ u x k := Channel.close u x k

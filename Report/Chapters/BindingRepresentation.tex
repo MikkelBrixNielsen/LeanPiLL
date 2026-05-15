@@ -12,14 +12,14 @@
     % De Durijn as a tool to be able to reason about the safety of inserting a type into a Typing with out it accedentally capturing another Type name. (This made the proof of type substitution into a typing possible without having to default to assuming the bergendt variable convetion but rather formalizing it)
     % The above supports a rigid mechanization in Lean being fully self contained i.e. not relying on assumed convetions but rather having the tools necessary to reason along these convetions without bogging down and simply writing sorry, or only enforcing a local hypothesis not supported by the underlying type system. By including the above into processes and types the foundation of the typing system now includes this notion and can use it in proofs.
 
-\section{Binding Architecture}\label{sec:binding-architecture}
+\section{Binding Architecture}\label{sec:binding-architecture} % 3
 As established in the previous chapter, formal systems for typed process calculi traditionally rely on explicitly named variables. Under this standard presentation, terms that differ only in their choice of bound names are identified via an implicit meta-level quotient known as $\alpha$-equivalence. While this is conceptually natural for paper-based proofs, where Barendregt's variable convention effortlessly resolves naming collisions, it introduces a significant proof overhead in mechanised metatheory \citep{A05}. In a proof assistant, reasoning modulo renaming must instead be represented explicitly through auxiliary lemmas, freshness conditions, and complex infrastructure for capture-avoiding substitution. 
 
 In the setting of \pill{}, this issue is particularly pronounced due to the interplay between the linear typing discipline and concurrent communication. Bound identifiers arise throughout the calculus. Restriction introduces bound session endpoints, input constructs bind received names, and polymorphic communication binds type variables. Reasoning about their interaction requires continual management of renaming and freshness conditions.
 
 To formalise \pill{} in a proof assistant without relying on Barendregt's variable convention, we adopt a binding representation that handles binding and capture avoidance structurally.
 
-\subsection{Design Goals and the Unified Approach}\label{subsec:design-goals}
+\subsection{Design Goals and the Unified Approach}\label{subsec:design-goals} % 3.1
 The primary objective of this chapter is to introduce the binding representation used throughout the formalisation. The representation is motivated by three primary design goals:
 
 \begin{enumerate}
@@ -36,7 +36,7 @@ This separation simplifies substitution to only operate on free variables struct
 
 The remainder of this chapter develops the theoretical machinery underlying this representation.
 
-\subsection{The Locally Nameless Representation}\label{subsec:locally-nameless}
+\subsection{The Locally Nameless Representation}\label{subsec:locally-nameless} % 3.2
 The locally nameless representation, as presented by \citet{C12}, separates variables into two disjoint syntactic categories: free names and bound indices. This combines the readability of named syntax for free variables with a structural representation of binding.
 
 % \begin{enumerate}
@@ -49,9 +49,7 @@ The locally nameless representation, as presented by \citet{C12}, separates vari
     \item \textbf{Free variables} retain explicit names, preserving the readability of open terms and allowing standard name-based reasoning about environments and transition labels.
 \end{enumerate}
 
-% By structurally separating these two concepts, the locally nameless approach ensures that standard operations, such as capture-avoiding substitution, no longer require complex renaming arithmetic. Because free variables (names) and bound variables (indices) occupy completely different syntactic domains, substituting a name for a name can never accidentally capture an index. We apply this unified theory to both the structural and operational layers of \pill{}.
-
-By structurally separating these two concepts, the locally nameless approach simplifies standard operations such as capture-avoiding substitution. Since free variables and bound variables inhabit distinct syntactic categories, substitution on free variables cannot interact with bound indices. Thus, substituting a name for a name will not accedentally capture an index and vice versa. We apply this unified theory to both the structural and operational layers of \pill{}.
+By structurally separating these two concepts, the locally nameless approach simplifies standard operations such as capture-avoiding substitution. Since free variables and bound variables inhabit distinct syntactic categories, substitution on free variables cannot interact with bound indices. Thus, substituting a name for a name will not accidentally capture an index and vice versa. We apply this unified theory to both the structural and operational layers of \pill{}.
 
 \paragraph{LN Syntax for Types.}
 In the original presentation of \pill{}, polymorphic types rely on standard named variables. Under the locally nameless architecture, we expand the syntax of type variables to explicitly distinguish between free and bound occurrences. The grammar for types is updated as follows:
@@ -80,42 +78,37 @@ Naively removing the bound names from the process syntax would turn binding oper
 \end{highlight}
 
 \begin{highlight}
-While the visual anonymity of these constructors is evident from the grammar, their mechanical implementation relies on precise index management. For a multi-name binder like $\phl{\res{(\bullet, \bullet)}{P}}$, the two dual endpoints are simultaneously mapped to distinct indices within the continuation of $\phl{P}$, namely $0$ and $1$. For communication prefixes like $\phl{\recv{x}{\bullet}{P}}$, the payload is implicitly bound as index $0$ within $\phl{P}$, while the explicit free channel $x$ is deliberately preserved as the subject. By maintaining explicit free names strictly for these outward-facing communications, the transition labels and operational semantics of the calculus remain completely unaffected by the architectural shift.
+While the visual anonymity of these constructors is evident from the grammar, their mechanical implementation relies on precise index management. For a multi-name binder like restriction, $\phl{\res{(\bullet, \bullet)}{P}}$, the two dual endpoints are simultaneously mapped to distinct indices within the continuation of $\phl{P}$, namely $0$ and $1$. For communication prefixes like $\phl{\recv{x}{\bullet}{P}}$, the payload is implicitly bound as index $0$ within $\phl{P}$, while the explicit free channel $x$ is deliberately preserved as the subject. By maintaining explicit free names strictly for these outward-facing communications, the transition labels and operational semantics of the calculus remain completely unaffected by the architectural shift.
 \end{highlight}
 
 While the locally nameless architecture elegantly resolves $\alpha$-equivalence, managing the transition of variables between bound indices and free names requires specialised operations. To execute a substitution or evaluate a process across a binder, we must formally define how to open and close these terms.
 
-\subsection{Opening and Closing Binders}\label{subsec:opening-and-closing}
+\subsection{Opening and Closing Binders}\label{subsec:opening-and-closing} % 3.3
 Because the locally nameless architecture fundamentally separates free and bound variables, we can no longer rely on standard substitution to handle terms under a binder. Instead, transitioning variables between their bound and free states requires two dual operations, namely \emph{opening} and \emph{closing} \citep{C12}.
 
-\paragraph{Opening} 
-Opening is the operation of traversing into a binding construct and replacing its the exposed bound index with a concrete free name. Formally, opening a process \hl{$\phl{P}}$ at depth $k$ with a free name $x$ is denoted \hl{$\phl{\{k \mapsto x\}P}$}. 
+\paragraph{Opening (Instantiation)} 
+Opening is the operation of traversing into a binding construct and replacing its newly the exposed bound index with a concrete free name. Formally, opening a process \hl{$\phl{P}$} at depth $k$ with a free name $x$ is denoted \hl{$\phl{\{k \mapsto x\}P}$}. 
 
-The operation proceeds via structural recursion. A depth counter, initially set to $0$, tracks the number of binders traversed. As the recursion descends through the syntax tree, the counter increments when passing a new binder. Consider being at depth $k$, then traversing a single-name binder like \hl{$\phl{\recv{x}{\bullet}{P}}$} increments the depth to $k+1$, while traversing a double-name binder like \hl{$\phl{\res{(\bullet,\bullet)}P{}}$} would increment it to $k+2$. 
+The operation proceeds via structural recursion. A depth counter, initially set to $0$, tracks the number of binders traversed. As the recursion descends through the syntax tree, the counter increments when passing a new binder. Consider being at depth $k$, then traversing a single-name binder like \hl{$\phl{\recv{x}{\bullet}{P}}$} increments the depth to $k+1$, while traversing a double-name binder like \hl{$\phl{\res{(\bullet,\bullet)}{P}}$} would increment it to $k+2$. 
 
 When the recursion reaches a bound variable \hl{$\phl{\text{bound}(n)}$}, it compares the variable's index $n$ to the current depth $k$:
 \begin{itemize}
     \item If $n = k$, the index points to the binder currently being opened, and it is replaced by the free name \hl{$\phl{\text{free}(x)}$}.
     \item If $n \neq k$, the index belongs to a different, outer or inner, binder and is left unchanged.
 \end{itemize}
-Crucially, when the opening operation encounters an existing free variable \hl{$\phl{\text{free}(y)}$}, it simply ignores it. This guarantees that opening is entirely capture-avoiding by construction. In the operational semantics, when a single binder like an input prefix \hl{$\phl{\recv{z}{\bullet}{P}}$} receives a channel $x$, the continuation \hl{$\phl{P}$} is opened as \hl{$\phl{\{0 \mapsto x\}P}$}. For a restriction \hl{$\phl{\res{(\bullet, \bullet)}{P}}$}, the dual endpoints $x$ and $y$ are opened sequentially as \hl{$\phl{\{0 \mapsto x\}(\{1 \mapsto y\}P)}$}.
+Crucially, when the opening operation encounters an existing free variable ${\text{free}(y)}$, it simply ignores it. This guarantees that opening is entirely capture-avoiding by construction. In the operational semantics, when a single binder like an input prefix \hl{$\phl{\recv{z}{\bullet}{P}}$} receives a channel $x$, the continuation \hl{$\phl{P}$} is opened as \hl{$\phl{\{0 \mapsto x\}P}$}. For a restriction \hl{$\phl{\res{(\bullet, \bullet)}{P}}$}, the dual endpoints $x$ and $y$ are opened sequentially as \hl{$\phl{\{0 \mapsto x\}(\{1 \mapsto y\}P)}$}.
 
 \paragraph{Closing (Abstraction).} 
-Closing is the exact inverse of opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted $\{x \mapsto k\}P$. As with opening, the depth counter $k$ increments as the structural recursion traverses existing binders. When the recursion encounters $\phl{\text{free}(y)}$, it checks if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$. 
+Closing is the exact inverse of opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted \hl{$\phl{\{k \mapsfrom x\}P}$}. While recursing, bound indices are ignored as they cannot contain free names. When the recursion encounters a free term like $\phl{\text{free}(y)}$ its checked if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$.
 
-This operation is primarily used when constructing new binders, such as moving a free channel into a restricted scope. To close multiple free names simultaneously, such as abstracting $x$ and $y$ into a \texttt{cut} binder, the operations are applied sequentially: $y$ is closed at depth $k+1$, and $x$ is closed at depth $k$.
+This operation is primarily used when constructing new binders, such as moving a free channel into a restricted scope. To close multiple free names simultaneously, such as abstracting $x$ and $y$ into a restriction, the operations are applied sequentially, by first closing $y$ at depth $k+1$, followed by closing $x$ at depth $k$.
 
 \paragraph{Locally Closed Terms.}
-The separation of names and indices introduces a new syntactic anomaly: a term can contain a "dangling" index that does not point to any enclosing binder. For example, the process term $\phl{\send{x}{y}{\text{bound}(0)}}$ is syntactically valid according to the data type grammar, but it is mathematically meaningless because the index $0$ has no corresponding restriction or input binder.
+The separation of names and indices introduces a new syntactic anomaly, namely that a term can contain a \emph{dangling} index that does not point to any enclosing binder. For example, the process term \hl{$\phl{\send{\text{bound}(0)}{}{\nil}}$} is syntactically valid, matching the syntax for an empty send, but mathematically it is meaningless because the index $0$ has no corresponding binder.
 
-To filter out these meaningless terms, the locally nameless architecture introduces the predicate of being \emph{locally closed}, often denoted $\mathit{lc}(P)$. A term is locally closed if and only if all of its De Bruijn indices are properly bound by an enclosing constructor. 
-Consequently, the standard, untyped $\pi$-calculus terms of \pill{}, those that represent actual, executable programs, are precisely defined as the subset of the locally nameless syntax tree that satisfies the $\mathit{lc}$ predicate.
+To filter out these meaningless terms, the locally nameless architecture introduces the predicate of being \emph{locally closed}, denoted \hl{$\mathit{lc}(\phl{P})$}. A term is locally closed if and only if all of its De Bruijn indices are properly bound by an enclosing constructor. 
 
-
-
-
-
-
+Crucially, satisfying the $\mathit{lc}$ predicate is what elevates a raw syntax tree into a well-formed \pill{} process. Establishing this predicate is not only a static validation step, but rather it establishes a core structural invariant of the mechanisation, which guarantees the soundness of the calculus. Generally, any subsequent definition, such as variable substitution, structural congruence, or operational semantics, must be mathematically proven to \emph{preserve} the locally closed property. In practice, this is achieved through the \emph{regularity of typing}, which requires proving that all valid typing derivations inherently produce locally closed terms. Consequently, operations proven to preserve typing will naturally carry this invariant as a structural guarantee.
 
 
 
