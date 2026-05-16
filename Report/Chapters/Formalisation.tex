@@ -41,8 +41,72 @@
 
 % --- MERGE THE TWO THINGS ABOVE --- %
 
+% This was done in section 3, so whenever needed reference that section.
 % Aim to bridge theory-code gap and explain design choices
   % 1. Design goals
   % 2. LN for processes (how does this eliminates AlphaEq)
   % 3. De Bruijn indices for types (needed type variables in first iteration to be locally closed, so instead of assuming this as hypothesis, implemented De Bruijn indices and the notion of a type being locally closed based on the current binder level for a typing derivation then 'n' in front of judgements)
   % 4, Co-finite quantification 
+
+\section{Formalisation}\label{sec:formalisation}
+This section describes the mechanisation of \pill{} in Lean 4, bridging the theoretical foundations developed in~\cref{sec:background,sec:binding-architecture} and their concrete implementation. The formalisation is organised into three top-level namespaces: \texttt{PiLL.Model}, which defines the static structure of the calculus, \texttt{PiLL.Semantics}, which defines its operational behaviour, and \texttt{PiLL.SessionFidelity}, which contains the metatheoretic results connecting the two.
+
+The \texttt{Model} namespace covers the full \pill{} calculus and is structured around the layers introduced in~\cref{sec:background}. \texttt{Base.lean} provides shared syntactic infrastructure used across the model. Session types are defined in \texttt{STypes/}, processes in \texttt{Processes/}, and typing contexts in \texttt{Environments/} and \texttt{HyperEnvironment/}. Typing judgements and their properties are collected in \texttt{Judgement/}, which includes inversion lemmas, linearity properties, substitution, and the co-finite freshness infrastructure described in~\cref{subsec:co-finite-quantification}.
+
+The \texttt{Semantics} namespace covers the operational semantics of \pimll{}. Transition labels are defined in \texttt{Label.lean}. The LTS over typing derivations is defined in \texttt{JudgementStep/}, and the induced LTSs over processes and typing environments are derived in \texttt{ProcStep/} and \texttt{EnvStep/} respectively, realising the erasure homomorphisms described in~\cref{subsec:operational-semantics}.
+
+The \texttt{SessionFidelity} namespace establishes the 
+results for \pimll{}. It contains the simulation results showing 
+\texttt{EnvStep} and \texttt{ProcStep} can each mimic \texttt{JudgementStep}, subject reduction, which states that if \hl{$\phl{P}$} is well-typed and takes a step to \hl{$\phl{P'}$}, then \hl{$\phl{P'}$} is well-typed under a stepped environment, and typability, which lifts subject reduction to the level of typing derivations, showing that a well-typed process and its typing environment step together coherently.
+
+Each component is presented in the order it appears in the dependency graph of the formalisation: types before processes, environments before judgements, and the static model before the operational semantics. For each component we describe the key design decisions and their motivation, highlighting where the mechanisation diverges from the paper presentation of~\citet{abs-2106-11818} and why. Full inductive definitions are deferred to \cref{app:lean-definitions}. This section focuses on the structure and rationale of the formalisation. % FIXME: Appendix reference
+
+
+
+\subsection{Model}
+
+\subsection{Operational Semantics}
+
+\subsection{Session Fidelity}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+% In chapter 4 when talking about the Basic.lean for types mayeb mention why both atom and TVar exist (differentiate between substitution targets (dynamic) and unit types (rigid))
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{l X}
+    \toprule
+    \textbf{ITEMS} & \textbf{TODO} \\
+    Writing  & Turn \texttt{Note} paragraphs into \texttt{remark} environments \\
+    Writing & Remove highlighting from process names not being part of a process in Background and BindingRepresentation \\
+    Writing  & Fix content spread between the Binding Representation and Formalisation sections \\
+    Writing  & Hold off on explaining rule side conditions too deeply in background; defer to formalisation chapter \\
+    Writing  & In the metatheory/proof strategies section, discuss the structural vs.\ step induction dilemma for erasure \\
+    LaTeX    & Fix \cref{prop:name-respect} reference in the section on \texttt{Typing\_f\_eq\_names} \\
+    LaTex & Make appendix of the full inductives from Lean \\
+    \bottomrule
+\end{tabularx}
+\end{center}
+
+% \def\bpn{\text{\$N}}
+% \def\fpn{\text{\#N}}
+% \def\tv{\text{\$T}}
