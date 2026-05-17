@@ -51,7 +51,12 @@
 \section{Formalisation}\label{sec:formalisation}
 This section describes the mechanisation of \pill{} in Lean 4, bridging the theoretical foundations developed in~\cref{sec:background,sec:binding-architecture} and their concrete implementation. The formalisation is organised into three top-level namespaces: \texttt{PiLL.Model}, which defines the static structure of the calculus, \texttt{PiLL.Semantics}, which defines its operational behaviour, and \texttt{PiLL.SessionFidelity}, which contains the metatheoretic results connecting the two.
 
-The \texttt{Model} namespace covers the full \pill{} calculus and is structured around the layers introduced in~\cref{sec:background}. \texttt{Base.lean} provides shared syntactic infrastructure used across the model. Session types are defined in \texttt{STypes/}, processes in \texttt{Processes/}, and typing contexts in \texttt{Environments/} and \texttt{HyperEnvironment/}. Typing judgements and their properties are collected in \texttt{Judgement/}, which includes inversion lemmas, linearity properties, substitution, and the co-finite freshness infrastructure described in~\cref{subsec:co-finite-quantification}.
+
+The formalisation is organised into three top-level namespaces. The first being \texttt{PiLL.Model}, which defines the static structure of the formalisation, secondly \texttt{PiLL.Semantics}, which defines its operational behaviour, and finally \texttt{PiLL.SessionFidelity}, which contains the metatheoretic results connecting the two.
+
+
+
+
 
 The \texttt{Semantics} namespace covers the operational semantics of \pimll{}. Transition labels are defined in \texttt{Label.lean}. The LTS over typing derivations is defined in \texttt{JudgementStep/}, and the induced LTSs over processes and typing environments are derived in \texttt{ProcStep/} and \texttt{EnvStep/} respectively, realising the erasure homomorphisms described in~\cref{subsec:operational-semantics}.
 
@@ -63,7 +68,174 @@ Each component is presented in the order it appears in the dependency graph of t
 
 
 
-\subsection{Model}
+\subsection{Model}\label{subsec:model}
+The \texttt{Model} namespace covers the full \pill{} calculus and is structured around the layers introduced in~\cref{sec:background}. \texttt{Base.lean} provides shared syntactic infrastructure used across the model. Session types are defined in \texttt{STypes/}, processes in \texttt{Processes/}, and typing contexts in \texttt{Environments/} and \texttt{HyperEnvironment/}. Typing judgements and their properties are collected in \texttt{Judgement/}, which includes inversion lemmas, linearity properties, substitution, and the co-finite freshness infrastructure described in~\cref{subsec:co-finite-quantification}.
+
+\newcommand{\dbrack}[1]{[\![#1]\!]}
+\newcommand{\dparen}[1]{(\!(#1)\!)}
+\newcommand{\dangle}[1]{\langle\!\langle #1 \rangle\!\rangle}
+\newcommand{\dsend}[3]{#1\dbrack{#2}.#3}
+\newcommand{\drecv}[3]{#1\dparen{#2}.#3}
+\newcommand{\dserver}[3]{#1\dangle{#2}.#3}
+\newcommand{\dlsend}[2]{#1\dbrack{#2}}
+\newcommand{\dlrecv}[2]{#1\dparen{#2}}
+\newcommand{\dlserver}[2]{#1\dangle{#2}}
+
+% FIXME: How much of this is relevant, and maybe actually just mention the specifics when they become relevant throughout the other sections?
+% \paragraph{Base}\label{paragraph:base}
+% This file \texttt{Base.lean} contains the definitions for the shared operational interfaces used throughout the model as Lean typeclasses. The typeclasses include instances for shifting, substituting, opening and closing of names and types, as well as a few typeclases for having shared syntax between process and labels. For example, depending on context the notation $\dlsend{x}{y}$ can be use to prefix a process, in which case it evaluates to the send constructor, or it can be used as a label on a transition, in which case it would evaluate as a label instead. The same syntax is used leaving the the payload empty for refering to the empty send and its respective label. This pattern is repeated using $\dlrecv{x}{y}$ for both recieve variants as well. Notably, two classes are needed to define shifting for types and names, respectively, as the signature takes the subject, cut-off depth, and by how much to increment, which isn't enough to determine whether it should be names or types which is shifted.
+% \begin{verbatim}
+% class HasShiftNames (Subject : Type) where
+%   shift : Subject → Nat → Nat → Subject
+% class HasShiftTypes (Subject : Type) where
+%   shift : Subject → Nat → Nat → Subject
+% class HasOpenTwo (Subject R1 R2 Target : Type) where 
+%   open_ : Subject → R1 → R2 → Target → Subject
+% \end{verbatim}
+
+
+
+
+
+% Type inductive, shift, substitution, locally closed for types
+% The depth-indexed approach vs cofinite for types
+% Representative example: the forall rule or a shift example
+
+% FIXME: never mentioned the atom and atomDual constructors, also describe the reason that they exist.
+\subsubsection{Session Types}\label{subsubsec:stypes}
+Session types are defined in \texttt{STypes/Basic.lean} as the inductive datatype \texttt{Types}. Following the locally nameless syntax established in \cref{subsec:locally-nameless}, type variables are isolated into a separate inductive type, \texttt{TVar}, which explicitly distinguishes between free and bound occurrences:
+%
+\begin{lstlisting}[language=Lean4]
+inductive TVar : Type
+  | free  (x : FTVar)   
+  | bound (x : BTVar)   
+\end{lstlisting}
+%
+Here, \texttt{FTVar} represents a free type variable identified by a natural number, while \texttt{BTVar} represents a bound type variable dentified by a De Bruijn index (Which is also just a natural number). Because bound variables are represented purely by positional indices, $\alpha$-equivalent types become definitionally equal in Lean, eliminating the need for quotient or renaming infrastructure.
+
+The remaining connectives directly mirror the theoretical grammar of the calculus. \Cref{tab:types-comparison} illustrates the translation of some connectives from their paper presentation (introduced in \cref{subsec:types}) to their mechanised Lean constructors.
+
+% FIXME: Should probably change from table to a lstlisting which shows the signature instead of this.
+\begin{table}[htbp]  
+    \centering
+    \caption{Comparison of paper and Lean representations for \pill{} connectives.}
+    \label{tab:types-comparison}
+    \begin{tabular}{ll}
+        \toprule
+        \textbf{Paper} & \textbf{Lean} \\
+        \midrule
+        $\thl{A \tensor B}$ & \texttt{tensor (A B~: Types)} \\
+        $\thl{1}$           & \texttt{one} \\
+        $\thl{\forall X.A}$ & \texttt{forall\_ (A~: Types)} \\
+        $\thl{\exists X.A}$ & \texttt{exists\_ (A~: Types)} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Notably, the polymorphic binders \hl{$\thl{\forall.A}$} and \hl{$\thl{\exists.A}$} reflect the depth-indexed approach detailed in \cref{subsec:co-finite-quantification}. The constructors keep the bound De Bruijn index implicit, taking only the continuation body \texttt{A} as an argument (an underscore ``\texttt{\_}'' has been appended to the constructor names to prevent namespace collisions with Lean's built-in \texttt{forall} and \texttt{exists} keywords).
+
+\textbf{Duality} is implemented as a structurally recursive function \texttt{Types.dual}, mapping each constructor to its dual. For example:
+
+\begin{lstlisting}[language=Lean4]
+def Types.dual : Types -> Types
+  | .tensor A B  => .parr   (dual A) (dual B)
+  | .forall_ A   => .exists_ (dual A)
+  | .one         => .bot
+  | ...
+\end{lstlisting}
+
+% FIXME: If anything in this paragraph isn't mentioned later remove it. (needs phrasing corrections)
+% FIXME: This should mirror the exact syntax instead of the placeholder syntax.
+The fundamental property that duality is an involution, \hl{$\thl{{(A^\bot)}^\bot = A}$}, is proved in \path{STypes/Lemmas.lean} by structural induction. Furthermore, because duality interacts deeply with the depth-indexed binding architecture, the formalisation establishes a suite of essential commutation lemmas. Crucially, we prove that duality preserves local closure \hl{($\thl{A}.\texttt{lc} \iff \thl{A^\bot}.\texttt{lc}$)}, and that it commutes with both De Bruijn shifting \hl{($\thl{\shiftdc{d}{c}(A^\bot) = (\shiftdc{d}{c}A)^\bot}$)} and substitution \hl{($\thl{B^\bot\{A/k\}} = \thl{(B\{A/k\})^\bot}$)}. It has also been established that duality is injective \hl{($\thl{A^\bot} = \thl{B^\bot} \iff \thl{A} = \thl{B}$)}. %FIXME: Specifically this last part about injectivity is probably not used.
+
+\textbf{Local closure} for types is defined in \texttt{STypes\slash{}Properties.lean} as a depth-indexed predicate \texttt{Types.lc (k~: Nat)~: Types $\to$ Prop}, where the depth parameter $k$ tracks how many binders the recursion has traversed. 
+
+At the leaves of the syntax tree, local closure is evaluated by the helper predicate \texttt{TVar.lc}. Because free variables are explicit they do not contain any indices, as such they are inherently locally closed at any depth. Conversely, a bound variable is only locally closed if its De Bruijn index $i$ is strictly less than the current depth $k$, ensuring it points to an enclosing scope:
+
+\begin{lstlisting}[language=Lean4]
+def TVar.lc : Nat -> TVar -> Prop
+  | _, .free _   => True
+  | k, .bound i  => i < k
+\end{lstlisting}
+
+The primary \texttt{Types.lc} predicate is then defined by structural recursion. For non-binding constructors, the depth parameter distributes across the sub-terms. When a variable is encountered, the predicate delegates the check to \texttt{TVar.lc}. When descending into the body of a polymorphic binder, the depth counter increments by one, bringing the newly introduced index safely into scope:
+
+\begin{lstlisting}[language=Lean4]
+def Types.lc : Nat -> Types -> Prop
+  | _, .one         => True
+  | k, .var v       => TVar.lc k v
+  | k, .tensor A B  => A.lc k ∧ B.lc k
+  | k, .forall_ A   => A.lc (k + 1)
+  | k, .exists_ A   => A.lc (k + 1)
+  | ...
+\end{lstlisting}
+
+% FIXME: Is this standard termonology, should this be phrased differently?
+Finally, a type is defined as \emph{closed} if it contains no dangling indices at the top level, meaning it is locally closed at depth $0$. This is registered as the abbreviation \texttt{Types.lc\_0}.
+
+\textbf{Shifting} is defined in \path{STypes/Shift.lean} following the standard generic De Bruijn shifting operation ($\uparrow^d_c$) established in \cref{subsec:co-finite-quantification}. The implementation is split into a structural traversal over types and a base-case evaluation for variables.
+
+The operation is mapped across the \texttt{Types} level via structural recursion, utilizing a cutoff depth $d$ and a shift amount $c$. For standard connectives, the shift simply distributes across sub-terms. Crucially, because the operation traverses the syntax tree top-down, whenever the recursion descends into a polymorphic binder like \texttt{forall\_}, the cutoff depth $d$ increments by one (\texttt{d + 1}). This increment ensures the algorithm constantly tracks exactly how many local binders it has entered:
+
+\begin{lstlisting}[language=Lean4]
+def Types.shift (d c : Nat) : Types -> Types
+  | .var v       => .var (v.shift d c)
+  | .tensor A B  => .tensor (A.shift d c) (B.shift d c)
+  | .forall_ A   => .forall_ (A.shift (d + 1) c)
+  | t            => t  -- Base types like one and bot are unchanged
+\end{lstlisting}
+
+When the recursion reaches the variable level, explicit free \texttt{FTVar} names remain unaffected. For bound \texttt{BTVar} indices, the function compares the De Bruijn index $i$ against the accumulated cutoff depth $d$. At this leaf node, $d$ represents the exact number of local binders traversed during the current shift. Therefore, if $i < d$, the index points to one of those recently traversed binders; the variable is safely bound \emph{internally} within the term and remains unchanged. Conversely, if $i \geq d$, the index points to a binder that was \emph{never} traversed, meaning it is bound \emph{externally} in the surrounding environment. To prevent these external variables from being accidentally captured by newly inserted binders, their indices are incremented by the shift amount $c$ to safely jump over the new additions:
+
+\begin{lstlisting}[language=Lean4]
+def TVar.shift (d c : Nat) : TVar -> TVar
+  | .bound i => if i < d then .bound i else .bound (i + c)
+  | .free n  => .free n
+\end{lstlisting}
+
+\textbf{Substitution} is defined in \path{STypes/Subst.lean} as the eager substitution of a payload type $A$ for a target De Bruijn index $k$ within a host type $B$, denoted as $B\{A // k\}$. 
+
+At the variable level, the function evaluates the bound De Bruijn index $i$ against the target depth $k$. If $i = k$, the target has been reached, and the variable is replaced by the instantiated type $A$. If $i < k$, the variable is bound by an inner scope and is unaffected. Finally, if $i > k$, the variable points outward past the current term. Then since instantiating the index $k$ effectively removes that index and associated binder leaving a whole, therefore the indices pointing outward must be decremented by one ($i - 1$) to close the gap to maintain correct distanceing to the outer environment:
+
+\begin{lstlisting}[language=Lean4]
+| .var (.bound i) =>
+    if i == k then A
+    else if i > k then .var (.bound (i - 1))
+    else .var (.bound i)
+\end{lstlisting}
+
+This operation is lifted to the \texttt{Types} level via structural recursion. For standard connectives, the substitution simply distributes across the sub-terms. However, when descending into a polymorphic binder such as \texttt{forall\_}, two critical protective adjustments must occur. First, the target depth $k$ increments by one ($k + 1$) to account for crossing the new binder. Second, the payload type $A$ is explicitly shifted (\texttt{shift 0 1 A}) to ensure that any free variables residing inside $A$ are not accidentally captured by this newly entered scope:
+
+\begin{lstlisting}[language=Lean4]
+| .forall_ B => .forall_ (B.subst (shift 0 1 A) (k + 1))
+\end{lstlisting}
+
+\textbf{Notation} is defined in \path{STypes/Notation.lean} following the mathematical conventions established in \cref{subsec:types} and extended in \cref{par:ln-syntax-types}. The only noteworthy divergence is that the exponentials \hl{$\thl{\bang A}$} and \hl{$\thl{\query A}$} are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} respectively, to avoid clashing with Lean's built-in $\bang$ (boolean negation) and $\query$ (syntactic hole) operators.
+
+The full inductive definition of \texttt{Types} and all lemmas from 
+\path{STypes/Lemmas.lean} are listed in \cref{app:stypes}. % FIXME: Reference to appendix create appendix
+
+\paragraph{Processes}\label{subsubsec:processes}
+% Process inductive, locally nameless constructors
+% Open/close, name and type substitution
+% Free names, locally closed
+% Representative example: opening a restriction or recv
+
+\paragraph{Environments and Hyperenvironments}\label{subsubsec:envs}
+% The inductives, merging, disjointness condition
+% How has the partial commutative monoid structure been achieved in Lean
+% Any interesting divergence from the paper
+
+\paragraph{Typing Judgements}\label{subsubsec:judgements}
+% The inductive
+% How cofinite quantification is encoded in Lean
+% Inversion lemmas, linearity, Names property or something
+% Show some examples
+
+
+
+
+
 
 \subsection{Operational Semantics}
 
@@ -90,7 +262,8 @@ Each component is presented in the order it appears in the dependency graph of t
 
 
 \newpage
-% In chapter 4 when talking about the Basic.lean for types mayeb mention why both atom and TVar exist (differentiate between substitution targets (dynamic) and unit types (rigid))
+% FIXME: In chapter 4 when talking about the Basic.lean for types maybe mention why both atom and TVar exist (differentiate between substitution targets (dynamic) and unit types (rigid))
+% FIXME: Consider if substitution should be mentioend in section 3, or if it's fine to just mention it in section 4.
 \begin{center}
 \small
 \begin{tabularx}{\textwidth}{l X}

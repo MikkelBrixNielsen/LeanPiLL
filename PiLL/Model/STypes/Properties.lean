@@ -9,16 +9,16 @@ def Types.lc : Nat → Types → Prop
   | _, .atomDual _  => True
   | k, .var v       => TVar.lc k v
   | k, .varDual v   => TVar.lc k v
-  | _, .one         => true
-  | _, .bot         => true
+  | _, .one         => True
+  | _, .bot         => True
   | k, .tensor A B  => A.lc k ∧ B.lc k
   | k, .parr A B    => A.lc k ∧ B.lc k
   | k, .oplus A B   => A.lc k ∧ B.lc k
   | k, .amp A B     => A.lc k ∧ B.lc k
-  | k, .bang A => A.lc k
-  | k, .quest A => A.lc k
-  | k, .forall_ A => A.lc (k+1)
-  | k, .exists_ A => A.lc (k+1)
+  | k, .bang A      => A.lc k
+  | k, .quest A     => A.lc k
+  | k, .forall_ A   => A.lc (k+1)
+  | k, .exists_ A   => A.lc (k+1)
 
 def Types.lc_0 : Types → Prop := Types.lc 0
 
@@ -64,6 +64,7 @@ def Types.freeTypes : Types → Finset TVar
   | .exists_ A   => A.freeTypes
 
 attribute [simp] Types.freeTypes
+
 def Types.isServerUsable : Types → Prop
   | .quest _  => True
   | _         => False

@@ -13,6 +13,29 @@
 \setlength{\marginparwidth}{2cm}
 \input{preamble}
 
+\usepackage{listings}
+\lstdefinelanguage{Lean4}{
+  keywords={def, inductive, instance, theorem, lemma, where, match, if, then, else, fun, let, in, by, import, abbrev, class},
+  sensitive=true,
+  comment=[l]{--},
+  morecomment=[s]{/-}{-/},
+  morestring=[b]",
+}
+
+\lstset{
+  language=Lean4,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries,
+  commentstyle=\ttfamily,
+  breaklines=true,
+  frame=none,
+  literate={∧}{{$\land$}}1
+           {∨}{{$\lor$}}1
+           {→}{{$\to$}}1
+           {∀}{{$\forall$}}1
+           {∃}{{$\exists$}}1
+}
+
 % Caption 
 \usepackage{tabularx}
 \usepackage{caption}

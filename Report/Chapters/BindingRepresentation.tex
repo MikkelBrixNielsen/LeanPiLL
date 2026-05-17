@@ -18,7 +18,7 @@ throughout the formalisation. We begin by stating the design goals that
 motivate the approach~(\cref{subsec:design-goals}), then introduce the 
 locally nameless representation and its core operations~(\cref{subsec:locally-nameless,subsec:opening-and-closing}), and conclude with co-finite quantification~(\cref{subsec:co-finite-quantification}), which governs how inductive definitions interact with binders.
 
-\subsection{Design Goals and the Unified Approach}\label{subsec:design-goals} % 3.1
+\subsection{Design Goals and the Approach}\label{subsec:design-goals} % 3.1
 This chapter introduces the binding representation used throughout the formalisation. The representation is motivated by three primary design goals:
 
 \begin{enumerate}
@@ -45,7 +45,7 @@ The locally nameless representation, as presented by \citet{C12}, separates vari
 
 By structurally separating these two concepts, the locally nameless approach simplifies standard operations such as capture-avoiding substitution. Since free variables and bound variables inhabit distinct syntactic categories, substitution on free variables is defined to not interact with bound indices. We apply this theory to both the structural and operational layers of \pill{}.
 
-\paragraph{LN Syntax for Types.}
+\paragraph{LN Syntax for Types.}\label{par:ln-syntax-types}
 In the original presentation of \pill{}, polymorphic types rely on standard named variables. Under the locally nameless architecture, we expand the syntax of type variables to explicitly distinguish between free and bound occurrences. The grammar for types is updated as follows:
 \begin{highlight}
 \[
@@ -126,7 +126,7 @@ By deferring the exact choice of the forbidden set $L$ to the user at the time o
 
 \paragraph{Application to \pill{} Types} Although type variables are represented using the locally nameless separation of free and bound constructors, their metatheory is handled using depth-indexed reasoning rather than cofinite quantification. Because type variables are static and do not dynamically communicate across parallel scopes like channels do, managing freshness sets $L$ for them introduces unnecessary proof overhead. 
 
-Instead, the system evaluates polymorphic typing rules using a purely depth-indexed approach, powered by a standard De Bruijn shifting operator. We define the shifting of a type \hl{$\thl{A}$} by a distance $d$ at a cutoff depth $c$, denoted mathematically as \hl{$\thl{\shiftdc{d}{c}A}$}. Using this infrastructure, consider the typing rule for the universal type input ($\thl{\forall. B}$):
+Instead, the system evaluates polymorphic typing rules using a purely depth-indexed approach, powered by a standard De Bruijn shifting operator. We define the shifting of a type \hl{$\thl{A}$} by a distance $d$ at a cutoff depth $c$, denoted mathematically as \hl{$\thl{\shiftdc{d}{c}A}$}. Using this infrastructure, consider the typing rule for the universal type input (\hl{$\thl{\forall. B}$}):
 
 \begin{highlight}
 \[
@@ -136,7 +136,7 @@ Instead, the system evaluates polymorphic typing rules using a purely depth-inde
 \]
 \end{highlight}
 
-Rather than opening the binder with a fresh explicit name, the typing judgment simply increments a depth counter $n+1$, legally bringing index $0$ into scope. To maintain correct index distances, the typing environment $\Gamma$ is explicitly shifted by a distance of $1$ at cutoff $0$ ($\shiftdc{0}{1}\Gamma$), incrementing all free type indices within the context to prevent accidental capture. 
+Rather than opening the binder with a fresh explicit name, the typing judgment simply increments a depth counter $n+1$, legally bringing index $0$ into scope. To maintain correct index distances, the typing environment \hl{$\thl{\Gamma}$} is explicitly shifted by a distance of $1$ at cutoff $0$ (\hl{$\thl{\shiftdc{0}{1}\Gamma}$}), incrementing all free type indices within the context to prevent accidental capture. 
 
 \paragraph{Application to \pill{} Channels} This co-finite quantification strategy fundamentally reshapes the inductive definitions for process channels. For example, consider the typing rule that introduces the prefix \hl{$\phl{\recv{x}{\bullet}{P}}$}. Under a paper-based presentation, the premise implicitly requires a fresh session name $y$. Under our mechanised architecture, the rule uses co-finite quantification and the opening operation:
 \begin{highlight}
