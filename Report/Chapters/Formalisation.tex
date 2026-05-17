@@ -210,7 +210,7 @@ This operation is lifted to the \texttt{Types} level via structural recursion. F
 | .forall_ B => .forall_ (B.subst (shift 0 1 A) (k + 1))
 \end{lstlisting}
 
-\textbf{Notation} is defined in \path{STypes/Notation.lean} following the mathematical conventions established in \cref{subsec:types} and extended in \cref{par:ln-syntax-types}. The only noteworthy divergence is that the exponentials \hl{$\thl{\bang A}$} and \hl{$\thl{\query A}$} are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} respectively, to avoid clashing with Lean's built-in $\bang$ (boolean negation) and $\query$ (syntactic hole) operators.
+\textbf{Notation} is defined in \path{STypes/Notation.lean} following the mathematical conventions established in \cref{subsec:types} and extended in \nameref{par:ln-syntax-types}. The only noteworthy divergence is that the exponentials \hl{$\thl{\bang A}$} and \hl{$\thl{\query A}$} are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} respectively, to avoid clashing with Lean's built-in $\bang$ (boolean negation) and $\query$ (syntactic hole) operators.
 
 The full inductive definition of \texttt{Types} and all lemmas from 
 \path{STypes/Lemmas.lean} are listed in \cref{app:stypes}. % FIXME: Reference to appendix create appendix
