@@ -48,29 +48,7 @@
   % 3. De Bruijn indices for types (needed type variables in first iteration to be locally closed, so instead of assuming this as hypothesis, implemented De Bruijn indices and the notion of a type being locally closed based on the current binder level for a typing derivation then 'n' in front of judgements)
   % 4, Co-finite quantification 
 
-\section{Formalisation}\label{sec:formalisation}
-This section describes the mechanisation of \pill{} in Lean 4, bridging the theoretical foundations developed in~\cref{sec:background,sec:binding-architecture} and their concrete implementation. The formalisation is organised into three top-level namespaces: \texttt{PiLL.Model}, which defines the static structure of the calculus, \texttt{PiLL.Semantics}, which defines its operational behaviour, and \texttt{PiLL.SessionFidelity}, which contains the metatheoretic results connecting the two.
-
-
-The formalisation is organised into three top-level namespaces. The first being \texttt{PiLL.Model}, which defines the static structure of the formalisation, secondly \texttt{PiLL.Semantics}, which defines its operational behaviour, and finally \texttt{PiLL.SessionFidelity}, which contains the metatheoretic results connecting the two.
-
-
-
-
-
-The \texttt{Semantics} namespace covers the operational semantics of \pimll{}. Transition labels are defined in \texttt{Label.lean}. The LTS over typing derivations is defined in \texttt{JudgementStep/}, and the induced LTSs over processes and typing environments are derived in \texttt{ProcStep/} and \texttt{EnvStep/} respectively, realising the erasure homomorphisms described in~\cref{subsec:operational-semantics}.
-
-The \texttt{SessionFidelity} namespace establishes the 
-results for \pimll{}. It contains the simulation results showing 
-\texttt{EnvStep} and \texttt{ProcStep} can each mimic \texttt{JudgementStep}, subject reduction, which states that if \hl{$\phl{P}$} is well-typed and takes a step to \hl{$\phl{P'}$}, then \hl{$\phl{P'}$} is well-typed under a stepped environment, and typability, which lifts subject reduction to the level of typing derivations, showing that a well-typed process and its typing environment step together coherently.
-
-Each component is presented in the order it appears in the dependency graph of the formalisation: types before processes, environments before judgements, and the static model before the operational semantics. For each component we describe the key design decisions and their motivation, highlighting where the mechanisation diverges from the paper presentation of~\citet{abs-2106-11818} and why. Full inductive definitions are deferred to \cref{app:lean-definitions}. This section focuses on the structure and rationale of the formalisation. % FIXME: Appendix reference
-
-
-
-\subsection{Model}\label{subsec:model}
-The \texttt{Model} namespace covers the full \pill{} calculus and is structured around the layers introduced in~\cref{sec:background}. \texttt{Base.lean} provides shared syntactic infrastructure used across the model. Session types are defined in \texttt{STypes/}, processes in \texttt{Processes/}, and typing contexts in \texttt{Environments/} and \texttt{HyperEnvironment/}. Typing judgements and their properties are collected in \texttt{Judgement/}, which includes inversion lemmas, linearity properties, substitution, and the co-finite freshness infrastructure described in~\cref{subsec:co-finite-quantification}.
-
+% Commands for double brackets and syntax prefixes
 \newcommand{\dbrack}[1]{[\![#1]\!]}
 \newcommand{\dparen}[1]{(\!(#1)\!)}
 \newcommand{\dangle}[1]{\langle\!\langle #1 \rangle\!\rangle}
@@ -80,6 +58,12 @@ The \texttt{Model} namespace covers the full \pill{} calculus and is structured 
 \newcommand{\dlsend}[2]{#1\dbrack{#2}}
 \newcommand{\dlrecv}[2]{#1\dparen{#2}}
 \newcommand{\dlserver}[2]{#1\dangle{#2}}
+
+\section{Formalisation}\label{sec:formalisation}
+This section describes the mechanisation of \pill{} in Lean 4, bridging the theoretical foundations developed in~\cref{sec:background,sec:binding-architecture} and their concrete implementation. The formalisation is organised into three top-level namespaces: \texttt{PiLL.Model}, which defines the static structure of the calculus, \texttt{PiLL.Semantics}, which defines its operational behaviour, and \texttt{PiLL.SessionFidelity}, which establishes the metatheoretic results connecting the two. Each component is presented in dependency order, highlighting design decisions and divergences from~\citet{abs-2106-11818}.
+
+\subsection{Model}\label{subsec:model}
+The \texttt{Model} namespace covers the full \pill{} calculus and is structured around the layers introduced in~\cref{sec:background}. \texttt{Base.lean} provides shared syntactic infrastructure used across the model. Session types are defined in \texttt{STypes/}, processes in \texttt{Processes/}, and typing contexts in \texttt{Environments/} and \texttt{HyperEnvironment/}. Typing judgements and their properties are collected in \texttt{Judgement/}, which includes inversion lemmas, linearity properties, substitution, and the co-finite freshness infrastructure described in~\cref{subsec:co-finite-quantification}.
 
 % FIXME: How much of this is relevant, and maybe actually just mention the specifics when they become relevant throughout the other sections?
 % \paragraph{Base}\label{paragraph:base}
@@ -93,14 +77,6 @@ The \texttt{Model} namespace covers the full \pill{} calculus and is structured 
 %   open_ : Subject → R1 → R2 → Target → Subject
 % \end{verbatim}
 
-
-
-
-
-% Type inductive, shift, substitution, locally closed for types
-% The depth-indexed approach vs cofinite for types
-% Representative example: the forall rule or a shift example
-
 % FIXME: never mentioned the atom and atomDual constructors, also describe the reason that they exist.
 \subsubsection{Session Types}\label{subsubsec:stypes}
 Session types are defined in \texttt{STypes/Basic.lean} as the inductive datatype \texttt{Types}. Following the locally nameless syntax established in \cref{subsec:locally-nameless}, type variables are isolated into a separate inductive type, \texttt{TVar}, which explicitly distinguishes between free and bound occurrences:
@@ -113,24 +89,27 @@ inductive TVar : Type
 %
 Here, \texttt{FTVar} represents a free type variable identified by a natural number, while \texttt{BTVar} represents a bound type variable dentified by a De Bruijn index (Which is also just a natural number). Because bound variables are represented purely by positional indices, $\alpha$-equivalent types become definitionally equal in Lean, eliminating the need for quotient or renaming infrastructure.
 
-The remaining connectives directly mirror the theoretical grammar of the calculus. \Cref{tab:types-comparison} illustrates the translation of some connectives from their paper presentation (introduced in \cref{subsec:types}) to their mechanised Lean constructors.
+The remaining connectives directly mirror the theoretical grammar of the calculus. \Cref{tab:types-comparison} illustrates the translation of some connectives from their paper presentation (introduced in \cref{subsec:types}) into the constructors of the \texttt{inductive Types} declaration.
 
-% FIXME: Should probably change from table to a lstlisting which shows the signature instead of this.
+\begin{highlight}
 \begin{table}[htbp]  
     \centering
-    \caption{Comparison of paper and Lean representations for \pill{} connectives.}
+    \caption{Comparison of standard, locally nameless, and Lean representations for \pill{} types.}
     \label{tab:types-comparison}
-    \begin{tabular}{ll}
+    \begin{tabular}{llll}
         \toprule
-        \textbf{Paper} & \textbf{Lean} \\
+        \textbf{Standard} & \textbf{Locally Nameless} & \textbf{Lean Constructor} & \textbf{Binds} \\
         \midrule
-        $\thl{A \tensor B}$ & \texttt{tensor (A B~: Types)} \\
-        $\thl{1}$           & \texttt{one} \\
-        $\thl{\forall X.A}$ & \texttt{forall\_ (A~: Types)} \\
-        $\thl{\exists X.A}$ & \texttt{exists\_ (A~: Types)} \\
+        $\thl{A \tensor B}$ & $\thl{A \tensor B}$         & \texttt{| tensor (A B~: Types)} & None \\
+        $\thl{1}$           & $\thl{1}$                   & \texttt{| one}                  & None \\
+        $\thl{\forall X.A}$ & $\thl{\forall \diamond. A}$ & \texttt{| forall\_ (A~: Types)} & 1 type \\
+        $\thl{\exists X.A}$ & $\thl{\exists \diamond. A}$ & \texttt{| exists\_ (A~: Types)} & 1 type \\
+        $\thl{X}$           & $\thl{X}$                   & \texttt{| var (v~: TVar)}       & None \\
+        $\thl{X^\bot}$      & $\thl{X^\bot}$              & \texttt{| varDual (v~: TVar)}   & None \\
         \bottomrule
     \end{tabular}
 \end{table}
+\end{highlight}
 
 Notably, the polymorphic binders \hl{$\thl{\forall.A}$} and \hl{$\thl{\exists.A}$} reflect the depth-indexed approach detailed in \cref{subsec:co-finite-quantification}. The constructors keep the bound De Bruijn index implicit, taking only the continuation body \texttt{A} as an argument (an underscore ``\texttt{\_}'' has been appended to the constructor names to prevent namespace collisions with Lean's built-in \texttt{forall} and \texttt{exists} keywords).
 
@@ -145,7 +124,7 @@ def Types.dual : Types -> Types
 \end{lstlisting}
 
 % FIXME: If anything in this paragraph isn't mentioned later remove it. (needs phrasing corrections)
-% FIXME: This should mirror the exact syntax instead of the placeholder syntax.
+% FIXME: should this mirror the exact syntax instead of the placeholder syntax.
 The fundamental property that duality is an involution, \hl{$\thl{{(A^\bot)}^\bot = A}$}, is proved in \path{STypes/Lemmas.lean} by structural induction. Furthermore, because duality interacts deeply with the depth-indexed binding architecture, the formalisation establishes a suite of essential commutation lemmas. Crucially, we prove that duality preserves local closure \hl{($\thl{A}.\texttt{lc} \iff \thl{A^\bot}.\texttt{lc}$)}, and that it commutes with both De Bruijn shifting \hl{($\thl{\shiftdc{d}{c}(A^\bot) = (\shiftdc{d}{c}A)^\bot}$)} and substitution \hl{($\thl{B^\bot\{A/k\}} = \thl{(B\{A/k\})^\bot}$)}. It has also been established that duality is injective \hl{($\thl{A^\bot} = \thl{B^\bot} \iff \thl{A} = \thl{B}$)}. %FIXME: Specifically this last part about injectivity is probably not used.
 
 \textbf{Local closure} for types is defined in \texttt{STypes\slash{}Properties.lean} as a depth-indexed predicate \texttt{Types.lc (k~: Nat)~: Types $\to$ Prop}, where the depth parameter $k$ tracks how many binders the recursion has traversed. 
@@ -182,8 +161,9 @@ def Types.shift (d c : Nat) : Types -> Types
   | .var v       => .var (v.shift d c)
   | .tensor A B  => .tensor (A.shift d c) (B.shift d c)
   | .forall_ A   => .forall_ (A.shift (d + 1) c)
-  | t            => t  -- Base types like one and bot are unchanged
+  | t            => t
 \end{lstlisting}
+% FIXME: mention this in prose instead of as a comment: "Base types like one and bot are unchanged"
 
 When the recursion reaches the variable level, explicit free \texttt{FTVar} names remain unaffected. For bound \texttt{BTVar} indices, the function compares the De Bruijn index $i$ against the accumulated cutoff depth $d$. At this leaf node, $d$ represents the exact number of local binders traversed during the current shift. Therefore, if $i < d$, the index points to one of those recently traversed binders; the variable is safely bound \emph{internally} within the term and remains unchanged. Conversely, if $i \geq d$, the index points to a binder that was \emph{never} traversed, meaning it is bound \emph{externally} in the surrounding environment. To prevent these external variables from being accidentally captured by newly inserted binders, their indices are incremented by the shift amount $c$ to safely jump over the new additions:
 
@@ -212,21 +192,136 @@ This operation is lifted to the \texttt{Types} level via structural recursion. F
 
 \textbf{Notation} is defined in \path{STypes/Notation.lean} following the mathematical conventions established in \cref{subsec:types} and extended in \nameref{par:ln-syntax-types}. The only noteworthy divergence is that the exponentials \hl{$\thl{\bang A}$} and \hl{$\thl{\query A}$} are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} respectively, to avoid clashing with Lean's built-in $\bang$ (boolean negation) and $\query$ (syntactic hole) operators.
 
-The full inductive definition of \texttt{Types} and all lemmas from 
-\path{STypes/Lemmas.lean} are listed in \cref{app:stypes}. % FIXME: Reference to appendix create appendix
+The full inductive definition of \texttt{Types} and all lemmas from \path{STypes/Lemmas.lean} are listed in \cref{app:stypes}. % FIXME: Reference to appendix create appendix
 
-\paragraph{Processes}\label{subsubsec:processes}
-% Process inductive, locally nameless constructors
-% Open/close, name and type substitution
-% Free names, locally closed
-% Representative example: opening a restriction or recv
 
-\paragraph{Environments and Hyperenvironments}\label{subsubsec:envs}
+
+
+
+% FIXME: Make reference back to the section defining locally nameless for processes.
+% FIXME: Reference to section talking about how the binders work
+% FIXME: Last sentece could be phrased better.
+% FIXME: add references to section describing the contents of Model/Processes/Fresh.lean (replace the inline path? or maybe have together with the inline path?)
+\subsubsection{Processes}\label{subsubsec:processes}
+Processes are defined in \path{Processes/Basic.lean} as the inductive type \texttt{Proc}. Following the established locally nameless architecture, channel references are partitioned into a dedicated \texttt{Channel} inductive. Explicit free channels are instantiated as concrete natural numbers (\texttt{FPName}). While the raw process syntax permits arbitrary reuse of these numbers, using \texttt{Nat} allows the formalisation to systematically compute strictly fresh names by incrementing the supremum of any finite set of existing names (mechanised in \path{Processes/Fresh.lean}). Conversely, locally bound channels are represented purely by their relative scoping depth via an anonymous De Bruijn index (\texttt{BPName}) (formalised also as a natural number, where, as well see in {reference to the typing section showing how process level binders are calculated}, their usage is restricted / constructed to avoid capture and automatically track binder distnace):
+
+\begin{lstlisting}[language=Lean4]
+inductive Channel : Type where
+  | free  (x : FPName)
+  | bound (x : BPName)
+\end{lstlisting}
+
+% FIXME: Phrasing of the last sentence
+As discussed in \cref{subsec:locally-nameless}, binding constructs in the process syntax no longer carry explicit payload variables. Instead, bound occurrences are captured purely by their relative position. Comparing the standard paper grammar with the intermediate locally nameless notation and the final constructors of the \texttt{inductive Proc} type illustrates this abstraction directly:
+
+\begin{highlight}  
+\begin{center}
+\begin{tabular}{llll}
+    \toprule
+    \textbf{Standard} & \textbf{Locally Nameless} & \textbf{Lean Constructor} & \textbf{Binds} \\
+    \midrule
+    $\phl{\send{x}{y}{P}}$ & $\phl{\send{x}{\bullet}{P}}$ & \texttt{| tensor (x~: Channel) (P~: Proc)} & 1 channel \\
+    $\phl{\recv{x}{y}{P}}$ & $\phl{\recv{x}{\bullet}{P}}$ & \texttt{| parr (x~: Channel) (P~: Proc)} & 1 channel \\
+    $\phl{\res{xy}{P}}$ & $\phl{\res{(\bullet, \bullet)}{P}}$ & \texttt{| cut (P~: Proc)} & 2 channels \\
+    $\phl{\recvtype{x}{X}{P}}$& $\phl{x(\diamond).P}$ & \texttt{| input (x~: Channel) (P~: Proc)} & 1 type \\
+    $\phl{\clientdup{x}{x'}{P}}$ & $\phl{\clientdup{x}{\bullet}{P}}$ & \texttt{| duplicate (x~: Channel) (P~: Proc)} & 1 channel \\
+    \bottomrule
+\end{tabular}
+\end{center}
+\end{highlight} 
+
+Notice that \texttt{cut} takes only a continuation \hl{$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of \hl{$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the transmitted payload is anonymized into the continuation.
+
+\textbf{Opening and closing} are defined in \path{Processes/OpenClose.lean} following the Locally Nameless principles established in \cref{subsec:opening-and-closing}. 
+
+Because the architecture relies on spatial tracking, the depth counter $k$ increments according to the number of names bound by each constructor. For standard communication prefixes like \texttt{tensor}, \texttt{parr}, and the server \texttt{duplicate} operation, exactly one channel is bound, incrementing $k$ by one. The restriction constructor (\texttt{cut}) simultaneously binds two dual endpoints, requiring $k$ to increment by two. Notably, since processes can also bind types via \texttt{input}, where even though it is a binder, it does not bind a name, so we do not increment $k$ in this case:
+
+\begin{lstlisting}[language=Lean4]
+def Proc.open (P : Proc) (u : Channel) (k : Nat) : Proc :=
+  match P with
+  | .tensor x P     => .tensor (x.open u k) (P.open u (k + 1))  
+  | .parr   x P     => .parr   (x.open u k) (P.open u (k + 1))  
+  | .cut      P     => .cut                 (P.open u (k + 2))
+  | .input  x P     => .input  (x.open u k) (P.open u k)
+  | ...
+\end{lstlisting}
+
+At the leaves of the syntax tree, this recursive traversal delegates to the base case defined by \texttt{Channel.open}. For bound channels, the function evaluates the De Bruijn index $i$ against the target depth $k$, replacing it with the instantiated channel $v$ upon an exact match. Explicit free channels remain entirely unaffected:
+
+\begin{lstlisting}[language=Lean4]
+def Channel.open (u v : Channel) (k : Nat) : Channel :=
+  match u with
+  | bound i => if i == k then v else bound i
+  | c => c
+\end{lstlisting}
+
+For restriction, which requires instantiating two endpoints simultaneously, the \texttt{HasOpenTwo} typeclass from \path{Base.lean} is instantiated by opening sequentially: first replacing index $k+1$ with the second endpoint $v$, then replacing index $k$ with the first endpoint $u$:
+
+\begin{lstlisting}[language=Lean4]
+instance : HasOpenTwo Proc Channel Channel Nat where
+  open_ P u v k := (Proc.open (Proc.open P v (k + 1)) u k)
+\end{lstlisting}
+
+To complete the bidirectional infrastructure, \texttt{Proc.close} and \texttt{Channel.close} define the exact inverse operation. Used primarily when abstracting explicit free names into new scopes, \texttt{Proc.close} traverses the process tree using a structural recursion identical to \texttt{Proc.open}, applying the exact same depth-incrementing rules for single and double binders. When the recursion reaches a leaf node, it delegates to \texttt{Channel.close}. If the leaf is a free channel (\texttt{FPName}), the function compares it against the target name $x$; upon a match, the explicit name is \texttt{abstracted} into a bound De Bruijn index at the accumulated depth $k$:
+
+\begin{lstlisting}[language=Lean4]
+def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
+  match u with
+  | .free name => if x == name then .bound k else .free name
+  | .bound i   => .bound i
+\end{lstlisting}
+
+\textbf{Local closure} for processes is defined in \path{Processes/LocalClosure.lean} as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. This ensures that when a process embeds a type, such as the payload $A$ in an output operation, the embedded type can be correctly evaluated against the current type depth $n$ during its own local closure check.
+
+The structural recursion evaluates each constructor by incrementing the appropriate counter based on the number and sort of binders introduced. For instance, a \texttt{tensor} prefix binds a single continuation channel, incrementing the channel depth to $k+1$. The restriction operation (\texttt{cut}) binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, an \texttt{input} prefix binds a polymorphic type variable rather than a channel. This leaves the channel depth $k$ unchanged while incrementing the type depth to $n+1$:
+
+\begin{lstlisting}[language=Lean4]
+def Proc.lc : Nat -> Nat -> Proc -> Prop
+  | k, n, .tensor x P  => x.lc k ∧ P.lc (k + 1) n
+  | k, n, .cut P       => P.lc (k + 2) n
+  | k, n, .input x P   => x.lc k ∧ P.lc k (n + 1)
+  | ...
+\end{lstlisting}
+
+A process is considered globally \emph{closed} when it contains no dangling indices of either sort, meaning \texttt{Proc.lc 0 0} holds. This is registered as the abbreviation \texttt{Proc.lc\_0}.
+
+\textbf{Free names} are computed via \path{Processes/Names.lean} using the function \texttt{Proc.f : Proc $\to$ Finset FPName}, which traverses a process and collects all explicit channel identifiers into a finite set. Because locally nameless binders are represented by anonymous indices, they contribute nothing to this set. Consequently, constructors like \texttt{cut}, which operate entirely on bound endpoints and take no explicit subject channels, simply pass through the free names of their continuation:
+
+\begin{lstlisting}[language=Lean4]
+def Proc.f : Proc -> Finset FPName
+  | .cut P    => P.f
+  | .par P Q  => P.f ∪ Q.f
+  | .link x y => x.f ∪ y.f
+  | ...
+\end{lstlisting}
+
+\textbf{Freshness} is established in \path{Processes/Fresh.lean} to support the generation of globally unique names. Given a finite set $L$ of forbidden names, a strictly fresh name is deterministically computed as $\max(L) + 1$. The formalisation provides two critical lemmas, \texttt{exists\_one\_fresh} and \texttt{exists\_two\_fresh}, which guarantee the generation of one or two distinct names residing entirely outside of $L$. These lemmas are essential for providing witnesses to satisfy the co-finite quantification premises used throughout the typing and transition rules, particularly for restriction, which requires introducing two fresh, non-colliding endpoints simultaneously.
+
+%FIXME: Maybe elaborate on why sustitution avoids capture.
+\textbf{Name substitution} is defined in \path{Processes/SubstNames.lean} as \texttt{Proc.substNames(R~T~:~FPName)~:~Proc~$\to$~Proc}, replacing all free occurrences of name $T$ with name $R$. Since bound channels are represented as indices, substitution never touches them and is therefore capture-avoiding by construction. Thus, no freshness conditions are needed.
+
+\textbf{Type substitution} is defined in \path{Processes/SubstTypes.lean} as \texttt{Proc.substTypes~(A~:~Types)~(k~:~Nat)~:~Proc~$\to$~Proc}, substituting type \hl{$\thl{A}$} for the bound type index $k$ throughout a process. The only constructor that carries a type directly is \texttt{output}, where \texttt{Types.subst} is applied to the embedded type. For \texttt{input}, which binds a type variable, the substitution descends with $k+1$ and the substituted type \hl{$\thl{A}$} is shifted by one to maintain correct index distances, mirroring the pattern established for \texttt{Types.subst} in \cref{par:stypes}:
+
+\begin{lstlisting}[language=Lean4]
+| .input x P => .input x (P.substTypes (A.shift 0 1) (k + 1))
+\end{lstlisting}
+
+The full inductive definition of \texttt{Proc} and all lemmas are listed in \cref{app:processes}.
+
+
+
+
+
+
+
+
+
+\subsubsection{Environments and Hyperenvironments}\label{subsubsec:envs}
 % The inductives, merging, disjointness condition
 % How has the partial commutative monoid structure been achieved in Lean
 % Any interesting divergence from the paper
 
-\paragraph{Typing Judgements}\label{subsubsec:judgements}
+\subsubsection{Typing Judgements}\label{subsubsec:judgements}
 % The inductive
 % How cofinite quantification is encoded in Lean
 % Inversion lemmas, linearity, Names property or something
@@ -237,10 +332,20 @@ The full inductive definition of \texttt{Types} and all lemmas from
 
 
 
+
+
+
+
+
+
+
+
 \subsection{Operational Semantics}
+The \texttt{Semantics} namespace covers the operational semantics of \pimll{}. Transition labels are defined in \texttt{Label.lean}. The LTS over typing derivations is defined in \texttt{JudgementStep/}, and the induced LTSs over processes and typing environments are derived in \texttt{ProcStep/} and \texttt{EnvStep/} respectively, realising the erasure homomorphisms described in~\cref{subsec:operational-semantics}.
 
 \subsection{Session Fidelity}
-
+The \texttt{SessionFidelity} namespace establishes the 
+results for \pimll{}. It contains the simulation results showing \texttt{EnvStep} and \texttt{ProcStep} can each mimic \texttt{JudgementStep}, subject reduction, which states that if \hl{$\phl{P}$} is well-typed and takes a step to \hl{$\phl{P'}$}, then \hl{$\phl{P'}$} is well-typed under a stepped environment, and typability, which lifts subject reduction to the level of typing derivations, showing that a well-typed process and its typing environment step together coherently.
 
 
 

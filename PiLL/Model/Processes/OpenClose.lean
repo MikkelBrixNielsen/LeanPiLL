@@ -2,7 +2,7 @@ import PiLL.Model.Processes.Basic
 
 def Channel.open (u v : Channel) (k : Nat) : Channel :=
   match u with
-  | Channel.bound i => if i == k then v else Channel.bound i
+  | bound i => if i == k then v else bound i
   | c => c
 
 instance : HasOpen Channel Channel Nat where open_ u v k := Channel.open u v k
