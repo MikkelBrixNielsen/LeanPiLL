@@ -14,7 +14,7 @@ def Proc.substTypes (A : Types) (k : Nat) : Proc → Proc
   | .amp x P Q        => .amp x (P.substTypes A k) (Q.substTypes A k)
   | .output x P B     => .output x (P.substTypes A k) (B.subst A k)
   | .input x P        => .input x (P.substTypes (A.shift 0 1) (k + 1))
-  | .server x zs P       => .server x zs (P.substTypes A k)
+  | .server x zs P    => .server x zs (P.substTypes A k)
   | .consume x P      => .consume x (P.substTypes A k)
   | .duplicate x P    => .duplicate x (P.substTypes A k)
   | .dispose x P      => .dispose x (P.substTypes A k)

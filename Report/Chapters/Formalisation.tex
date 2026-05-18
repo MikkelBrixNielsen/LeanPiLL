@@ -87,9 +87,9 @@ inductive TVar : Type
   | bound (x : BTVar)   
 \end{lstlisting}
 %
-Here, \texttt{FTVar} represents a free type variable identified by a natural number, while \texttt{BTVar} represents a bound type variable dentified by a De Bruijn index (Which is also just a natural number). Because bound variables are represented purely by positional indices, $\alpha$-equivalent types become definitionally equal in Lean, eliminating the need for quotient or renaming infrastructure.
+Here, \texttt{FTVar} represents a free type variable identified by a natural number, while \texttt{BTVar} represents a bound type variable encoded as a De Bruijn index.
 
-The remaining connectives directly mirror the theoretical grammar of the calculus. \Cref{tab:types-comparison} illustrates the translation of some connectives from their paper presentation (introduced in \cref{subsec:types}) into the constructors of the \texttt{inductive Types} declaration.
+The remaining constructors directly mirror the theoretical grammar of the calculus. In addition, the formalisation introduces constructors for uninterpreted atomic base types (\texttt{atom} and \texttt{atomDual}), which provide a basis for the inductive cases. \Cref{tab:types-comparison} illustrates the correspondence between the paper syntax, the locally nameless representation, and the Lean implementation.
 
 \begin{highlight}
 \begin{table}[htbp]  
@@ -127,7 +127,7 @@ def Types.dual : Types -> Types
 % FIXME: should this mirror the exact syntax instead of the placeholder syntax.
 The fundamental property that duality is an involution, \hl{$\thl{{(A^\bot)}^\bot = A}$}, is proved in \path{STypes/Lemmas.lean} by structural induction. Furthermore, because duality interacts deeply with the depth-indexed binding architecture, the formalisation establishes a suite of essential commutation lemmas. Crucially, we prove that duality preserves local closure \hl{($\thl{A}.\texttt{lc} \iff \thl{A^\bot}.\texttt{lc}$)}, and that it commutes with both De Bruijn shifting \hl{($\thl{\shiftdc{d}{c}(A^\bot) = (\shiftdc{d}{c}A)^\bot}$)} and substitution \hl{($\thl{B^\bot\{A/k\}} = \thl{(B\{A/k\})^\bot}$)}. It has also been established that duality is injective \hl{($\thl{A^\bot} = \thl{B^\bot} \iff \thl{A} = \thl{B}$)}. %FIXME: Specifically this last part about injectivity is probably not used.
 
-\textbf{Local closure} for types is defined in \texttt{STypes\slash{}Properties.lean} as a depth-indexed predicate \texttt{Types.lc (k~: Nat)~: Types $\to$ Prop}, where the depth parameter $k$ tracks how many binders the recursion has traversed. 
+\paragraph{Local closure} Local closure for types is defined in \texttt{STypes\slash{}Properties.lean} as a depth-indexed predicate \texttt{Types.lc (k~: Nat)~: Types $\to$ Prop}, where the depth parameter $k$ tracks how many binders the recursion has traversed. 
 
 At the leaves of the syntax tree, local closure is evaluated by the helper predicate \texttt{TVar.lc}. Because free variables are explicit they do not contain any indices, as such they are inherently locally closed at any depth. Conversely, a bound variable is only locally closed if its De Bruijn index $i$ is strictly less than the current depth $k$, ensuring it points to an enclosing scope:
 
@@ -149,12 +149,11 @@ def Types.lc : Nat -> Types -> Prop
   | ...
 \end{lstlisting}
 
-% FIXME: Is this standard termonology, should this be phrased differently?
 Finally, a type is defined as \emph{closed} if it contains no dangling indices at the top level, meaning it is locally closed at depth $0$. This is registered as the abbreviation \texttt{Types.lc\_0}.
 
-\textbf{Shifting} is defined in \path{STypes/Shift.lean} following the standard generic De Bruijn shifting operation ($\uparrow^d_c$) established in \cref{subsec:co-finite-quantification}. The implementation is split into a structural traversal over types and a base-case evaluation for variables.
+\paragraph{Shifting} Shifting is defined in \path{STypes/Shift.lean} following the standard generic De Bruijn shifting operation established in \cref{subsec:co-finite-quantification}. The implementation is split into a structural traversal over types and a base-case evaluation for variables.
 
-The operation is mapped across the \texttt{Types} level via structural recursion, utilizing a cutoff depth $d$ and a shift amount $c$. For standard connectives, the shift simply distributes across sub-terms. Crucially, because the operation traverses the syntax tree top-down, whenever the recursion descends into a polymorphic binder like \texttt{forall\_}, the cutoff depth $d$ increments by one (\texttt{d + 1}). This increment ensures the algorithm constantly tracks exactly how many local binders it has entered:
+The operation is mapped across the \texttt{Types} level via structural recursion, utilizing a cutoff depth $d$ and a shift amount $c$. For standard connectives, the shift simply distributes across sub-terms. Base types, such as \texttt{one} and \texttt{bot}, contain no variables and therefore remain structurally unchanged. Crucially, because the operation traverses the syntax tree top-down, whenever the recursion descends into a polymorphic binder like \texttt{forall\_}, the cutoff depth $d$ increments by one (\texttt{d + 1}). This increment ensures the algorithm constantly tracks exactly how many local binders it has entered:
 
 \begin{lstlisting}[language=Lean4]
 def Types.shift (d c : Nat) : Types -> Types
@@ -173,9 +172,9 @@ def TVar.shift (d c : Nat) : TVar -> TVar
   | .free n  => .free n
 \end{lstlisting}
 
-\textbf{Substitution} is defined in \path{STypes/Subst.lean} as the eager substitution of a payload type $A$ for a target De Bruijn index $k$ within a host type $B$, denoted as $B\{A // k\}$. 
+\paragraph{Substitution} Substitution is defined in \path{STypes/Subst.lean} as the eager substitution of a payload type $A$ for a target De Bruijn index $k$ within a host type $B$, denoted as $B\{A // k\}$. 
 
-At the variable level, the function evaluates the bound De Bruijn index $i$ against the target depth $k$. If $i = k$, the target has been reached, and the variable is replaced by the instantiated type $A$. If $i < k$, the variable is bound by an inner scope and is unaffected. Finally, if $i > k$, the variable points outward past the current term. Then since instantiating the index $k$ effectively removes that index and associated binder leaving a whole, therefore the indices pointing outward must be decremented by one ($i - 1$) to close the gap to maintain correct distanceing to the outer environment:
+At the variable level, the function evaluates the bound De Bruijn index $i$ against the target depth $k$. If $i = k$, the target has been reached, and the variable is replaced by the instantiated type $A$. If $i < k$, the variable is bound by an inner scope and is unaffected. Finally, if $i > k$, the variable points outward past the current term. Then since instantiating the index $k$ effectively removes that index and associated binder leaving a whole, therefore the indices pointing outward must be decremented by one ($i - 1$) to close the gap to maintain correct distance to the outer environment:
 
 \begin{lstlisting}[language=Lean4]
 | .var (.bound i) =>
@@ -190,7 +189,7 @@ This operation is lifted to the \texttt{Types} level via structural recursion. F
 | .forall_ B => .forall_ (B.subst (shift 0 1 A) (k + 1))
 \end{lstlisting}
 
-\textbf{Notation} is defined in \path{STypes/Notation.lean} following the mathematical conventions established in \cref{subsec:types} and extended in \nameref{par:ln-syntax-types}. The only noteworthy divergence is that the exponentials \hl{$\thl{\bang A}$} and \hl{$\thl{\query A}$} are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} respectively, to avoid clashing with Lean's built-in $\bang$ (boolean negation) and $\query$ (syntactic hole) operators.
+\paragraph{Notation} Notation is defined in \path{STypes/Notation.lean} following the mathematical conventions established in \cref{subsec:types} and extended in \nameref{par:ln-syntax-types}. The only noteworthy divergence is that the exponentials \hl{$\thl{\bang A}$} and \hl{$\thl{\query A}$} are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} respectively, to avoid clashing with Lean's built-in $\bang$ (boolean negation) and $\query$ (syntactic hole) operators.
 
 The full inductive definition of \texttt{Types} and all lemmas from \path{STypes/Lemmas.lean} are listed in \cref{app:stypes}. % FIXME: Reference to appendix create appendix
 
@@ -232,7 +231,7 @@ As discussed in \cref{subsec:locally-nameless}, binding constructs in the proces
 
 Notice that \texttt{cut} takes only a continuation \hl{$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of \hl{$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the transmitted payload is anonymized into the continuation.
 
-\textbf{Opening and closing} are defined in \path{Processes/OpenClose.lean} following the Locally Nameless principles established in \cref{subsec:opening-and-closing}. 
+\paragraph{Opening and closing} Opening and closing are defined in \path{Processes/OpenClose.lean} following the Locally Nameless principles established in \cref{subsec:opening-and-closing}. 
 
 Because the architecture relies on spatial tracking, the depth counter $k$ increments according to the number of names bound by each constructor. For standard communication prefixes like \texttt{tensor}, \texttt{parr}, and the server \texttt{duplicate} operation, exactly one channel is bound, incrementing $k$ by one. The restriction constructor (\texttt{cut}) simultaneously binds two dual endpoints, requiring $k$ to increment by two. Notably, since processes can also bind types via \texttt{input}, where even though it is a binder, it does not bind a name, so we do not increment $k$ in this case:
 
@@ -262,7 +261,7 @@ instance : HasOpenTwo Proc Channel Channel Nat where
   open_ P u v k := (Proc.open (Proc.open P v (k + 1)) u k)
 \end{lstlisting}
 
-To complete the bidirectional infrastructure, \texttt{Proc.close} and \texttt{Channel.close} define the exact inverse operation. Used primarily when abstracting explicit free names into new scopes, \texttt{Proc.close} traverses the process tree using a structural recursion identical to \texttt{Proc.open}, applying the exact same depth-incrementing rules for single and double binders. When the recursion reaches a leaf node, it delegates to \texttt{Channel.close}. If the leaf is a free channel (\texttt{FPName}), the function compares it against the target name $x$; upon a match, the explicit name is \texttt{abstracted} into a bound De Bruijn index at the accumulated depth $k$:
+To complete the bidirectional infrastructure, \texttt{Proc.close} and \texttt{Channel.close} define the exact inverse operation. Used primarily when abstracting explicit free names into new scopes, \texttt{Proc.close} traverses the process tree using a structural recursion identical to \texttt{Proc.open}, applying the exact same depth-incrementing rules for single and double binders. When the recursion reaches a leaf node, it delegates to \texttt{Channel.close}. If the leaf is a free channel (\texttt{FPName}), the function compares it against the target name $x$; upon a match, the explicit name is \emph{abstracted} into a bound De Bruijn index at the accumulated depth $k$:
 
 \begin{lstlisting}[language=Lean4]
 def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
@@ -271,7 +270,7 @@ def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
   | .bound i   => .bound i
 \end{lstlisting}
 
-\textbf{Local closure} for processes is defined in \path{Processes/LocalClosure.lean} as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. This ensures that when a process embeds a type, such as the payload $A$ in an output operation, the embedded type can be correctly evaluated against the current type depth $n$ during its own local closure check.
+\paragraph{Local closure} Local closure for processes is defined in \path{Processes/LocalClosure.lean} as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. This ensures that when a process embeds a type, such as the payload $A$ in an output operation, the embedded type can be correctly evaluated against the current type depth $n$ during its own local closure check.
 
 The structural recursion evaluates each constructor by incrementing the appropriate counter based on the number and sort of binders introduced. For instance, a \texttt{tensor} prefix binds a single continuation channel, incrementing the channel depth to $k+1$. The restriction operation (\texttt{cut}) binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, an \texttt{input} prefix binds a polymorphic type variable rather than a channel. This leaves the channel depth $k$ unchanged while incrementing the type depth to $n+1$:
 
@@ -285,7 +284,7 @@ def Proc.lc : Nat -> Nat -> Proc -> Prop
 
 A process is considered globally \emph{closed} when it contains no dangling indices of either sort, meaning \texttt{Proc.lc 0 0} holds. This is registered as the abbreviation \texttt{Proc.lc\_0}.
 
-\textbf{Free names} are computed via \path{Processes/Names.lean} using the function \texttt{Proc.f : Proc $\to$ Finset FPName}, which traverses a process and collects all explicit channel identifiers into a finite set. Because locally nameless binders are represented by anonymous indices, they contribute nothing to this set. Consequently, constructors like \texttt{cut}, which operate entirely on bound endpoints and take no explicit subject channels, simply pass through the free names of their continuation:
+\paragraph{Free names} Free names are computed via \path{Processes/Names.lean} using the function \texttt{Proc.f~: Proc $\to$ Finset FPName}, which traverses a process and collects all explicit channel identifiers into a finite set. Because locally nameless binders are represented by anonymous indices, they contribute nothing to this set. Consequently, constructors like \texttt{cut}, which operate entirely on bound endpoints and take no explicit subject channels, simply pass through the free names of their continuation:
 
 \begin{lstlisting}[language=Lean4]
 def Proc.f : Proc -> Finset FPName
@@ -295,22 +294,21 @@ def Proc.f : Proc -> Finset FPName
   | ...
 \end{lstlisting}
 
-\textbf{Freshness} is established in \path{Processes/Fresh.lean} to support the generation of globally unique names. Given a finite set $L$ of forbidden names, a strictly fresh name is deterministically computed as $\max(L) + 1$. The formalisation provides two critical lemmas, \texttt{exists\_one\_fresh} and \texttt{exists\_two\_fresh}, which guarantee the generation of one or two distinct names residing entirely outside of $L$. These lemmas are essential for providing witnesses to satisfy the co-finite quantification premises used throughout the typing and transition rules, particularly for restriction, which requires introducing two fresh, non-colliding endpoints simultaneously.
+\paragraph{Freshness} Freshness is established in \path{Processes/Fresh.lean} to support the generation of globally unique names. Given a finite set $L$ of forbidden names, a strictly fresh name is deterministically computed as $\max(L) + 1$. The formalisation provides two critical lemmas, \texttt{exists\_one\_fresh} and \texttt{exists\_two\_fresh}, which guarantee the generation of one or two distinct names residing entirely outside of $L$. These lemmas are essential for providing witnesses to satisfy the co-finite quantification premises used throughout the typing and transition rules, particularly for restriction, which requires introducing two fresh, non-colliding endpoints simultaneously.
 
-%FIXME: Maybe elaborate on why sustitution avoids capture.
-\textbf{Name substitution} is defined in \path{Processes/SubstNames.lean} as \texttt{Proc.substNames(R~T~:~FPName)~:~Proc~$\to$~Proc}, replacing all free occurrences of name $T$ with name $R$. Since bound channels are represented as indices, substitution never touches them and is therefore capture-avoiding by construction. Thus, no freshness conditions are needed.
+\paragraph{Name substitution} Name substitution is defined in \path{Processes/SubstNames.lean} as \texttt{Proc.substNames (R T~: FPName)~: Proc $\to$ Proc}, replacing all explicit free occurrences of the target name $T$ with the replacement name $R$. Because the locally nameless architecture strictly partitions free names and bound indices into disjoint syntactic categories, substituting a free name $R$ only interacts with other explicit free names at the leaves of the syntax tree. Binders, which operate exclusively via relative De Bruijn indices, are fundamentally blind to the concrete name $R$. Therefore, this operation is intrinsically capture-avoiding by construction, completely eliminating the need for complex freshness constraints or $\alpha$-renaming during substitution.
 
-\textbf{Type substitution} is defined in \path{Processes/SubstTypes.lean} as \texttt{Proc.substTypes~(A~:~Types)~(k~:~Nat)~:~Proc~$\to$~Proc}, substituting type \hl{$\thl{A}$} for the bound type index $k$ throughout a process. The only constructor that carries a type directly is \texttt{output}, where \texttt{Types.subst} is applied to the embedded type. For \texttt{input}, which binds a type variable, the substitution descends with $k+1$ and the substituted type \hl{$\thl{A}$} is shifted by one to maintain correct index distances, mirroring the pattern established for \texttt{Types.subst} in \cref{par:stypes}:
+\paragraph{Type substitution} Type substitution is defined in \path{Processes/SubstTypes.lean} as \texttt{Proc.substTypes (A~: Types) (k~: Nat)~: Proc $\to$ Proc}, eagerly substituting a payload type $A$ for the bound type index $k$ throughout a process. Because the syntax is two-sorted, the operation structurally delegates to the type level whenever it encounters an embedded type. For example, within an \texttt{output} prefix, \texttt{Types.subst} is applied directly to the transmitted type payload. Crucially, when traversing an \texttt{input} prefix---which binds a type variable rather than a channel---the substitution algorithm descends with an incremented depth $k+1$. Simultaneously, the payload type $A$ is explicitly shifted (\texttt{A.shift 0 1}) to prevent any of its internal free variables from being captured by this newly crossed type binder. This protective mechanism strictly mirrors the pattern established for \texttt{Types.subst} in \cref{subsubsec:stypes}:
 
 \begin{lstlisting}[language=Lean4]
 | .input x P => .input x (P.substTypes (A.shift 0 1) (k + 1))
 \end{lstlisting}
 
-The full inductive definition of \texttt{Proc} and all lemmas are listed in \cref{app:processes}.
+A notable characteristic of the locally nameless architecture is the deliberate omission of a channel shifting operation (e.g., \texttt{shiftNames}). In a pure De Bruijn representation, such as the one utilized for \texttt{Types} in \cref{subsubsec:stypes}, variables are relative distances that must be explicitly shifted when traversing binders to prevent capture. However, because locally nameless free channels (\texttt{FPName}) act as absolute, concrete identifiers rather than relative depths, their syntactic representation is invariant regardless of how many binders they are nested under. While the global uniqueness and linearity of these names are semantic properties enforced later by the typing environment, their absolute nature at the syntax level renders channel shifting theoretically obsolete, significantly simplifying the process-level substitution infrastructure.
 
+\paragraph{Structural Properties} To guarantee the operational soundness of the process syntax, \path{Processes/Lemmas.lean} establishes a comprehensive suite of foundational properties. This includes proving that operations commute appropriately (e.g., \texttt{open\_substNames\_comm}, ensuring opening a binder commutes with name substitution) and that local closure is structurally preserved across operations (\texttt{lc\_of\_open}). Furthermore, the file mechanically verifies the interaction between free names and binders, proving that abstraction strictly reduces the free name set (\texttt{f\_close}). These lemmas form the structural backbone required for the typing and transition semantics in subsequent chapters.
 
-
-
+For completeness, the full inductive definition of \texttt{Proc} and all lemmas from \path{Processes/Lemmas.lean} are detailed in \cref{app:processes}. % FIXME: Make an appendix for this.
 
 
 
