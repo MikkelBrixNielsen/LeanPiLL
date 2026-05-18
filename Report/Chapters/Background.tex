@@ -192,7 +192,7 @@ Duality is defined structurally on session types by exchanging each connective w
 %\end{gather*}
 %\end{highlight}
 
-\subsection{Environments, Hyperenvironments and Judgements}
+\subsection{Environments, Hyperenvironments and Judgements}\label{subsec:Env-Hyper-Judge}
 Typing in \pill{} is organised into two layers. Environments track how individual names are typed, while hyperenvironments track which names are used independently in parallel.
 
 Following the presentation in \citep{abs-2106-11818}, \emph{environments}~(\hl{$\thl{\Gamma}$, $\thl{\Delta}$, $\thl{\Xi}$, \dots}) are defined as lists allowing exchange, meaning order is irrelevant. They can be written as \hl{$\thl{\Gamma} = \phl{x_1}:\thl{A}, \dots, \phl{x_n}:\thl{A_n}$}, where each \hl{$\phl{x_i}$} is associated to its respective \hl{$\thl{A_i}$}, for $1\leq i \leq n$. Environments can be merged as long as they do not share any names for example assume \hl{$\thl{\Gamma}$} and \hl{$\thl{\Delta}$} do not share any names, then \hl{$\thl{\Gamma, \Delta}$} is the environment containing exactly the associations in \hl{$\thl{\Gamma}$} and \hl{$\thl{\Delta}$} regardless of ordering. Environments act as a partial commutative monoid, using ``$,$'' as the sum and the empty environment \hl{$\thl{\emptyseq}$} as unit:
