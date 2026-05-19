@@ -520,7 +520,7 @@ Binding constructors use co-finite quantification as described in \cref{subsec:c
 \end{lstlisting}
 The premise holds for any two distinct names $x, y$ outside the finite set $L$. This design serves two complementary purposes. When \emph{constructing} a typing derivation, the prover chooses $L$ to be large enough that any witness outside it is guaranteed fresh, typically the union of all free names currently in scope, and then uses \texttt{exists\_two\_fresh} to produce concrete witnesses. When \emph{using} a typing derivation, for example during inversion or induction, the universal quantifier allows the prover to instantiate $x$ and $y$ as whatever fresh names the current proof goal requires, rather than being tied to the specific names chosen during construction.
 
-\paragraph{Structural invariants} The file \path{Judgement/Names.lean} establishes the key invariant \texttt{Typing\_f\_eq\_names}. That is for any well-typed process, the free names of the process are exactly equal to the domain of the hyperenvironment:
+\paragraph{Structural invariants} The file \path{Judgement/Names.lean} establishes a key invariant for the typping system, namely \texttt{Typing\_f\_eq\_names}. This lemma states that for any well-typed process, the free names of the process are exactly equal to the domain of the hyperenvironment:
 
 \[
 n \vdash P \colon \hyp{G} \implies \texttt{Proc.f}~P = \texttt{HyperEnv.names}~\hyp{G}
