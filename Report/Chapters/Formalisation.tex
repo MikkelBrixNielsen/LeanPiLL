@@ -49,15 +49,29 @@
   % 4, Co-finite quantification 
 
 % Commands for double brackets and syntax prefixes
+\newcommand{\dbrackL}{[\![}
+\newcommand{\dbrackR}{]\!]}
 \newcommand{\dbrack}[1]{[\![#1]\!]}
+\newcommand{\dparenL}{(\!(}
+\newcommand{\dparenR}{)\!)}
 \newcommand{\dparen}[1]{(\!(#1)\!)}
-\newcommand{\dangle}[1]{\langle\!\langle #1 \rangle\!\rangle}
+\newcommand{\dangleL}{\langle\!\langle}
+\newcommand{\dangleR}{\rangle\!\rangle}
+\newcommand{\dangle}[1]{\dangleL #1 \dangleR}
 \newcommand{\dsend}[3]{#1\dbrack{#2}.#3}
 \newcommand{\drecv}[3]{#1\dparen{#2}.#3}
+\newcommand{\dres}[1]{\boldsymbol{\nu}\dparen{\$N,\$N}~P}
 \newcommand{\dserver}[3]{#1\dangle{#2}.#3}
 \newcommand{\dlsend}[2]{#1\dbrack{#2}}
 \newcommand{\dlrecv}[2]{#1\dparen{#2}}
 \newcommand{\dlserver}[2]{#1\dangle{#2}}
+\newcommand{\typeshift}[1]{#1^{+t}}
+\newcommand{\channelshift}[1]{#1^{+c}}
+\newcommand{\plink}[2]{\texttt{#1}\leftrightarrow_p\texttt{#2}}
+\newcommand{\llink}[2]{\texttt{#1}\leftrightarrow_l\texttt{#2}}
+\newcommand{\dopen}[2]{#1\dparenL\texttt{#2}\dparenR}
+\newcommand{\dclose}[2]{#1\dangleL\texttt{#2}\dangleR}
+
 
 \section{Formalisation}\label{sec:formalisation}
 This section describes the mechanisation of \pill{} in Lean 4, bridging the theoretical foundations developed in~\cref{sec:background,sec:binding-architecture} and their concrete implementation. The formalisation is organised into three top-level namespaces: \texttt{PiLL.Model}, which defines the static structure of the calculus, \texttt{PiLL.Semantics}, which defines its operational behaviour, and \texttt{PiLL.SessionFidelity}, which establishes the metatheoretic results connecting the two. Each component is presented in dependency order, highlighting design decisions and divergences from~\citet{abs-2106-11818}.
@@ -105,7 +119,7 @@ The remaining constructors directly mirror the theoretical grammar of the calcul
         $\thl{\forall X.A}$ & $\thl{\forall. A}$ & \texttt{| forall\_ (A~: Types)} & 1 type \\
         $\thl{\exists X.A}$ & $\thl{\exists. A}$ & \texttt{| exists\_ (A~: Types)} & 1 type \\
         $\thl{X}$           & $\thl{X}$                   & \texttt{| var (v~: TVar)}       & None \\
-        $\thl{X^\bot}$      & $\thl{X^\bot}$              & \texttt{| varDual (v~: TVar)}   & None \\
+        % $\thl{X^\bot}$      & $\thl{X^\bot}$              & \texttt{| varDual (v~: TVar)}   & None \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -117,7 +131,7 @@ Notably, the polymorphic binders \hl{$\thl{\forall.A}$} and \hl{$\thl{\exists.A}
 
 \begin{lstlisting}[language=Lean4]
 def Types.dual : Types -> Types
-  | .tensor A B  => .parr   (dual A) (dual B)
+  | .tensor A B  => .parr    (dual A) (dual B)
   | .forall_ A   => .exists_ (dual A)
   | .one         => .bot
   | ...
@@ -156,7 +170,7 @@ The primary \texttt{Types.lc} predicate is then defined by structural recursion.
 def Types.lc : Nat -> Types -> Prop
   | _, .one         => True
   | k, .var v       => TVar.lc k v
-  | k, .tensor A B  => A.lc k '$\and$' B.lc k
+  | k, .tensor A B  => A.lc k '$\land$' B.lc k
   | k, .forall_ A   => A.lc (k + 1)
   | k, .exists_ A   => A.lc (k + 1)
   | ...
@@ -221,7 +235,7 @@ inductive Channel : Type where
 \end{lstlisting}
 
 % FIXME: Phrasing of the last sentence
-As discussed in \cref{subsec:locally-nameless}, binding constructs in the process syntax no longer carry explicit payload variables. Instead, bound occurrences are captured purely by their relative position. Comparing the standard paper grammar with the intermediate locally nameless notation and the final constructors of the \texttt{inductive Proc} type illustrates this abstraction directly:
+As discussed in \cref{subsec:locally-nameless}, binding constructs in the process syntax no longer carry explicit payload variables. Instead, bound occurrences are captured purely by their relative position. Comparing the standard paper grammar with the intermediate locally nameless notation and the final constructors of the \texttt{inductive Proc} type illustrates this abstraction:
 
 \begin{highlight}  
 \begin{center}
@@ -283,25 +297,36 @@ def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
 \paragraph{Local closure} \path{Processes/LocalClosure.lean}
 defines local closure for processes as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. This ensures that when a process embeds a type, such as the payload $A$ in an output operation, the embedded type can be correctly evaluated against the current type depth $n$ during its own local closure check.
 
-The structural recursion evaluates each constructor by incrementing the appropriate counter based on the number and sort of binders introduced. For instance, a \texttt{tensor} prefix binds a single continuation channel, incrementing the channel depth to $k+1$. The restriction operation (\texttt{cut}) binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, an \texttt{input} prefix binds a polymorphic type variable rather than a channel. This leaves the channel depth $k$ unchanged while incrementing the type depth to $n+1$:
+The structural recursion evaluates each constructor by incrementing the appropriate counter based on the number and sort of binders introduced. For instance, a \texttt{tensor} prefix binds a single continuation channel, incrementing the channel depth to $k+1$. The restriction operation (\texttt{cut}) binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, an \texttt{input} prefix binds a polymorphic type variable rather than a channel. This leaves the channel depth $k$ unchanged while incrementing the type depth to $n+1$, while non-binders, like \texttt{one} increment neither $n$ nor $k$, and the terminated process is trivially locally closed:
+
+The structural recursion evaluates each constructor by incrementing the appropriate depth counter according to number and sort of binders introduced. Channel binders increase the channel depth $k$, while type binders increase the type depth $n$. For example, \texttt{tensor} binds a single continuation channel, incrementing the depth to $k+1$, whereas \texttt{cut} binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, \texttt{input} binds a type variable, leaving $k$ unchanged while incrementing $n$ to $n+1$. Constructors introducing no binders leave both counters unchanged:
 
 \begin{lstlisting}[language=Lean4]
 def Proc.lc : Nat -> Nat -> Proc -> Prop
-  | k, n, .tensor x P  => x.lc k '$\and$' P.lc (k + 1) n
+  | _, _, .nil         => True
+  | k, n, .one x P     => x.lc k '$\land$' P.lc k n
+  | k, n, .tensor x P  => x.lc k '$\land$' P.lc (k + 1) n
   | k, n, .cut P       => P.lc (k + 2) n
-  | k, n, .input x P   => x.lc k '$\and$' P.lc k (n + 1)
+  | k, n, .input x P   => x.lc k '$\land$' P.lc k (n + 1)
   | ...
 \end{lstlisting}
 
 A process is considered globally \emph{closed} when it contains no dangling indices of either sort, meaning \texttt{Proc.lc 0 0} holds. This is registered as the abbreviation \texttt{Proc.lc\_0}.
 
-\paragraph{Free names} \path{Processes/Names.lean} defines \texttt{Proc.f~: Proc $\to$ Finset FPName} to compute the free names of a process. It does this by traversing the process, collecting all explicit channel identifiers into a finite set. Because locally nameless binders are represented by anonymous indices, they contribute nothing to this set. Consequently, constructors like \texttt{cut}, which operate entirely on bound endpoints and take no explicit subject channels, simply pass through the free names of their continuation:
+\paragraph{Free names} \path{Processes/Names.lean} defines 
+\texttt{Proc.f~: Proc $\to$ Finset FPName} to compute the free channel names of a process. The function traverses the syntax tree structurally, collecting all explicit free channel identifiers into a finite set. Because locally nameless binders are represented using anonymous indices, bound channels contribute nothing to this set.
+
+For constructors carrying explicit subject channels, such as \texttt{tensor} and \texttt{link}, the free names of those channels are combined with the recursively computed free names of their continuations. Constructors without explicit channel identifiers of their own, such as \texttt{cut}, contribute only the free names recursively obtained from their continuations:
+
 
 \begin{lstlisting}[language=Lean4]
 def Proc.f : Proc -> Finset FPName
-  | .cut P    => P.f
-  | .par P Q  => P.f '$\cup$' Q.f
-  | .link x y => x.f '$\cup$' y.f
+  | .cut P      => P.f
+  | .par P Q    => P.f '$\cup$' Q.f
+  | .link x y   => x.f '$\cup$' y.f
+  | .tensor x P => x.f '$\cup$' P.f
+  | .one x P    => x.f '$\cup$' P.f
+  | .nil        => {}
   | ...
 \end{lstlisting}
 
@@ -309,13 +334,7 @@ def Proc.f : Proc -> Finset FPName
 
 \paragraph{Name substitution} \path{Processes/SubstNames.lean} establishes the machinery for name substitution as \texttt{Proc.substNames (R T~: FPName)~: Proc $\to$ Proc}, replacing all explicit free occurrences of the target name $T$ with the replacement name $R$. Because the locally nameless architecture strictly partitions free names and bound indices into disjoint syntactic categories, substituting a free name $R$ only interacts with other explicit free names at the leaves of the syntax tree. Binders, which operate exclusively via relative De Bruijn indices, are fundamentally blind to the concrete name $R$. Therefore, this operation is intrinsically capture-avoiding by construction, completely eliminating the need for complex freshness constraints or $\alpha$-renaming during substitution.
 
-\paragraph{Type substitution} \path{Processes/SubstTypes.lean} establishes the machinery needed for type substitution as \texttt{Proc.substTypes (A~: Types) (k~: Nat)~: Proc $\to$ Proc}, eagerly substituting $A$ for the De Bruijn index $k$ throughout a process. 
-
-Because the syntax is two-sorted, the operation delegates to the type-level substitution machinery whenever it encounters an embedded type. For example, within an \texttt{output} prefix, \texttt{Types.subst} is applied directly to the transmitted type payload.
-
-Because the syntax is two-sorted, the operation recursively lifts to the type-level substitution \texttt{Types.subst} whenever an embedded type is encountered. For example, within an \texttt{output} prefix, \texttt{Types.subst} is applied directly to its payload.
-
-When traversing an \texttt{input} prefix, which binds a type variable, the substitution descends with an incremented depth $k + 1$. Simultaneously, $A$ is explicitly shifted (\texttt{A.shift 0 1}) to prevent its free variables from being captured by the newly entered binder, mirroring the pattern used in \texttt{Types.subst} from \cref{subsubsec:stypes}:
+\paragraph{Type substitution} \path{Processes/SubstTypes.lean} establishes the machinery needed for type substitution as \texttt{Proc.substTypes (A~: Types) (k~: Nat)~: Proc $\to$ Proc}, eagerly substituting $A$ for the De Bruijn index $k$ throughout a process. Because the syntax is two-sorted, the operation delegates to the type-level substitution machinery whenever it encounters an embedded type. For example, within an \texttt{output} prefix, \texttt{Types.subst} is applied directly to the transmitted type. When traversing an \texttt{input} prefix, which binds a type variable, the substitution descends with an incremented depth $k + 1$. Simultaneously, $A$ is explicitly shifted (\texttt{A.shift 0 1}) to prevent its free variables from being captured by the newly entered binder, mirroring the pattern used in \texttt{Types.subst} from \cref{subsubsec:stypes}:
 
 \begin{lstlisting}[language=Lean4]
 def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
@@ -421,8 +440,8 @@ Standard \texttt{List.Perm} is a \emph{shallow} permutation implementation, mean
 \begin{lstlisting}[language=Lean4] 
 inductive HyperEnv.Perm : HyperEnv -> HyperEnv -> Prop where
   | nil  : Perm [] []
-  | cons : {'$\Gamma~\Delta$' : Env} {'$\hyp{G~H}$' : HyperEnv} : ('$\perm{\Gamma}{\Delta}$') -> Perm '$\hyp{G}~\hyp{H}$' -> Perm '$\Gamma :: \hyp{G}$' ('$\Delta :: \hyp{H}$')
-  | swap : {'$\Gamma~\Delta$' : Env} {'$\hyp{G~H}$' : HyperEnv} : Perm ('$\Gamma :: \Delta :: \hyp{G}$') ('$\Delta :: \Gamma :: \hyp{G}$')
+  | cons : {'$\Gamma~\Delta$' : Env} {'$\hyp{G~H}$' : HyperEnv} : '$\perm{\Gamma}{\Delta}$' -> Perm '$\hyp{G}~\hyp{H}$' -> Perm ('$\Gamma :: \hyp{G}$') ('$\Delta :: \hyp{H}$')
+  | swap : {'$\Gamma~\Delta$' : Env} {'$\hyp{G}$' : HyperEnv} : Perm ('$\Gamma :: \Delta :: \hyp{G}$') ('$\Delta :: \Gamma :: \hyp{G}$')
   | trans {'$\hyp{G~H~J}$' : HyperEnv} : Perm '$\hyp{G~H}$' -> Perm '$\hyp{H~J}$' -> Perm '$\hyp{G~J}$'
 \end{lstlisting}
 
@@ -456,16 +475,83 @@ hyperenvironment, namely that every channel appears at most once across all comp
 \paragraph{Lifted operations} As with environments, type shifting, name substitution, and type substitution are all lifted pointwise by mapping over the list of component environments.~\path{HyperEnvironment/Lemmas/Basic.lean} proves that each operation preserves names, disjointness, pairwise disjointness, and the deep permutation relation. The preservation of permutation under shifting is a representative example, it proceeds by induction on \texttt{HyperEnv.Perm}, using the corresponding environment-level lemma at the \texttt{cons} case. The full definitions and lemmas are listed in \cref{app:hyperenvironments}.
 
 
+
+
+
+% FIXME: Check correct references
+% FIXME: make type and channel shiftdc versions, then fix then math blocks to use these. 
+% FIXME: add highlighting
+% FIXME: Decide whether to use \cht{Channel}{Type} in listings or use basic text.
 \subsubsection{Typing Judgements}\label{subsubsec:judgements}
-% The inductive
-% How cofinite quantification is encoded in Lean
-% Inversion lemmas, linearity, Names property or something
-% Show some examples
+The typing relation is defined in \path{Judgement/Basic.lean} as the inductive predicate \texttt{Typing}:
 
+\begin{lstlisting}[language=Lean4]
+inductive Typing : Nat -> Proc -> HyperEnv -> Prop
+\end{lstlisting}
 
+In informal notation this is written \hl{$\judge{n}{P}{\hyp{G}}$}. The natural number $n$ tracks the current type binder depth, as established in \cref{subsubsec:processes}. Whenever the derivation descends into a \texttt{forall\_} constructor, $n$ is incremented and the environment is shifted by one to keep all embedded type indices in scope:
 
+\begin{lstlisting}[language=Lean4]
+| forall_ {'$\Gamma$' : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
+    Typing (n + 1) P [x : B :: '$\Gamma^{+t}$'] ->
+    Typing n (#x'$\dparenL$'$T'$\dparenR$'.P) [x : '$\forall$'.B :: '$\Gamma$']
+\end{lstlisting}
 
+The shift \texttt{$\thl{\typeshift{\Gamma}}$} applied to the environment ensures that all free type indices in \hl{$\thl{\Gamma}$} are incremented to account for the newly introduced binder, mirroring the shift applied during type substitution in \cref{subsubsec:stypes}.
 
+\paragraph{Exchange rules}
+Rather than building commutativity into every constructor, the typing relation includes two explicit structural rules that allow reasoning up to permutation equivalence:
+
+\begin{lstlisting}[language=Lean4]
+| exchange_env   : Typing n P ('$\Gamma$' :: '$\hyp{G}$') -> '$\perm{\Gamma}{\Delta}$' -> Typing n P ('$\Delta$' :: '$\hyp{G}$')
+| exchange_hyper : Typing n P '$\hyp{G}$' -> '$\perm{\hyp{G}}{\hyp{H}}$' -> Typing n P '$\hyp{H}$'
+\end{lstlisting}
+
+\texttt{exchange\_env} allows replacing a component environment with any permutation-equivalent one, while \texttt{exchange\_hyper} allows replacing the entire hyperenvironment. Together these recover the unordered character of the theoretical presentation from \cref{subsubsec:environments} without requiring a quotient type.
+
+\paragraph{Co-finite quantification}
+Binding constructors use co-finite quantification as described in \cref{subsec:co-finite-quantification}. For example, the \texttt{cut} constructor introduces two fresh dual endpoints:
+
+\begin{lstlisting}[language=Lean4]
+| cut {'$\hyp{G}$' : HyperEnv} {'$\Gamma~\Delta$' : Env} {P : Proc} {A : Types} {n : Nat} (L : Finset FPName) :
+    '$\forall$' x '$\notin$' L, '$\forall$' y '$\notin$' L, x '$\neq$' y -> Typing n ('$\dopen{P}{\#x, \#y}$') ('$\hypermerge{G}{\hypermerge{[\cht{x}{A} :: \Gamma]}{[\cht{y}{\dual{A}} :: \Delta]}}$') ->
+    Typing n ('$\dres{P}$') ('$\hypermerge{\hyp{G}}{[\Gamma, \Delta]}$')
+
+\end{lstlisting}
+The premise holds for any two distinct names $x, y$ outside the finite set $L$. This design serves two complementary purposes. When \emph{constructing} a typing derivation, the prover chooses $L$ to be large enough that any witness outside it is guaranteed fresh, typically the union of all free names currently in scope, and then uses \texttt{exists\_two\_fresh} to produce concrete witnesses. When \emph{using} a typing derivation, for example during inversion or induction, the universal quantifier allows the prover to instantiate $x$ and $y$ as whatever fresh names the current proof goal requires, rather than being tied to the specific names chosen during construction.
+
+\paragraph{Structural invariants} The file \path{Judgement/Names.lean} establishes the key invariant \texttt{Typing\_f\_eq\_names}. That is for any well-typed process, the free names of the process are exactly equal to the domain of the hyperenvironment:
+
+\[
+n \vdash P \colon \hyp{G} \implies \texttt{Proc.f}~P = \texttt{HyperEnv.names}~\hyp{G}
+\]
+
+This ensures both that the process has no untyped free channels and that the environment contains no unused channels, strict linearity in both directions.
+
+Building on this, \path{Judgement/Linearity.lean} proves \texttt{Typing\_preserves\_disjointness}: any well-typed hyperenvironment is pairwise disjoint. Together these two results guarantee that typing derivations can only be constructed for well-formed, linear contexts.
+
+\paragraph{Type weakening}
+\path{Judgement/Weakening.lean} establishes that typing is stable under type-level index shifting:
+% FIXME: Notation used here should probably mirror the implementation notation instead of what looks nice
+\[
+n \vdash P \colon \hyp{G} \implies \forall d~c,\quad n + c \vdash P{\uparrow^t_{d,c}} \colon \hyp{G}{\uparrow^t_{d,c}}
+\]
+
+This is used whenever a process is placed under a new type binder, the existing derivation can be lifted to the new depth by shifting both the process and its hyperenvironment. The proof proceeds by structural induction on the typing derivation, with the \texttt{forall\_} case requiring careful composition of the shift operations.
+
+\paragraph{Example derivation}
+The \texttt{ax} constructor types the forwarding process $\phl{\forward{x}{y}}$, which links two dual endpoints directly:
+
+\begin{lstlisting}[language=Lean4]
+| ax {x y : FPName} {A : Types} {n : Nat} (hneq : x '$\neq$' y) :
+    A.lc n ->
+    Typing n ('$\plink{\#x}{\#2}$') [x : A'$^\bot$' :: [y : A]]
+\end{lstlisting}
+
+This requires only that $x \neq y$ and that the type $\thl{A}$ is locally closed at depth $n$. It produces a single-component hyperenvironment containing exactly the two endpoints with dual types, directly reflecting the axiom rule from \cref{fig:pill-typing-rules}. As the simplest typing derivation in the system, it also serves as the base case in inductive proofs over the typing relation.
+
+The full inductive definition of \texttt{Typing} is listed in 
+\cref{app:judgements}.
 
 
 
@@ -506,6 +592,7 @@ results for \pimll{}. It contains the simulation results showing \texttt{EnvStep
 % FIXME: Consider if substitution should be mentioend in section 3, or if it's fine to just mention it in section 4.
 % FIXME: Be consistent in regard to calling it a type or a type payload
 % FIXME: Decide whether to remove highlighting from prose
+% FIXME: Check listing definitions for correctness
 \begin{center}
 \small
 \begin{tabularx}{\textwidth}{l X}

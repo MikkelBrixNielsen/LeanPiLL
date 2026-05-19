@@ -7,6 +7,7 @@ abbrev Elem.mk (x : FPName) (A : Types) : Elem := (x, A)
 infixr:68 " ∶ " => Elem.mk
 
 abbrev Env := List Elem
+
 def Env.names (Γ : Env) : Finset FPName :=
   (Γ.map Prod.fst).toFinset
 
@@ -15,8 +16,8 @@ infixl:69 "‚ " => Env.merge
 
 def Env.Nodup (Γ : Env) : Prop := (Γ.map Prod.fst).Nodup
 
-@[simp] def Env.disjoint (Δ Γ : Env) : Prop :=
-  Disjoint Δ.names Γ.names
+@[simp] def Env.disjoint (Γ Δ : Env) : Prop :=
+  Disjoint Γ.names Δ.names
 
 def Env.serverUsable (Γ : Env) : Prop :=
   ∀p, p ∈ Γ → (p.snd).isServerUsable
