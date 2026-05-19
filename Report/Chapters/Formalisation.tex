@@ -1,4 +1,4 @@
-% Refer back to paper syntax and definitons - Don't repeat what has already been written instead use what has been defined as basis and show important differences in how the formalization differes from the paper syntax.
+% Refer back to paper syntax and definitons - Don't repeat what has already been written instead use what has been defined as basis and show important differences in how the formalization differs from the paper syntax.
 
 % This chapter is supposed to be where background binding representation and the $\pi$LL syntax comes together to creates a mechanization of the pre established theory. Should probably include:
   % How Processes are defined in Lean and how LN has influences the constructors
@@ -70,11 +70,11 @@ The \texttt{Model} namespace covers the full \pill{} calculus and is structured 
 % This file \texttt{Base.lean} contains the definitions for the shared operational interfaces used throughout the model as Lean typeclasses. The typeclasses include instances for shifting, substituting, opening and closing of names and types, as well as a few typeclases for having shared syntax between process and labels. For example, depending on context the notation $\dlsend{x}{y}$ can be use to prefix a process, in which case it evaluates to the send constructor, or it can be used as a label on a transition, in which case it would evaluate as a label instead. The same syntax is used leaving the the payload empty for refering to the empty send and its respective label. This pattern is repeated using $\dlrecv{x}{y}$ for both recieve variants as well. Notably, two classes are needed to define shifting for types and names, respectively, as the signature takes the subject, cut-off depth, and by how much to increment, which isn't enough to determine whether it should be names or types which is shifted.
 % \begin{verbatim}
 % class HasShiftNames (Subject : Type) where
-%   shift : Subject → Nat → Nat → Subject
+%   shift : Subject -> Nat -> Nat -> Subject
 % class HasShiftTypes (Subject : Type) where
-%   shift : Subject → Nat → Nat → Subject
+%   shift : Subject -> Nat -> Nat -> Subject
 % class HasOpenTwo (Subject R1 R2 Target : Type) where 
-%   open_ : Subject → R1 → R2 → Target → Subject
+%   open_ : Subject -> R1 -> R2 -> Target -> Subject
 % \end{verbatim}
 
 % FIXME: never mentioned the atom and atomDual constructors, also describe the reason that they exist.
@@ -156,7 +156,7 @@ The primary \texttt{Types.lc} predicate is then defined by structural recursion.
 def Types.lc : Nat -> Types -> Prop
   | _, .one         => True
   | k, .var v       => TVar.lc k v
-  | k, .tensor A B  => A.lc k ∧ B.lc k
+  | k, .tensor A B  => A.lc k '$\and$' B.lc k
   | k, .forall_ A   => A.lc (k + 1)
   | k, .exists_ A   => A.lc (k + 1)
   | ...
@@ -189,16 +189,18 @@ def TVar.shift (d c : Nat) : TVar -> TVar
 At the variable level, the function evaluates the bound De Bruijn index $i$ against the target depth $k$. If $i = k$, the target has been reached, and the variable is replaced by the instantiated type $A$. If $i < k$, the variable is bound by an inner scope and is unaffected. Finally, if $i > k$, the index refers to an outer binder beyond the substituted variable. Since substitution removes the binder corresponding to $k$, these indices are decremented by one to preserve their relative distance to the surrounding environment.
 
 \begin{lstlisting}[language=Lean4]
-| .var (.bound i) =>
-    if i == k then A
-    else if i > k then .var (.bound (i - 1))
-    else .var (.bound i)
+def Types.subst (B A : Types) (k : Nat) : Types :=
+  match B with
+  | .var (.bound i) =>
+      if i == k then A
+      else if i > k then .var (.bound (i - 1))
+      else .var (.bound i)
 \end{lstlisting}
 
 This operation is lifted to the \texttt{Types} level via structural recursion. For standard connectives, the substitution simply distributes across the sub-terms. However, when descending into a polymorphic binder such as \texttt{forall\_}, two critical protective adjustments must occur. First, the target depth $k$ increments by one ($k + 1$) to account for crossing the new binder. Second, the payload type $A$ is explicitly shifted (\texttt{shift 0 1 A}) to ensure that any free variables residing inside $A$ are not accidentally captured by this newly entered scope:
 
 \begin{lstlisting}[language=Lean4]
-| .forall_ B => .forall_ (B.subst (shift 0 1 A) (k + 1))
+  | .forall_ B => .forall_ (B.subst (shift 0 1 A) (k + 1))
 \end{lstlisting}
 
 \paragraph{Notation} \path{STypes/Notation.lean} defines notation following the mathematical conventions established in \cref{subsec:types} and extended in \nameref{par:ln-syntax-types}. The only noteworthy divergence is that the exponentials \hl{$\thl{\bang A}$} and \hl{$\thl{\query A}$} are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} respectively, to avoid clashing with Lean's built-in $\bang$ (boolean negation) and $\query$ (syntactic hole) operators.
@@ -285,9 +287,9 @@ The structural recursion evaluates each constructor by incrementing the appropri
 
 \begin{lstlisting}[language=Lean4]
 def Proc.lc : Nat -> Nat -> Proc -> Prop
-  | k, n, .tensor x P  => x.lc k ∧ P.lc (k + 1) n
+  | k, n, .tensor x P  => x.lc k '$\and$' P.lc (k + 1) n
   | k, n, .cut P       => P.lc (k + 2) n
-  | k, n, .input x P   => x.lc k ∧ P.lc k (n + 1)
+  | k, n, .input x P   => x.lc k '$\and$' P.lc k (n + 1)
   | ...
 \end{lstlisting}
 
@@ -298,8 +300,8 @@ A process is considered globally \emph{closed} when it contains no dangling indi
 \begin{lstlisting}[language=Lean4]
 def Proc.f : Proc -> Finset FPName
   | .cut P    => P.f
-  | .par P Q  => P.f ∪ Q.f
-  | .link x y => x.f ∪ y.f
+  | .par P Q  => P.f '$\cup$' Q.f
+  | .link x y => x.f '$\cup$' y.f
   | ...
 \end{lstlisting}
 
@@ -316,6 +318,7 @@ Because the syntax is two-sorted, the operation recursively lifts to the type-le
 When traversing an \texttt{input} prefix, which binds a type variable, the substitution descends with an incremented depth $k + 1$. Simultaneously, $A$ is explicitly shifted (\texttt{A.shift 0 1}) to prevent its free variables from being captured by the newly entered binder, mirroring the pattern used in \texttt{Types.subst} from \cref{subsubsec:stypes}:
 
 \begin{lstlisting}[language=Lean4]
+def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
   | .input x P => .input x (P.substTypes (A.shift 0 1) (k + 1))
 \end{lstlisting}
 
@@ -340,40 +343,47 @@ Environments are defined in \path{Environment/Basic.lean} as
 \texttt{Env}, an abbreviation for a list of channel-type pairs:
 
 \begin{lstlisting}[language=Lean4]
-  abbrev Elem := (FPName × Types)
-  abbrev Env  := List Elem
+abbrev Elem := (FPName '$\times$' Types)
+abbrev Env  := List Elem
 \end{lstlisting}
 
 The choice of \texttt{List} as the underlying representation deserves explanation, as it was not the first approach attempted. An initial implementation used \texttt{Finset} to directly model the unordered, duplicate-free nature of the theoretical environment. However, because \texttt{Finset} in Lean is implemented as a quotient type over lists, it inherently resists direct structural induction and pattern matching. This led to two distinct hurdles, namely the constant occurrence of dependent elimination failures, and the necessity of lifting functions and proofs reasoning about environments across the quotient equivalence. In the context of a process calculus, where inversion and structural manipulation of the typing context are omnipresent, this quotient infrastructure proved unwieldy. A second attempt using association lists (\texttt{AList}) encountered similar difficulties. The final design uses a plain \texttt{List} and recovers the unordered structure through an explicit permutation relation, trading quotient reasoning for structural induction, which interacts far more smoothly with Lean's tactic machinery.
 
 \paragraph{Recovering the PCM structure} Merging two environments is implemented as list concatenation, making it a simple structural, but total, function:
 
+%FIXME: Move together with other commands
+\newcommand{\envmerge}[2]{#1,#2}
+\newcommand{\perm}[2]{#1\sim#2} 
+\newcommand{\hypermerge}[2]{#1\pp_h#2}
+
+
 \begin{lstlisting}[language=Lean4]
-  abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
-  infixl:69 ", " => Env.merge
+abbrev Env.merge ('$\Gamma~\Delta$' : Env) : Env := '$\Gamma$' ++ '$\Delta$'
+infixl:69 "'$,$'" => Env.merge
 \end{lstlisting}
 
 Because lists do not naturally form a Partial Commutative Monoid (PCM) but are associative by definition, we only need to formally recover commutativity. This is achieved by reasoning up to permutation equivalence, using Lean's built-in \texttt{List.Perm} relation, which is instantiated through a custom \texttt{HasPerm} typeclass and denoted by the infix relation \hl{$\thl{\Gamma \sim \Delta}$}. The essential monoidal laws are established as:
 
 \begin{lstlisting}[language=Lean4]
-  lemma Env.merge_comm  (Γ Δ : Env) : (Γ, Δ) ~ (Δ, Γ)
-  lemma Env.merge_assoc (Γ Δ Ξ : Env) : Γ, Δ, Ξ = Γ, (Δ, Ξ)
+lemma Env.merge_comm ('$\Gamma~\Delta$' : Env) : '$\perm{\envmerge{\Gamma}{\Delta}}{\envmerge{\Delta}{\Gamma}}$'
+lemma Env.merge_assoc ('$\Gamma~\Delta~\Xi$' : Env) : '$\envmerge{\Gamma}{}\envmerge{\Delta}{\Xi}$' = '$\envmerge{\Gamma}{}$($\envmerge{\Delta}{\Xi}$)'
+
 \end{lstlisting}
 
 Additionally, we use \hl{$\thl{\emptyhyp}$} as unit for merging and implement identity for merging it on both the left and right side of an environment as well as some useful lemmas for defining a standard representation for example turning \hl{$\thl{e :: \emptyhyp}$ into $\thl{[e]}$}.
 
-\begin{highlight}  
 \begin{remark}
-  The use of \hl{$\thl{\emptyhyp}$} as unit has necessitated explicit lemmas to rewrite and reduce terms such as $\emptyhyp, \Gamma$ to $\Gamma$. Whereas if $[]$ were used as unit terms like $[], \Gamma$ would reduce by definitional equality, because the \texttt{Env.merge} notation is an abbreviation for \texttt{List.append}, Lean can see through it and reduce automatically.
+  \begin{highlight}  
+    The use of $\thl{\emptyhyp}$ as unit has necessitated explicit lemmas to rewrite and reduce terms such as $\thl{\envmerge{\emptyhyp}{\Gamma} \text{ to } \Gamma}$. Whereas if $\thl{[]}$ were used as unit terms like $\thl{\envmerge{[]}{\Gamma}}$ would reduce by definitional equality, because the \texttt{Env.merge} notation is an abbreviation for \texttt{List.append}, Lean can see through it and reduce automatically.
+  \end{highlight}
 \end{remark}
-\end{highlight}
 
 The requirement that merging is only valid for disjoint environments, is partiality enforced via explicit predicates rather than a partial function. \texttt{Env.names} extracts the domain as a \texttt{Finset}, enabling Lean's built-in \texttt{Disjoint} typeclass. Internal linearity (no channel typed twice) is enforced by \texttt{Env.Nodup} (using List.Nodup as the underlying structure):
 
 \begin{lstlisting}[language=Lean4]
-  def Env.names (Γ : Env) : Finset FPName := (Γ.map Prod.fst).toFinset 
-  def Env.disjoint (Δ Γ : Env) : Prop := Disjoint Δ.names Γ.names
-  def Env.Nodup (Γ : Env) : Prop := (Γ.map Prod.fst).Nodup
+def Env.names ('$\Gamma$' : Env) : Finset FPName := ('$\Gamma$'.map Prod.fst).toFinset 
+def Env.disjoint ('$\Gamma~\Delta$' : Env) : Prop := Disjoint '$\Gamma$'.names '$\Delta$'.names
+def Env.Nodup ('$\Gamma$' : Env) : Prop := ('$\Gamma$'.map Prod.fst).Nodup
 \end{lstlisting}
 
 The interaction between these predicates and merging is captured by \texttt{Env.Nodup\_merge\_iff}, which states that a merged environment is linear if and only if both components are linear and mutually disjoint.
@@ -381,17 +391,69 @@ The interaction between these predicates and merging is captured by \texttt{Env.
 \paragraph{Server usability} The typing rule for server replication requires all dependency channels to carry exponential types. Since Lean inductive constructors cannot explicitly express an arbitrary list of type constraints, this is abstracted into the \texttt{Env.serverUsable} predicate. This asserts that every type in a given environment satisfies \texttt{Types.isServerUsable}, a type-level predicate checking whether a type takes the form of an exponential request (\hl{$\thl{\query B}$}).
 
 \begin{lstlisting}[language=Lean4]
-  def Env.serverUsable (Γ : Env) : Prop :=
-    ∀ p, p ∈ Γ → p.snd.isServerUsable
-  prefix:max "?ₑ" => Env.serverUsable
+def Env.serverUsable ('$\Gamma$' : Env) : Prop :=
+  '$\forall$' p, p '$\in$' '$\Gamma$' -> p.snd.isServerUsable
+prefix:max "?'$_e$'" => Env.serverUsable
 \end{lstlisting}
 
 \paragraph{Lifted operations} Since environments contain types, all locally nameless operations from \cref{subsubsec:stypes} are lifted pointwise over the type component of each \texttt{Elem}. Local closure, type shifting, name substitution, and type substitution are all defined by mapping over the list, and \path{Environment/Lemmas.lean} proves that each operation preserves the names, disjointness, nodup, and permutation properties of the environment.
 
 The full definitions and lemmas are listed in \cref{app:environments}. %FIXME: make and references appendix
 
+\subsubsection{Hyperenvironments}\label{subsubsec:hyperenvironments} Hyperenvironments are defined in \path{HyperEnvironment/Basic.lean} as \texttt{HyperEnv}, an abbreviation for a list of environments:
 
-\subsubsection{HyperEnvironments}
+\begin{lstlisting}[language=Lean4]
+abbrev HyperEnv := List Env
+\end{lstlisting}
+
+Merging is again list concatenation, using \hl{$\thl{\emptyhyp{}}$} as unit and $\hypermerge{}{}$ as merge operator to avoid clashing with Lean's built-in \emph{|}, with the unit and associativity laws holding definitionally, mirroring the environment design. However, recovering the commutative structure required a more extensive permutation relation than the one used for environments.
+
+\paragraph{Deep permutation} For environments, \texttt{List.Perm} sufficed, as it allowed arbitrary reordering of elements. For hyperenvironments this is not enough. A hyperenvironment is a list of environments, so not only should reordering of the environments be allowed, but the environments themselves should also be permutation-equivalent. 
+
+\begin{example}
+  \begin{highlight}
+    Consider the hyperenvironment $\thl{[\cht{x}{A}, \cht{y}{B}]}$, consisting of a single environment with two channel-type pairs. Under \texttt{List.Perm}, this would \emph{not} be equivalent to $\thl{[\cht{y}{B}, \cht{x}{A}]}$, since the single environment element is treated as an opaque value. Under \texttt{HyperEnv.Perm}, the \texttt{cons} constructor permits the head environment to be replaced by any permutation-equivalent environment, so $\thl{[\cht{x}{A}, \cht{y}{B}] \sim [\cht{y}{B}, \cht{x}{A}]}$ holds via \texttt{cons} with the environment permutation $\thl{\cht{x}{A}, \cht{y}{B} \sim \cht{y}{B},\cht{x}{A}}$.
+  \end{highlight}
+\end{example}
+
+Standard \texttt{List.Perm} is a \emph{shallow} permutation implementation, meaning that it does not capture this. Here each environment is treated as an opaque element and cannot be permute. To address this, a custom \texttt{HyperEnv.Perm} inductive is defined:
+
+\begin{lstlisting}[language=Lean4] 
+inductive HyperEnv.Perm : HyperEnv -> HyperEnv -> Prop where
+  | nil  : Perm [] []
+  | cons : {'$\Gamma~\Delta$' : Env} {'$\hyp{G~H}$' : HyperEnv} : ('$\perm{\Gamma}{\Delta}$') -> Perm '$\hyp{G}~\hyp{H}$' -> Perm '$\Gamma :: \hyp{G}$' ('$\Delta :: \hyp{H}$')
+  | swap : {'$\Gamma~\Delta$' : Env} {'$\hyp{G~H}$' : HyperEnv} : Perm ('$\Gamma :: \Delta :: \hyp{G}$') ('$\Delta :: \Gamma :: \hyp{G}$')
+  | trans {'$\hyp{G~H~J}$' : HyperEnv} : Perm '$\hyp{G~H}$' -> Perm '$\hyp{H~J}$' -> Perm '$\hyp{G~J}$'
+\end{lstlisting}
+
+The \texttt{cons} constructor is the key distinction from \texttt{List.Perm}. Rather than requiring the head elements to be identical, it requires them to be \emph{environment-permutation-equivalent} (\hl{$\thl{\Gamma \sim \Delta}$}). This makes \texttt{HyperEnv.Perm} a \emph{deep} permutation implementation that propagates equivalence down to it elements as well as its own ordering. The remaining constructors mirror \texttt{List.Perm} directly.
+
+\paragraph{Well-formedness} Hyperenvironments carry two distinct linearity conditions. \texttt{HyperEnv.Nodup} differs from \texttt{Env.Nodup}, by only requiring that each component environment is internally linear (no channel typed twice within a single environment), while ensuring that merging only occurs for disjoint environments is handled by \texttt{HyperEnv.PairwiseDisjoint}, which requires that the component environments are mutually disjoint, which ensures that no channel appears in two distinct components:
+
+\begin{lstlisting}[language=Lean4]
+def HyperEnv.Nodup ('$\hyp{G}$' : HyperEnv) : Prop :=
+  '$\forall~\Gamma, ~\Gamma \in \hyp{G}$' -> Env.Nodup '$\Gamma$'
+
+def HyperEnv.PairwiseDisjoint ('$\hyp{G}$' : HyperEnv) : Prop :=
+  List.Pairwise Env.disjoint '$\hyp{G}$'
+\end{lstlisting}
+
+\begin{example}
+  \begin{highlight}
+    To illustrate this distinction, consider three candidate hyperenvironments under a naming context where $x, y, z$ are distinct channel names:
+    \begin{itemize}
+      \item \textbf{Well-formed:} $\thl{\hyp{G}_1 = \hypermerge{[\cht{x}{A}]}{[\cht{y}{B}, \cht{z}{C}]}}$ satisfies both predicates. Each component list has no duplicate channels, and their domains share no common names.
+      \item \textbf{Fails \texttt{Nodup}:} $\thl{\hyp{G}_2 = \hypermerge{[\cht{x}{A}, \cht{x}{B}]}{[\cht{y}{C}]}}$ 
+      satisfies \texttt{PairwiseDisjoint} because the two components do not share names, but it violates \texttt{Nodup} because the first environment has multiple occurences of $x$.
+      \item \textbf{Fails \texttt{PairwiseDisjoint}:} $\thl{\hyp{G}_3 = \hypermerge{[\cht{x}{A}]}{[\cht{x}{B}, \cht{y}{C}]}}$ satisfies \texttt{Nodup} because both component environments are internally valid, but it violates \texttt{PairwiseDisjoint} because the channel $x$ crosses the parallel composition boundary and appears in both components.
+    \end{itemize}
+  \end{highlight}
+\end{example}
+
+Together these two predicates enforce the global linearity of a 
+hyperenvironment, namely that every channel appears at most once across all components.
+
+\paragraph{Lifted operations} As with environments, type shifting, name substitution, and type substitution are all lifted pointwise by mapping over the list of component environments.~\path{HyperEnvironment/Lemmas/Basic.lean} proves that each operation preserves names, disjointness, pairwise disjointness, and the deep permutation relation. The preservation of permutation under shifting is a representative example, it proceeds by induction on \texttt{HyperEnv.Perm}, using the corresponding environment-level lemma at the \texttt{cons} case. The full definitions and lemmas are listed in \cref{app:hyperenvironments}.
 
 
 \subsubsection{Typing Judgements}\label{subsubsec:judgements}
@@ -443,6 +505,7 @@ results for \pimll{}. It contains the simulation results showing \texttt{EnvStep
 % FIXME: In chapter 4 when talking about the Basic.lean for types maybe mention why both atom and TVar exist (differentiate between substitution targets (dynamic) and unit types (rigid))
 % FIXME: Consider if substitution should be mentioend in section 3, or if it's fine to just mention it in section 4.
 % FIXME: Be consistent in regard to calling it a type or a type payload
+% FIXME: Decide whether to remove highlighting from prose
 \begin{center}
 \small
 \begin{tabularx}{\textwidth}{l X}
