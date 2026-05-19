@@ -316,7 +316,7 @@ Because the syntax is two-sorted, the operation recursively lifts to the type-le
 When traversing an \texttt{input} prefix, which binds a type variable, the substitution descends with an incremented depth $k + 1$. Simultaneously, $A$ is explicitly shifted (\texttt{A.shift 0 1}) to prevent its free variables from being captured by the newly entered binder, mirroring the pattern used in \texttt{Types.subst} from \cref{subsubsec:stypes}:
 
 \begin{lstlisting}[language=Lean4]
-| .input x P => .input x (P.substTypes (A.shift 0 1) (k + 1))
+  | .input x P => .input x (P.substTypes (A.shift 0 1) (k + 1))
 \end{lstlisting}
 
 A consequence of the locally nameless representation is that no channel shifting operation (e.g. \texttt{shiftNames}) is required. In a pure De Bruijn encoding such as that used for \texttt{Types} in \cref{subsubsec:stypes}, variables are represented as relative indices and must be shifted when traversing binders to preserve correct binding structure. By contrast, free channels (\texttt{FPName}) are represented as global identifiers rather than relative positions, and are therefore unaffected by binder depth. This avoids the need for structural adjustment of channel names during substitution, simplifying the process-level infrastructure.
@@ -335,42 +335,63 @@ For completeness, the full inductive definition of \texttt{Proc} and all lemmas 
 % How has the partial commutative monoid structure been achieved in Lean
 % Any interesting divergence from the paper
 
-\subsubsection{Environments}\label{subsec:environments}
-The environment, tracks the free channels available to a process and their assigned session types in an unordered set. However, formalising this directly in Lean requires a more concrete data structure.
-% FIXME: Maybe this is a relevant spot to mention that quotients are a paint to deal with and there have been a few other iterations, one using finsets leading to quotient hell, then one trying to use alists resulting in the same fate, before finally getting to lists, using permutation as an invariance to recover the PCM structure, then go on about how standard list permutations wasn't enough for hyperenvironments, because the elements of the hyperenvironment being environments must also be able to permute within the hyperenvironment, which standard list permutation does not allow, so a deep permutation relation had to be creted to handle this, forshadow the permutation constructors which were required to handled this.  
-
-In \path{Environment/Basic.lean}, the environment is defined as \texttt{Env}, an abbreviation for a standard list of channel-type pairs. By using a list, the formalisation benefits from predictable structural induction, while the unordered and partial properties of the theoretical environment are recovered through explicit equivalence relations and predicates:
+\subsubsection{Environments}\label{subsubsec:environments}
+Environments are defined in \path{Environment/Basic.lean} as 
+\texttt{Env}, an abbreviation for a list of channel-type pairs:
 
 \begin{lstlisting}[language=Lean4]
-abbrev Elem := (FPName × Types)
-abbrev Env := List Elem
+  abbrev Elem := (FPName × Types)
+  abbrev Env  := List Elem
 \end{lstlisting}
 
-\paragraph{Recovering the PCM Structure}
-In linear logic, the environment forms a Partial Commutative Monoid (PCM). Merging two environments ($\Gamma \circ \Delta$) is commutative, associative, and strictly partial—meaning it is only defined if their domains are disjoint. 
+The choice of \texttt{List} as the underlying representation deserves explanation, as it was not the first approach attempted. An initial implementation used \texttt{Finset} to directly model the unordered, duplicate-free nature of the theoretical environment. However, because \texttt{Finset} in Lean is implemented as a quotient type over lists, it inherently resists direct structural induction and pattern matching. This led to two distinct hurdles, namely the constant occurrence of dependent elimination failures, and the necessity of lifting functions and proofs reasoning about environments across the quotient equivalence. In the context of a process calculus, where inversion and structural manipulation of the typing context are omnipresent, this quotient infrastructure proved unwieldy. A second attempt using association lists (\texttt{AList}) encountered similar difficulties. The final design uses a plain \texttt{List} and recovers the unordered structure through an explicit permutation relation, trading quotient reasoning for structural induction, which interacts far more smoothly with Lean's tactic machinery.
 
-Because Lean favors total functions, the merge operation (\texttt{Env.merge}, denoted by the infix operator \texttt{‚}) (``\glq'') is implemented simply as list concatenation (\texttt{++}). Consequently, the raw operation is total and non-commutative. To recover the commutative monoid structure, we instantiate a \texttt{HasPerm} typeclass using Lean's built-in list permutation relation (\texttt{List.Perm}, denoted $\sim$). \path{Environment/Lemmas.lean} proves the necessary structural laws, \texttt{Env.Perm.comm}... Additional interesting lemmas..., establishing that merged environments are equivalent up to permutation. % FIXME: Mention a couple interesting lemmas
-
-To recover the partiality of the PCM, disjointness is enforced via explicit predicates rather than failing the merge operation itself. The function \texttt{Env.names} maps the environment to a \texttt{Finset FPName}, allowing the formalisation to leverage Lean's built-in \texttt{Disjoint} typeclass. A well-formed environment must also be internally linear, meaning no channel is assigned multiple types. This is enforced by the \texttt{Env.Nodup} predicate, which asserts that the list of extracted names contains no duplicates:
+\paragraph{Recovering the PCM structure} Merging two environments is implemented as list concatenation, making it a simple structural, but total, function:
 
 \begin{lstlisting}[language=Lean4]
-def Env.names (Γ : Env) : Finset FPName := (Γ.map Prod.fst).toFinset
-def Env.disjoint (Δ Γ : Env) : Prop := Disjoint Δ.names Γ.names
-def Env.Nodup (Γ : Env) : Prop := (Γ.map Prod.fst).Nodup
+  abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
+  infixl:69 ", " => Env.merge
 \end{lstlisting}
 
-The relationship between merging, permutation, and disjointness is heavily exercised in the metatheory. For example, \texttt{Env.Nodup\_merge\_iff} proves that merging two environments preserves linearity if and only if both original environments are linear and strictly disjoint from one another.
+Because lists do not naturally form a Partial Commutative Monoid (PCM) but are associative by definition, we only need to formally recover commutativity. This is achieved by reasoning up to permutation equivalence, using Lean's built-in \texttt{List.Perm} relation, which is instantiated through a custom \texttt{HasPerm} typeclass and denoted by the infix relation \hl{$\thl{\Gamma \sim \Delta}$}. The essential monoidal laws are established as:
 
-\paragraph{Server Usability}
-A critical aspect of mechanising the calculus is handling the structural requirements of exponential session types (e.g., servers and clients). In the theoretical presentation of \citep{abs-2106-11818}, the typing rule for server replication requires that all dependencies ($z_1 \dots z_n$) possess exponential types ($\query B_1 \dots \query B_n$). While paper proofs can rely on notation to represent an arbitrary number of such dependencies, this is not directly representable within a strictly typed inductive constructor in Lean.
+\begin{lstlisting}[language=Lean4]
+  lemma Env.merge_comm  (Γ Δ : Env) : (Γ, Δ) ~ (Δ, Γ)
+  lemma Env.merge_assoc (Γ Δ Ξ : Env) : Γ, Δ, Ξ = Γ, (Δ, Ξ)
+\end{lstlisting}
 
-To formalise this constraint, the mechanisation abstracts the arbitrary list of dependencies into a standard environment ($\Gamma$) and introduces the explicit \texttt{Env.serverUsable} predicate (denoted $?_e\Gamma$). This predicate mandates that every type in the given environment satisfies the \texttt{isServerUsable} condition. This approach provides a mathematically verifiable mechanism to enforce exponential typing conditions over a set.
+Additionally, we use \hl{$\thl{\emptyhyp}$} as unit for merging and implement identity for merging it on both the left and right side of an environment as well as some useful lemmas for defining a standard representation for example turning \hl{$\thl{e :: \emptyhyp}$ into $\thl{[e]}$}.
 
-\paragraph{Lifting Structural Operations}
-Finally, because the environment is the outer container for types, all locally nameless operations defined in \cref{subsubsec:stypes} must be lifted. \texttt{Env.lc} asserts that every type in the list is locally closed at a given depth. Similarly, type substitution (\texttt{Env.substTypes}) and De Bruijn shifting (\texttt{Env.shiftTypes}) are implemented by mapping the respective operations across the second element of every pair in the list. As proved in \path{Environment/Lemmas.lean}, these operations perfectly preserve the structural integrity of the environment, including its names, disjointness, and permutations.
+\begin{highlight}  
+\begin{remark}
+  The use of \hl{$\thl{\emptyhyp}$} as unit has necessitated explicit lemmas to rewrite and reduce terms such as $\emptyhyp, \Gamma$ to $\Gamma$. Whereas if $[]$ were used as unit terms like $[], \Gamma$ would reduce by definitional equality, because the \texttt{Env.merge} notation is an abbreviation for \texttt{List.append}, Lean can see through it and reduce automatically.
+\end{remark}
+\end{highlight}
+
+The requirement that merging is only valid for disjoint environments, is partiality enforced via explicit predicates rather than a partial function. \texttt{Env.names} extracts the domain as a \texttt{Finset}, enabling Lean's built-in \texttt{Disjoint} typeclass. Internal linearity (no channel typed twice) is enforced by \texttt{Env.Nodup} (using List.Nodup as the underlying structure):
+
+\begin{lstlisting}[language=Lean4]
+  def Env.names (Γ : Env) : Finset FPName := (Γ.map Prod.fst).toFinset 
+  def Env.disjoint (Δ Γ : Env) : Prop := Disjoint Δ.names Γ.names
+  def Env.Nodup (Γ : Env) : Prop := (Γ.map Prod.fst).Nodup
+\end{lstlisting}
+
+The interaction between these predicates and merging is captured by \texttt{Env.Nodup\_merge\_iff}, which states that a merged environment is linear if and only if both components are linear and mutually disjoint.
+
+\paragraph{Server usability} The typing rule for server replication requires all dependency channels to carry exponential types. Since Lean inductive constructors cannot explicitly express an arbitrary list of type constraints, this is abstracted into the \texttt{Env.serverUsable} predicate. This asserts that every type in a given environment satisfies \texttt{Types.isServerUsable}, a type-level predicate checking whether a type takes the form of an exponential request (\hl{$\thl{\query B}$}).
+
+\begin{lstlisting}[language=Lean4]
+  def Env.serverUsable (Γ : Env) : Prop :=
+    ∀ p, p ∈ Γ → p.snd.isServerUsable
+  prefix:max "?ₑ" => Env.serverUsable
+\end{lstlisting}
+
+\paragraph{Lifted operations} Since environments contain types, all locally nameless operations from \cref{subsubsec:stypes} are lifted pointwise over the type component of each \texttt{Elem}. Local closure, type shifting, name substitution, and type substitution are all defined by mapping over the list, and \path{Environment/Lemmas.lean} proves that each operation preserves the names, disjointness, nodup, and permutation properties of the environment.
+
+The full definitions and lemmas are listed in \cref{app:environments}. %FIXME: make and references appendix
 
 
-
+\subsubsection{HyperEnvironments}
 
 
 \subsubsection{Typing Judgements}\label{subsubsec:judgements}
