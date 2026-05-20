@@ -60,7 +60,7 @@
 \newcommand{\dangle}[1]{\dangleL #1 \dangleR}
 \newcommand{\dsend}[3]{#1\dbrack{#2}.#3}
 \newcommand{\drecv}[3]{#1\dparen{#2}.#3}
-\newcommand{\dres}[1]{\boldsymbol{\nu}\dparen{\$N,\$N}~P}
+\newcommand{\dres}[1]{\boldsymbol{\nu}\dparen{\bullet,\bullet}~P}
 \newcommand{\dserver}[3]{#1\dangle{#2}.#3}
 \newcommand{\dlsend}[2]{#1\dbrack{#2}}
 \newcommand{\dlrecv}[2]{#1\dparen{#2}}
@@ -297,9 +297,7 @@ def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
 \paragraph{Local closure} \path{Processes/LocalClosure.lean}
 defines local closure for processes as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. This ensures that when a process embeds a type, such as the payload $A$ in an output operation, the embedded type can be correctly evaluated against the current type depth $n$ during its own local closure check.
 
-The structural recursion evaluates each constructor by incrementing the appropriate counter based on the number and sort of binders introduced. For instance, a \texttt{tensor} prefix binds a single continuation channel, incrementing the channel depth to $k+1$. The restriction operation (\texttt{cut}) binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, an \texttt{input} prefix binds a polymorphic type variable rather than a channel. This leaves the channel depth $k$ unchanged while incrementing the type depth to $n+1$, while non-binders, like \texttt{one} increment neither $n$ nor $k$, and the terminated process is trivially locally closed:
-
-The structural recursion evaluates each constructor by incrementing the appropriate depth counter according to number and sort of binders introduced. Channel binders increase the channel depth $k$, while type binders increase the type depth $n$. For example, \texttt{tensor} binds a single continuation channel, incrementing the depth to $k+1$, whereas \texttt{cut} binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, \texttt{input} binds a type variable, leaving $k$ unchanged while incrementing $n$ to $n+1$. Constructors introducing no binders leave both counters unchanged:
+The structural recursion evaluates each constructor by incrementing the appropriate depth counter according to the number and sort of binders introduced. Channel binders increase the channel depth $k$, while type binders increase the type depth $n$. For example, \texttt{tensor} binds a single continuation channel, incrementing the depth to $k+1$, whereas \texttt{cut} binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, \texttt{input} binds a type variable, leaving $k$ unchanged while incrementing $n$ to $n+1$. Constructors introducing no binders leave both counters unchanged:
 
 \begin{lstlisting}[language=Lean4]
 def Proc.lc : Nat -> Nat -> Proc -> Prop
@@ -411,7 +409,7 @@ The interaction between these predicates and merging is captured by \texttt{Env.
 
 \begin{lstlisting}[language=Lean4]
 def Env.serverUsable ('$\Gamma$' : Env) : Prop :=
-  '$\forall$' p, p '$\in$' '$\Gamma$' -> p.snd.isServerUsable
+  '$\forall$'p, p '$\in$' '$\Gamma$' -> p.snd.isServerUsable
 prefix:max "?'$_e$'" => Env.serverUsable
 \end{lstlisting}
 
@@ -479,10 +477,8 @@ hyperenvironment, namely that every channel appears at most once across all comp
 
 
 % FIXME: Check correct references
-% FIXME: make type and channel shiftdc versions, then fix then math blocks to use these. 
-% FIXME: add highlighting
-% FIXME: Decide whether to use \cht{Channel}{Type} in listings or use basic text.
-% FIXME: Mention somewhere that the reason there is a superscript t and c on shifting because processes needs both type and channel shifting
+% FIXME: Mention #x, $y notation somewhere used for channel open and close
+% FIXME: Maybe mention the various constraints which have been imposed as to make merge preserve disjointness now that it is a total function instead of a partiel function?
 \subsubsection{Typing Judgements}\label{subsubsec:judgements}
 The typing relation is defined in \path{Judgement/Basic.lean} as the inductive predicate \texttt{Typing}:
 
@@ -494,8 +490,8 @@ We write \hl{$\judge{n}{P}{\hyp{G}}$} to refer to this construct. The natural nu
 
 \begin{lstlisting}[language=Lean4]
 | forall_ {'$\Gamma$' : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
-    Typing (n + 1) P [x : B :: '$\Gamma^{+t}$'] ->
-    Typing n (#x'$\dparenL$'$T'$\dparenR$'.P) [x : '$\forall$'.B :: '$\Gamma$']
+    Typing (n + 1) P [x : B :: '$\Gamma^{+}$'] ->
+    Typing n (#x'$\dparenL\diamond\dparenR$'.P) [x : '$\forall$'.B :: '$\Gamma$']
 \end{lstlisting}
 
 The shift \hl{\texttt{$\thl{\typeshiftsingle{\Gamma}}$}} (or equivalently \hl{\texttt{$\thl{\typeshift{\Gamma}{0}{1}}$}}) applied to the environment ensures that all free type indices in \hl{$\thl{\Gamma}$} are incremented to account for the newly introduced binder, mirroring the shift applied during type substitution in \cref{subsubsec:stypes}.
@@ -515,28 +511,35 @@ Binding constructors use co-finite quantification as described in \cref{subsec:c
 
 \begin{lstlisting}[language=Lean4]
 | cut {'$\hyp{G}$' : HyperEnv} {'$\Gamma~\Delta$' : Env} {P : Proc} {A : Types} {n : Nat} (L : Finset FPName) :
-    '$\forall$' x '$\notin$' L, '$\forall$' y '$\notin$' L, x '$\neq$' y -> Typing n ('$\dopen{P}{\#x, \#y}$') ('$\hypermerge{G}{\hypermerge{[\cht{x}{A} :: \Gamma]}{[\cht{y}{\dual{A}} :: \Delta]}}$') ->
+    '$\forall$'x '$\notin$' L, '$\forall$'y '$\notin$' L, x '$\neq$' y -> Typing n ('$\dopen{P}{\#x, \#y}$') ('$\hypermerge{G}{\hypermerge{[\texttt{x : A} :: \Gamma]}{[\texttt{y : A}^\bot :: \Delta]}}$') ->
     Typing n ('$\dres{P}$') ('$\hypermerge{\hyp{G}}{[\Gamma, \Delta]}$')
 \end{lstlisting}
 
 The premise holds for any two distinct names $x, y$ outside the finite set $L$. This design serves two complementary purposes. When \emph{constructing} a typing derivation, the prover chooses $L$ to be large enough that any witness outside it is guaranteed fresh, typically the union of all free names currently in scope, and then uses \texttt{exists\_two\_fresh} to produce concrete witnesses. When \emph{using} a typing derivation, for example during inversion or induction, the universal quantifier allows the prover to instantiate $x$ and $y$ as whatever fresh names the current proof goal requires, rather than being tied to the specific names chosen during construction.
 
+\paragraph{Explicit Disjointness Constraints}
+In the paper presentation of \pill{}, the disjointness of environments during operations like parallel composition or tensor is implicitly guaranteed by the structural properties of the merge operator for environments and hyperenvironments. However, because the Lean formalisation relies on total list concatenation, these disjointness requirements must be enforced explicitly at the rule level. Many typing constructors carry explicit disjointness and freshness premises to ensure that merging operations remain valid. For example, the \texttt{mix} rule requires a proof that the two hyperenvironments are mutually disjoint (\texttt{hD~: $\hyp{G}$.disjoint $\hyp{H}$}), and the \texttt{tensor} rule requires explicit proof that the subject channel $x$ does not already exist in the continuations (\texttt{hF:x$\notin\Gamma$.names$\land$x$\notin\Delta$.names}). While these local constraints clutter the inductive definitions compared to their paper counterparts, they are strictly necessary to ensure that the formalised typing inductive preserve the partiality of the theoretical merge operator and its underlying monoid structure. The global metatheoretical consequences of these local constraint, namely, that well-typed processes inherently preserve context linearity, are detailed in \cref{chap:metatheory}. % FIXME: reference
+
 \paragraph{Structural invariants} The file \path{Judgement/Names.lean} establishes a key invariant for the typping system, namely \texttt{Typing\_f\_eq\_names}. This lemma states that for any well-typed process, the free names of the process are exactly equal to the domain of the hyperenvironment:
 
+\begin{highlight}
 \[
-n \vdash P \colon \hyp{G} \implies \texttt{Proc.f}~P = \texttt{HyperEnv.names}~\hyp{G}
+\judge{n}{P}{\hyp{G}} \implies \phl{P}.f = \thl{\hyp{G}}.names
 \]
+\end{highlight}
 
 This ensures both that the process has no untyped free channels and that the environment contains no unused channels, strict linearity in both directions.
 
 Building on this, \path{Judgement/Linearity.lean} proves \texttt{Typing\_preserves\_disjointness}: any well-typed hyperenvironment is pairwise disjoint. Together these two results guarantee that typing derivations can only be constructed for well-formed, linear contexts.
 
+% FIXME: Relevance
 \paragraph{Type weakening}
 \path{Judgement/Weakening.lean} establishes that typing is stable under type-level index shifting:
-% FIXME: Notation used here should probably mirror the implementation notation instead of what looks nice
+\begin{highlight}  
 \[
-n \vdash P \colon \hyp{G} \implies \forall d~c,\quad n + c \vdash P{\uparrow_{d,c}} \colon \hyp{G}{\uparrow_{d,c}}
+\judge{n}{P}{\hyp{G}} \implies \forall d~c, \judge{n+c}{\typeshift{P}{d}{c}}{\typeshift{\hyp{G}}{d}{c}}
 \]
+\end{highlight}
 
 This is used whenever a process is placed under a new type binder, the existing derivation can be lifted to the new depth by shifting both the process and its hyperenvironment. The proof proceeds by structural induction on the typing derivation, with the \texttt{forall\_} case requiring careful composition of the shift operations.
 
@@ -546,7 +549,7 @@ The \texttt{ax} constructor types the forwarding process $\phl{\forward{x}{y}}$,
 \begin{lstlisting}[language=Lean4]
 | ax {x y : FPName} {A : Types} {n : Nat} (hneq : x '$\neq$' y) :
     A.lc n ->
-    Typing n ('$\plink{\#x}{\#2}$') [x : A'$^\bot$' :: [y : A]]
+    Typing n ('$\plink{\#x}{\#y}$') [x : A'$^\bot$' :: [y : A]]
 \end{lstlisting}
 
 This requires only that $x \neq y$ and that the type $\thl{A}$ is locally closed at depth $n$. It produces a single-component hyperenvironment containing exactly the two endpoints with dual types, directly reflecting the axiom rule from \cref{fig:pill-typing-rules}. As the simplest typing derivation in the system, it also serves as the base case in inductive proofs over the typing relation.
@@ -554,6 +557,24 @@ This requires only that $x \neq y$ and that the type $\thl{A}$ is locally closed
 The full inductive definition of \texttt{Typing} is listed in 
 \cref{app:judgements}.
 
+\subsection{Operational Semantics}\label{subsec:operational-semantics}
+The dynamic behavior of the calculus is formalised within the \path{Semantics/} namespace. This includes the definition of transition labels in \path{Semantics/Label.lean}, the core Labelled Transition System (LTS) over typing derivations in \path{Semantics/JudgementStep.lean}, and the induced transition systems over pure processes and environments (\path{ProcStep.lean} and \path{EnvStep.lean}).
+
+\paragraph{The Typed Transition System}
+In standard presentations of process calculi, operational semantics are typically defined as a reduction relation over raw syntactic processes (e.g., $P \longrightarrow Q$). However, because \pill{} enforces strict linear resource accounting, the formalisation defines the primary LTS directly over the typing derivations themselves. 
+
+The \texttt{TypingStep} inductive relation dictates how a well-typed process and its supporting hyperenvironment evolve during execution. A transition $G \vdash P \xrightarrow{\alpha} H \vdash Q$ mathematically guarantees that the process $P$ can perform an action $\alpha$ to become $Q$, and that the hyperenvironment $G$ correctly evolves into $H$ to reflect the consumption or creation of linear resources. By baking the transition system directly into the typing judgements, the formalisation intrinsically links operational behavior to linear resource validity.
+
+\paragraph{Erasure Homomorphisms}
+While \texttt{TypingStep} provides the ultimate source of truth for the calculus, reasoning exclusively over full typing derivations during complex metatheoretical proofs can become mechanically overwhelming due to the sheer size of the dependent types involved. 
+
+To alleviate this, the formalisation mechanises the erasure homomorphisms described in \cref{subsec:operational-semantics}. By projecting out the constituent parts of a \texttt{TypingStep}, we define two strictly derived LTSs:
+\begin{itemize}
+    \item \textbf{\texttt{ProcStep}:} Extracted via the \texttt{proc} projection function, this relation models the syntactic evolution of the process ($P \xrightarrow{\alpha} Q$) completely independent of its typing context.
+    \item \textbf{\texttt{EnvStep}:} Extracted via the \texttt{env} projection function, this relation models the structural evolution of the hyperenvironment ($G \xrightarrow{\alpha} H$) as resources are exchanged.
+\end{itemize}
+
+Because \texttt{ProcStep} and \texttt{EnvStep} are derived mathematically from \texttt{TypingStep}, they are guaranteed to be sound with respect to the linear typing rules. These projected relations serve as the primary foundational infrastructure for the subject reduction and progress theorems discussed in \cref{chap:metatheory}.
 
 
 
@@ -562,8 +583,8 @@ The full inductive definition of \texttt{Typing} is listed in
 
 
 
-\subsection{Operational Semantics}
-The \texttt{Semantics} namespace covers the operational semantics of \pimll{}. Transition labels are defined in \texttt{Label.lean}. The LTS over typing derivations is defined in \texttt{JudgementStep/}, and the induced LTSs over processes and typing environments are derived in \texttt{ProcStep/} and \texttt{EnvStep/} respectively, realising the erasure homomorphisms described in~\cref{subsec:operational-semantics}.
+
+
 
 \subsection{Session Fidelity}
 The \texttt{SessionFidelity} namespace establishes the 
@@ -593,7 +614,6 @@ results for \pimll{}. It contains the simulation results showing \texttt{EnvStep
 % FIXME: Consider if substitution should be mentioend in section 3, or if it's fine to just mention it in section 4.
 % FIXME: Be consistent in regard to calling it a type or a type payload
 % FIXME: Decide whether to remove highlighting from prose
-% FIXME: Check listing definitions for correctness
 \begin{center}
 \small
 \begin{tabularx}{\textwidth}{l X}
