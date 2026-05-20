@@ -7,7 +7,7 @@ def TVar.shift (d c : Nat) : TVar → TVar
   | .bound i => if i < d then .bound i else .bound (i + c)
   | .free n => .free n
 
-instance : HasShiftTypes TVar where shift v d c := TVar.shift d c v
+instance : HasShift TVar where shift v d c := TVar.shift d c v
 
 def Types.shift (d c : Nat) : Types → Types
   | .var v        => .var (v.shift d c)
@@ -22,4 +22,4 @@ def Types.shift (d c : Nat) : Types → Types
   | .oplus A B    => .oplus (A.shift d c) (B.shift d c)
   | t             => t -- one | bot | atom | atomDual (Don't have Types to shift)
 
-instance : HasShiftTypes Types where shift T d c := Types.shift d c T
+instance : HasShift Types where shift T d c := Types.shift d c T

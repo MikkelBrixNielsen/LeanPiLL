@@ -77,15 +77,15 @@ macro "simp_Proc_substNames" : tactic =>
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_cut {P : Proc} {x y : FPName} :
-  (𝑣⸨$N,$N⸩P){y // x} = 𝑣⸨$N,$N⸩P{y // x} := by
+  (𝑣⸨•,•⸩P){y // x} = 𝑣⸨•,•⸩P{y // x} := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_tensor {P : Proc} {u : Channel} {x y : FPName} :
-  (u⟦$N⟧․P){y // x} = u{y // x}⟦$N⟧․P{y // x} := by
+  (u⟦•⟧․P){y // x} = u{y // x}⟦•⟧․P{y // x} := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_parr {P : Proc} {u : Channel} {x y : FPName} :
-  (u⸨$N⸩․P){y // x} = u{y // x}⸨$N⸩․P{y // x} := by
+  (u⸨•⸩․P){y // x} = u{y // x}⸨•⸩․P{y // x} := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_oplus₁ {P : Proc} {u : Channel} {x y : FPName} :
@@ -117,7 +117,7 @@ macro "simp_Proc_substNames" : tactic =>
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_c {P : Proc} {u : Channel} {x y : FPName} :
-  (u⟦DUP⟧⸨$N⸩․P){y // x} = (u{y // x}⟦DUP⟧⸨$N⸩․P{y // x}) := by
+  (u⟦DUP⟧⸨•⸩․P){y // x} = (u{y // x}⟦DUP⟧⸨•⸩․P{y // x}) := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_exists {P : Proc} {u : Channel} {x y : FPName} {A : Types} :
@@ -125,7 +125,7 @@ macro "simp_Proc_substNames" : tactic =>
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_forall {P : Proc} {u : Channel} {x y : FPName} :
-  (u⸨$T⸩․P){y // x} = (u{y // x}⸨$T⸩․P{y // x}) := by
+  (u⸨⋄⸩․P){y // x} = (u{y // x}⸨⋄⸩․P{y // x}) := by
   simp_Proc_substNames
 
 @[simp] lemma Proc.substNames_ax {u v : Channel} {x y : FPName} :
@@ -133,17 +133,17 @@ macro "simp_Proc_substNames" : tactic =>
   simp_Proc_substNames
 
 lemma Proc.shiftTypes_open_comm {n d c : Nat} {P : Proc} {u : Channel} :
-  (P.open u n) ↑ᵗ d, c = (P ↑ᵗ d, c).open u n := by
-  induction P generalizing d n <;> simp_all [Proc.open, HasShiftTypes.shift, Proc.shiftTypes]
+  (P.open u n) ↑ d, c = (P ↑ d, c).open u n := by
+  induction P generalizing d n <;> simp_all [Proc.open, HasShift.shift, Proc.shiftTypes]
 
 lemma Proc.shiftTypes0_open0_comm {c : Nat} {P : Proc} {u : Channel} :
-  (P⸨u⸩) ↑ᵗ c = (P ↑ᵗ c)⸨u⸩ := Proc.shiftTypes_open_comm
+  (P⸨u⸩) ↑ c = (P ↑ c)⸨u⸩ := Proc.shiftTypes_open_comm
 
 lemma Proc.shiftTypes_open0_comm {d c : Nat} {P : Proc} {u : Channel} :
-  (P⸨u⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨u⸩ := Proc.shiftTypes_open_comm
+  (P⸨u⸩) ↑ d, c = (P ↑ d, c)⸨u⸩ := Proc.shiftTypes_open_comm
 
 lemma Proc.shiftTypes_openCut_comm {P : Proc} {x y : Channel} {d c : Nat} :
-  (P⸨x, y⸩) ↑ᵗ d, c = (P ↑ᵗ d, c)⸨x, y⸩ := by
+  (P⸨x, y⸩) ↑ d, c = (P ↑ d, c)⸨x, y⸩ := by
   simp [HasOpenTwo.open_, Proc.shiftTypes_open_comm]
 
 @[simp] lemma Proc.substTypes_ax {u v : Channel} {A : Types} {k : Nat} :
@@ -251,15 +251,15 @@ lemma Finset.open_substNames_comm_gen {zs : Finset Channel} {x y z : FPName}
   simp [HasOpen.open_, Channel.open, Proc.open]
 
 @[simp] lemma Proc.open_tensor {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
-  (u⟦$N⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦$N⟧․P⸨k + 1 | #x⸩ := by
+  (u⟦•⟧․P)⸨k | #x⸩ = u⸨k | #x⸩⟦•⟧․P⸨k + 1 | #x⸩ := by
   simp [HasOpen.open_, Channel.open, Proc.open]
 
 @[simp] lemma Proc.open_parr {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
-  (u⸨$N⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⸨$N⸩․P⸨k + 1 | #x⸩ := by
+  (u⸨•⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⸨•⸩․P⸨k + 1 | #x⸩ := by
   simp [HasOpen.open_, Channel.open, Proc.open]
 
 @[simp] lemma Proc.open_cut {P : Proc} {x : FPName} {k : Nat} :
-  (𝑣⸨$N,$N⸩ P)⸨k | #x⸩ = 𝑣⸨$N,$N⸩ P⸨k + 2 | #x⸩ := by
+  (𝑣⸨•,•⸩ P)⸨k | #x⸩ = 𝑣⸨•,•⸩ P⸨k + 2 | #x⸩ := by
   simp [HasOpen.open_ , Proc.open]
 
 @[simp] lemma Proc.open_par {P Q : Proc} {x : FPName} {k : Nat} :
@@ -283,7 +283,7 @@ lemma Finset.open_substNames_comm_gen {zs : Finset Channel} {x y z : FPName}
   simp [HasOpen.open_, Channel.open, Proc.open]
 
 @[simp] lemma Proc.open_input {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
-  (u⸨$T⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⸨$T⸩․P⸨k | #x⸩ := by
+  (u⸨⋄⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⸨⋄⸩․P⸨k | #x⸩ := by
   simp [HasOpen.open_, Channel.open, Proc.open]
 
 @[simp] lemma Proc.open_empty_server {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
@@ -300,7 +300,7 @@ lemma Finset.open_substNames_comm_gen {zs : Finset Channel} {x y z : FPName}
   simp [HasOpen.open_, Channel.open, Proc.open]
 
 @[simp] lemma Proc.open_duplicate {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
-  (u⟦DUP⟧⸨$N⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⟦DUP⟧⸨$N⸩․P⸨k + 1 | #x⸩ := by
+  (u⟦DUP⟧⸨•⸩․P)⸨k | #x⸩ = u⸨k | #x⸩⟦DUP⟧⸨•⸩․P⸨k + 1 | #x⸩ := by
   simp [HasOpen.open_, Channel.open, Proc.open]
 
 @[simp] lemma Proc.open_dispose {P : Proc} {u : Channel} {x : FPName} {k : Nat} :
@@ -421,13 +421,13 @@ lemma Finset.close_open_eq_substNames_notation {zs : Finset Channel} {x y : FPNa
   (u⸨⸩․P)⟪k | x⟫ = u⟪k | x⟫⸨⸩․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
 
 @[simp] lemma Proc.close_tensor {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
-  (u⟦$N⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦$N⟧․P⟪k + 1 | x⟫ := by simp [HasClose.close_, Proc.close]
+  (u⟦•⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦•⟧․P⟪k + 1 | x⟫ := by simp [HasClose.close_, Proc.close]
 
 @[simp] lemma Proc.close_parr {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
-  (u⸨$N⸩․P)⟪k | x⟫ = u⟪k | x⟫⸨$N⸩․P⟪k + 1 | x⟫ := by simp [HasClose.close_, Proc.close]
+  (u⸨•⸩․P)⟪k | x⟫ = u⟪k | x⟫⸨•⸩․P⟪k + 1 | x⟫ := by simp [HasClose.close_, Proc.close]
 
 @[simp] lemma Proc.close_cut {k : Nat} {x : FPName} {P : Proc} :
-  (𝑣⸨$N,$N⸩ P)⟪k | x⟫ = 𝑣⸨$N,$N⸩ P⟪k + 2 | x⟫ := by simp [HasClose.close_, Proc.close]
+  (𝑣⸨•,•⸩ P)⟪k | x⟫ = 𝑣⸨•,•⸩ P⟪k + 2 | x⟫ := by simp [HasClose.close_, Proc.close]
 
 @[simp] lemma Proc.close_par {k : Nat} {x : FPName} {P Q : Proc} :
   (P |ₚ Q)⟪k | x⟫ = P⟪k | x⟫ |ₚ Q⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
@@ -446,7 +446,7 @@ lemma Finset.close_open_eq_substNames_notation {zs : Finset Channel} {x y : FPNa
   (u⟦A⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦A⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
 
 @[simp] lemma Proc.close_input {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
-  (u⸨$T⸩․P)⟪k | x⟫ = u⟪k | x⟫⸨$T⸩․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
+  (u⸨⋄⸩․P)⟪k | x⟫ = u⟪k | x⟫⸨⋄⸩․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
 
 @[simp] lemma Proc.close_empty_server {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
   (!u․{P})⟪k | x⟫ = !u⟪k | x⟫․{P⟪k | x⟫} := by simp [HasClose.close_, Proc.close, Finset.close]
@@ -460,7 +460,7 @@ lemma Finset.close_open_eq_substNames_notation {zs : Finset Channel} {x y : FPNa
   (u⟦USE⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦USE⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
 
 @[simp] lemma Proc.close_duplicate {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
-  (u⟦DUP⟧⸨$N⸩․P)⟪k | x⟫ = (u⟪k | x⟫⟦DUP⟧⸨$N⸩․P⟪k + 1 | x⟫) := by simp [HasClose.close_, Proc.close]
+  (u⟦DUP⟧⸨•⸩․P)⟪k | x⟫ = (u⟪k | x⟫⟦DUP⟧⸨•⸩․P⟪k + 1 | x⟫) := by simp [HasClose.close_, Proc.close]
 
 @[simp] lemma Proc.close_dispose {k : Nat} {x : FPName} {u : Channel} {P : Proc} :
   (u⟦DISP⟧․P)⟪k | x⟫ = u⟪k | x⟫⟦DISP⟧․P⟪k | x⟫ := by simp [HasClose.close_, Proc.close]
@@ -639,13 +639,13 @@ lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
   (u⸨⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
 
 @[simp] lemma Proc.f_tensor {P : Proc} {u : Channel} :
-  (u⟦$N⟧․P).f = u.f ∪ P.f := by simp [Proc.f]
+  (u⟦•⟧․P).f = u.f ∪ P.f := by simp [Proc.f]
 
 @[simp] lemma Proc.f_parr {P : Proc} {u : Channel} :
-  (u⸨$N⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
+  (u⸨•⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
 
 @[simp] lemma Proc.f_cut {P : Proc} :
-  (𝑣⸨$N,$N⸩ P).f = P.f := by simp [Proc.f]
+  (𝑣⸨•,•⸩ P).f = P.f := by simp [Proc.f]
 
 @[simp] lemma Proc.f_par {P Q : Proc} :
    (P |ₚ Q).f = P.f ∪ Q.f := by simp [Proc.f]
@@ -663,7 +663,7 @@ lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
   (u⟦A⟧․P).f = u.f ∪ P.f := by simp [Proc.f]
 
 @[simp] lemma Proc.f_input {P : Proc} {u : Channel} :
-  (u⸨$T⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
+  (u⸨⋄⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
 
 @[simp] lemma Proc.f_empty_server {P : Proc} {u : Channel} :
   (!u․{P}).f = u.f ∪ P.f := by simp [Proc.f, Finset.f]
@@ -675,7 +675,7 @@ lemma Proc.lc_of_open_two {P : Proc} {x y : FPName} {k n : Nat} :
   (u⟦USE⟧․P).f = u.f ∪ P.f := by simp [Proc.f]
 
 @[simp] lemma Proc.f_duplicate {P : Proc} {u : Channel} :
-  (u⟦DUP⟧⸨$N⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
+  (u⟦DUP⟧⸨•⸩․P).f = u.f ∪ P.f := by simp [Proc.f]
 
 @[simp] lemma Proc.f_dispose {P : Proc} {u : Channel} :
   (u⟦DISP⟧․P).f = u.f ∪ P.f := by simp [Proc.f]

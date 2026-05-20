@@ -41,4 +41,4 @@ def Proc.shiftTypes (d c : Nat) : Proc → Proc
   | .dispose x P      => .dispose x (P.shiftTypes d c)
   | .link x y         => .link x y
 
-instance : HasShiftTypes Proc where shift P d c := Proc.shiftTypes d c P
+instance : HasShift Proc where shift P d c := Proc.shiftTypes d c P

@@ -38,26 +38,3 @@ def Proc.substNames (R T : FPName) : Proc → Proc
   | .link x y         => .link (x.subst R T) (y.subst R T)
 
 instance : HasSubst Proc FPName FPName where subst P R T := Proc.substNames R T P
-
--- FIXME: Relic from the past before LN
---        Remove HasShiftNames and such
--- def Proc.shiftNames (d c : Nat) : Proc → Proc
---   | .nil              => .nil
---   | .one x P          => .one x (P.shiftNames d c)
---   | .bot x P          => .bot x (P.shiftNames d c)
---   | .tensor x P       => .tensor x (P.shiftNames (d + 1) c)
---   | .parr x P         => .parr x (P.shiftNames (d + 1) c)
---   | .cut P            => .cut (P.shiftNames (d + 2) c)
---   | .par P Q          => .par (P.shiftNames d c) (Q.shiftNames d c)
---   | .selectL x P      => .selectL x (P.shiftNames d c)
---   | .selectR x P      => .selectR x (P.shiftNames d c)
---   | .amp x P Q        => .amp x (P.shiftNames d c) (Q.shiftNames d c)
---   | .output x P A     => .output x (P.shiftNames d c) A
---   | .input x P        => .input x (P.shiftNames d c)
---   | .server x zs P    => .server x zs (P.shiftNames d c)
---   | .consume x P      => .consume x (P.shiftNames d c)
---   | .duplicate x P    => .duplicate x (P.shiftNames (d + 1) c)
---   | .dispose x P      => .dispose x (P.shiftNames d c)
---   | .link x y         => .link x y
-
--- instance : HasShiftNames Proc where shift P d c := Proc.shiftNames d c P

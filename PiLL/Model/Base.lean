@@ -13,19 +13,26 @@ import Mathlib.Order.CompleteLattice.Finset
 
 ------------------------------ POLYMORPHIC CLASSES (NOTATION)------------------------------
 
-class HasShiftNames (Subject : Type) where
+-- class HasShiftNames (Subject : Type) where
+--   shift : Subject → Nat → Nat → Subject
+
+-- notation:max S:max " ↑ᶜ " d:max ", " c:max => HasShiftNames.shift S d c
+-- notation:max S:max " ↑ᶜ " c:max => HasShiftNames.shift S 0 c
+-- notation:max S:max "⁺ᶜ" => HasShiftNames.shift S 0 1
+
+-- class HasShiftTypes (Subject : Type) where
+--   shift : Subject → Nat → Nat → Subject
+
+-- notation:max S:max " ↑ᵗ " d:max ", " c:max => HasShiftTypes.shift S d c
+-- notation:max S:max " ↑ᵗ " c:max => HasShiftTypes.shift S 0 c
+-- notation:max S:max "⁺ᵗ" => HasShiftTypes.shift S 0 1
+
+class HasShift (Subject : Type) where
   shift : Subject → Nat → Nat → Subject
 
-notation:max S:max " ↑ᶜ " d:max ", " c:max => HasShiftNames.shift S d c
-notation:max S:max " ↑ᶜ " c:max => HasShiftNames.shift S 0 c
-notation:max S:max "⁺ᶜ" => HasShiftNames.shift S 0 1
-
-class HasShiftTypes (Subject : Type) where
-  shift : Subject → Nat → Nat → Subject
-
-notation:max S:max " ↑ᵗ " d:max ", " c:max => HasShiftTypes.shift S d c
-notation:max S:max " ↑ᵗ " c:max => HasShiftTypes.shift S 0 c
-notation:max S:max "⁺ᵗ" => HasShiftTypes.shift S 0 1
+notation:max S:max " ↑ " d:max ", " c:max => HasShift.shift S d c
+notation:max S:max " ↑ " c:max => HasShift.shift S 0 c
+notation:max S:max "⁺" => HasShift.shift S 0 1
 
 class HasSubst (Subject Replacement Target : Type) where
   subst : Subject → Replacement → Target → Subject

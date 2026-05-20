@@ -48,7 +48,7 @@
   % 3. De Bruijn indices for types (needed type variables in first iteration to be locally closed, so instead of assuming this as hypothesis, implemented De Bruijn indices and the notion of a type being locally closed based on the current binder level for a typing derivation then 'n' in front of judgements)
   % 4, Co-finite quantification 
 
-% Commands for double brackets and syntax prefixes
+% Commands for double brackets, syntax prefixes shifting etc.
 \newcommand{\dbrackL}{[\![}
 \newcommand{\dbrackR}{]\!]}
 \newcommand{\dbrack}[1]{[\![#1]\!]}
@@ -65,8 +65,8 @@
 \newcommand{\dlsend}[2]{#1\dbrack{#2}}
 \newcommand{\dlrecv}[2]{#1\dparen{#2}}
 \newcommand{\dlserver}[2]{#1\dangle{#2}}
-\newcommand{\typeshift}[1]{#1^{+t}}
-\newcommand{\channelshift}[1]{#1^{+c}}
+\newcommand{\typeshift}[3]{#1\uparrow#2,#3}
+\newcommand{\typeshiftsingle}[1]{#1^{+}}
 \newcommand{\plink}[2]{\texttt{#1}\leftrightarrow_p\texttt{#2}}
 \newcommand{\llink}[2]{\texttt{#1}\leftrightarrow_l\texttt{#2}}
 \newcommand{\dopen}[2]{#1\dparenL\texttt{#2}\dparenR}
@@ -482,6 +482,7 @@ hyperenvironment, namely that every channel appears at most once across all comp
 % FIXME: make type and channel shiftdc versions, then fix then math blocks to use these. 
 % FIXME: add highlighting
 % FIXME: Decide whether to use \cht{Channel}{Type} in listings or use basic text.
+% FIXME: Mention somewhere that the reason there is a superscript t and c on shifting because processes needs both type and channel shifting
 \subsubsection{Typing Judgements}\label{subsubsec:judgements}
 The typing relation is defined in \path{Judgement/Basic.lean} as the inductive predicate \texttt{Typing}:
 
@@ -489,7 +490,7 @@ The typing relation is defined in \path{Judgement/Basic.lean} as the inductive p
 inductive Typing : Nat -> Proc -> HyperEnv -> Prop
 \end{lstlisting}
 
-In informal notation this is written \hl{$\judge{n}{P}{\hyp{G}}$}. The natural number $n$ tracks the current type binder depth, as established in \cref{subsubsec:processes}. Whenever the derivation descends into a \texttt{forall\_} constructor, $n$ is incremented and the environment is shifted by one to keep all embedded type indices in scope:
+We write \hl{$\judge{n}{P}{\hyp{G}}$} to refer to this construct. The natural number $n$ tracks the current type binder depth, as established in \cref{subsubsec:processes}. Whenever the derivation descends into a \texttt{forall\_} constructor, $n$ is incremented and the environment is shifted by one to keep all embedded type indices in scope:
 
 \begin{lstlisting}[language=Lean4]
 | forall_ {'$\Gamma$' : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
@@ -497,7 +498,7 @@ In informal notation this is written \hl{$\judge{n}{P}{\hyp{G}}$}. The natural n
     Typing n (#x'$\dparenL$'$T'$\dparenR$'.P) [x : '$\forall$'.B :: '$\Gamma$']
 \end{lstlisting}
 
-The shift \texttt{$\thl{\typeshift{\Gamma}}$} applied to the environment ensures that all free type indices in \hl{$\thl{\Gamma}$} are incremented to account for the newly introduced binder, mirroring the shift applied during type substitution in \cref{subsubsec:stypes}.
+The shift \hl{\texttt{$\thl{\typeshiftsingle{\Gamma}}$}} (or equivalently \hl{\texttt{$\thl{\typeshift{\Gamma}{0}{1}}$}}) applied to the environment ensures that all free type indices in \hl{$\thl{\Gamma}$} are incremented to account for the newly introduced binder, mirroring the shift applied during type substitution in \cref{subsubsec:stypes}.
 
 \paragraph{Exchange rules}
 Rather than building commutativity into every constructor, the typing relation includes two explicit structural rules that allow reasoning up to permutation equivalence:
@@ -516,8 +517,8 @@ Binding constructors use co-finite quantification as described in \cref{subsec:c
 | cut {'$\hyp{G}$' : HyperEnv} {'$\Gamma~\Delta$' : Env} {P : Proc} {A : Types} {n : Nat} (L : Finset FPName) :
     '$\forall$' x '$\notin$' L, '$\forall$' y '$\notin$' L, x '$\neq$' y -> Typing n ('$\dopen{P}{\#x, \#y}$') ('$\hypermerge{G}{\hypermerge{[\cht{x}{A} :: \Gamma]}{[\cht{y}{\dual{A}} :: \Delta]}}$') ->
     Typing n ('$\dres{P}$') ('$\hypermerge{\hyp{G}}{[\Gamma, \Delta]}$')
-
 \end{lstlisting}
+
 The premise holds for any two distinct names $x, y$ outside the finite set $L$. This design serves two complementary purposes. When \emph{constructing} a typing derivation, the prover chooses $L$ to be large enough that any witness outside it is guaranteed fresh, typically the union of all free names currently in scope, and then uses \texttt{exists\_two\_fresh} to produce concrete witnesses. When \emph{using} a typing derivation, for example during inversion or induction, the universal quantifier allows the prover to instantiate $x$ and $y$ as whatever fresh names the current proof goal requires, rather than being tied to the specific names chosen during construction.
 
 \paragraph{Structural invariants} The file \path{Judgement/Names.lean} establishes a key invariant for the typping system, namely \texttt{Typing\_f\_eq\_names}. This lemma states that for any well-typed process, the free names of the process are exactly equal to the domain of the hyperenvironment:
@@ -534,7 +535,7 @@ Building on this, \path{Judgement/Linearity.lean} proves \texttt{Typing\_preserv
 \path{Judgement/Weakening.lean} establishes that typing is stable under type-level index shifting:
 % FIXME: Notation used here should probably mirror the implementation notation instead of what looks nice
 \[
-n \vdash P \colon \hyp{G} \implies \forall d~c,\quad n + c \vdash P{\uparrow^t_{d,c}} \colon \hyp{G}{\uparrow^t_{d,c}}
+n \vdash P \colon \hyp{G} \implies \forall d~c,\quad n + c \vdash P{\uparrow_{d,c}} \colon \hyp{G}{\uparrow_{d,c}}
 \]
 
 This is used whenever a process is placed under a new type binder, the existing derivation can be lifted to the new depth by shifting both the process and its hyperenvironment. The proof proceeds by structural induction on the typing derivation, with the \texttt{forall\_} case requiring careful composition of the shift operations.

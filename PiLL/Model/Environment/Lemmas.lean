@@ -138,8 +138,8 @@ lemma Env.disjoint_cons_iff {Γ Δ : Env} {x y : FPName} {A : Types} :
     refine ⟨⟨hneq, hyΓ⟩, ⟨hxΔ, hDΓΔ⟩⟩
 
 lemma Env.lc_shift_inv {n k : Nat} {Γ : Env} :
-  (Γ⁺ᵗ).lc (n + k + 1) ↔ Γ.lc (n + k) := by
-  simp [Env.lc, HasShiftTypes.shift, Env.shiftTypes]
+  (Γ⁺).lc (n + k + 1) ↔ Γ.lc (n + k) := by
+  simp [Env.lc, HasShift.shift, Env.shiftTypes]
   constructor
   all_goals (
     intro h x A hin
@@ -149,7 +149,7 @@ lemma Env.lc_shift_inv {n k : Nat} {Γ : Env} :
   )
 
 lemma Env.lc_shift_inv_0 {n : Nat} {Γ : Env} :
-  (Γ⁺ᵗ).lc (n + 1) ↔ Γ.lc n := Env.lc_shift_inv (k := 0)
+  (Γ⁺).lc (n + 1) ↔ Γ.lc n := Env.lc_shift_inv (k := 0)
 
 @[simp] lemma Env.lc_nil {n : Nat} :
   Env.lc n ([] : Env) := by simp [Env.lc]
@@ -348,42 +348,42 @@ lemma Env.substNames_preserves_perm {Γ Δ : Env} {x y : FPName} :
   grind
 
 @[simp] lemma Env.serverUsable_shiftTypes {d c : Nat} {Γ : Env} :
-  ?ₑΓ → ?ₑ(Γ ↑ᵗ d, c) := by
-  simp [Env.serverUsable, HasShiftTypes.shift, Env.shiftTypes]
+  ?ₑΓ → ?ₑ(Γ ↑ d, c) := by
+  simp [Env.serverUsable, HasShift.shift, Env.shiftTypes]
   intro h x A x' A' hMem heq hShift
   have := h x' A' hMem
   apply Types.isServerUsable_shift (d := d) (c := c).mp at this
-  simp [HasShiftTypes.shift] at this
+  simp [HasShift.shift] at this
   rw [hShift] at this
   exact this
 
 @[simp] lemma Env.shiftTypes_empty {d c : Nat} :
-  ([] : Env) ↑ᵗ d, c = ([] : Env) := by
-  simp [HasShiftTypes.shift, Env.shiftTypes]
+  ([] : Env) ↑ d, c = ([] : Env) := by
+  simp [HasShift.shift, Env.shiftTypes]
 
 @[simp] lemma Env.shiftTypes_singleton {d c : Nat} {x : FPName} {A : Types} :
-  [x ∶ A] ↑ᵗ d, c = [x ∶ A ↑ᵗ d, c] := by
-    simp [HasShiftTypes.shift, Env.shiftTypes]
+  [x ∶ A] ↑ d, c = [x ∶ A ↑ d, c] := by
+    simp [HasShift.shift, Env.shiftTypes]
 
 @[simp] lemma Env.shiftTypes_cons {d k : Nat} {Γ : Env} {x : FPName} {A : Types} :
-  (x ∶ A :: Γ) ↑ᵗ d, k = x ∶ A ↑ᵗ d, k :: Γ ↑ᵗ d, k := by
-    simp [HasShiftTypes.shift, Env.shiftTypes]
+  (x ∶ A :: Γ) ↑ d, k = x ∶ A ↑ d, k :: Γ ↑ d, k := by
+    simp [HasShift.shift, Env.shiftTypes]
 
 @[simp] lemma Env.shiftTypes_append {d k : Nat} {Γ Δ : Env} :
-  (Γ ++ Δ) ↑ᵗ d, k = Γ ↑ᵗ d, k ++ Δ ↑ᵗ d, k := by
-    simp [HasShiftTypes.shift, Env.shiftTypes]
+  (Γ ++ Δ) ↑ d, k = Γ ↑ d, k ++ Δ ↑ d, k := by
+    simp [HasShift.shift, Env.shiftTypes]
 
 @[simp] lemma Env.shiftTypes_preserves_names {d c : Nat} {Γ : Env} :
-  (Γ ↑ᵗ d, c).names = Γ.names := by
-  simp [HasShiftTypes.shift, Env.shiftTypes, Env.names]
+  (Γ ↑ d, c).names = Γ.names := by
+  simp [HasShift.shift, Env.shiftTypes, Env.names]
   rfl
 
 @[simp] lemma Env.shiftTypes_preserves_disjoint {d c : Nat} {Γ Δ : Env} :
-  Γ.disjoint Δ → (Γ ↑ᵗ d, c).disjoint (Δ ↑ᵗ d, c) := by simp
+  Γ.disjoint Δ → (Γ ↑ d, c).disjoint (Δ ↑ d, c) := by simp
 
 @[simp] lemma Env.shiftTypes_preserves_perm {d c : Nat} {Γ Δ : Env} :
-  (Γ ~ Δ) → (Γ ↑ᵗ d, c ~ Δ ↑ᵗ d, c) := by
-  simp [HasShiftTypes.shift]
+  (Γ ~ Δ) → (Γ ↑ d, c ~ Δ ↑ d, c) := by
+  simp [HasShift.shift]
   apply List.Perm.map
 
 lemma Env.shiftTypes_comm {Γ : Env} {d c : Nat} :
@@ -421,12 +421,12 @@ lemma Env.serverUsable_substNames {Γ : Env} {x y : FPName} :
   )
 
 @[simp] lemma Env.shiftTypes_substNames_comm {Γ : Env} {x y : FPName} :
-  (Γ{y // x})⁺ᵗ = (Γ⁺ᵗ){y // x} := by
-  simp_all [HasSubst.subst, Env.substNames, HasShiftTypes.shift, Env.shiftTypes]
+  (Γ{y // x})⁺ = (Γ⁺){y // x} := by
+  simp_all [HasSubst.subst, Env.substNames, HasShift.shift, Env.shiftTypes]
   intros ; split_ifs <;> rfl
 
 lemma Env.mem_shiftTypes_iff {Γ : Env} {y : FPName} {T : Types} :
-  (y, T) ∈ Γ⁺ᵗ ↔ ∃ A, (y, A) ∈ Γ ∧ T = A⁺ᵗ := by
+  (y, T) ∈ Γ⁺ ↔ ∃ A, (y, A) ∈ Γ ∧ T = A⁺ := by
   induction Γ
   case nil => simp
   case cons hd tl ih =>
@@ -503,13 +503,13 @@ lemma Env.fresh_substNames_binary {Γ Δ : Env} {x y z : FPName} {C : Types}
   simp [HasPerm.perm, HasSubst.subst]
   apply List.Perm.map
 
--- Γ{A // k}⁺ᵗ = Γ⁺ᵗ{A⁺ᵗ // k + 1}
+-- Γ{A // k}⁺ = Γ⁺{A⁺ // k + 1}
 @[simp] lemma Env.shiftTypes_substTypes_comm {Γ : Env} {A : Types} {k : Nat} :
   (Γ.substTypes A k).shiftTypes 0 1 = (Γ.shiftTypes 0 1).substTypes (A.shift 0 1) (k + 1) := by
   induction Γ <;> simp [Env.substTypes, Env.shiftTypes, Types.shift_0_subst_comm]
 
 @[simp] lemma Env.shiftTypes_substTypes_cancel {Γ : Env} {A : Types} :
-  Γ⁺ᵗ{A // 0} = Γ := by
+  Γ⁺{A // 0} = Γ := by
   induction Γ
   case nil => simp
   case cons E Γ ih =>
@@ -540,11 +540,11 @@ lemma Env.Perm.nodup_iff {Γ Δ : Env} (h : Γ ~ Δ) :
   exact List.Perm.nodup_iff hPNames
 
 @[simp] lemma Env.map_fst_shiftTypes {Γ : Env} :
-  List.map Prod.fst Γ⁺ᵗ = List.map Prod.fst Γ := by
-    simp [HasShiftTypes.shift, Env.shiftTypes]
+  List.map Prod.fst Γ⁺ = List.map Prod.fst Γ := by
+    simp [HasShift.shift, Env.shiftTypes]
 
 @[simp] lemma Env.Nodup_shiftTypes {Γ : Env} :
-  Env.Nodup Γ⁺ᵗ ↔ Env.Nodup Γ := by
+  Env.Nodup Γ⁺ ↔ Env.Nodup Γ := by
   unfold Env.Nodup
   rw [Env.map_fst_shiftTypes]
 

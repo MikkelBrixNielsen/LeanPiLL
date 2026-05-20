@@ -48,7 +48,7 @@ def HyperEnv.PairwiseDisjoint (𝒢 : HyperEnv) : Prop :=
 -- c : Correction / how much to shift
 def HyperEnv.shiftTypes (d c : Nat) (𝒢 : HyperEnv) : HyperEnv :=
   𝒢.map (fun Γ => Γ.shiftTypes d c)
-instance : HasShiftTypes HyperEnv where shift 𝒢 d c := HyperEnv.shiftTypes d c 𝒢
+instance : HasShift HyperEnv where shift 𝒢 d c := HyperEnv.shiftTypes d c 𝒢
 
 def HyperEnv.substNames (𝒢 : HyperEnv) (R T : FPName) : HyperEnv :=
   𝒢.map (fun Γ => Γ.substNames R T)

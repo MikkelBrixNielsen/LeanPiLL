@@ -27,33 +27,33 @@ lemma HyperEnv.subset_names_of_mem {Γ : Env} {G : HyperEnv} (h : Γ ∈ G) :
   ([] : HyperEnv){y // x} = [] := by simp [HasSubst.subst, HyperEnv.substNames]
 
 @[simp] lemma HyperEnv.shiftTypes_empty {d c : Nat} :
-  ([] : HyperEnv) ↑ᵗ d, c = ([] : HyperEnv) := by
-  simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+  ([] : HyperEnv) ↑ d, c = ([] : HyperEnv) := by
+  simp [HasShift.shift, HyperEnv.shiftTypes]
 
 @[simp] lemma HyperEnv.shiftTypes_singleton {d c : Nat} {Γ : Env} :
-  [Γ] ↑ᵗ d, c = [Γ ↑ᵗ d, c] := by
-    simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+  [Γ] ↑ d, c = [Γ ↑ d, c] := by
+    simp [HasShift.shift, HyperEnv.shiftTypes]
 
 @[simp] lemma HyperEnv.shiftTypes_cons {d k : Nat} {𝒢 : HyperEnv} {Γ : Env} :
-  (Γ :: 𝒢) ↑ᵗ d, k = Γ ↑ᵗ d, k :: 𝒢 ↑ᵗ d, k := by
-    simp [HasShiftTypes.shift, HyperEnv.shiftTypes, Env.shiftTypes]
+  (Γ :: 𝒢) ↑ d, k = Γ ↑ d, k :: 𝒢 ↑ d, k := by
+    simp [HasShift.shift, HyperEnv.shiftTypes, Env.shiftTypes]
 
 @[simp] lemma HyperEnv.shiftTypes_append {d k : Nat} {𝒢 ℋ : HyperEnv} :
-  (𝒢 ++ ℋ) ↑ᵗ d, k = 𝒢 ↑ᵗ d, k ++ ℋ ↑ᵗ d, k := by
-    simp [HasShiftTypes.shift, HyperEnv.shiftTypes]
+  (𝒢 ++ ℋ) ↑ d, k = 𝒢 ↑ d, k ++ ℋ ↑ d, k := by
+    simp [HasShift.shift, HyperEnv.shiftTypes]
 
 @[simp] lemma HyperEnv.names_cons {Γ : Env} {𝒢 : HyperEnv} :
   HyperEnv.names (Γ :: 𝒢) = Γ.names ∪ 𝒢.names := by simp [HyperEnv.names]
 
 @[simp] lemma HyperEnv.shiftTypes_preserves_names {d c : Nat} {𝒢 : HyperEnv} :
-  (𝒢 ↑ᵗ d, c).names = 𝒢.names := by
+  (𝒢 ↑ d, c).names = 𝒢.names := by
   induction 𝒢 <;> simp_all
 
 @[simp] lemma HyperEnv.shiftTypes_preserves_disjoint {d c : Nat} {𝒢 ℋ : HyperEnv} :
-  (𝒢.disjoint ℋ) → ((𝒢 ↑ᵗ d, c).disjoint (ℋ ↑ᵗ d, c)) := by simp
+  (𝒢.disjoint ℋ) → ((𝒢 ↑ d, c).disjoint (ℋ ↑ d, c)) := by simp
 
 @[simp] lemma HyperEnv.shiftTypes_preserves_perm {d c : Nat} {𝒢 ℋ : HyperEnv} :
-  (𝒢 ~ ℋ) → (𝒢 ↑ᵗ d, c ~ ℋ ↑ᵗ d, c) := by
+  (𝒢 ~ ℋ) → (𝒢 ↑ d, c ~ ℋ ↑ d, c) := by
   intro h
   induction h with
   | nil => exact HyperEnv.Perm.nil
@@ -190,7 +190,7 @@ lemma HyperEnv.substNames_preserves_disjoint {𝒢 ℋ : HyperEnv} {x y : FPName
   | swap => exact HyperEnv.Perm.swap ..
   | trans _ _ ih1 ih2 => exact HyperEnv.Perm.trans ih1 ih2
 
--- 𝒢{A // k}⁺ᵗ = 𝒢⁺ᵗ{A⁺ᵗ // k + 1}
+-- 𝒢{A // k}⁺ = 𝒢⁺{A⁺ // k + 1}
 @[simp] lemma HyperEnv.shiftTypes_subst_comm {𝒢 : HyperEnv} {A : Types} {k : Nat} :
   (𝒢.substTypes A k).shiftTypes 0 1 = (𝒢.shiftTypes 0 1).substTypes (A.shift 0 1) (k + 1) := by
   induction 𝒢 <;>

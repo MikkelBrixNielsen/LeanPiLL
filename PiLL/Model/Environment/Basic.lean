@@ -33,7 +33,7 @@ def Env.lc (k : Nat) (Γ : Env) : Prop :=
 def Env.shiftTypes (d c : Nat) (Γ : Env) : Env :=
   Γ.map (fun (x, A) => (x, A.shift d c))
 
-instance : HasShiftTypes Env where shift Γ d c := Env.shiftTypes d c Γ
+instance : HasShift Env where shift Γ d c := Env.shiftTypes d c Γ
 
 def Env.substNames (Γ : Env) (R T : FPName) : Env :=
   Γ.map (fun (x, A) => if x == T then (R, A) else (x, A))
