@@ -557,49 +557,70 @@ This requires only that $x \neq y$ and that the type $\thl{A}$ is locally closed
 The full inductive definition of \texttt{Typing} is listed in 
 \cref{app:judgements}.
 
+
+
+
+
+
+
+
+
 \subsection{Operational Semantics}\label{subsec:operational-semantics}
 The dynamic behavior of the calculus is formalised within the \path{Semantics/} namespace. This includes the definition of transition labels in \path{Semantics/Label.lean}, the core Labelled Transition System (LTS) over typing derivations in \path{Semantics/JudgementStep.lean}, and the induced transition systems over pure processes and environments (\path{ProcStep.lean} and \path{EnvStep.lean}).
 
 \paragraph{The Typed Transition System}
-In standard presentations of process calculi, operational semantics are typically defined as a reduction relation over raw syntactic processes (e.g., $P \longrightarrow Q$). However, because \pill{} enforces strict linear resource accounting, the formalisation defines the primary LTS directly over the typing derivations themselves. 
+In standard presentations of process calculi, operational semantics are typically defined as a reduction relation over raw syntactic processes (e.g., \hl{$\phl{P} \rightarrow \thl{Q}$}). However, because \pill{} enforces strict linear resource accounting, the formalisation defines the primary LTS intrinsically over the typing derivations itself. 
 
-The \texttt{TypingStep} inductive relation dictates how a well-typed process and its supporting hyperenvironment evolve during execution. A transition $G \vdash P \xrightarrow{\alpha} H \vdash Q$ mathematically guarantees that the process $P$ can perform an action $\alpha$ to become $Q$, and that the hyperenvironment $G$ correctly evolves into $H$ to reflect the consumption or creation of linear resources. By baking the transition system directly into the typing judgements, the formalisation intrinsically links operational behavior to linear resource validity.
+The \texttt{TypingStep} inductive relation dictates how a well-typed process and its supporting hyperenvironment evolve during execution. A transition $\judge{}{P}{\hyp{G}}\xrightarrow{l} \judge[]{}{Q}{\hyp{H}}$ mathematically guarantees that the process $\phl{P}$ can perform an action $l$ to become $\phl{Q}$, and that the hyperenvironment $\thl{\hyp{G}}$ correctly evolves into $\thl{\hyp{H}}$ to reflect the consumption or creation of linear resources. By baking the transition system directly into the typing judgements, the formalisation intrinsically links operational behavior to linear resource management.
 
 \paragraph{Erasure Homomorphisms}
-While \texttt{TypingStep} provides the ultimate source of truth for the calculus, reasoning exclusively over full typing derivations during complex metatheoretical proofs can become mechanically overwhelming due to the sheer size of the dependent types involved. 
+While \texttt{TypingStep} provides the source of truth for the calculus, reasoning exclusively using the full derivations can become overwhelming due to the size and the constraints they enforce. 
 
-To alleviate this, the formalisation mechanises the erasure homomorphisms described in \cref{subsec:operational-semantics}. By projecting out the constituent parts of a \texttt{TypingStep}, we define two strictly derived LTSs:
-\begin{itemize}
-    \item \textbf{\texttt{ProcStep}:} Extracted via the \texttt{proc} projection function, this relation models the syntactic evolution of the process ($P \xrightarrow{\alpha} Q$) completely independent of its typing context.
-    \item \textbf{\texttt{EnvStep}:} Extracted via the \texttt{env} projection function, this relation models the structural evolution of the hyperenvironment ($G \xrightarrow{\alpha} H$) as resources are exchanged.
-\end{itemize}
+To alleviate this, the formalisation mechanises the erasure homomorphisms described in \cref{subsec:process-semantics-erasure} and the environment equivalent described in \cref{subsec:semantics-environments}. Following \cref{abs-2106-11818} we project out the process and environment of a \texttt{TypingStep} to define two independent LTSs:
+\begin{highlight}
+  \begin{itemize}
+    \item \textbf{\texttt{ProcStep}:} Extracted via the \texttt{proc} projection function, this relation models the syntactic evolution of the process ($\phl{P} \xrightarrow{l} \phl{Q}$) completely independent of its typing context.
+    \item \textbf{\texttt{EnvStep}:} Extracted via the \texttt{env} projection function, this relation models the structural evolution of the hyperenvironment ($\thl{\hyp{G}} \xrightarrow{l} \thl{\hyp{H}}$) as resources are exchanged.
+  \end{itemize}
+\end{highlight}
 
-Because \texttt{ProcStep} and \texttt{EnvStep} are derived mathematically from \texttt{TypingStep}, they are guaranteed to be sound with respect to the linear typing rules. These projected relations serve as the primary foundational infrastructure for the subject reduction and progress theorems discussed in \cref{chap:metatheory}.
+Because \texttt{ProcStep} and \texttt{EnvStep} are derived mathematically from \texttt{TypingStep}, they are guaranteed to be sound with respect to the linear typing rules. These projected relations serve as the primary foundational infrastructure for the subject reduction and progress theorems discussed in \cref{sec:metatheory}. % FIXME: Reference the correct section 
 
+\paragraph{Structural Invariants and Inversion}
+While \texttt{TypingStep} defines the valid transitions of the calculus, reasoning about these transitions mathematically requires a robust suite of structural guarantees. Just as the static typing judgements enforce exact names and context well-formedness, the dynamic transition relation must be proven to strictly preserve these linearity constraints across execution steps. Furthermore, because process calculi transitions are inherently non-deterministic, decomposing a \texttt{TypingStep} during proofs relies heavily on complex inversion lemmas (e.g., extracting the constituent environments from a tensor-parr communication). Because these inversion and linearity lemmas form the foundational proof architecture for the calculus, their specific mechanisation and application are deferred and discussed in detail alongside the main soundness theorems in \cref{chap:metatheory}.
 
+\subsection{Session Fidelity}\label{subsec:session-fidelity}
+The final objective of the formalisation is to verify the core soundness properties of the \pill{} calculus, collectively referred to as Session Fidelity. Encapsulated within the \path{SessionFidelity/} namespace, this suite of proofs verifies that well-typed processes behave predictably, memory resources are strictly accounted for during execution, and the type system accurately restricts dynamic behavior. 
 
+\paragraph{Erasure Simulation}
+Before proving global soundness, the formalisation must mathematically validate the erasure homomorphisms defined in \cref{subsec:operational-semantics-mechanisation}. The files \path{EnvStep.lean} and \path{ProcStep.lean} establish forward simulation theorems for the projected transition systems. Specifically, they prove that if a full derivation step occurs (\texttt{TypingStep}), the extracted process and environment can independently mimic that exact transition:
 
+% FIXME: Replace comments with the actual implementations
+\begin{lstlisting}[language=Lean4]
+  -- Simulation for Processes (proc : Der -> Proc)      
+  -- Simulation for Environments (env : Der -> Env)
+\end{lstlisting}
 
+These simulation results confirm that \texttt{ProcStep} and \texttt{EnvStep} are sound abstractions of the underlying typed calculus, allowing the metatheory to reason about syntax and resources independently when necessary.
 
+\paragraph{Subject Reduction}
+The cornerstone of session fidelity is the Subject Reduction theorem (often referred to as Type Preservation), mechanised in \path{SubjectReduction.lean}. The theorem states that if a process \hl{$\phl{P}$} is well-typed under a hyperenvironment \hl{$\thl{\hyp{G}}$}, and \hl{$\phl{P}$} takes an operational step to \hl{$\phl{P'}$} via action $l$, then there must exist a stepped hyperenvironment \hl{$\thl{\hyp{H}}$ such that $P'$ is well-typed under $\thl{\hyp{H}}$, and $\thl{\hyp{G}}$ validly transitions to $\thl{\hyp{H}}$} via the same action $l$.
 
+% FIXME:
+\begin{lstlisting}[language=Lean4]
+  -- Put the subject reduction theorem here.
+\end{lstlisting}
 
+This theorem is proven by structural induction over the transitions relation, which requires reasoning about the extraction of a specific typing environment structure given a generic typing environment and the rule it originates from. This is the core of the formalisation where the hyperenvironment inversion lemmas (e.g., \path{Tensor_Parr_Res.lean} and \path{Bot_Res.lean}) are deployed. When two parallel processes communicate, the proof state only knows that their combined hyperenvironment steps. The inversion lemmas deconstruct the generic hyperenvironment, route the specific communication channels to the correct continuations, re-establish the explicit disjointness constraints (\texttt{hD} and \texttt{hF}), and reconstruct the modified hyperenvironment to satisfy the typing judgement for \hl{$\phl{P'}$}.
 
+\paragraph{Typability and Coherent Evolution}
+While Subject Reduction guarantees the existence of a valid continuation state, \path{Typability.lean} elevates this guarantee back to the level of full typing derivations. The typability theorem proves that the structural evolution of the process and the environment step together coherently within the typed LTS:
 
+\begin{lstlisting}[language=Lean4]
+  -- put typability theorem here.
+\end{lstlisting}
 
-\subsection{Session Fidelity}
-The \texttt{SessionFidelity} namespace establishes the 
-results for \pimll{}. It contains the simulation results showing \texttt{EnvStep} and \texttt{ProcStep} can each mimic \texttt{JudgementStep}, subject reduction, which states that if \hl{$\phl{P}$} is well-typed and takes a step to \hl{$\phl{P'}$}, then \hl{$\phl{P'}$} is well-typed under a stepped environment, and typability, which lifts subject reduction to the level of typing derivations, showing that a well-typed process and its typing environment step together coherently.
-
-
-
-
-
-
-
-
-
-
-
+By bridging the gap between the untyped \texttt{ProcStep} and the strictly typed \texttt{TypingStep}, this theorem conclusively establishes Session Fidelity: a well-typed \pimll{} process will strictly obey its session protocols, consume linear resources correctly, and never evolve into an untypable or undefined state.
 
 
 
