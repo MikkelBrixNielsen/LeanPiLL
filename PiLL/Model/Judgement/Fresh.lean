@@ -295,7 +295,7 @@ abbrev Typing_double_cut_tensor_parr
     x ≠ x' → x ≠ y' → y ≠ x' → y ≠ y' →
      Typing n (P'⸨2 | #x, #y⸩⸨#x', #y'⸩)
       (𝒢 |ₕ [x ∶ B :: Δ] |ₕ [x' ∶ A :: Γ] |ₕ [y' ∶ Aᗮ :: y ∶ Bᗮ :: Ξ])) :
-  Typing n (𝑣⸨$N,$N⸩ (𝑣⸨$N,$N⸩ P')) (𝒢 |ₕ [Γ‚ (Δ‚ Ξ)]) :=
+  Typing n (𝑣⸨•,•⸩ (𝑣⸨•,•⸩ P')) (𝒢 |ₕ [Γ‚ (Δ‚ Ξ)]) :=
   Typing.exchange_hyper
     (Typing.cut L (A := B) (fun z hz w hw hzw =>
       Typing.exchange_hyper

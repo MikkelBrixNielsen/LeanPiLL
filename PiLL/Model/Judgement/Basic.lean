@@ -23,17 +23,17 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
       Typing n (P⸨#x, #y⸩) (𝒢 |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ])) →
       ----------------------------------------------------------
-      Typing n (𝑣⸨$N,$N⸩ P) (𝒢 |ₕ [Γ‚ Δ])
+      Typing n (𝑣⸨•,•⸩ P) (𝒢 |ₕ [Γ‚ Δ])
   | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {A B : Types}
       {n : Nat} (hF : x ∉ Γ.names ∧ x ∉ Δ.names) (L : Finset FPName) :
       (∀ y ∉ L, Typing n (P⸨#y⸩) ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) →
       ---------------------------------------------------------------
-      Typing n (#x⟦$N⟧․P) [x ∶ A ⨂ B :: Γ‚ Δ]
+      Typing n (#x⟦•⟧․P) [x ∶ A ⨂ B :: Γ‚ Δ]
   | parr {Γ : Env} {P : Proc} {x : FPName} {A B : Types}
       {n : Nat} (hF : x ∉ Γ.names) (L : Finset FPName) :
       (∀ y ∉ L, Typing n (P⸨#y⸩) [y ∶ A :: x ∶ B :: Γ]) →
       -------------------------------------------------------
-      Typing n (#x⸨$N⸩․P) [x ∶ A ⅋ B :: Γ]
+      Typing n (#x⸨•⸩․P) [x ∶ A ⅋ B :: Γ]
   | oplus₁
       {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
       B.lc n →
@@ -71,7 +71,7 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       (hF : x ∉ Γ.names) (L : Finset FPName) :
       (∀ x' ∉ L, Typing n P⸨#x'⸩ [x ∶ ??A :: x' ∶ ??A :: Γ]) →
       -------------------------------------------------------------
-      Typing n (#x⟦DUP⟧⸨$N⸩․P) [x ∶ ??A :: Γ]
+      Typing n (#x⟦DUP⟧⸨•⸩․P) [x ∶ ??A :: Γ]
   | exists_
       {Γ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
       A.lc n →
@@ -80,9 +80,9 @@ inductive Typing : Nat → Proc → HyperEnv → Prop where
       Typing n (#x⟦A⟧․P) [x ∶ ∃․B :: Γ]
   | forall_
       {Γ : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
-      Typing (n + 1) P [x ∶ B :: Γ⁺ᵗ] →
+      Typing (n + 1) P [x ∶ B :: Γ⁺] →
       ----------------------------------
-      Typing n (#x⸨$T⸩․P) [x ∶ ∀․B :: Γ]
+      Typing n (#x⸨⋄⸩․P) [x ∶ ∀․B :: Γ]
   | ax
       {x y : FPName} {A : Types} {n : Nat} (hneq : x ≠ y):
       A.lc n →

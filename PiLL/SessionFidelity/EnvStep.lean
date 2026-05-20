@@ -1,7 +1,7 @@
 import PiLL.Semantics.EnvStep.Basic
 import PiLL.Semantics.JudgementStep.Basic
 
--- env: Der → Env (HyperEnv)
+-- env: Der → Env (Typing Environmnet)
 theorem session_fidelity_envₘ
   {n n' : Nat} {𝒢 𝒢' : HyperEnv} {P P' : Proc} {l : Lbl}
   {𝒟 : Typing n P 𝒢} {𝒟' : Typing n' P' 𝒢'} (hStep : TypingStepₘ 𝒟 l 𝒟') :

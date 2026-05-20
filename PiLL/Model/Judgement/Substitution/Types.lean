@@ -98,7 +98,7 @@ lemma Typing_substTypes {n k : Nat} {P : Proc} {𝒢 : HyperEnv} {A : Types} :
     have := ih (Types.lc_shift_0 hlcA) hk' heq
     subst heq
     apply Typing.forall_
-    simp only [HasSubst.subst, HasShiftTypes.shift, Env.shiftTypes_substTypes_comm] at ⊢ this
+    simp only [HasSubst.subst, HasShift.shift, Env.shiftTypes_substTypes_comm] at ⊢ this
     exact this
   case exchange_env hP ih =>
     simp only [HyperEnv.substTypes_distributes] at ih

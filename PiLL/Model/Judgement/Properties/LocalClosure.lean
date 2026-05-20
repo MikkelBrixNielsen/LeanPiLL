@@ -23,7 +23,7 @@ lemma Typing_preserves_lc_context {𝒢 : HyperEnv} {P : Proc} {n : Nat} :
   case forall_ Γ _ x B n _ ih =>
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hE𝒢
     subst hE𝒢
-    have h : Env.lc (n + 1) ((x, B) :: Γ⁺ᵗ) := ih ((x, B) :: Γ⁺ᵗ) (by simp)
+    have h : Env.lc (n + 1) ((x, B) :: Γ⁺) := ih ((x, B) :: Γ⁺) (by simp)
     simp_all only [List.mem_cons, List.not_mem_nil, or_false, implies_true, Env.lc_cons]
     constructor
     · simp [Types.lc, h.1]

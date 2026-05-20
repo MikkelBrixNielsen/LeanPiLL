@@ -147,7 +147,7 @@ lemma Typing_preserves_linearity {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case exists_ ih => simp_all [HyperEnv.Nodup, Env.Nodup]
   case forall_ Γ _ x B _ _ ih =>
     obtain ⟨ih1, ih2⟩ := ih
-    have ih1' : Env.Nodup (x ∶ B :: Γ⁺ᵗ) := ih1 _ (by simp)
+    have ih1' : Env.Nodup (x ∶ B :: Γ⁺) := ih1 _ (by simp)
     have hFx := (Env.Nodup_cons.mp ih1').1
     have hNodupΓ := (Env.Nodup_cons.mp ih1').2
     rw [Env.shiftTypes_preserves_names] at hFx

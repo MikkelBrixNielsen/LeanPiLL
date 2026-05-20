@@ -91,7 +91,6 @@ inductive TypingStepₘ : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typ
       (hStep : TypingStepₘ
         (Typing_res_all_fresh huniq x y hx_pre hy_pre hneq) l
         (Typing_res_all_fresh huniq' x y hx_post hy_post hneq)) :
-      ---------------------------------------------------------
       TypingStepₘ (Typing.cut L huniq) l (Typing.cut L' huniq')
   ------- Additional Structural / Exchange Rules -------
   | perm_env {𝒢 ℋ : HyperEnv} {Γ Γ' : Env} {P P' : Proc} {n n' : Nat} {l : Lbl}

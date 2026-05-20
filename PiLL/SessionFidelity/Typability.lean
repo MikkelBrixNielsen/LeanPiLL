@@ -147,7 +147,7 @@ theorem typability_subject_reductionₘ
       · exact TypingStepₘ.perm_hyper (by rfl) hP𝒢' hTS'
   case tensor_parr Q Q' x x' y y' hxQf hyQf hx'Qf hy'Qf hxQ'f hyQ'f hx'Q'f hy'Q'f
     hxx' hxy hxy' hyx' hyy' hx'y' hPS ih =>
-    generalize heq : (𝑣⸨$N,$N⸩ Q) = R at 𝒟
+    generalize heq : (𝑣⸨•,•⸩ Q) = R at 𝒟
     induction 𝒟 generalizing Q <;> try contradiction
     case exchange_env hP ih' =>
       obtain ⟨𝒢_post, 𝒟_post, hTS_post⟩ := ih' hxQf hyQf hx'Qf hy'Qf hPS ih heq

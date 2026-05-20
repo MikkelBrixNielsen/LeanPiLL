@@ -4,7 +4,7 @@ import PiLL.Model.HyperEnvironment.Lemmas.Basic
 import PiLL.Model.Processes.Lemmas
 
 lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
-  Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ᵗ d, c) (𝒢 ↑ᵗ d, c) := by
+  Typing n P 𝒢 → ∀ d c, Typing (n + c) (P ↑ d, c) (𝒢 ↑ d, c) := by
   intro h
   induction h <;> intro d c
   case mix₀ => exact Typing.mix₀
@@ -30,7 +30,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case cut A _ L _ ih =>
     simp only [HyperEnv.shiftTypes_append, HyperEnv.shiftTypes_cons, Env.shiftTypes_append,
       HyperEnv.shiftTypes_empty] at ⊢ ih
-    apply Typing.cut L (A := A ↑ᵗ d, c)
+    apply Typing.cut L (A := A ↑ d, c)
     intro x y hx hy hneq
     specialize ih x y hx hy hneq d c
     simp only [← Types.shift_dual_comm_notation, List.append_assoc,
@@ -97,7 +97,7 @@ lemma Typing_weakening {n : Nat} {P : Proc} {𝒢 : HyperEnv} :
   case forall_ Γ Q x B n' hTQ ih =>
     simp only [HyperEnv.shiftTypes_cons, Env.shiftTypes_cons, HyperEnv.shiftTypes_empty]
     apply Typing.forall_
-    simp only [HasShiftTypes.shift]
+    simp only [HasShift.shift]
     rw [Nat.add_assoc, Nat.add_comm _ 1, ← Nat.add_assoc, Env.shiftTypes_comm]
     apply ih
   case exchange_env hP ih =>

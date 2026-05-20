@@ -44,10 +44,10 @@ lemma Typing_inv_bot {n : Nat} {P : Proc} {x : FPName} {𝒢 : HyperEnv}
         exact hT
 
 lemma Typing_inv_tensor {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
-  (hT : Typing n (#x⟦$N⟧․P) 𝒢) :
+  (hT : Typing n (#x⟦•⟧․P) 𝒢) :
   ∃ (A B : Types) (Γ Δ : Env) (L : Finset FPName),
     (𝒢 ~ [x ∶ A ⨂ B :: Γ‚ Δ]) ∧ (∀ z ∉ L, Typing n (P⸨#z⸩) ([z ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) := by
-  generalize heq : (#x⟦$N⟧․P) = P' at hT
+  generalize heq : (#x⟦•⟧․P) = P' at hT
   induction hT generalizing P <;> try contradiction
   case exchange_env hP ih =>
     obtain ⟨A, B, Γ, Δ, L, hP', hT'⟩ := ih heq
@@ -70,10 +70,10 @@ lemma Typing_inv_tensor {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
       exact hT
 
 lemma Typing_inv_parr {n : Nat} {P : Proc} {𝒢 : HyperEnv} {x : FPName}
-  (hT : Typing n (#x⸨$N⸩․P) 𝒢) :
+  (hT : Typing n (#x⸨•⸩․P) 𝒢) :
   ∃ (A B : Types) (Γ : Env) (L : Finset FPName),
     (𝒢 ~ [x ∶ A ⅋ B :: Γ]) ∧ (∀ z ∉ L, Typing n (P⸨#z⸩) ([z ∶ A :: x ∶ B :: Γ])) := by
-  generalize heq : (#x⸨$N⸩․P) = P' at hT
+  generalize heq : (#x⸨•⸩․P) = P' at hT
   induction hT generalizing P <;> try contradiction
   case exchange_env hP ih =>
     obtain ⟨A, B, Γ, L, hP', hT'⟩:= ih heq
@@ -226,10 +226,10 @@ lemma Typing_inv_output {n : Nat} {x : FPName} {A : Types} {P : Proc} {𝒢 : Hy
     use Γ, B
 
 lemma Typing_inv_input {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
-  (hT : n ⊢ #x⸨$T⸩․P ∷ 𝒢) :
+  (hT : n ⊢ #x⸨⋄⸩․P ∷ 𝒢) :
   ∃ (Γ : Env) (B : Types),
-  (𝒢 ~ [x ∶ ∀․B :: Γ]) ∧ (n + 1 ⊢ P ∷ [x ∶ B :: Γ⁺ᵗ]) := by
-  generalize heq : (#x⸨$T⸩․P) = Pin at hT
+  (𝒢 ~ [x ∶ ∀․B :: Γ]) ∧ (n + 1 ⊢ P ∷ [x ∶ B :: Γ⁺]) := by
+  generalize heq : (#x⸨⋄⸩․P) = Pin at hT
   induction hT generalizing P x <;> try contradiction
   case exchange_env hP ih =>
     obtain ⟨Γ, B, hP', hT'⟩ := ih heq
@@ -315,11 +315,11 @@ lemma Typing_inv_disp₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
     use Γ, A
 
 lemma Typing_inv_dup₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
-  (hT : n ⊢ #x⟦DUP⟧⸨$N⸩․P ∷ 𝒢) :
+  (hT : n ⊢ #x⟦DUP⟧⸨•⸩․P ∷ 𝒢) :
   ∃ (Γ : Env) (A : Types) (L : Finset FPName),
     (𝒢 ~ [x ∶ ??A :: Γ]) ∧ x ∉ Γ.names ∧
     (∀ x' ∉ L, x' ≠ x → n ⊢ P⸨#x'⸩ ∷ [x' ∶ ??A :: x ∶ ??A :: Γ]) := by
-  generalize heq : (#x⟦DUP⟧⸨$N⸩․P) = Pdup at hT
+  generalize heq : (#x⟦DUP⟧⸨•⸩․P) = Pdup at hT
   induction hT generalizing P x <;> try contradiction
   case exchange_env hP ih =>
     obtain ⟨Γ, A, x', hP', hT'⟩ := ih heq
@@ -346,12 +346,12 @@ lemma Typing_inv_dup₁ {n : Nat} {x : FPName} {P : Proc} {𝒢 : HyperEnv}
         exact HyperEnv.Perm.cons (List.Perm.swap (x' ∶ ??A) (x ∶ ??A) Γ) (by simp)
 
 lemma Typing_inv_res {n : Nat} {P : Proc} {𝒢 : HyperEnv}
-  (hT : n ⊢ 𝑣⸨$N,$N⸩ P ∷ 𝒢) :
+  (hT : n ⊢ 𝑣⸨•,•⸩ P ∷ 𝒢) :
   ∃ (A : Types) (Γ Δ : Env) (𝒢' : HyperEnv) (L : Finset FPName),
     (𝒢 ~ 𝒢' |ₕ [Γ‚ Δ]) ∧
     (∀ x ∉ L, ∀ y ∉ L, x ≠ y →
       n ⊢ P⸨#x, #y⸩ ∷ 𝒢' |ₕ [x ∶ A :: Γ] |ₕ [y ∶ Aᗮ :: Δ]) := by
-  generalize heq : (𝑣⸨$N,$N⸩ P) = P' at hT
+  generalize heq : (𝑣⸨•,•⸩ P) = P' at hT
   induction hT generalizing P <;> try contradiction
   case exchange_env hP ih =>
     obtain ⟨A, Γ, Δ, 𝒢, L, hP', hT'⟩ := ih heq

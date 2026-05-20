@@ -9,13 +9,13 @@ inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
       ProcStepₘ (#x⟦⟧․P) (x⟦⟧) P
   | tensor
       {P : Proc} {x y : FPName} (hF : y ∉ {x} ∪ P.f) :
-      ProcStepₘ (#x⟦$N⟧․P) (x⟦y⟧) P⸨#y⸩
+      ProcStepₘ (#x⟦•⟧․P) (x⟦y⟧) P⸨#y⸩
   | bot
       {P : Proc} {x : FPName} :
       ProcStepₘ (#x⸨⸩․P) (x⸨⸩) P
   | parr
       {P : Proc} {x y : FPName} (hF: y ∉ {x} ∪ P.f) :
-      ProcStepₘ (#x⸨$N⸩․P) (x⸨y⸩) P⸨#y⸩
+      ProcStepₘ (#x⸨•⸩․P) (x⸨y⸩) P⸨#y⸩
   | par₁
       {P P' Q : Proc} {l : Lbl} :
       ProcStepₘ P l P' → l.i ∩ Q.f = ∅ →
@@ -36,7 +36,7 @@ inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
       {P P' : Proc} {x y : FPName} (hx : x ∉ P.f) (hy : y ∉ P.f) (hneq : x ≠ y) :
       ProcStepₘ P⸨#x, #y⸩ (x⟦⟧ |ₗ y⸨⸩) P' →
       -----------------------------------
-      ProcStepₘ (𝑣⸨$N,$N⸩ P) (τ) P'
+      ProcStepₘ (𝑣⸨•,•⸩ P) (τ) P'
 | tensor_parr
       {P P' : Proc} {x x' y y' : FPName}
       (hxP : x ∉ P.f) (hyP : y ∉ P.f) (hx'P : x' ∉ P.f) (hy'P : y' ∉ P.f)
@@ -45,11 +45,11 @@ inductive ProcStepₘ : (P : Proc) → Lbl → (P' : Proc) → Prop where
       (hyx' : y ≠ x') (hyy' : y ≠ y') (hx'y' : x' ≠ y')
       (hStep : ProcStepₘ P⸨#x, #y⸩ (x⟦x'⟧ |ₗ y⸨y'⸩) P'⸨2 | #x, #y⸩⸨#x', #y'⸩) :
       -----------------------------------------------------------------------
-      ProcStepₘ (𝑣⸨$N,$N⸩ P) (τ) (𝑣⸨$N,$N⸩ (𝑣⸨$N,$N⸩ P'))
+      ProcStepₘ (𝑣⸨•,•⸩ P) (τ) (𝑣⸨•,•⸩ (𝑣⸨•,•⸩ P'))
 | res
       {P P' : Proc} {l : Lbl} {x y : FPName}  (hneq : x ≠ y)
       (hx : x ∉ P.f ∪ P'.f) (hFy : y ∉ P.f ∪ P'.f)
       (hlx : x ∉ l.f ∪ l.i) (hly : y ∉ l.f ∪ l.i)
       (hStep : ProcStepₘ P⸨#x, #y⸩ l P'⸨#x, #y⸩) :
       -------------------------------------------
-      ProcStepₘ (𝑣⸨$N,$N⸩ P) (l) (𝑣⸨$N,$N⸩ P')
+      ProcStepₘ (𝑣⸨•,•⸩ P) (l) (𝑣⸨•,•⸩ P')
