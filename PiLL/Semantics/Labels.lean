@@ -6,7 +6,6 @@ inductive Mu : Type
   | DISP
   | DUP
   | USE
-  | A (t : Types)
 deriving Repr, DecidableEq
 
 inductive Act : Type
