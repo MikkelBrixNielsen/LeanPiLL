@@ -171,7 +171,7 @@ The primary \texttt{Types.lc} predicate is then defined by structural recursion.
 def Types.lc : Nat -> Types -> Prop
   | _, .one         => True
   | k, .var v       => TVar.lc k v
-  | k, .tensor A B  => A.lc k '$\land$' B.lc k
+  | k, .tensor A B  => A.lc k /-$\land$-/ B.lc k
   | k, .forall_ A   => A.lc (k + 1)
   | k, .exists_ A   => A.lc (k + 1)
   | ...
@@ -303,10 +303,10 @@ The structural recursion evaluates each constructor by incrementing the appropri
 \begin{lstlisting}[language=Lean4]
 def Proc.lc : Nat -> Nat -> Proc -> Prop
   | _, _, .nil         => True
-  | k, n, .one x P     => x.lc k '$\land$' P.lc k n
-  | k, n, .tensor x P  => x.lc k '$\land$' P.lc (k + 1) n
+  | k, n, .one x P     => x.lc k /-$\land$-/ P.lc k n
+  | k, n, .tensor x P  => x.lc k /-$\land$-/ P.lc (k + 1) n
   | k, n, .cut P       => P.lc (k + 2) n
-  | k, n, .input x P   => x.lc k '$\land$' P.lc k (n + 1)
+  | k, n, .input x P   => x.lc k /-$\land$-/ P.lc k (n + 1)
   | ...
 \end{lstlisting}
 
@@ -321,10 +321,10 @@ For constructors carrying explicit subject channels, such as \texttt{tensor} and
 \begin{lstlisting}[language=Lean4]
 def Proc.f : Proc -> Finset FPName
   | .cut P      => P.f
-  | .par P Q    => P.f '$\cup$' Q.f
-  | .link x y   => x.f '$\cup$' y.f
-  | .tensor x P => x.f '$\cup$' P.f
-  | .one x P    => x.f '$\cup$' P.f
+  | .par P Q    => P.f /-$\cup$-/ Q.f
+  | .link x y   => x.f /-$\cup$-/ y.f
+  | .tensor x P => x.f /-$\cup$-/ P.f
+  | .one x P    => x.f /-$\cup$-/ P.f
   | .nil        => {}
   | ...
 \end{lstlisting}
@@ -361,7 +361,7 @@ Environments are defined in \path{Environment/Basic.lean} as
 \texttt{Env}, an abbreviation for a list of channel-type pairs:
 
 \begin{lstlisting}[language=Lean4]
-abbrev Elem := (FPName '$\times$' Types)
+abbrev Elem := (FPName /-$\times$-/ Types)
 abbrev Env  := List Elem
 \end{lstlisting}
 
@@ -376,16 +376,15 @@ The choice of \texttt{List} as the underlying representation deserves explanatio
 
 
 \begin{lstlisting}[language=Lean4]
-abbrev Env.merge ('$\Gamma~\Delta$' : Env) : Env := '$\Gamma$' ++ '$\Delta$'
-infixl:69 "'$,$'" => Env.merge
+abbrev Env.merge (/-$\Gamma~\Delta$-/ : Env) : Env := /-$\Gamma$-/ ++ /-$\Delta$-/
+infixl:69 "/-$,$-/" => Env.merge
 \end{lstlisting}
 
 Because lists do not naturally form a Partial Commutative Monoid (PCM) but are associative by definition, we only need to formally recover commutativity. This is achieved by reasoning up to permutation equivalence, using Lean's built-in \texttt{List.Perm} relation, which is instantiated through a custom \texttt{HasPerm} typeclass and denoted by the infix relation \hl{$\thl{\Gamma \sim \Delta}$}. The essential monoidal laws are established as:
 
 \begin{lstlisting}[language=Lean4]
-lemma Env.merge_comm ('$\Gamma~\Delta$' : Env) : '$\perm{\envmerge{\Gamma}{\Delta}}{\envmerge{\Delta}{\Gamma}}$'
-lemma Env.merge_assoc ('$\Gamma~\Delta~\Xi$' : Env) : '$\envmerge{\Gamma}{}\envmerge{\Delta}{\Xi}$' = '$\envmerge{\Gamma}{}$($\envmerge{\Delta}{\Xi}$)'
-
+lemma Env.merge_comm (/-$\Gamma~\Delta$-/ : Env) : /-$\perm{\envmerge{\Gamma}{\Delta}}{\envmerge{\Delta}{\Gamma}}$-/
+lemma Env.merge_assoc (/-$\Gamma~\Delta~\Xi$-/ : Env) : /-$\envmerge{\Gamma}{}\envmerge{\Delta}{\Xi}$-/ = /-$\envmerge{\Gamma}{}$($\envmerge{\Delta}{\Xi}$)-/
 \end{lstlisting}
 
 Additionally, we use \hl{$\thl{\emptyhyp}$} as unit for merging and implement identity for merging it on both the left and right side of an environment as well as some useful lemmas for defining a standard representation for example turning \hl{$\thl{e :: \emptyhyp}$ into $\thl{[e]}$}.
@@ -399,9 +398,9 @@ Additionally, we use \hl{$\thl{\emptyhyp}$} as unit for merging and implement id
 The requirement that merging is only valid for disjoint environments, is partiality enforced via explicit predicates rather than a partial function. \texttt{Env.names} extracts the domain as a \texttt{Finset}, enabling Lean's built-in \texttt{Disjoint} typeclass. Internal linearity (no channel typed twice) is enforced by \texttt{Env.Nodup} (using List.Nodup as the underlying structure):
 
 \begin{lstlisting}[language=Lean4]
-def Env.names ('$\Gamma$' : Env) : Finset FPName := ('$\Gamma$'.map Prod.fst).toFinset 
-def Env.disjoint ('$\Gamma~\Delta$' : Env) : Prop := Disjoint '$\Gamma$'.names '$\Delta$'.names
-def Env.Nodup ('$\Gamma$' : Env) : Prop := ('$\Gamma$'.map Prod.fst).Nodup
+def Env.names (/-$\Gamma$-/ : Env) : Finset FPName := (/-$\Gamma$-/.map Prod.fst).toFinset 
+def Env.disjoint (/-$\Gamma~\Delta$-/ : Env) : Prop := Disjoint /-$\Gamma$-/.names /-$\Delta$-/.names
+def Env.Nodup (/-$\Gamma$-/ : Env) : Prop := (/-$\Gamma$-/.map Prod.fst).Nodup
 \end{lstlisting}
 
 The interaction between these predicates and merging is captured by \texttt{Env.Nodup\_merge\_iff}, which states that a merged environment is linear if and only if both components are linear and mutually disjoint.
@@ -409,9 +408,9 @@ The interaction between these predicates and merging is captured by \texttt{Env.
 \paragraph{Server usability} The typing rule for server replication requires all dependency channels to carry exponential types. Since Lean inductive constructors cannot explicitly express an arbitrary list of type constraints, this is abstracted into the \texttt{Env.serverUsable} predicate. This asserts that every type in a given environment satisfies \texttt{Types.isServerUsable}, a type-level predicate checking whether a type takes the form of an exponential request (\hl{$\thl{\query B}$}).
 
 \begin{lstlisting}[language=Lean4]
-def Env.serverUsable ('$\Gamma$' : Env) : Prop :=
-  '$\forall$'p, p '$\in$' '$\Gamma$' -> p.snd.isServerUsable
-prefix:max "?'$_e$'" => Env.serverUsable
+def Env.serverUsable (/-$\Gamma$-/ : Env) : Prop :=
+  /-$\forall$-/p, p /-$\in~\Gamma$-/ -> p.snd.isServerUsable
+prefix:max "?/-$_e$-/" => Env.serverUsable
 \end{lstlisting}
 
 \paragraph{Lifted operations} Since environments contain types, all locally nameless operations from \cref{subsubsec:stypes} are lifted pointwise over the type component of each \texttt{Elem}. Local closure, type shifting, name substitution, and type substitution are all defined by mapping over the list, and \path{Environment/Lemmas.lean} proves that each operation preserves the names, disjointness, nodup, and permutation properties of the environment.
@@ -439,9 +438,9 @@ Standard \texttt{List.Perm} is a \emph{shallow} permutation implementation, mean
 \begin{lstlisting}[language=Lean4] 
 inductive HyperEnv.Perm : HyperEnv -> HyperEnv -> Prop where
   | nil  : Perm [] []
-  | cons : {'$\Gamma~\Delta$' : Env} {'$\hyp{G~H}$' : HyperEnv} : '$\perm{\Gamma}{\Delta}$' -> Perm '$\hyp{G}~\hyp{H}$' -> Perm ('$\Gamma :: \hyp{G}$') ('$\Delta :: \hyp{H}$')
-  | swap : {'$\Gamma~\Delta$' : Env} {'$\hyp{G}$' : HyperEnv} : Perm ('$\Gamma :: \Delta :: \hyp{G}$') ('$\Delta :: \Gamma :: \hyp{G}$')
-  | trans {'$\hyp{G~H~J}$' : HyperEnv} : Perm '$\hyp{G~H}$' -> Perm '$\hyp{H~J}$' -> Perm '$\hyp{G~J}$'
+  | cons : {/-$\Gamma~\Delta$-/ : Env} {/-$\hyp{G~H}$-/ : HyperEnv} : /-$\perm{\Gamma}{\Delta}$-/ -> Perm /-$\hyp{G}~\hyp{H}$-/ -> Perm (/-$\Gamma :: \hyp{G}$-/) (/-$\Delta :: \hyp{H}$-/)
+  | swap : {/-$\Gamma~\Delta$-/ : Env} {/-$\hyp{G}$-/ : HyperEnv} : Perm (/-$\Gamma :: \Delta :: \hyp{G}$-/) (/-$\Delta :: \Gamma :: \hyp{G}$-/)
+  | trans {/-$\hyp{G~H~J}$-/ : HyperEnv} : Perm /-$\hyp{G~H}$-/ -> Perm /-$\hyp{H~J}$-/ -> Perm /-$\hyp{G~J}$-/
 \end{lstlisting}
 
 The \texttt{cons} constructor is the key distinction from \texttt{List.Perm}. Rather than requiring the head elements to be identical, it requires them to be \emph{environment-permutation-equivalent} (\hl{$\thl{\Gamma \sim \Delta}$}). This makes \texttt{HyperEnv.Perm} a \emph{deep} permutation implementation that propagates equivalence down to it elements as well as its own ordering. The remaining constructors mirror \texttt{List.Perm} directly.
@@ -449,11 +448,11 @@ The \texttt{cons} constructor is the key distinction from \texttt{List.Perm}. Ra
 \paragraph{Well-formedness} Hyperenvironments carry two distinct linearity conditions. \texttt{HyperEnv.Nodup} differs from \texttt{Env.Nodup}, by only requiring that each component environment is internally linear (no channel typed twice within a single environment), while ensuring that merging only occurs for disjoint environments is handled by \texttt{HyperEnv.PairwiseDisjoint}, which requires that the component environments are mutually disjoint, which ensures that no channel appears in two distinct components:
 
 \begin{lstlisting}[language=Lean4]
-def HyperEnv.Nodup ('$\hyp{G}$' : HyperEnv) : Prop :=
-  '$\forall~\Gamma, ~\Gamma \in \hyp{G}$' -> Env.Nodup '$\Gamma$'
+def HyperEnv.Nodup (/-$\hyp{G}$-/ : HyperEnv) : Prop :=
+  /-$\forall~\Gamma, ~\Gamma \in \hyp{G}$-/ -> Env.Nodup /-$\Gamma$-/
 
-def HyperEnv.PairwiseDisjoint ('$\hyp{G}$' : HyperEnv) : Prop :=
-  List.Pairwise Env.disjoint '$\hyp{G}$'
+def HyperEnv.PairwiseDisjoint (/-$\hyp{G}$-/ : HyperEnv) : Prop :=
+  List.Pairwise Env.disjoint /-$\hyp{G}$-/
 \end{lstlisting}
 
 \begin{example}
@@ -490,9 +489,9 @@ inductive Typing : Nat -> Proc -> HyperEnv -> Prop
 We write \hl{$\judge{n}{P}{\hyp{G}}$} to refer to this construct. The natural number $n$ tracks the current type binder depth, as established in \cref{subsubsec:processes}. Whenever the derivation descends into a \texttt{forall\_} constructor, $n$ is incremented and the environment is shifted by one to keep all embedded type indices in scope:
 
 \begin{lstlisting}[language=Lean4]
-| forall_ {'$\Gamma$' : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
-    Typing (n + 1) P [x : B :: '$\Gamma^{+}$'] ->
-    Typing n (#x'$\dparenL\diamond\dparenR$'.P) [x : '$\forall$'.B :: '$\Gamma$']
+| forall_ {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
+    Typing (n + 1) P [x : B :: /-$\Gamma^{+}$-/] ->
+    Typing n (#x/-$\dparenL\diamond\dparenR$-/.P) [x : /-$\forall$-/.B :: /-$\Gamma$-/]
 \end{lstlisting}
 
 The shift \hl{\texttt{$\thl{\typeshiftsingle{\Gamma}}$}} (or equivalently \hl{\texttt{$\thl{\typeshift{\Gamma}{0}{1}}$}}) applied to the environment ensures that all free type indices in \hl{$\thl{\Gamma}$} are incremented to account for the newly introduced binder, mirroring the shift applied during type substitution in \cref{subsubsec:stypes}.
@@ -501,8 +500,8 @@ The shift \hl{\texttt{$\thl{\typeshiftsingle{\Gamma}}$}} (or equivalently \hl{\t
 Rather than building commutativity into every constructor, the typing relation includes two explicit structural rules that allow reasoning up to permutation equivalence:
 
 \begin{lstlisting}[language=Lean4]
-| exchange_env   : Typing n P ('$\Gamma$' :: '$\hyp{G}$') -> '$\perm{\Gamma}{\Delta}$' -> Typing n P ('$\Delta$' :: '$\hyp{G}$')
-| exchange_hyper : Typing n P '$\hyp{G}$' -> '$\perm{\hyp{G}}{\hyp{H}}$' -> Typing n P '$\hyp{H}$'
+| exchange_env   : Typing n P (/-$\Gamma$-/ :: /-$\hyp{G}$-/) -> /-$\perm{\Gamma}{\Delta}$-/ -> Typing n P (/-$\Delta$-/ :: /-$\hyp{G}$-/)
+| exchange_hyper : Typing n P /-$\hyp{G}$-/ -> /-$\perm{\hyp{G}}{\hyp{H}}$-/ -> Typing n P /-$\hyp{H}$-/
 \end{lstlisting}
 
 \texttt{exchange\_env} allows replacing a component environment with any permutation-equivalent one, while \texttt{exchange\_hyper} allows replacing the entire hyperenvironment. Together these recover the unordered character of the theoretical presentation from \cref{subsubsec:environments} without requiring a quotient type.
@@ -511,9 +510,9 @@ Rather than building commutativity into every constructor, the typing relation i
 Binding constructors use co-finite quantification as described in \cref{subsec:co-finite-quantification}. For example, the \texttt{cut} constructor introduces two fresh dual endpoints:
 
 \begin{lstlisting}[language=Lean4]
-| cut {'$\hyp{G}$' : HyperEnv} {'$\Gamma~\Delta$' : Env} {P : Proc} {A : Types} {n : Nat} (L : Finset FPName) :
-    '$\forall$'x '$\notin$' L, '$\forall$'y '$\notin$' L, x '$\neq$' y -> Typing n ('$\dopen{P}{\#x, \#y}$') ('$\hypermerge{G}{\hypermerge{[\texttt{x : A} :: \Gamma]}{[\texttt{y : A}^\bot :: \Delta]}}$') ->
-    Typing n ('$\dres{P}$') ('$\hypermerge{\hyp{G}}{[\Gamma, \Delta]}$')
+| cut {/-$\hyp{G}$-/ : HyperEnv} {/-$\Gamma~\Delta$-/ : Env} {P : Proc} {A : Types} {n : Nat} (L : Finset FPName) :
+    /-$\forall$-/x /-$\notin$-/ L, /-$\forall$-/y /-$\notin$-/ L, x /-$\neq$-/ y -> Typing n (/-$\dopen{P}{\#x, \#y}$-/) (/-$\hypermerge{G}{\hypermerge{[\texttt{x : A} :: \Gamma]}{[\texttt{y : A}^\bot :: \Delta]}}$-/) ->
+    Typing n (/-$\dres{P}$-/) (/-$\hypermerge{\hyp{G}}{[\Gamma, \Delta]}$-/)
 \end{lstlisting}
 
 The premise holds for any two distinct names $x, y$ outside the finite set $L$. This design serves two complementary purposes. When \emph{constructing} a typing derivation, the prover chooses $L$ to be large enough that any witness outside it is guaranteed fresh, typically the union of all free names currently in scope, and then uses \texttt{exists\_two\_fresh} to produce concrete witnesses. When \emph{using} a typing derivation, for example during inversion or induction, the universal quantifier allows the prover to instantiate $x$ and $y$ as whatever fresh names the current proof goal requires, rather than being tied to the specific names chosen during construction.
@@ -548,9 +547,9 @@ This is used whenever a process is placed under a new type binder, the existing 
 The \texttt{ax} constructor types the forwarding process $\phl{\forward{x}{y}}$, which links two dual endpoints directly:
 
 \begin{lstlisting}[language=Lean4]
-| ax {x y : FPName} {A : Types} {n : Nat} (hneq : x '$\neq$' y) :
+| ax {x y : FPName} {A : Types} {n : Nat} (hneq : x /-$\neq$-/ y) :
     A.lc n ->
-    Typing n ('$\plink{\#x}{\#y}$') [x : A'$^\bot$' :: [y : A]]
+    Typing n (/-$\plink{\#x}{\#y}$-/) [x : A/-$^\bot$-/ :: [y : A]]
 \end{lstlisting}
 
 This requires only that $x \neq y$ and that the type $\thl{A}$ is locally closed at depth $n$. It produces a single-component hyperenvironment containing exactly the two endpoints with dual types, directly reflecting the axiom rule from \cref{fig:pill-typing-rules}. As the simplest typing derivation in the system, it also serves as the base case in inductive proofs over the typing relation.
@@ -566,7 +565,7 @@ The full inductive definition of \texttt{Typing} is listed in
 
 
 
-\subsection{Semantics}\label{subsec:semantics}
+\subsection{Semantics}\label{subsec:operational-semantics-mechanisation}
 The dynamic behavior of the calculus is formalised within the \path{Semantics/} namespace. This includes the definition of transition labels in \path{Semantics/Label.lean}, the core Labelled Transition System (LTS) over typing derivations in \path{Semantics/JudgementStep.lean}, and the induced transition systems over pure processes and environments (\path{ProcStep.lean} and \path{EnvStep.lean}).
 
 \paragraph{The Typed Transition System}
@@ -639,18 +638,16 @@ inductive Mu : Type
   | DISP
   | DUP
   | USE
-deriving Repr, DecidableEq
 
 inductive Act : Type
-  | one       (x : FPName)                -- x[]
-  | bot       (x : FPName)                -- x()
-  | tensor    (x y : FPName)              -- x[y]
-  | parr      (x y : FPName)              -- x(y)
-  | output    (x : FPName) (A : Types)    -- x[A]
-  | input     (x : FPName) (A : Types)    -- x(A)
-  | muBrack   (x : FPName) ('$\mu$' : Mu) -- x['$\mu$']
-  | muParen   (x : FPName) ('$\mu$' : Mu) -- x['$\mu$']
-deriving Repr, DecidableEq
+  | one       (x : FPName)              -- x[]
+  | bot       (x : FPName)              -- x()
+  | tensor    (x y : FPName)            -- x[y]
+  | parr      (x y : FPName)            -- x(y)
+  | output    (x : FPName) (A : Types)  -- x[A]
+  | input     (x : FPName) (A : Types)  -- x(A)
+  | muBrack   (x : FPName) (/-$\mu$-/ : Mu)     -- x[/-$\mu$-/]
+  | muParen   (x : FPName) (/-$\mu$-/ : Mu)     -- x[/-$\mu$-/]
 
 inductive Lbl : Type
   | tau
@@ -667,16 +664,16 @@ The \texttt{HasBracket} and \texttt{HasParen} typeclasses from \path{Base.lean} 
 The LTS over processes is defined in \path{Semantics/ProcStep/Basic.lean} as \texttt{ProcStep}$_\texttt{m}$. The action prefix rules are axioms with explicit freshness conditions. For example, the \texttt{tensor} rule requires the introduced name $y$ to be fresh with respect to the subject $x$ and the free names of the continuation:
 
 \begin{lstlisting}[language=Lean4]
-| tensor {P : Proc} {x y : FPName} (hF : y '$\notin$' {x} '$\cup$' P.f) :
-    ProcStep'$_\texttt{m}$' ('$\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}$') ('$\dlsend{\texttt{x}}{\texttt{y}}$') '$\dopen{\texttt{P}}{\#y}$'
+| tensor {P : Proc} {x y : FPName} (hF : y /-$\notin$-/ {x} /-$\cup$-/ P.f) :
+    ProcStep/-$_\texttt{m}$-/ (/-$\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}$-/) (/-$\dlsend{\texttt{x}}{\texttt{y}}$-/) /-$\dopen{\texttt{P}}{\#y}$-/
 \end{lstlisting}
 
 Note that unlike the typing rules, \texttt{ProcStep} does not use co-finite quantification, the freshness condition is an explicit side condition on the introduced name $y$. This is by design: the process LTS operates purely on syntax without typing information, so there is no universal quantifier to exploit. The consequence is that \texttt{ProcStep} rules are not symmetric with respect to renaming, and inversion lemmas must account for the specific fresh name chosen. The two internal reduction rules are particularly notable. The \texttt{one\_bot} rule handles channel closure:
 
 \begin{lstlisting}[language=Lean4]
 | one_bot {P Q : Proc} {x y : FPName} 
-    (hx : x '$\notin$' P.f) (hy : y '$\notin$' P.f) (hneq : x '$\neq$' y) :
-    ProcStep'$_\texttt{m}$'
+    (hx : x /-$\notin$-/ P.f) (hy : y /-$\notin$-/ P.f) (hneq : x /-$\neq$-/ y) :
+    ProcStep/-$_\texttt{m}$-/
 \end{lstlisting}
 
 % ProcStep'$_\texttt{m}~\dopen{P}{\#x, \#y}~(\lpar{\dlsend{x}{}}{\dlrecv{y}{}})$' P' -> ProcStep'$_\texttt{m}$' ('$\dres{P}$') '$\tau$' P'%
@@ -687,8 +684,8 @@ The \texttt{tensor\_parr} rule handles name-passing communication and is the mos
 \label{subsubsec:judgementstep} The primary LTS is defined in \path{Semantics/JudgementStep/Basic.lean} as a relation between typing derivations:
 
 \begin{lstlisting}[language=Lean4]
-inductive TypingStep'$_\texttt{m}$' : 
-  Typing n P '$\hyp{G}$' -> Lbl -> Typing n' P' '$\hyp{G}$'' -> Prop
+inductive TypingStep/-$_\texttt{m}$-/ : 
+  Typing n P /-$\hyp{G}$-/ -> Lbl -> Typing n' P' /-$\hyp{G}$'-/ -> Prop
 \end{lstlisting}
 
 Its structure closely mirrors \texttt{ProcStep}$_\texttt{m}$, with each constructor corresponding to the same rule at the level of typing derivations. The key difference is that every constructor carries a typing derivation as its subject and produces a new typing derivation as its conclusion, making the type-theoretic content of each step explicit.
