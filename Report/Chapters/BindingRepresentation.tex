@@ -126,13 +126,13 @@ By deferring the exact choice of the forbidden set $L$ to the user at the time o
 
 \paragraph{Application to \pill{} Types} Although type variables are represented using the locally nameless separation of free and bound constructors, their metatheory is handled using depth-indexed reasoning rather than cofinite quantification. Because type variables are static and do not dynamically communicate across parallel scopes like channels do, managing freshness sets $L$ for them introduces unnecessary proof overhead. 
 
-Instead, the system evaluates polymorphic typing rules using a purely depth-indexed approach, powered by a standard De Bruijn shifting operator. We define the shifting of a type \hl{$\thl{A}$} by a distance $d$ at a cutoff depth $c$, denoted mathematically as \hl{$\thl{\shiftdc{d}{c}A}$}. Using this infrastructure, consider the typing rule for the universal type input (\hl{$\thl{\forall. B}$}):
+Instead, the system evaluates polymorphic typing rules using a purely depth-indexed approach, using a De Bruijn shifting operator. We define the shifting of a type \hl{$\thl{A}$} by a distance $d$ at a cutoff depth $c$, denoted mathematically as \hl{$\thl{\shiftdc{d}{c}A}$}. Using this infrastructure, consider the typing rule for the universal type input (\hl{$\thl{\forall. B}$}):
 
 \begin{highlight}
 \[
 \infer[\rlabel{\rname{$\forall$\textsubscript{dB}}}{rule:pill-forall-db}]
-  {\judge{n}{\recvtype{x}{\diamond}{P}}{\shiftdc{0}{1}\Gamma,\cht{x}{\forall. B}}}
-  {\judge{n+1}{P}{\Gamma^{\uparrow t},\cht{x}{B}}}
+  {\judge{n}{\recvtype{x}{\diamond}{P}}{\Gamma,\cht{x}{\forall. B}}}
+  {\judge{n+1}{P}{\shiftdc{0}{1}\Gamma,\cht{x}{B}}}
 \]
 \end{highlight}
 
