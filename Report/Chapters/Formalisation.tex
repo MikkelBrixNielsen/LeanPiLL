@@ -687,7 +687,7 @@ As established previously, both environment and hyperenvironment composition are
 \end{lstlisting}
 
 \subsubsection{Erasure and Induced LTSs}\label{subsubsec:inducedlts}
-While \texttt{TypingStep}$_\texttt{m}$ provides the source of truth for the calculus, decomposing full typing derivations during simulation proofs is unwieldy. The formalisation therefore introduces \texttt{ProcStep}$_\texttt{m}$ and \texttt{EnvStep}$_\texttt{m}$ as independent inductive relations that mathematically realise the respective erasure homomorphisms. 
+While \texttt{TypingStep}$_\texttt{m}$ serves as the foundational relation for the calculus, reasoning directly over full typing derivations can be cumbersome. To simplify simulation proofs, the formalisation introduces \texttt{ProcStep}$_\texttt{m}$ and \texttt{EnvStep}$_\texttt{m}$ as independent inductive relations that implement the respective erasure homomorphisms. 
 
 \paragraph{Process Steps} 
 The \texttt{ProcStep}$_\texttt{m}$ LTS models the syntactic evolution of a process ($\phl{P} \xrightarrow{l} \phl{Q}$) completely independent of its typing context. A notable design choice in this syntactic LTS is the reliance on existential freshness conditions rather than co-finite quantification for binder instantiation. Because \texttt{ProcStep}$_\texttt{m}$ operates purely on syntax, it cannot easily exploit the universal quantifiers present in the typing derivations. Consequently, action prefix constructors require explicit disjointness checks for introduced names. For example, the \texttt{tensor} rule requires the introduced name $y$ to be strictly fresh with respect to the subject $x$ and the free names of the continuation:
@@ -698,7 +698,7 @@ The \texttt{ProcStep}$_\texttt{m}$ LTS models the syntactic evolution of a proce
 \end{lstlisting}
 
 \paragraph{Environment Steps}
-The structural evolution of the hyperenvironment ($\thl{\hyp{G}} \xrightarrow{l} \thl{\hyp{H}}$) is formalised by the \texttt{EnvStep}$_\texttt{m}$ relation. During the design evolution of the formalisation, an early iteration attempted to make \texttt{EnvStep}$_\texttt{m}$ a "smart" relation by mirroring the explicit disjointness side conditions found in \texttt{ProcStep}$_\texttt{m}$. 
+The structural evolution of the hyperenvironment ($\thl{\hyp{G}} \xrightarrow{l} \thl{\hyp{H}}$) is formalised by the \texttt{EnvStep}$_\texttt{m}$ relation. During the design evolution of the formalisation, an early iteration attempted to make \texttt{EnvStep}$_\texttt{m}$ a \emph{smart} relation by mirroring the explicit disjointness side conditions found in \texttt{ProcStep}$_\texttt{m}$. 
 
 However, requiring \texttt{EnvStep}$_\texttt{m}$ to manually verify disjointness complicated the simulation proofs, as these conditions are only meaningful in the presence of typing information. The final architecture designates \texttt{EnvStep}$_\texttt{m}$ as a intentionally "dumb" relation: it defines the structural rules for resource exchange but delegates all well-formedness and disjointness reasoning back to the primary \texttt{TypingStep}$_\texttt{m}$ derivation. This decoupled design ensures that simulation results, such as Session Fidelity, follow smoothly via projection.
 
