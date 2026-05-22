@@ -588,7 +588,7 @@ inductive Lbl : Type
 Each label defines computable sets of free names (\texttt{Lbl.f}) and introduced names (\texttt{Lbl.i}), which are used in the side conditions for the \cref{rule:pill-mix-1,rule:pill-proc-mix-2,rule:pill-mix-sync}. To preserve alignment with the theoretical presentation, we use the \texttt{HasBracket} and \texttt{HasParen} typeclasses for \texttt{Act} and \texttt{Lbl} to allow the notation for process prefixes to be reused uniformly for labels as well. For instance, $\dlsend{x}{y}$ denotes both the output process prefix and the corresponding output label.
 
 \subsubsection{The Typed Transition System}\label{subsubsec:judgementstep}
-The primary LTS, \texttt{TypingStep}$_\texttt{m}$, is a relation between typing derivations. Its constructors mirror the operational rules, but make the type-theoretic content of each step explicit by having every constructor carry a typing derivation as its subject and produces a new typing derivation as its conclusion, making the system \emph{intrinsically} typed.
+The primary LTS, \texttt{TypingStep}$_\texttt{m}$, is a relation between typing derivations. Its constructors mirror the operational rules shown in \cref{fig:mpill-sos}, but make the type-theoretic content of each step explicit by having every constructor carry a typing derivation as its subject and produces a new typing derivation as its conclusion, making the system intrinsically typed.
 
 \begin{lstlisting}[language=Lean4]
 inductive TypingStep/-$_\texttt{m}$-/ : 
@@ -607,12 +607,22 @@ As established previously, both environment and hyperenvironment composition are
       TypingStep/-$_\texttt{m}$-/ (Typing.mix hD1 /-$\der{D}~\der{E}$-/) l (Typing.mix hD2 /-$\der{D}$-/' /-$\der{E}$-/)
 \end{lstlisting}
 
+\begin{remark}
+  The inclusion of \texttt{hD2} to track post-state disjointness was to simplify induction, but is not strictly necessary as this is a derivable fact stemming from the pre-state disjointness (\texttt{hD1}) and the freshness condition $i(l) \cap Q.f = \emptyset$. Combining \texttt{Typing\_f\_eq\_names} and \texttt{hD1}, we can establish that $(P.f \cup i(l)) \cap Q.f = \emptyset$. Combining this with a structural property of the TypingStep relation stating $\hyp{G}' \subseteq \hyp{G} \cup i(l)$, we can deduce that $\hyp{G}' \cap Q.f = \emptyset$. By rewriting this using \texttt{Typing\_f\_eq\_names}, we obtain the required post-state disjointness \texttt{hD2}.
+  
+  The formal proof of this structural property is provided in \cref{app:typingstep-poststate-subset} % FIXME: make appendix and update reference
+\end{remark}
+
 \subsubsection{Erasure and Induced LTSs}\label{subsubsec:inducedlts}
-Following the theoretical framework of the source calculus, the formalisation introduces \texttt{ProcStep}$_\texttt{m}$ and \texttt{EnvStep}$_\texttt{m}$ to explicitly mechanise the erasure homomorphisms. While \texttt{TypingStep}$_\texttt{m}$ defines the complete, resource-aware dynamics of the calculus, extracting the independent process and environment LTSs is mathematically necessary to demonstrate that the linear type system is sound with respect to the underlying untyped semantics. 
+Following the theoretical framework of the source calculus, the formalisation introduces \texttt{ProcStep}$_\texttt{m}$ and \texttt{EnvStep}$_\texttt{m}$ to explicitly mechanise the erasure homomorphisms. 
 
-By projecting the complete typing derivations into these independent transition systems, the formalisation faithfully reproduces the paper's erasure properties. Consequently, these projected relations not only fulfill the theoretical requirements of the calculus, but also serve the practical purpose of separating concerns, thereby keeping the mechanised simulation proofs tractable.
+% While \texttt{TypingStep}$_\texttt{m}$ defines the complete, resource-aware dynamics of the calculus, extracting the independent process and environment LTSs is mathematically necessary to demonstrate that the linear type system is sound with respect to the underlying untyped semantics. 
 
-\paragraph{Process Steps} 
+By projecting the complete typing derivations into these independent transition systems, the formalisation reproduces the paper's erasure properties. 
+
+% Consequently, these projected relations not only fulfill the theoretical requirements of the calculus, but also serve the practical purpose of separating concerns, thereby keeping the mechanised simulation proofs tractable.
+
+\paragraph{Process Steps} % FIXME: TODO: rephrase this.
 The \texttt{ProcStep}$_\texttt{m}$ LTS models the syntactic evolution of a process ($\phl{P} \xrightarrow{l} \phl{Q}$) completely independent of its typing environment. A notable design choice in this syntactic LTS is the reliance on existential freshness conditions rather than co-finite quantification for binder instantiation. Because \texttt{ProcStep}$_\texttt{m}$ operates purely on syntax, it cannot easily exploit the universal quantifiers present in the typing derivations. Consequently, action prefix constructors require explicit disjointness checks for introduced names. For example, the \texttt{tensor} rule requires the introduced name $y$ to be strictly fresh with respect to the subject $x$ and the free names of the continuation:
 
 \begin{lstlisting}[language=Lean4]
@@ -680,6 +690,7 @@ By bridging the gap between the untyped \texttt{ProcStep} and the strictly typed
 % TODO: Mention in discussion what has been tried in the old revision of session fidelity. Talk about closing a process and its commuting lemmas, the auxiliaries for dup and dispose, when there didn't use to be dependencies, and any other interesting things which might hide in there.
 
 % TODO: Mention in discussion that the Procstep relation could become cofinite for the res, one_bot and tensor_rules, which would make it possible to drop the freshness condition from the typingstep relation making both a lot cleaner. Double check that this does not impair the ability to prove the extraction lemmas. 
+% TODO: talk about unneded premises added to the typing relation to make induction easier but which are actually just derivable from the underlying theory e.g. the hD2 premise for the par constructors.
 
 
 
