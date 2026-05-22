@@ -259,7 +259,9 @@ As discussed in \cref{subsec:locally-nameless}, binding constructs in the proces
 
 Notice that \texttt{cut} takes only a continuation \hl{$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of \hl{$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the transmitted payload is anonymized into the continuation.
 
-\paragraph{Opening and closing} \path{Processes/OpenClose.lean} defines opening and closing operations following the Locally Nameless principles established in \cref{subsec:opening-and-closing}. 
+\paragraph{Opening and closing} \path{Processes/OpenClose.lean} defines opening and closing operations following the locally nameless principles established in \cref{subsec:opening-and-closing}. In the theoretical presentation, opening a process at depth $k$ with $x$ is denoted as \hl{$\phl{\{k \mapsto x\}P}$}, and conversely, abstracting a specific name back into a bound index is denoted as \hl{$\phl{\{k \mapsfrom x\}P}$}. 
+
+To mechanise this in Lean, we denote explicit free channels as $\#x$ (mapping to \texttt{Channel.free x}) and introduce custom notation for these substitution operations. Expressions such as $\dopen{P}{k | \#x}$ and $\dopen{P}{k | \#x,\#y}$ denote the opening of a process by instantiating the $k$-th (and $k+1$-th) bound indices with free channels. Conversely, $\dclose{P}{k | \#x}$ and $\dclose{P}{k | \#x, \#y}$ denote the closing of a process by abstracting $x$ and $y$ back into De Bruijn indices. For convenience, the depth parameter can be omitted when operating at the innermost binder ($k=0$), simplifying the notation to $\dopen{P}{\#x,\#y}$ and $\dclose{P}{\#x,\#y}$.
 
 Because binders are represented positionally, the depth parameter $k$ increments according to the number of channels bound by each constructor. For standard communication prefixes like \texttt{tensor}, \texttt{parr}, and the server \texttt{duplicate} operation, exactly one channel is bound, incrementing $k$ by one. The restriction constructor (\texttt{cut}) simultaneously binds two dual endpoints, requiring $k$ to increment by two. Notably, the \texttt{input} constructor binds a type variable rather than a channel. Consequently, it does not affect the channel depth parameter $k$.
 
@@ -282,14 +284,14 @@ def Channel.open (u v : Channel) (k : Nat) : Channel :=
   | c => c
 \end{lstlisting}
 
-For restriction, which requires instantiating two endpoints simultaneously, the \texttt{HasOpenTwo} typeclass from \path{Base.lean} is instantiated by opening sequentially: first replacing index $k+1$ with the second endpoint $v$, then replacing index $k$ with the first endpoint $u$:
+For restriction the \texttt{HasOpenTwo} typeclass from \path{Base.lean} is instantiated by opening sequentially: first replacing index $k+1$ with the second endpoint $v$, then replacing index $k$ with the first endpoint $u$:
 
 \begin{lstlisting}[language=Lean4]
 instance : HasOpenTwo Proc Channel Channel Nat where
   open_ P u v k := (Proc.open (Proc.open P v (k + 1)) u k)
 \end{lstlisting}
 
-To complete the bidirectional infrastructure, \texttt{Proc.close} and \texttt{Channel.close} define the exact inverse operation. Used primarily when abstracting explicit free names into new scopes, \texttt{Proc.close} traverses the process tree using a structural recursion identical to \texttt{Proc.open}, applying the exact same depth-incrementing rules for single and double binders. When the recursion reaches a leaf node, it delegates to \texttt{Channel.close}. If the leaf is a free channel (\texttt{FPName}), the function compares it against the target name $x$, upon a match, the explicit name is \emph{abstracted} into a bound De Bruijn index at the accumulated depth $k$:
+To complete the bidirectional infrastructure, \texttt{Proc.close} and \texttt{Channel.close} define the corresponding closing operation. Used primarily when abstracting explicit free names into new scopes, \texttt{Proc.close} traverses the process tree using a structural recursion identical to \texttt{Proc.open}, applying the exact same depth-incrementing rules for single and double binders. When the recursion reaches a leaf node, it delegates to \texttt{Channel.close}. If the leaf is a free channel (\texttt{FPName}), the function compares it against the target name $x$, upon a match, the explicit name is \emph{abstracted} into a bound De Bruijn index at the accumulated depth $k$:
 
 \begin{lstlisting}[language=Lean4]
 def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
@@ -475,8 +477,8 @@ We write \hl{$\judge{n}{P}{\hyp{G}}$} to refer to this construct. The natural nu
 
 \begin{lstlisting}[language=Lean4]
 | forall_ {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
-    Typing (n + 1) P [x : B :: /-$\Gamma^{+}$-/] ->
-    Typing n (#x/-$\dparenL\diamond\dparenR$-/.P) [x : /-$\forall$-/.B :: /-$\Gamma$-/]
+    Typing (n + 1) P [/-$\cht{\texttt{x}}{\texttt{B}} :: \Gamma^{+}$-/] ->
+    Typing n (#x/-$\dparenL\diamond\dparenR$-/.P) [x : /-$\forall$-/.B/-$::\Gamma$-/]
 \end{lstlisting}
 
 The shift \hl{\texttt{$\thl{\typeshiftsingle{\Gamma}}$}} (or equivalently \hl{\texttt{$\thl{\typeshift{\Gamma}{0}{1}}$}}) applied to the environment ensures that all free type indices in \hl{$\thl{\Gamma}$} are incremented to account for the newly introduced binder, mirroring the shift applied during type substitution in \cref{subsubsec:stypes}.
@@ -498,7 +500,7 @@ Binding constructors use co-finite quantification as described in \cref{subsec:c
 
 \begin{lstlisting}[language=Lean4]
 | cut (L : Finset FPName) :
-    /-$\forall$-/x /-$\notin$-/ L, /-$\forall$-/y /-$\notin$-/ L, x /-$\neq$-/ y -> Typing n (/-$\dopen{P}{\#x, \#y}$-/) (/-$\hypermerge{G}{\hypermerge{[\texttt{x : A} :: \Gamma]}{[\texttt{y : A}^\bot :: \Delta]}}$-/) ->
+    /-$\forall$-/x /-$\notin$-/ L, /-$\forall$-/y /-$\notin$-/ L, x /-$\neq$-/ y -> Typing n (/-$\dopen{P}{\texttt{\#x}, \texttt{\#y}}$-/) (/-$\hypermerge{G}{\hypermerge{[\cht{\texttt{x}}{\texttt{A}} :: \Gamma]}{[\cht{\texttt{y}}{\texttt{A}}^\bot :: \Delta]}}$-/) ->
     Typing n (/-$\dres{\texttt{P}}$-/) (/-$\hypermerge{\hyp{G}}{[\Gamma, \Delta]}$-/)
 \end{lstlisting}
 
@@ -542,21 +544,19 @@ The \texttt{parr} constructor types an input prefix, directly corresponding to \
 
 \begin{lstlisting}[language=Lean4]
 | parr (hF : x /-$\notin \Gamma$-/.names) (L : Finset FPName) :
-    (/-$\forall$-/ y /-$\notin$-/ L, Typing n (/-$\dopen{\texttt{P}}{\texttt{\#y}}$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/]) ->
+    (/-$\forall$-/y /-$\notin$-/ L, Typing n (/-$\dopen{\texttt{P}}{\texttt{\#y}}$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/]) ->
     Typing n (/-$\drecv{\texttt{x}}{\bullet}{\texttt{P}}$-/) [/-$\cht{\texttt{x}}{\texttt{A} \parr \texttt{B}} :: \Gamma$-/]
 \end{lstlisting}
 
-Several features of the locally nameless architecture are visible here. The process $\phl{\drecv{x}{\bullet}{P}}$ carries no explicit payload name. The co-finite premise requires the opened continuation $\phl{\dopen{P}{\#y}}$ to be well-typed for any $y \notin L$, instantiating the bound index $0$ in $\phl{P}$ with a concrete free name. As discussed previously, the co-finite quantifier allows the continuation to be instantiated with any sufficiently fresh name required by the proof context.The explicit disjointness condition \texttt{hF} ensures that the subject channel $x$ does not already appear in $\Gamma$, enforcing the partiality of the merge operator as discussed above.
-
-% Compared to the paper rule, which simply states \emph{pick a fresh $y$}, the co-finite quantifier makes this freshness condition first-class: when constructing a derivation, $L$ is chosen to exclude all names currently in scope; when inverting or applying induction, the universal quantifier provides the hypothesis for any fresh name the proof requires.
+Several features of the locally nameless architecture are visible here. The process $\phl{\drecv{x}{\bullet}{P}}$ carries no explicit payload name. The co-finite premise requires the opened continuation $\phl{\dopen{P}{\#y}}$ to be well-typed for any $y \notin L$, instantiating the bound index $0$ in $\phl{P}$ with the free name $y$. As discussed previously, the co-finite quantifier allows the continuation to be instantiated with any sufficiently fresh name required by the proof context.The explicit disjointness condition \texttt{hF} ensures that the subject channel $x$ does not already appear in $\Gamma$, enforcing the partiality of the merge operator.
 \end{example}
 
 The full inductive definition of \texttt{Typing} is listed in 
 \cref{app:judgements}.
 
 % FIXME: update this section if step relations changes to pure cofinite.
-\subsection{Semantics and Formalisation}\label{subsec:semantics}
-The dynamic behavior of the \pimll{} calculus is formalised within the \path{Semantics/} namespace. In standard presentations of process calculi, operational semantics are typically defined as a reduction relation over raw syntactic processes. However, because \pill{} enforces strict linear resource accounting, the formalisation intrinsically links operational behavior to linear resource management by defining the primary Labelled Transition System (LTS) over the typing derivations themselves.
+\subsection{Semantics}\label{subsec:semantics}
+The dynamic behavior of the \pimll{} calculus is formalised within the \path{Semantics/} namespace. To enforce \pill{}'s strict linear resource accounting, the formalisation defines the primary LTS over the typing derivations themselves.
 
 To fully capture the erasure homomorphisms described in \cref{subsec:operational-semantics}, the formalisation comprises three distinct LTSs:
 \begin{itemize}
@@ -585,7 +585,7 @@ inductive Lbl : Type
   | par   (l l' : Act)
 \end{lstlisting}
 
-Each label defines computable sets of free names (\texttt{Lbl.f}) and introduced names (\texttt{Lbl.i}), which are required for the side conditions of the parallel and restriction rules. To keep proof states readable, the \texttt{HasBracket} and \texttt{HasParen} typeclasses are instantiated for both \texttt{Act} and \texttt{Lbl}. This allows the exact same notation used for process prefixes to be reused for transition labels. For example, $\dlsend{x}{y}$ denotes both the output prefix in a process and the corresponding output transition label.
+Each label defines computable sets of free names (\texttt{Lbl.f}) and introduced names (\texttt{Lbl.i}), which are used in the side conditions for the \cref{rule:pill-mix-1,rule:pill-proc-mix-2,rule:pill-mix-sync}. To preserve alignment with the theoretical presentation, we use the \texttt{HasBracket} and \texttt{HasParen} typeclasses for \texttt{Act} and \texttt{Lbl} to allow the notation for process prefixes to be reused uniformly for labels as well. For instance, $\dlsend{x}{y}$ denotes both the output process prefix and the corresponding output label.
 
 \subsubsection{The Typed Transition System}\label{subsubsec:judgementstep}
 The primary LTS, \texttt{TypingStep}$_\texttt{m}$, is a relation between typing derivations. Its constructors mirror the operational rules, but make the type-theoretic content of each step explicit by having every constructor carry a typing derivation as its subject and produces a new typing derivation as its conclusion, making the system \emph{intrinsically} typed.
