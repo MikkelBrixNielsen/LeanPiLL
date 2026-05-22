@@ -346,7 +346,7 @@ A consequence of the locally nameless representation is that no channel shifting
 
 \paragraph{Structural Properties} \path{Processes/Lemmas.lean} establishes the fundamental structural properties required by the later typing and operational metatheory. This includes commutation lemmas for interacting operations (e.g., \texttt{open\_substNames\_comm}, showing that opening commutes with name substitution), preservation properties for local closure (e.g., \texttt{lc\_of\_open}), and lemmas relating binders to free-name analysis (e.g., \texttt{f\_close}, proving that closing removes a free name from the resulting term).
 
-These results provide the core infrastructure required for the typing and transition semantics developed in subsequent chapters.
+These results provide the core infrastructure required for the transition semantics developed in subsequent chapters.
 
 For completeness, the full inductive definition of \texttt{Proc} and all lemmas from \path{Processes/Lemmas.lean} are listed in \cref{app:processes}. % FIXME: Make an appendix for this.
 
@@ -359,7 +359,7 @@ abbrev Elem := (FPName /-$\times$-/ Types)
 abbrev Env  := List Elem
 \end{lstlisting}
 
-The choice of \texttt{List} as the underlying representation deserves explanation, as it was not the first approach attempted. An initial implementation used \texttt{Finset} to directly model the unordered, duplicate-free nature of the theoretical environment. However, because \texttt{Finset} in Lean is implemented as a quotient type over lists, it inherently resists direct structural induction and pattern matching. This led to two distinct hurdles, namely the constant occurrence of dependent elimination failures, and the necessity of lifting functions and proofs reasoning about environments across the quotient equivalence. In the context of a process calculus, where inversion and structural manipulation of the typing context are omnipresent, this quotient infrastructure proved unwieldy. A second attempt using association lists (\texttt{AList}) encountered similar difficulties. The final design uses a plain \texttt{List} and recovers the unordered structure through an explicit permutation relation, trading quotient reasoning for structural induction, which interacts far more smoothly with Lean's tactic machinery.
+The choice of \texttt{List} as the underlying representation deserves explanation, as it was not the first approach attempted. An initial implementation used \texttt{Finset} to directly model the unordered, duplicate-free nature of the theoretical environment. However, because \texttt{Finset} in Lean is implemented as a quotient type over lists, it inherently resists direct structural induction and pattern matching. This led to two distinct hurdles, namely the constant occurrence of dependent elimination failures, and the necessity of lifting functions and proofs reasoning about environments across the quotient equivalence. In the context of a process calculus, where inversion and structural manipulation of the typing environment are omnipresent, this quotient infrastructure proved unwieldy. A second attempt using association lists (\texttt{AList}) encountered similar difficulties. The final design uses a plain \texttt{List} and recovers the unordered structure through an explicit permutation relation, trading quotient reasoning for structural induction, which interacts far more smoothly with Lean's tactic machinery.
 
 \paragraph{Recovering the PCM structure} Merging two environments is implemented as list concatenation, making it a simple structural, but total, function:
 
@@ -391,8 +391,7 @@ def Env.disjoint (/-$\Gamma~\Delta$-/ : Env) : Prop := Disjoint /-$\Gamma$-/.nam
 def Env.Nodup (/-$\Gamma$-/ : Env) : Prop := (/-$\Gamma$-/.map Prod.fst).Nodup
 \end{lstlisting}
 
-% FIXME: Should this be mentioned here
-The interaction between these predicates and merging is captured by \texttt{Env.Nodup\_merge\_iff}, which states that a merged environment is linear if and only if both components are linear and mutually disjoint.
+The relationship between linearity, disjointness, and merging of typing environments is captured by \texttt{Env.Nodup\_merge\_iff}, which states that a merged environment is linear if and only if both component environments are individually linear and mutually disjoint.
 
 \paragraph{Server usability} The typing rule for server replication requires all dependency channels to carry exponential types. Since Lean inductive constructors cannot explicitly express an arbitrary list of type constraints, this is abstracted into the \texttt{Env.serverUsable} predicate. This asserts that every type in a given environment satisfies \texttt{Types.isServerUsable}, a type-level predicate checking whether a type takes the form of an exponential request (\hl{$\thl{\query B}$}).
 
@@ -463,11 +462,8 @@ hyperenvironment, namely that every channel appears at most once across all comp
 
 
 
-
-
+% FIXME: Check that # is used correctly and introduce its meaning the first time it is used.
 % FIXME: Check correct references
-% FIXME: Mention #x, $y notation somewhere used for channel open and close
-% FIXME: Maybe mention the various constraints which have been imposed as to make merge preserve disjointness now that it is a total function instead of a partiel function?
 \subsubsection{Typing Judgements}\label{subsubsec:judgements}
 The typing relation is defined in \path{Judgement/Basic.lean} as the inductive predicate \texttt{Typing}:
 
@@ -495,11 +491,13 @@ Rather than building commutativity into every constructor, the typing relation i
 
 \texttt{exchange\_env} allows replacing a component environment with any permutation-equivalent one, while \texttt{exchange\_hyper} allows replacing the entire hyperenvironment. Together these recover the unordered character of the theoretical presentation from \cref{subsubsec:environments} without requiring a quotient type.
 
+The same pattern recurs in \texttt{TypingStep}$_\texttt{m}$ and \texttt{EnvStep}, where analogous exchange constructors allow the source and target hyperenvironments to be replaced by permutation-equivalent ones. This reflects a pervasive consequence of the list-based representation: wherever the theoretical presentation reasons silently about unordered collections, the formalisation requires an explicit structural rule.
+
 \paragraph{Co-finite quantification}
 Binding constructors use co-finite quantification as described in \cref{subsec:co-finite-quantification}. For example, the \texttt{cut} constructor introduces two fresh dual endpoints:
 
 \begin{lstlisting}[language=Lean4]
-| cut {/-$\hyp{G}$-/ : HyperEnv} {/-$\Gamma~\Delta$-/ : Env} {P : Proc} {A : Types} {n : Nat} (L : Finset FPName) :
+| cut (L : Finset FPName) :
     /-$\forall$-/x /-$\notin$-/ L, /-$\forall$-/y /-$\notin$-/ L, x /-$\neq$-/ y -> Typing n (/-$\dopen{P}{\#x, \#y}$-/) (/-$\hypermerge{G}{\hypermerge{[\texttt{x : A} :: \Gamma]}{[\texttt{y : A}^\bot :: \Delta]}}$-/) ->
     Typing n (/-$\dres{\texttt{P}}$-/) (/-$\hypermerge{\hyp{G}}{[\Gamma, \Delta]}$-/)
 \end{lstlisting}
@@ -507,9 +505,9 @@ Binding constructors use co-finite quantification as described in \cref{subsec:c
 The premise holds for any two distinct names $x, y$ outside the finite set $L$. This design serves two complementary purposes. When \emph{constructing} a typing derivation, the prover chooses $L$ to be large enough that any witness outside it is guaranteed fresh, typically the union of all free names currently in scope, and then uses \texttt{exists\_two\_fresh} to produce concrete witnesses. When \emph{using} a typing derivation, for example during inversion or induction, the universal quantifier allows the prover to instantiate $x$ and $y$ as whatever fresh names the current proof goal requires, rather than being tied to the specific names chosen during construction.
 
 \paragraph{Explicit Disjointness Constraints}
-In the paper presentation of \pill{}, the disjointness of environments during operations like parallel composition or tensor is implicitly guaranteed by the structural properties of the merge operator for environments and hyperenvironments. However, because the Lean formalisation relies on total list concatenation, these disjointness requirements must be enforced explicitly at the rule level. Many typing constructors carry explicit disjointness and freshness premises to ensure that merging operations remain valid. For example, the \texttt{mix} rule requires a proof that the two hyperenvironments are mutually disjoint (\texttt{hD~: $\hyp{G}$.disjoint $\hyp{H}$}), and the \texttt{tensor} rule requires explicit proof that the subject channel $x$ does not already exist in the continuations (\texttt{hF:x$\notin\Gamma$.names$\land$x$\notin\Delta$.names}). While these local constraints clutter the inductive definitions compared to their paper counterparts, they are necessary to ensure that the formalised typing inductive preserve the partiality of the theoretical merge operator and its underlying monoid structure. The global metatheoretical consequences of these local constraint, namely, that well-typed processes inherently preserve context linearity, are detailed in \cref{sec:metatheory}. % FIXME: reference
+In the paper presentation of \pill{}, the disjointness of environments during operations like parallel composition or tensor is implicitly guaranteed by the structural properties of the merge operator for environments and hyperenvironments. However, because the Lean formalisation relies on total list concatenation, these disjointness requirements must be enforced explicitly at the rule level. Many typing constructors carry explicit disjointness and freshness premises to ensure that merging operations remain valid. For example, the \texttt{mix} rule requires a proof that the two hyperenvironments are mutually disjoint (\texttt{hD~: $\hyp{G}$.disjoint $\hyp{H}$}), and the \texttt{tensor} rule requires explicit proof that the subject channel $x$ does not already exist in the continuations (\texttt{hF~: x $\notin \Gamma$.names $\land$ x $\notin \Delta$.names}). While these local constraints clutter the inductive definitions compared to their paper counterparts, they are necessary to ensure that the formalised typing relation preserves the partiality of the theoretical merge operator and its underlying monoid structure. The global metatheoretical consequences of these local constraints, namely, that well-typed processes inherently preserve context linearity, are detailed in \cref{sec:metatheory}. % FIXME: reference
 
-\paragraph{Structural invariants} The file \path{Judgement/Names.lean} establishes a key invariant for the typping system, namely \texttt{Typing\_f\_eq\_names}. This lemma states that for any well-typed process, the free names of the process are exactly equal to the domain of the hyperenvironment:
+\paragraph{Structural invariants} The file \path{Judgement/Names.lean} establishes a key invariant for the typing relation, namely \texttt{Typing\_f\_eq\_names}. This lemma states that for any well-typed process, the free names of the process are exactly equal to the domain of the hyperenvironment:
 
 \begin{highlight}
 \[
@@ -522,116 +520,39 @@ This ensures both that the process has no untyped free channels and that the env
 Building on this, \path{Judgement/Linearity.lean} proves \texttt{Typing\_preserves\_disjointness}: any well-typed hyperenvironment is pairwise disjoint. Together these two results guarantee that typing derivations can only be constructed for well-formed, linear contexts.
 
 % FIXME: Relevance
-\paragraph{Type weakening}
-\path{Judgement/Weakening.lean} establishes that typing is stable under type-level index shifting:
-\begin{highlight}  
-\[
-\judge{n}{P}{\hyp{G}} \implies \forall d~c, \judge{n+c}{\typeshift{P}{d}{c}}{\typeshift{\hyp{G}}{d}{c}}
-\]
-\end{highlight}
+% \paragraph{Type weakening}
+% \path{Judgement/Weakening.lean} establishes that typing is stable under type-level index shifting:
+% \begin{highlight}  
+% \[
+% \judge{n}{P}{\hyp{G}} \implies \forall d~c, \judge{n+c}{\typeshift{P}{d}{c}}{\typeshift{\hyp{G}}{d}{c}}
+% \]
+% \end{highlight}
 
-This is used whenever a process is placed under a new type binder, the existing derivation can be lifted to the new depth by shifting both the process and its hyperenvironment. The proof proceeds by structural induction on the typing derivation, with the \texttt{forall\_} case requiring careful composition of the shift operations.
+% This is used whenever a process is placed under a new type binder, the existing derivation can be lifted to the new depth by shifting both the process and its hyperenvironment. The proof proceeds by structural induction on the typing derivation, with the \texttt{forall\_} case requiring careful composition of the shift operations.
 
+\begin{example}[That parr rule]
+The \texttt{parr} constructor types an input prefix, directly corresponding to \cref{rule:pill-parr} from \cref{fig:pill-typing-rules}:
 
-% FIXME: Change this example to the one which has been use previously.
-\paragraph{Example derivation}
-The \texttt{ax} constructor types the forwarding process $\phl{\forward{x}{y}}$, which links two dual endpoints directly:
+% \begin{lstlisting}[language=Lean4]
+% | parr {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} (hF : x /-$\notin \Gamma$-/.names)
+%     (L : Finset FPName) :
+%     (/-$\forall$-/ y /-$\notin$-/ L, Typing n (/-$\dopen{\texttt{P}}{\texttt{\#y}}$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/]) ->
+%     Typing n (/-$\drecv{\texttt{x}}{\bullet}{P}$-/) [/-$\cht{\texttt{x}}{\texttt{A} \parr \texttt{B}} :: \Gamma$-/]
+% \end{lstlisting}
 
 \begin{lstlisting}[language=Lean4]
-| ax {x y : FPName} {A : Types} {n : Nat} (hneq : x /-$\neq$-/ y) :
-    A.lc n ->
-    Typing n (/-$\plink{\#x}{\#y}$-/) [x : A/-$^\bot$-/ :: [y : A]]
+| parr (hF : x /-$\notin \Gamma$-/.names) (L : Finset FPName) :
+    (/-$\forall$-/ y /-$\notin$-/ L, Typing n (/-$\dopen{\texttt{P}}{\texttt{\#y}}$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/]) ->
+    Typing n (/-$\drecv{\texttt{x}}{\bullet}{\texttt{P}}$-/) [/-$\cht{\texttt{x}}{\texttt{A} \parr \texttt{B}} :: \Gamma$-/]
 \end{lstlisting}
 
-This requires only that $x \neq y$ and that the type $\thl{A}$ is locally closed at depth $n$. It produces a single-component hyperenvironment containing exactly the two endpoints with dual types, directly reflecting the axiom rule from \cref{fig:pill-typing-rules}. As the simplest typing derivation in the system, it also serves as the base case in inductive proofs over the typing relation.
+Several features of the locally nameless architecture are visible here. The process $\phl{\drecv{x}{\bullet}{P}}$ carries no explicit payload name. The co-finite premise requires the opened continuation $\phl{\dopen{P}{\#y}}$ to be well-typed for any $y \notin L$, instantiating the bound index $0$ in $\phl{P}$ with a concrete free name. As discussed previously, the co-finite quantifier allows the continuation to be instantiated with any sufficiently fresh name required by the proof context.The explicit disjointness condition \texttt{hF} ensures that the subject channel $x$ does not already appear in $\Gamma$, enforcing the partiality of the merge operator as discussed above.
+
+% Compared to the paper rule, which simply states \emph{pick a fresh $y$}, the co-finite quantifier makes this freshness condition first-class: when constructing a derivation, $L$ is chosen to exclude all names currently in scope; when inverting or applying induction, the universal quantifier provides the hypothesis for any fresh name the proof requires.
+\end{example}
 
 The full inductive definition of \texttt{Typing} is listed in 
 \cref{app:judgements}.
-
-
-
-
-
-
-
-
-
-
-
-
-
-\subsection{Semantics}\label{subsec:operational-semantics-mechanisation}
-The dynamic behavior of the calculus is formalised within the \path{Semantics/} namespace. This includes the definition of transition labels in \path{Semantics/Label.lean}, the core Labelled Transition System (LTS) over typing derivations in \path{Semantics/JudgementStep.lean}, and the induced transition systems over pure processes and environments (\path{ProcStep.lean} and \path{EnvStep.lean}).
-
-\paragraph{The Typed Transition System}
-In standard presentations of process calculi, operational semantics are typically defined as a reduction relation over raw syntactic processes (e.g., \hl{$\phl{P} \rightarrow \thl{Q}$}). However, because \pill{} enforces strict linear resource accounting, the formalisation defines the primary LTS intrinsically over the typing derivations itself. 
-
-The \texttt{TypingStep} inductive relation dictates how a well-typed process and its supporting hyperenvironment evolve during execution. A transition $\judge{}{P}{\hyp{G}}\xrightarrow{l} \judge[]{}{Q}{\hyp{H}}$ mathematically guarantees that the process $\phl{P}$ can perform an action $l$ to become $\phl{Q}$, and that the hyperenvironment $\thl{\hyp{G}}$ correctly evolves into $\thl{\hyp{H}}$ to reflect the consumption or creation of linear resources. By baking the transition system directly into the typing judgements, the formalisation intrinsically links operational behavior to linear resource management.
-
-\paragraph{Erasure Homomorphisms}
-While \texttt{TypingStep} provides the source of truth for the calculus, reasoning exclusively using the full derivations can become overwhelming due to the size and the constraints they enforce. 
-
-To alleviate this, the formalisation mechanises the erasure homomorphisms described in \cref{subsec:process-semantics-erasure} and the environment equivalent described in \cref{subsec:semantics-environments}. Following \cref{abs-2106-11818} we project out the process and environment of a \texttt{TypingStep} to define two independent LTSs:
-\begin{highlight}
-  \begin{itemize}
-    \item \textbf{\texttt{ProcStep}:} Extracted via the \texttt{proc} projection function, this relation models the syntactic evolution of the process ($\phl{P} \xrightarrow{l} \phl{Q}$) completely independent of its typing context.
-    \item \textbf{\texttt{EnvStep}:} Extracted via the \texttt{env} projection function, this relation models the structural evolution of the hyperenvironment ($\thl{\hyp{G}} \xrightarrow{l} \thl{\hyp{H}}$) as resources are exchanged.
-  \end{itemize}
-\end{highlight}
-
-Because \texttt{ProcStep} and \texttt{EnvStep} are derived mathematically from \texttt{TypingStep}, they are guaranteed to be sound with respect to the linear typing rules. These projected relations serve as the primary foundational infrastructure for the subject reduction and progress theorems discussed in \cref{sec:metatheory}. % FIXME: Reference the correct section 
-
-\paragraph{Structural Invariants and Inversion}
-While \texttt{TypingStep} defines the valid transitions of the calculus, reasoning about these transitions mathematically requires a robust suite of structural guarantees. Just as the static typing judgements enforce exact names and context well-formedness, the dynamic transition relation must be proven to strictly preserve these linearity constraints across execution steps. Furthermore, because process calculi transitions are inherently non-deterministic, decomposing a \texttt{TypingStep} during proofs relies heavily on complex inversion lemmas (e.g., extracting the constituent environments from a tensor-parr communication). Because these inversion and linearity lemmas form the foundational proof architecture for the calculus, their specific mechanisation and application are deferred and discussed in detail alongside the main soundness theorems in \cref{sec:metatheory}.
-
-
-
-
-
-
-\subsubsection{Process Steps}\label{subsubsec:procstep} In the LTS over processes action prefix rules are axioms with explicit freshness conditions. For example, the \texttt{tensor} rule requires the introduced name $y$ to be fresh with respect to the subject $x$ and the free names of the continuation:
-
-\begin{lstlisting}[language=Lean4]
-| tensor {P : Proc} {x y : FPName} (hF : y /-$\notin$-/ {x} /-$\cup$-/ P.f) :
-    ProcStep/-$_\texttt{m}$-/ (/-$\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}$-/) (/-$\dlsend{\texttt{x}}{\texttt{y}}$-/) /-$\dopen{\texttt{P}}{\#y}$-/
-\end{lstlisting}
-
-Note that unlike the typing rules, \texttt{ProcStep} does not use co-finite quantification, the freshness condition is an explicit side condition on the introduced name $y$. This is becuase the process LTS operates purely on syntax without typing information, so there is no universal quantifier to exploit. The consequence is that \texttt{ProcStep} rules are not symmetric with respect to renaming, and inversion lemmas must account for the specific fresh name chosen. The two internal reduction rules are particularly notable. The \texttt{one\_bot} rule handles channel closure:
-
-\begin{lstlisting}[language=Lean4]
-| one_bot {P Q : Proc} {x y : FPName} 
-    (hx : x /-$\notin$-/ P.f) (hy : y /-$\notin$-/ P.f) (hneq : x /-$\neq$-/ y) :
-    ProcStep/-$_\texttt{m}~(\dopen{\texttt{P}}{\texttt{\#x,\#y}})~(\lpar{\dlsend{x}{}}{\dlrecv{y}{}})$-/ P' -> ProcStep/-$_\texttt{m}~(\dres{\texttt{P}})~\tau$-/ P'
-\end{lstlisting}
-
-The \texttt{tensor\_parr} rule handles name-passing communication and is the most complex constructor in the formalisation, requiring freshness conditions across four names to ensure that the opened endpoints and transmitted names are all mutually distinct and do not appear in the continuations.
-
-
-
-\subsubsection{Judgement Steps and Environment Steps}\label{subsubsec:judgementstep} The primary LTS is a relation between typing derivations describing how they are allowed to step and is defined in \path{Semantics/JudgementStep/Basic.lean}.
-
-\begin{lstlisting}[language=Lean4]
-inductive TypingStep/-$_\texttt{m}$-/ : 
-  Typing n P /-$\hyp{G}$-/ -> Lbl -> Typing n' P' /-$\hyp{G}$'-/ -> Prop
-\end{lstlisting}
-
-Its structure closely mirrors \texttt{ProcStep}$_\texttt{m}$, with each constructor corresponding to the same rule at the level of typing derivations. The key difference is that every constructor carries a typing derivation as its subject and produces a new typing derivation as its conclusion, making the type-theoretic content of each step explicit.
-
-\texttt{EnvStep}$_\texttt{m}$ is defined in \path{Semantics/EnvStep/Basic.lean} as the induced LTS on hyperenvironments, obtained by projecting \texttt{TypingStep}$_\texttt{m}$ to its environment component.
-
-%FIXME: Rewrite to mirror what was going on when trying to make inversion lemmas on the EnvStep relation. 
-\paragraph{Design evolution: smart vs.\ dumb EnvStep}
-An earlier design attempted to define \texttt{EnvStep} as an independent inductive relation, mirroring the structure of \texttt{ProcStep} but operating on hyperenvironments instead of processes. This approach, added explicit disjointness conditions to the \texttt{par} and \texttt{syn} rules, conditions noted in the source as mimicking the corresponding side conditions in \texttt{ProcStep}. The intention was to make \texttt{EnvStep} self-contained, so that linearity properties could be proved directly by induction on \texttt{EnvStep} without reference to typing.
-
-However, this design made \texttt{EnvStep} \emph{smart} in the sense that it required side conditions that are only meaningful in the presence of typing information. This complicated the simulation proofs in \texttt{SessionFidelity}, since showing that \texttt{EnvStep} could mimic \texttt{JudgementStep} required discharging conditions that were not derivable from the structure of the derivation alone.
-
-The final design instead defines \texttt{EnvStep} as a simple projection, a \emph{dumb} relation that simply extracts the environment component of a \texttt{JudgementStep}. This delegates all well-formedness reasoning to the typing derivation, and the simulation results then follow directly from the projection.
-
-
-
-
-
-
 
 % FIXME: update this section if step relations changes to pure cofinite.
 \subsection{Semantics and Formalisation}\label{subsec:semantics}
@@ -640,7 +561,7 @@ The dynamic behavior of the \pimll{} calculus is formalised within the \path{Sem
 To fully capture the erasure homomorphisms described in \cref{subsec:operational-semantics}, the formalisation comprises three distinct LTSs:
 \begin{itemize}
     \item \textbf{\texttt{TypingStep}$_\texttt{m}$}: The primary LTS dictating how well-typed processes and their supporting typing environments evolve simultaneously (\path{JudgementStep/Basic.lean}).
-    \item \textbf{\texttt{ProcStep}$_\texttt{m}$}: The purely syntactic LTS modeling the evolution of processes independent of their typing context (\path{ProcStep/Basic.lean}).
+    \item \textbf{\texttt{ProcStep}$_\texttt{m}$}: The purely syntactic LTS modeling the evolution of processes independent of their typing environments (\path{ProcStep/Basic.lean}).
     \item \textbf{\texttt{EnvStep}$_\texttt{m}$}: The structural LTS modeling the exchange of linear resources within typing environments (\path{EnvStep/Basic.lean}).
 \end{itemize}
 
@@ -687,20 +608,22 @@ As established previously, both environment and hyperenvironment composition are
 \end{lstlisting}
 
 \subsubsection{Erasure and Induced LTSs}\label{subsubsec:inducedlts}
-While \texttt{TypingStep}$_\texttt{m}$ serves as the foundational relation for the calculus, reasoning directly over full typing derivations can be cumbersome. To simplify simulation proofs, the formalisation introduces \texttt{ProcStep}$_\texttt{m}$ and \texttt{EnvStep}$_\texttt{m}$ as independent inductive relations that implement the respective erasure homomorphisms. 
+Following the theoretical framework of the source calculus, the formalisation introduces \texttt{ProcStep}$_\texttt{m}$ and \texttt{EnvStep}$_\texttt{m}$ to explicitly mechanise the erasure homomorphisms. While \texttt{TypingStep}$_\texttt{m}$ defines the complete, resource-aware dynamics of the calculus, extracting the independent process and environment LTSs is mathematically necessary to demonstrate that the linear type system is sound with respect to the underlying untyped semantics. 
+
+By projecting the complete typing derivations into these independent transition systems, the formalisation faithfully reproduces the paper's erasure properties. Consequently, these projected relations not only fulfill the theoretical requirements of the calculus, but also serve the practical purpose of separating concerns, thereby keeping the mechanised simulation proofs tractable.
 
 \paragraph{Process Steps} 
-The \texttt{ProcStep}$_\texttt{m}$ LTS models the syntactic evolution of a process ($\phl{P} \xrightarrow{l} \phl{Q}$) completely independent of its typing context. A notable design choice in this syntactic LTS is the reliance on existential freshness conditions rather than co-finite quantification for binder instantiation. Because \texttt{ProcStep}$_\texttt{m}$ operates purely on syntax, it cannot easily exploit the universal quantifiers present in the typing derivations. Consequently, action prefix constructors require explicit disjointness checks for introduced names. For example, the \texttt{tensor} rule requires the introduced name $y$ to be strictly fresh with respect to the subject $x$ and the free names of the continuation:
+The \texttt{ProcStep}$_\texttt{m}$ LTS models the syntactic evolution of a process ($\phl{P} \xrightarrow{l} \phl{Q}$) completely independent of its typing environment. A notable design choice in this syntactic LTS is the reliance on existential freshness conditions rather than co-finite quantification for binder instantiation. Because \texttt{ProcStep}$_\texttt{m}$ operates purely on syntax, it cannot easily exploit the universal quantifiers present in the typing derivations. Consequently, action prefix constructors require explicit disjointness checks for introduced names. For example, the \texttt{tensor} rule requires the introduced name $y$ to be strictly fresh with respect to the subject $x$ and the free names of the continuation:
 
 \begin{lstlisting}[language=Lean4]
-  | tensor {P : Proc} {x y : FPName} (hF : y $\notin$ {x} $\cup$ P.f) :
-      ProcStep$_\texttt{m}$ ($\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}$) ($\dlsend{\texttt{x}}{\texttt{y}}$) $\dopen{\texttt{P}}{\#y}$
+  | tensor {P : Proc} {x y : FPName} (hF : y /-$\notin$-/ {x} /-$\cup$-/ P.f) :
+      ProcStep/-$_\texttt{m}$-/ (/-$\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}$-/) (/-$\dlsend{\texttt{x}}{\texttt{y}}$-/) /-$\dopen{\texttt{P}}{\texttt{\#y}}$-/
 \end{lstlisting}
 
 \paragraph{Environment Steps}
 The structural evolution of the hyperenvironment ($\thl{\hyp{G}} \xrightarrow{l} \thl{\hyp{H}}$) is formalised by the \texttt{EnvStep}$_\texttt{m}$ relation. During the design evolution of the formalisation, an early iteration attempted to make \texttt{EnvStep}$_\texttt{m}$ a \emph{smart} relation by mirroring the explicit disjointness side conditions found in \texttt{ProcStep}$_\texttt{m}$. 
 
-However, requiring \texttt{EnvStep}$_\texttt{m}$ to manually verify disjointness complicated the simulation proofs, as these conditions are only meaningful in the presence of typing information. The final architecture designates \texttt{EnvStep}$_\texttt{m}$ as a intentionally "dumb" relation: it defines the structural rules for resource exchange but delegates all well-formedness and disjointness reasoning back to the primary \texttt{TypingStep}$_\texttt{m}$ derivation. This decoupled design ensures that simulation results, such as Session Fidelity, follow smoothly via projection.
+However, requiring \texttt{EnvStep}$_\texttt{m}$ to manually verify disjointness complicated the simulation proofs, as these conditions are only meaningful in the presence of typing information. The final architecture designates \texttt{EnvStep}$_\texttt{m}$ as a intentionally \emph{dumb} relation: it defines the structural rules for resource exchange but delegates all well-formedness and disjointness reasoning back to the primary \texttt{TypingStep}$_\texttt{m}$ derivation. This decoupled design ensures that simulation results, such as Session Fidelity, follow smoothly via projection.
 
 
 
