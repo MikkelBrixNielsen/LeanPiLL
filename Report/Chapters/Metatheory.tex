@@ -1,0 +1,68 @@
+\section{Metatheory}
+Having defined the typed, process, and environment transition systems, we now turn to the metatheoretic results connecting them. The goal is to establish Session Fidelity: well-typed processes evolve in accordance with their session types, and their associated linear resources evolve consistently with the process transition. The formalisation of these results is contained in the \path{SessionFidelity/} namespace.
+
+\subsection{Session Fidelity}\label{subsec:session-fidelity}
+The proof is organised around two complementary directions. First, erasure simulation shows that typed derivation steps project to valid process and environment transitions. Second, typability and subject reduction show that process transitions starting from well-typed processes can be lifted back to typed derivation steps, yielding a corresponding environment transition and a typing derivation for the target process.
+
+\paragraph{Erasure simulations}
+The files \path{ProcStep.lean} and \path{EnvStep.lean} establish that typed derivation steps simulate correctly under erasure. Given a typed transition
+\[
+  \texttt{TypingStep}_\texttt{m}\mathcal{D}\ l\ \mathcal{D}',
+\]
+the process extracted from the source derivation transitions to the process extracted from the target derivation, and similarly for the associated environment.
+
+For processes, this is formalised by:
+
+\begin{lstlisting}[language=Lean4]
+theorem session_fidelity_proc/-$_\texttt{m}$-/
+  {n n' : Nat} {/-$\hyp{G, G'}$-/ : HyperEnv} {P P' : Proc} {l : Lbl}
+  {/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/} {/-$\der{D}$-/' : Typing n' P' /-$\hyp{G}$-/'}
+  (hStep : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') :
+  ProcStep/-$_\texttt{m}$-/ (proc /-$\der{D}$-/) l (proc /-$\der{D}$-/')
+\end{lstlisting}
+
+The corresponding environment simulation is:
+
+% \begin{lstlisting}[language=Lean4]
+% theorem session_fidelity_envₘ
+%   {n n' : Nat} {𝒢 𝒢' : HyperEnv} {P P' : Proc} {l : Lbl}
+%   {𝒟 : Typing n P 𝒢} {𝒟' : Typing n' P' 𝒢'}
+%   (hStep : TypingStepₘ 𝒟 l 𝒟') :
+%   EnvStepₘ (env 𝒟) l (env 𝒟')
+% \end{lstlisting}
+
+These results state that the typed transition system is a sound refinement of both the untyped process semantics and the resource-level environment semantics. The proofs proceed by induction on the typed transition derivation. Most cases are direct, but the communication and restriction cases require recovering freshness and disjointness information from the typing derivation using linearity preservation and free-name invariants.
+
+\paragraph{Typability}
+The main lifting theorem is mechanised in \path{Typability.lean}. It states that an untyped process transition out of a well-typed process can be lifted to a transition between typing derivations:
+
+% \begin{lstlisting}[language=Lean4]
+% theorem typability_subject_reductionₘ
+%   {n : Nat} {𝒢 : HyperEnv} {P P' : Proc} {l : Lbl}
+%   (𝒟 : Typing n P 𝒢) (hPS : ProcStepₘ P l P') :
+%   ∃ (𝒢' : HyperEnv) (𝒟' : Typing n P' 𝒢'),
+%     TypingStepₘ 𝒟 l 𝒟'
+% \end{lstlisting}
+
+This theorem is the technical core of the session fidelity proof. It is proved by induction on the process transition derivation. In each case, the source typing derivation is inverted to recover the typing rule that must have produced the observed process shape. The proof then constructs a target hyperenvironment and a target typing derivation for the resulting process.
+
+For prefix actions such as tensor and par, the proof uses the corresponding typing inversion lemmas to expose the continuation typing premise. Since the source rules are stated using co-finite quantification, the proof selects fresh names outside the finite set of names appearing in the current process, environment, and transition labels. The invariants \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_linearity} are then used to show that these names satisfy the required freshness and disjointness side conditions.
+
+The parallel and synchronization cases additionally require showing that disjointness of hyperenvironment components is preserved by the transition. This is handled by preservation lemmas for typed steps, such as the lemmas ensuring that parallel and synchronized transitions preserve disjointness of the affected components.
+
+The most involved cases are the communication-under-restriction cases, such as the interaction between tensor and par. Here the proof must invert a generic typing derivation for a restricted process, expose the specific hyperenvironment components containing the communicating endpoints, perform the process transition under opened names, and then reconstruct a target derivation with the updated resource structure. This is where the hyperenvironment permutation and inversion infrastructure is essential: it allows the proof to rearrange environments up to permutation, isolate the relevant components, and reassemble the post-transition hyperenvironment in the form required by the typing rule.
+
+\paragraph{Subject reduction}
+Subject reduction is stated in \path{SubjectReduction.lean}. It is the standard type-preservation theorem for the process semantics: if a well-typed process takes a process transition, then there exists a corresponding evolved hyperenvironment under which the target process is well-typed.
+
+% \begin{lstlisting}[language=Lean4]
+% theorem subject_reductionₘ
+%   {n : Nat} {𝒢 : HyperEnv} {P P' : Proc} {l : Lbl}
+%   (𝒟 : Typing n P 𝒢) (hPS : ProcStepₘ P l P') :
+%   ∃ 𝒢', EnvStepₘ 𝒢 l 𝒢' ∧ (Typing n P' 𝒢')
+% \end{lstlisting}
+
+Mechanically, this theorem is obtained by composing the typability theorem with the environment erasure simulation. First, \texttt{typability\_subject\_reduction}$_\texttt{m}$ lifts the process step to a typed derivation step, producing a target typing derivation \texttt{\der{D}'}. Then \texttt{session\_fidelity\_env}$_\texttt{m}$ projects this typed step to an environment transition. Thus the process and its typing resources evolve coherently under the same label.
+
+\paragraph{Interpretation}
+Together, these results establish the intended session fidelity property for the mechanised fragment. The process semantics cannot move independently of the typing environment: every process step from a well-typed source has a corresponding resource transition, and the resulting process remains well typed under the evolved hyperenvironment. Conversely, typed derivation steps project faithfully to both process-level and environment-level behaviour. The formalisation therefore connects the operational semantics of processes with the linear accounting discipline enforced by the typing system.
