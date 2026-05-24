@@ -23,26 +23,26 @@ theorem session_fidelity_proc/-$_\texttt{m}$-/
 
 The corresponding environment simulation is:
 
-% \begin{lstlisting}[language=Lean4]
-% theorem session_fidelity_envₘ
-%   {n n' : Nat} {𝒢 𝒢' : HyperEnv} {P P' : Proc} {l : Lbl}
-%   {𝒟 : Typing n P 𝒢} {𝒟' : Typing n' P' 𝒢'}
-%   (hStep : TypingStepₘ 𝒟 l 𝒟') :
-%   EnvStepₘ (env 𝒟) l (env 𝒟')
-% \end{lstlisting}
+\begin{lstlisting}[language=Lean4]
+theorem session_fidelity_env/-$_\texttt{m}$-/
+  {n n' : Nat} {/-$\hyp{G}~hyp{G}$-/' : HyperEnv} {P P' : Proc} {l : Lbl}
+  {/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/} {/-$\der{D}$-/' : Typing n' P' /-$\hyp{G}$-/'}
+  (hStep : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') :
+  EnvStep/-$_\texttt{m}$-/ (env /-$\der{D}$-/) l (env /-$\der{D}$-/')
+\end{lstlisting}
 
 These results state that the typed transition system is a sound refinement of both the untyped process semantics and the resource-level environment semantics. The proofs proceed by induction on the typed transition derivation. Most cases are direct, but the communication and restriction cases require recovering freshness and disjointness information from the typing derivation using linearity preservation and free-name invariants.
 
 \paragraph{Typability}
 The main lifting theorem is mechanised in \path{Typability.lean}. It states that an untyped process transition out of a well-typed process can be lifted to a transition between typing derivations:
 
-% \begin{lstlisting}[language=Lean4]
-% theorem typability_subject_reductionₘ
-%   {n : Nat} {𝒢 : HyperEnv} {P P' : Proc} {l : Lbl}
-%   (𝒟 : Typing n P 𝒢) (hPS : ProcStepₘ P l P') :
-%   ∃ (𝒢' : HyperEnv) (𝒟' : Typing n P' 𝒢'),
-%     TypingStepₘ 𝒟 l 𝒟'
-% \end{lstlisting}
+\begin{lstlisting}[language=Lean4]
+theorem typability_subject_reduction/-$_\texttt{m}$-/
+  {n : Nat} {/-$\hyp{G}$-/ : HyperEnv} {P P' : Proc} {l : Lbl}
+  (/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/) (hPS : ProcStep/-$_\texttt{m}$-/ P l P') :
+  /-$\exists$-/ (/-$\hyp{G}$-/' : HyperEnv) (/-$\hyp{D}$-/' : Typing n P' /-$\hyp{G}$-/'),
+    TypingStep/-$_\texttt{m}~\der{D}$-/ l /-$\hyp{D}$-/'
+\end{lstlisting}
 
 This theorem is the technical core of the session fidelity proof. It is proved by induction on the process transition derivation. In each case, the source typing derivation is inverted to recover the typing rule that must have produced the observed process shape. The proof then constructs a target hyperenvironment and a target typing derivation for the resulting process.
 
@@ -55,12 +55,12 @@ The most involved cases are the communication-under-restriction cases, such as t
 \paragraph{Subject reduction}
 Subject reduction is stated in \path{SubjectReduction.lean}. It is the standard type-preservation theorem for the process semantics: if a well-typed process takes a process transition, then there exists a corresponding evolved hyperenvironment under which the target process is well-typed.
 
-% \begin{lstlisting}[language=Lean4]
-% theorem subject_reductionₘ
-%   {n : Nat} {𝒢 : HyperEnv} {P P' : Proc} {l : Lbl}
-%   (𝒟 : Typing n P 𝒢) (hPS : ProcStepₘ P l P') :
-%   ∃ 𝒢', EnvStepₘ 𝒢 l 𝒢' ∧ (Typing n P' 𝒢')
-% \end{lstlisting}
+\begin{lstlisting}[language=Lean4]
+theorem subject_reduction/-$_\texttt{m}$-/
+  {n : Nat} {/-$\hyp{G}$-/ : HyperEnv} {P P' : Proc} {l : Lbl}
+  (/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/) (hPS : ProcStep/-$\_\texttt{m}$-/ P l P') :
+  /-$\exists$-/ /-$\hyp{G}$-/', EnvStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/' /-$\land$-/ (Typing n P' /-$\hyp{G}$-/')
+\end{lstlisting}
 
 Mechanically, this theorem is obtained by composing the typability theorem with the environment erasure simulation. First, \texttt{typability\_subject\_reduction}$_\texttt{m}$ lifts the process step to a typed derivation step, producing a target typing derivation \texttt{\der{D}'}. Then \texttt{session\_fidelity\_env}$_\texttt{m}$ projects this typed step to an environment transition. Thus the process and its typing resources evolve coherently under the same label.
 
