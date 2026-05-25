@@ -2,111 +2,27 @@
 This section reflects on the design choices made throughout the formalisation, discusses alternatives that were explored, and identifies 
 limitations of the current mechanisation.
 
-\paragraph{Design evolution of session fidelity}
-The proof of session fidelity underwent significant revision before reaching its current form. An early iteration of the formalisation attempted to prove typability by induction on the typing derivation rather than on the process transition. This approach stalled because inverting a typing derivation for a parallel process exposes two independent sub-derivations, but the process transition only steps one side, leaving the proof with no straightforward way to reassemble the target derivation. The final proof instead inducts on \texttt{ProcStep}$_\texttt{m}$ and inverts the typing derivation in each case, which gives direct access to the specific typing rule that produced the observed process shape.
+\paragraph{Evolution of the session fidelity proof}
+The proof of session fidelity underwent significant revision before reaching its current form. An early iteration attempted to prove typability by induction on the typing derivation rather than on the process transition. This approach was poorly aligned with the theorem statement. In the parallel case, inverting a typing derivation exposes two independent sub-derivations, while the process transition determines which component actually steps. The proof therefore has no direct way to identify the sub-derivation that should be transformed and reassembled into the target typing derivation. The final proof instead proceeds by induction on \texttt{ProcStep}$_\texttt{m}$ and inverts the source typing derivation in each case. This aligns the induction with the observed operational step and gives direct access to the typing rule compatible with the process shape.
 
-An earlier version of the session fidelity development also involved explicit infrastructure for closing processes and associated commutation lemmas, as well as auxiliary lemmas for the duplication and disposal constructors. As the formalisation matured and the scope was restricted to \pimll{}, much of this infrastructure was removed or simplified. The current development is accordingly leaner, though extending to the full \pill{} calculus would require revisiting some of this earlier work.
+The treatment of environment transitions also changed during the development. An earlier approach attempted to invert \texttt{EnvStep}$_\texttt{m}$ directly, requiring a substantial collection of inversion lemmas, such as \texttt{EnvStep\_inv\_bot}, \texttt{EnvStep\_inv\_one}, \texttt{EnvStep\_inv\_one\_bot}, and \texttt{EnvStep\_inv\_link}, together with auxiliary \texttt{HyperEnv.Perm.extract\_*} lemmas for communication patterns under restriction. This infrastructure was necessary because the environment transition relation carried enough information to reconstruct hyperenvironment structure from a transition alone. The current formulation instead treats \texttt{EnvStep}$_\texttt{m}$ as a lightweight projection of \texttt{TypingStep}$_\texttt{m}$. Resource evolution is still recorded, but well-formedness and reconstruction are recovered from the typed transition. This removes a layer of environment-step inversion infrastructure and concentrates the difficult reasoning in the typability proof.
 
-An earlier approach to the typability proof attempted to invert \texttt{EnvStep} directly, requiring a substantial set of inversion lemmas (\texttt{EnvStep\_inv\_bot}, \texttt{EnvStep\_inv\_one}, \texttt{EnvStep\_inv\_one\_bot}, \texttt{EnvStep\_inv\_link}) together with auxiliary \texttt{HyperEnv.Perm.extract\_*} lemmas for each communication pattern under restriction. This infrastructure was necessary because the smart \texttt{EnvStep} carried enough information to reconstruct the hyperenvironment structure from a transition alone. The current dumb design eliminates this entire layer, since \texttt{EnvStep} is a simple projection of \texttt{TypingStep}, inversion is handled through the typing derivation instead, significantly reducing the proof burden.
+\paragraph{Proof-engineering tradeoffs}
+Several premises in the typing and transition relations are included for proof convenience rather than logical necessity. The most prominent example is the post-state disjointness proof \texttt{hD2} in the parallel constructors \texttt{par$_1$} and \texttt{par$_2$} of \texttt{TypingStep}$_\texttt{m}$, discussed in \cref{subsubsec:judgementstep}. This premise is derivable from the pre-state disjointness proof \texttt{hD1}, the freshness condition requiring the names introduced by the label to be disjoint from the non-stepping component, and the structural property that transitions only introduce names recorded by their labels. Keeping \texttt{hD2} explicit avoids reconstructing this derived fact in every inductive case, at the cost of slightly cluttering the inductive definition. This is representative of a broader proof-engineering tradeoff: some redundancy in the definitions can make individual proofs shorter and more robust, even when it makes the relations less minimal.
 
-\paragraph{Redundant premises and proof convenience}
-Several premises in the typing and transition relations are included for proof convenience rather than logical necessity. The most prominent example is the post-state disjointness proof \texttt{hD2} in the \texttt{par} constructors of \texttt{TypingStep}$_\texttt{m}$, discussed in \cref{subsubsec:judgementstep}. This premise is derivable from the pre-state disjointness proof \texttt{hD1}, the freshness condition $i(l) \cap Q.f = \emptyset$, and the structural property that transitions only introduce names recorded by their labels. Keeping \texttt{hD2} explicit avoids reconstructing this derived fact in every inductive case, at the cost of slightly cluttering the inductive definition. Identifying and removing such redundant premises would produce cleaner inductive definitions and is a natural cleanup task alongside the co-finite refactoring.
-
-\paragraph{Co-finite quantification in ProcStep}
-The current \texttt{ProcStep}$_\texttt{m}$ relation uses concrete freshness witnesses rather than co-finite quantification for the binding constructors \texttt{tensor}, \texttt{one\_bot}, and \texttt{res}. This creates a mismatch with the co-finite premises of the typing rules, which introduces additional proof obligations in the typability theorem , specifically, the proof must reconcile the concrete names chosen by \texttt{ProcStep}$_\texttt{m}$ with the universally quantified premises of the typing rules. Reformulating \texttt{ProcStep}$_\texttt{m}$ to use co-finite quantification for these constructors would make both relations more uniform and could simplify the typability proof. Whether this simplification is achievable without complicating the erasure simulation proofs remains to be verified.
-
-A recurring source of proof overhead is the mismatch between concrete freshness in \texttt{ProcStep}$_\texttt{m}$ and co-finite quantification in the typing rules. A co-finite formulation of the process transition system would align the two relations more closely and may remove several freshness-bridging lemmas from the typability proof.
+A second source of proof overhead is the mismatch between concrete freshness witnesses in \texttt{ProcStep}$_\texttt{m}$ and co-finite in the typing rules. The binding constructors of \texttt{ProcStep}$_\texttt{m}$ record the particular names introduced by a transition, whereas the corresponding typing rules are stated co-finitely. The simulation proofs must therefore show that the co-finite typing premise can be instantiated with the concrete names chosen by the process transition. This is handled by auxiliary \emph{all fresh} lemmas, such as those for the \texttt{tensor} and \texttt{parr} prefix binders. Reformulating \texttt{ProcStep}$_\texttt{m}$ co-finitely would align the process and typing relations more directly and could reduce the need for these freshness-bridging lemmas, although its effect on the erasure simulation proofs remains to be checked.
 
 \paragraph{Structural congruence}
-The formalisation does not include a structural congruence relation for processes. In the paper presentation of \pill{}, structural congruence identifies processes that differ only by the commutative, associative, and unit laws of parallel composition, as well as scope extrusion for restriction. The monoidal laws for hyperenvironments established in \cref{subsubsec:hyperenvironments} capture the typing-level counterpart of these laws, and the exchange rules in the typing relation recover commutativity at the derivation level. However, a full process-level congruence relation, and the associated proof that well-typed processes are closed under it, has not been mechanised. This would require showing, for example, that $P \pp \nil$ and $P$ are interchangeable in any typing derivation, which currently requires manual application of the monoidal identity lemmas at each step.
+The formalisation does not include a structural congruence relation for processes. In the paper presentation of \pill{}, structural congruence identifies processes modulo the commutative, associative, and unit laws of parallel composition, together with scope manipulation for restriction. The mechanisation currently recovers the typing-level counterpart of these laws through the monoidal laws for hyperenvironments and the exchange rules of the typing relation. However, it does not prove that process syntax itself is closed under structural congruence. For example, processes such as $P \pp \nil$ and $P$ are not automatically interchangeable; the corresponding simplification must instead be reflected manually at the level of hyperenvironments using the monoidal identity lemmas.
 
-An alternative approach suggested by the structure of the formalisation would be to handle associativity via a label-swapping rule in the transition system rather than in structural congruence:
-\begin{highlight}
-  \[
-		\infer{\phl{\res{yx}{P}} \xrightarrow{\mu} \phl{P'}}{\phl{\res{xy}{P}} \xrightarrow{\mu} \phl{P'}}
-  \]
-\end{highlight}
-This would avoid duplicating all typing rules and could handle scope symmetry without a separate congruence relation. Whether this approach is compatible with the current induction structure of the session fidelity proofs remains to be investigated.
+This omission matters because the operational semantics is defined over the concrete syntax tree of processes. In particular, synchronisation rules apply to components exposed by the syntactic structure of parallel composition. Since synchronisation labels are binary, the two processes that synchronise must be visible as sibling components in the syntax tree. For example, in a process of the form $\phl{P \pp (Q \pp R)}$, a synchronisation between $\phl{P}$ and $\phl{Q}$ cannot be exposed by commutativity alone and would require associativity to rearrange the process into $\phl{(P \pp Q) \pp R}$. A full structural congruence development would therefore require proving that typing and transitions are preserved under an independent congruence relation. An alternative would be to build selected symmetry and reassociation principles directly into the transition relation, for example to account for the orientation of restricted endpoints or the nesting of parallel composition. Whether this would simplify the session-fidelity proofs and later behavioural theory, or merely shift the proof burden elsewhere, remains unexplored.
 
-\paragraph{Limitations of the current mechanisation}
-The formalisation covers the full static structure of \pill{} but restricts the operational semantics and metatheory to \pimll{}. Several results from the paper metatheory remain unmechanised, including the behavioural theory (bisimilarity and congruence), the diamond property, serialisation, non-interference, and readiness. These are discussed as directions for future work in the following section.
+\paragraph{Current limitations}
+The static formalisation covers the full \pill{} calculus, but the operational semantics and metatheory currently target the multiplicative fragment \pimll{}. Within \pimll{}, the remaining gap is the \texttt{res} case of \texttt{typability\_subject\_reduction}$_\texttt{m}$. This case requires reconstructing the post-transition hyperenvironment after stepping the opened body of a restriction. In particular, the proof must show that hyperenvironment components not involved in the transition are preserved, up to permutation, so that the outer \texttt{cut} typing derivation can be rebuilt. The required block-preservation infrastructure is largely in place, but the remaining case analysis has not yet been completed.
+
+Several results from the paper metatheory also remain unmechanised, including the behavioural theory of bisimilarity and congruence, the diamond property, serialisation, non-interference, and readiness. These are discussed as directions for future work in the following section.
 
 \paragraph{Proof automation}
-A recurring cost throughout the formalisation is the manual rearrangement of hyperenvironments using permutation and disjointness lemmas. Many proof steps reduce to showing that two hyperenvironments are equivalent up to permutation and satisfy disjointness, which currently requires explicit sequences of rewrite steps. Building a dedicated \texttt{aesop} rule set equipped with the hyperenvironment permutation and disjointness lemmas could automate much of this framing work and significantly reduce proof size.
+A recurring cost throughout the formalisation is the manual rearrangement of hyperenvironments using permutation, disjointness, and freshness lemmas. Many proof steps reduce to showing that two hyperenvironments are equivalent up to permutation, that their components remain disjoint, or that a chosen name is fresh for the relevant process and environment. These obligations currently require explicit sequences of rewrites and structural lemma applications.
 
-\paragraph{Incomplete cases in typability}
-The \texttt{typability\_subject\_reduction}$_\texttt{m}$ proof is complete for the structural cases but admits several cases involving binder-opening via \texttt{sorry}. The affected cases are those requiring simultaneous freshness witnesses for \texttt{res} and \texttt{tensor\_parr}, where the existential freshness conditions of \texttt{ProcStep}$_\texttt{m}$ must be reconciled with the co-finite premises of the corresponding typing rules. The proof obligation is understood and structurally clear; the remaining work is the explicit construction of the required permutation and renaming lemmas. These cases are discussed further in \cref{sec:future}.
-
-% FIXME: Ensure that this is mentioned somewhere in the discussion for cofinite quantifcation.
-% I believe they are being mentioned in the discussion section when talking about them existing in the typingstep relation in correlation to making procstep and typingstep both have cofnite quantification whereby I believe you can just pick fresh enough names to avoif having to do this all_fresh stuff but since the procstep relation explicit in the variables it has picked I needed to show that given any valid typing derivation then substituting using some arbitrary fresh names would still yield a valid derivation for the specific constructors.
-  % A recurring source of proof overhead is the mismatch between concrete freshness in \texttt{ProcStep}$_\texttt{m}$ and co-finite quantification in the typing rules. Since \texttt{ProcStep}$_\texttt{m}$ records the particular name introduced by a transition, the simulation proofs must show that the corresponding co-finite typing premise can be instantiated with that same name. This is handled by auxiliary lemmas such as \texttt{Typing\_tensor\_all\_fresh} and \texttt{Typing\_parr\_all\_fresh}. A co-finite formulation of \texttt{ProcStep}$_\texttt{m}$ would align the two relations more directly and may remove the need for these bridging lemmas.
-
-
-% FIXME: Mention this in discussion or future work
-% for the old attempt at session fidelity where all the missing cases were link, res, com, and tensor_parr, would it be worth mentioning in the discussion or future work section that extending the current implementation of the proof with to full pill could reuse stuff from the old approach? Since after having defined the TypingStep constructors for full pill then the unit-like cases like select left / right would probably follow a similar pattern to how one / bot have been solved, and the inversion lemmas for the full pill constructors on the typing side basically already exist moved elsewhere.
-%   case one =>
-%     obtain ⟨hP, 𝒟'⟩ := Typing_inv_one 𝒟
-%     have ⟨Δ, heq, hPΔ⟩:= HyperEnv.Perm_singleton_inv hP.symm
-%     simp only [HasPerm.perm, List.singleton_perm] at hPΔ
-%     subst hPΔ heq
-%     use ∅, 𝒟'
-%     apply TypingStepₘ.one
-
-% The typing relation hasn't changed so the inversion lemmas would just be plug and play meaning that the hard work for the full typing relation of (inverting it) is basically done there also exists lemmas to reason about locally close and such which would be needed in some of the extended cases, but in general the hardets part would probably be over if the res case hyperenv extraction lemma gets completed as the other cases don't really need this since they don't interact under res like one_bot or tensor_parr or res, so I don't really see any of them needing a typingstep inversion lemma and can probably get by just using typing inverison and the structural rule allowing any a generic hyperenv to make a step if one of its permutation can.
-
-% The only other typingstep rules which would need inversion and hyperenv permutation extraction would probably be forall_exists letting the forall_ and exists_ constructors step under a restriction as well as the selectL_choice and selectR_choice but these have identical hyperenvironment structure comparatively to the tensor_parr case, so they can probably just use the exact same proof (or at least strategy) by swapping the \tensor type for \oplus and the \parr type for &.
-
-% Would any of this last part go in discussion / future work? It all seems realatively in scope when laied out like this that it would be completable given more time. All the missing pieces are just more of what has alreadyd been done. No major new concepts and since we already have the proofs showing that the constructor build the duplication term and the disposal can be validly typed this is also taken care of, but the bang_quest interaction would probably need a step inversion lemma as well. The same goes for bang_contract, bang_weaken, and axcut (which also has some renaming stuff)
-
-% The old rendition didn't have an explicit constructor for doing ax_res i.e. axcut, like it had for tensor_parr and one_bot, so including this would probably unstuck the axcut case in the old session fidelity proof, this would however be a divergence form the paper as they only show the one_bot and tensor_parr constructor in the respective Proc-/Env-step relations.
-
-% TODO: Discussion
-% TODO: Conclusion
-% TODO: Abstract(s)
-% TODO: Appendix 
-
-%FIXME:
-% % A list of things which could also be mentioned
-%   % Diamond property
-%   % Readiness + potential + deadlock freedom
-% FIXME: Missing lemmas / properties to mention in future work section: 
-    % Behavioural theory (similarity, bisimilarity, congruence) - Theorems 4.5, 4.9, 4.10
-    % Diamond property — Theorem 4.15 
-    % Serialisation — Fact 4.18 
-    % Non-interference — Theorem 4.20
-    % Readiness — Theorem 4.21
-    % Similarity and typability — Theorem 4.12, Corollary 4.13
-
-% FIXME: Consider if substitution should be mentioend in section 3, or if it's fine to just mention it in section 4.
-% FIXME: Be consistent in regard to calling it a type or a type payload
-% FIXME: Decide whether to remove highlighting from prose
-% FIXME: Mention in discussion that process congruence does not need associativity since label are at most parallel, so associating either to a left nested process or a right nested process is binary and the order can be fixed with commutivity for exmaple: if l describe a step in Q and l' on P a step in in the following P | (Q | R) -[l | l']-> P' | (Q' | R'), then by commutivity P | (Q | R) = (Q | R) | P and syn can execute this. If l' had to hit R, then problems, but this disallowing associativity by standatd would be impossible as the process AST as Q and R paired so for the step to have been concieved l' must match to P at not Q. So, is that a question of whether the process is well-formed, or does associativity need to also exist? Could write something like: "A related question concerns associativity of parallel composition in the context of the \rname{Syn} rule. Since transition labels are at most binary, commutativity of parallel composition suffices to bring two processes that step under independent actions into the same parallel composition. However, when the two stepping components are not siblings in the process tree, for example, $\phl{P \pp (Q \pp R)}$ where $l$ steps $\phl{P}$ and $l'$ steps $\phl{Q}$, commutativity alone does not suffice. Reassociating to $\phl{(P \pp Q) \pp R}$ requires associativity of parallel composition, which is not currently mechanised. Whether the \rname{Syn} rule can instead be reformulated to handle arbitrary nesting without requiring full associativity in the congruence relation is an open question."
-
-
-% \begin{center}
-% \small
-% \begin{tabularx}{\textwidth}{l X}
-%     \toprule
-%     \textbf{ITEMS} & \textbf{TODO} \\
-%     Writing & Remove highlighting from process names not being part of a process in Background and BindingRepresentation \\
-%     Writing  & In the metatheory/proof strategies section, discuss the structural vs.\ step induction dilemma for \\
-%     LaTex & Make appendix of the full inductives from Lean
-%     \bottomrule
-% \end{tabularx}
-% \end{center}
-
-
-% FIXME: Other things
-% Fix all remaining FIXMEs and TODOs scattered through the files
-% Resolve broken cross-references (\cref{app:...} appendix references)
-% Decide whether to include an appendix with full Lean inductives or drop those references
-% British spelling pass (formalise not formalize, mechanise, recognise etc.)
-% Consistency pass on bound/introduced names terminology
-% Remove or convert remaining \hl{...} highlighting in prose where it doesn't belong
-% Check all \thl and \phl are inside $...$
-% Turn remaining Note paragraphs into remark environments
-% Add GitHub source code link somewhere (acknowledgements or footnote on title page)
-% AI declaration (check with colleagues about requirements)
-
-%FIXME: Include this 
-% The remaining \texttt{res} case depends on block-preservation lemmas for \texttt{TypingStep}$_\texttt{m}$, such as \texttt{TypingStep\_preserves\_block} and \texttt{TypingStep\_preserves\_single\_block}. These lemmas express that hyperenvironment components not involved in a transition are preserved up to permutation, and are intended to support the final reconstruction of the post-state restriction typing derivation.
+A dedicated \texttt{aesop} rule set equipped with the hyperenvironment permutation, disjointness, name-set, and freshness lemmas could automate much of this framing work and significantly reduce proof size. This would not replace the main inversion arguments, such as the remaining \texttt{res} case, but it could remove much of the repetitive bookkeeping around them. Similarly, aligning \texttt{ProcStep}$_\texttt{m}$ more closely with the co-finite style of the typing rules could reduce the number of explicit freshness-bridging obligations

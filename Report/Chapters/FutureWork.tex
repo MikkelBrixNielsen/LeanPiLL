@@ -12,8 +12,6 @@
 
 % Furthermore, mechanizing other standard congruences, such as Scope Extrusion, introduces unique challenges specific to the chosen syntax representation. By adopting a Locally Nameless (LN) approach, the traditional $\alpha$-equivalence and fresh-name side conditions of Scope Extrusion are elegantly bypassed. However, they are replaced by the complexities of De Bruijn index arithmetic. Pulling a parallel process $Q$ under a restriction binder $(\res{xy}{P} \pp Q) \equiv \res{xy}{P \pp (\text{shift}~0~2~Q)}$ requires explicitly shifting the bound indices within $Q$ to account for the increased binder depth. Because the typing hyperenvironments are mechanized using a List-based representation, associativity and commutativity of the contexts must be managed through explicit structural permutation rules. 
 
-
- 
 % %%%%% FIXME: relevance %%%%%
 % Formally proving that these De Bruijn index manipulations distribute and commute safely across explicit list permutations and structural merges adds substantial proof overhead. 
 
@@ -32,46 +30,170 @@
 % The step relations \texttt{TypingStep}$_\texttt{m}$, 
 % \texttt{ProcStep}$_\texttt{m}$, and \texttt{EnvStep}$_\texttt{m}$ currently cover only \pimll{}. A prior revision of the formalisation included constructors for the full \pill{} calculus, including additives, exponentials, and the duplication and disposal constructors with their associated \texttt{buildDup} and \texttt{buildDisp} process constructions. Extending the current operational semantics to the full calculus would primarily involve reinstating these constructors and adapting the session fidelity proofs accordingly.
 
-\section{Future Work}\label{sec:future}
-The most immediate directions for future work concern completing the operational semantics and extending the formalisation to cover the full \pill{} calculus.
+% \section{Future Work}\label{sec:future}
+% The most immediate directions for future work concern completing the operational semantics and extending the formalisation to cover the full \pill{} calculus.
 
-\paragraph{Completing the multiplicative fragment}
-The current session fidelity proofs cover \pimll{} with the exception of the restriction rule. Completing this case would require additional reasoning about how restriction interacts with itself under synchronisation, and how the associated hyperenvironment components are preserved and rearranged across steps. The hyperenvironment permutation infrastructure already developed for the other cases provides the necessary foundation; the remaining work is primarily in constructing the specific extraction lemmas for the restriction-under-restriction scenario.
+% \paragraph{Completing the multiplicative fragment}
+% The current session fidelity proofs cover \pimll{} with the exception of the restriction rule. Completing this case would require additional reasoning about how restriction interacts with itself under synchronisation, and how the associated hyperenvironment components are preserved and rearranged across steps. The hyperenvironment permutation infrastructure already developed for the other cases provides the necessary foundation; the remaining work is primarily in constructing the specific extraction lemmas for the restriction-under-restriction scenario.
 
-\paragraph{Co-finite quantification in ProcStep}
-The current \texttt{ProcStep}$_\texttt{m}$ relation uses existential freshness conditions for binding constructors, while the typing rules use co-finite quantification. This asymmetry introduces proof overhead in the typability theorem, where the specific concrete names chosen by \texttt{ProcStep}$_\texttt{m}$ must be reconciled with the universally quantified premises of the corresponding typing rules. Refactoring \texttt{ProcStep}$_\texttt{m}$ to use co-finite quantification for its binding constructors, specifically \texttt{tensor}, \texttt{one\_bot}, and \texttt{tensor\_parr}, would eliminate this mismatch, remove the \texttt{all\_fresh} helper infrastructure, and likely allow the post-state disjointness premise \texttt{hD2} to be dropped entirely. Whether this refactoring also resolves the remaining \texttt{sorry} cases in \texttt{typability\_subject\_reduction}$_\texttt{m}$ is the primary open question and the main motivation for pursuing this direction.
+% \paragraph{Co-finite quantification in ProcStep}
+% The current \texttt{ProcStep}$_\texttt{m}$ relation uses existential freshness conditions for binding constructors, while the typing rules use co-finite quantification. This asymmetry introduces proof overhead in the typability theorem, where the specific concrete names chosen by \texttt{ProcStep}$_\texttt{m}$ must be reconciled with the universally quantified premises of the corresponding typing rules. Refactoring \texttt{ProcStep}$_\texttt{m}$ to use co-finite quantification for its binding constructors, specifically \texttt{tensor}, \texttt{one\_bot}, and \texttt{tensor\_parr}, would eliminate this mismatch, remove the \texttt{all\_fresh} helper infrastructure, and likely allow the post-state disjointness premise \texttt{hD2} to be dropped entirely. Whether this refactoring also resolves the remaining \texttt{sorry} cases in \texttt{typability\_subject\_reduction}$_\texttt{m}$ is the primary open question and the main motivation for pursuing this direction.
 
-\paragraph{Extending to full \pill{}}
-Once the multiplicative fragment is complete, extending the formalisation to the full \pill{} calculus would require reinstating the step relation constructors for the additive, exponential, and polymorphic fragments. A prior revision of the formalisation included these constructors together with the auxiliary \texttt{buildDup} and \texttt{buildDisp} process constructions needed for the duplication and disposal rules. The static model, processes, types, environments, and typing judgements, is already defined for the full calculus, so the remaining work is concentrated in the operational semantics and session fidelity proofs.
+% \paragraph{Extending to full \pill{}}
+% Once the multiplicative fragment is complete, extending the formalisation to the full \pill{} calculus would require reinstating the step relation constructors for the additive, exponential, and polymorphic fragments. A prior revision of the formalisation included these constructors together with the auxiliary \texttt{buildDup} and \texttt{buildDisp} process constructions needed for the duplication and disposal rules. The static model, processes, types, environments, and typing judgements, is already defined for the full calculus, so the remaining work is concentrated in the operational semantics and session fidelity proofs.
 
-\paragraph{Structural congruence}
-Mechanising structural congruence would address the artificial stuck states that arise from the strict binary tree structure of the process syntax. The most practically significant laws are commutativity and associativity of parallel composition, which are needed for the \rname{Syn} rule to apply to processes that are not immediate siblings, as discussed in \cref{sec:discussion}. Scope extrusion introduces additional complexity in the locally nameless setting, since pulling a process under a restriction binder requires explicit De Bruijn shifting. Rather than adding a full congruence relation to the process syntax, a more tractable approach may be to extend the transition system with explicit symmetric structural rules, such as a \texttt{syn-comm} constructor, which would allow transitions modulo the relevant congruences while preserving the syntactic stability needed for proof search in Lean.
+% \paragraph{Structural congruence}
+% Mechanising structural congruence would address the artificial stuck states that arise from the strict binary tree structure of the process syntax. The most practically significant laws are commutativity and associativity of parallel composition, which are needed for the \rname{Syn} rule to apply to processes that are not immediate siblings, as discussed in \cref{sec:discussion}. Scope extrusion introduces additional complexity in the locally nameless setting, since pulling a process under a restriction binder requires explicit De Bruijn shifting. Rather than adding a full congruence relation to the process syntax, a more tractable approach may be to extend the transition system with explicit symmetric structural rules, such as a \texttt{syn-comm} constructor, which would allow transitions modulo the relevant congruences while preserving the syntactic stability needed for proof search in Lean.
 
-\paragraph{Behavioural metatheory}
-The paper establishes a range of further results that are not mechanised in the current formalisation, including bisimilarity and congruence (Theorems~4.5, 4.9, 4.10 in \citet{abs-2106-11818}), the diamond property (Theorem~4.15), serialisation (Fact~4.18), non-interference (Theorem~4.20), and readiness (Theorem~4.21). These results build directly on session fidelity and would become accessible once the session fidelity proofs are complete.
+% \paragraph{Behavioural metatheory}
+% The paper establishes a range of further results that are not mechanised in the current formalisation, including bisimilarity and congruence (Theorems~4.5, 4.9, 4.10 in \citet{abs-2106-11818}), the diamond property (Theorem~4.15), serialisation (Fact~4.18), non-interference (Theorem~4.20), and readiness (Theorem~4.21). These results build directly on session fidelity and would become accessible once the session fidelity proofs are complete.
 
-\paragraph{Proof automation}
-A recurring cost throughout the formalisation is the manual rearrangement of hyperenvironments using permutation and disjointness lemmas. Building a dedicated \texttt{aesop} rule set equipped with the hyperenvironment permutation and disjointness lemmas could automate much of this framing work and significantly reduce proof size across the development.
+% \paragraph{Proof automation}
+% A recurring cost throughout the formalisation is the manual rearrangement of hyperenvironments using permutation and disjointness lemmas. Building a dedicated \texttt{aesop} rule set equipped with the hyperenvironment permutation and disjointness lemmas could automate much of this framing work and significantly reduce proof size across the development.
 
 
-% FIXME: PiLL extension and stuff
-% FIXME: V1
-\paragraph{Extending the metatheory to full \pill{}}
-The current metatheory targets the multiplicative fragment, but much of the infrastructure is already formulated for the full calculus. In particular, the static typing relation and many of its inversion lemmas cover the additive, polymorphic, axiom, and exponential constructs. Extending the dynamic metatheory therefore appears to be mainly a matter of adding the corresponding \texttt{TypingStep} constructors and reusing the existing proof architecture.
+% % FIXME: PiLL extension and stuff
+% % FIXME: V1
+% \paragraph{Extending the metatheory to full \pill{}}
+% The current metatheory targets the multiplicative fragment, but much of the infrastructure is already formulated for the full calculus. In particular, the static typing relation and many of its inversion lemmas cover the additive, polymorphic, axiom, and exponential constructs. Extending the dynamic metatheory therefore appears to be mainly a matter of adding the corresponding \texttt{TypingStep} constructors and reusing the existing proof architecture.
 
-The additive cases should follow the same general pattern as the solved unit-like prefix cases: invert the source typing derivation, construct the corresponding typed step, and preserve the hyperenvironment structure. The additive synchronization rules under restriction have the same overall shape as the solved multiplicative communication cases, replacing tensor/parr endpoints with selection/choice endpoints. Similarly, the polymorphic synchronization case follows the existing communication-under-restriction pattern, but additionally requires the type-substitution and shifting lemmas developed for the locally nameless representation.
+% The additive cases should follow the same general pattern as the solved unit-like prefix cases: invert the source typing derivation, construct the corresponding typed step, and preserve the hyperenvironment structure. The additive synchronization rules under restriction have the same overall shape as the solved multiplicative communication cases, replacing tensor/parr endpoints with selection/choice endpoints. Similarly, the polymorphic synchronization case follows the existing communication-under-restriction pattern, but additionally requires the type-substitution and shifting lemmas developed for the locally nameless representation.
 
-The exponential and axiom-cut rules are likely to require more proof engineering. Server use, duplication, and disposal generate larger continuation processes and manipulate dependency environments, while axiom-cut performs name substitution under a cut. However, these cases do not appear to require new conceptual infrastructure beyond the existing ingredients: typing inversion, freshness generation, substitution preservation, local closure preservation, and hyperenvironment permutation/reconstruction.
+% The exponential and axiom-cut rules are likely to require more proof engineering. Server use, duplication, and disposal generate larger continuation processes and manipulate dependency environments, while axiom-cut performs name substitution under a cut. However, these cases do not appear to require new conceptual infrastructure beyond the existing ingredients: typing inversion, freshness generation, substitution preservation, local closure preservation, and hyperenvironment permutation/reconstruction.
 
-% FIXME: V2
-\paragraph{Extending to full \pill{}}
-Once the multiplicative fragment is complete, extending the formalisation to the full \pill{} calculus is more mechanical than conceptual. The static model is already defined for the full calculus, and the typing inversion lemmas --- which represent the most labour-intensive part of the session fidelity proofs --- are already in place and would be plug-and-play for the new cases.
+% % FIXME: V2
+% \paragraph{Extending to full \pill{}}
+% Once the multiplicative fragment is complete, extending the formalisation to the full \pill{} calculus is more mechanical than conceptual. The static model is already defined for the full calculus, and the typing inversion lemmas, which represent the most labour-intensive part of the session fidelity proofs, are already in place and would be plug-and-play for the new cases.
 
-The additive cases (\texttt{selectL\_choice} and \texttt{selectR\_choice}) have identical hyperenvironment structure to the \texttt{tensor\_parr} case, differing only in that $\thl{A \otimes B}$ and $\thl{A \parr B}$ are replaced by $\thl{A \oplus B}$ and $\thl{A \with B}$. The proofs should follow the same strategy directly. Similarly, the unit-like cases for selection (\texttt{oplus\_1}, \texttt{oplus\_2}) mirror the structure of the \texttt{one} and \texttt{bot} cases, which have already been proved.
+% The additive cases (\texttt{selectL\_choice} and \texttt{selectR\_choice}) have identical hyperenvironment structure to the \texttt{tensor\_parr} case, differing only in that $\thl{A \otimes B}$ and $\thl{A \parr B}$ are replaced by $\thl{A \oplus B}$ and $\thl{A \with B}$. The proofs should follow the same strategy directly. Similarly, the unit-like cases for selection (\texttt{oplus\_1}, \texttt{oplus\_2}) mirror the structure of the \texttt{one} and \texttt{bot} cases, which have already been proved.
 
-The quantifier case (\texttt{forall\_exists}) stepping under restriction would require a hyperenvironment extraction lemma, as would the exponential interaction (\texttt{bang\_quest}), contraction (\texttt{bang\_contract}), weakening (\texttt{bang\_weaken}), and the axiom-cut interaction (\texttt{axcut}). The last of these additionally involves a name substitution step. However, once the \texttt{res} case extraction lemma is completed --- which is the primary open problem in the current development --- these cases are expected to follow analogous reasoning, as they all involve the same pattern of isolating components under restriction and reconstructing the hyperenvironment after interaction.
+% The quantifier case (\texttt{forall\_exists}) stepping under restriction would require a hyperenvironment extraction lemma, as would the exponential interaction (\texttt{bang\_quest}), contraction (\texttt{bang\_contract}), weakening (\texttt{bang\_weaken}), and the axiom-cut interaction (\texttt{axcut}). The last of these additionally involves a name substitution step. However, once the \texttt{res} case extraction lemma is completed, which is the primary open problem in the current development, these cases are expected to follow analogous reasoning, as they all involve the same pattern of isolating components under restriction and reconstructing the hyperenvironment after interaction.
 
-A prior revision of the formalisation included step relation constructors for the full calculus together with the auxiliary \texttt{buildDup} and \texttt{buildDisp} constructions needed for server duplication and disposal. The well-typedness of these constructions has already been established, so reinstating these constructors and completing the corresponding session fidelity cases represents the remaining work for a fully mechanised account of \pill{}.
+% A prior revision of the formalisation included step relation constructors for the full calculus together with the auxiliary \texttt{buildDup} and \texttt{buildDisp} constructions needed for server duplication and disposal. The well-typedness of these constructions has already been established, so reinstating these constructors and completing the corresponding session fidelity cases represents the remaining work for a fully mechanised account of \pill{}.
 
 % FIXME: something something
-% The quantifier case (\texttt{forall\_exists}) stepping under restriction would require a hyperenvironment extraction lemma, as would the exponential interaction (\texttt{bang\_quest}), contraction (\texttt{bang\_contract}), weakening (\texttt{bang\_weaken}), and the axiom-cut interaction (\texttt{axcut}). The last of these additionally involves a name substitution step and would likely require an explicit \texttt{ax\_res} constructor in \texttt{ProcStep}$_\texttt{m}$ and \texttt{TypingStep}$_\texttt{m}$, analogous to the \texttt{one\_bot} and \texttt{tensor\_parr} constructors already present. This would constitute a minor divergence from the paper presentation of~\citet{MP-pill}, which does not include an explicit axiom-under-restriction rule, but is consistent with the pattern established by the existing synchronisation constructors and would likely resolve the stuck \texttt{axcut} case in the prior session fidelity development. Once the \texttt{res} case extraction lemma is completed --- which is the primary open problem in the current development --- the remaining cases are expected to follow analogous reasoning, as they all involve the same pattern of isolating components under restriction and reconstructing the hyperenvironment after interaction.
+% The quantifier case (\texttt{forall\_exists}) stepping under restriction would require a hyperenvironment extraction lemma, as would the exponential interaction (\texttt{bang\_quest}), contraction (\texttt{bang\_contract}), weakening (\texttt{bang\_weaken}), and the axiom-cut interaction (\texttt{axcut}). The last of these additionally involves a name substitution step and would likely require an explicit \texttt{ax\_res} constructor in \texttt{ProcStep}$_\texttt{m}$ and \texttt{TypingStep}$_\texttt{m}$, analogous to the \texttt{one\_bot} and \texttt{tensor\_parr} constructors already present. This would constitute a minor divergence from the paper presentation of~\citet{MP-pill}, which does not include an explicit axiom-under-restriction rule, but is consistent with the pattern established by the existing synchronisation constructors and would likely resolve the stuck \texttt{axcut} case in the prior session fidelity development. Once the \texttt{res} case extraction lemma is completed, which is the primary open problem in the current development, the remaining cases are expected to follow analogous reasoning, as they all involve the same pattern of isolating components under restriction and reconstructing the hyperenvironment after interaction.
+
+% Although the metatheory in this thesis is restricted to \pimll{}, the existing development suggests a path to the full \pill{} calculus. The typing relation and many of its inversion lemmas were developed for the full syntax, so several additional dynamic cases should reuse the same proof pattern as the multiplicative fragment. Unit-like additive actions should resemble the solved \texttt{one} and \texttt{bot} cases, while additive and polymorphic synchronisation rules have the same general hyperenvironment shape as the multiplicative communication cases. The exponential and axiom-cut cases are more involved, since they generate processes, duplicate or dispose dependency environments, and require substitution or renaming lemmas. Nevertheless, these extensions appear to require additional proof engineering rather than a new formal architecture.
+
+% The remaining \texttt{res} case depends on block-preservation lemmas for \texttt{TypingStep}$_\texttt{m}$, such as \texttt{TypingStep\_preserves\_block} and \texttt{TypingStep\_preserves\_single\_block}. These lemmas express that hyperenvironment components not involved in a transition are preserved up to permutation. They should provide the missing infrastructure needed to reconstruct the post-state restriction typing derivation after applying the induction hypothesis to the opened body.
+
+% A further direction is to mechanise the behavioural theory developed in the paper. This includes similarity, bisimilarity, congruence, the diamond property, serialisation, non-interference, readiness, and the connection between similarity and typability. These results build on the operational semantics and would therefore be natural extensions once the remaining session-fidelity infrastructure is completed.
+
+%FIXME:
+% % A list of things which could also be mentioned
+%   % Diamond property
+%   % Readiness + potential + deadlock freedom
+% FIXME: Missing lemmas / properties to mention in future work section: 
+    % Behavioural theory (similarity, bisimilarity, congruence) - Theorems 4.5, 4.9, 4.10
+    % Diamond property — Theorem 4.15 
+    % Serialisation — Fact 4.18 
+    % Non-interference — Theorem 4.20
+    % Readiness — Theorem 4.21
+    % Similarity and typability — Theorem 4.12, Corollary 4.13
+
+% A previous rendition of the code base also included as auxiliary lemmas for the duplication and disposal constructors. As the formalisation matured and the scope was restricted to \pimll{}, much of this infrastructure was removed or simplified. The current development is accordingly leaner, though extending to the full \pill{} calculus would require revisiting some of this earlier work. (Or maybe shorten to something more like: There you can say that some earlier infrastructure for duplication, disposal, closing, and full-calculus inversion lemmas may be reusable when extending beyond \pimll{}.)
+
+% \paragraph{Structural congruence} A further extension is to mechanise process-level structural congruence and prove that it preserves typing and transitions. This would internalise the commutative, associative, and unit laws of parallel composition, as well as scope manipulation for restriction, rather than requiring these rearrangements to be handled manually through exchange rules and hyperenvironment permutation lemmas.
+
+% \paragraph{Completing the remaining \texttt{res} case} The immediate remaining task is to complete the \texttt{res} case of \texttt{typability\_subject\_reduction}$_\texttt{m}$. This requires finalising the block-preservation lemmas for \texttt{TypingStep}$_\texttt{m}, which express that hyperenvironment components not involved in a transition are preserved up to permutation. These lemmas should make it possible to reconstruct the post-state hyperenvironment required by the outer \texttt{cut} typing rule.
+
+% This case depends on block-preservation lemmas for \texttt{TypingStep}$_\texttt{m}$, which express that hyperenvironment components not involved in a transition are preserved up to permutation.
+
+% \paragraph{Extending to full \pill{}}
+% Although the current metatheory focuses on \pimll{}, much of the infrastructure required for the full calculus is already present. The static typing relation and its inversion lemmas cover the additive, polymorphic, axiom, and exponential constructs. Extending the dynamic metatheory would therefore primarily require adding the corresponding \texttt{TypingStep} constructors and extending the existing proof patterns.
+
+% The additive and polymorphic synchronisation rules have the same general hyperenvironment shape as the multiplicative communication cases. In particular, the selection/choice cases should follow the same strategy as the \texttt{tensor\_parr} case, with the tensor/parr types replaced by the corresponding additive types. The polymorphic \(\exists/\forall\) interaction follows the same restriction-synchronisation pattern, but additionally relies on the type-substitution and shifting lemmas developed for the locally nameless representation.
+
+% The exponential and axiom-cut cases are more involved. Server use, duplication, and disposal generate larger continuation processes and manipulate dependency environments, while axiom-cut performs name substitution under a cut. Nevertheless, these cases appear to require additional proof engineering rather than new conceptual machinery: the required ingredients are already present in the form of typing inversion, local-closure preservation, freshness generation, substitution lemmas, and hyperenvironment permutation/reconstruction.
+
+% \paragraph{Completing the remaining \texttt{res} case}
+% The immediate remaining task is to complete the \texttt{res} case of \texttt{typability\_subject\_reduction}$_\texttt{m}$. This requires finalising the block-preservation lemmas for \texttt{TypingStep}$_\texttt{m}$, which express that hyperenvironment components not involved in a transition are preserved up to permutation. These lemmas should make it possible to reconstruct the post-state hyperenvironment required by the outer \texttt{cut} typing rule.
+
+% \section{Future Work}\label{sec:future}
+% The most immediate directions for future work concern completing the operational semantics and extending the formalisation to cover the full \pill{} calculus.
+
+% \paragraph{Completing the multiplicative fragment}
+% The current session fidelity proofs cover \pimll{} with the exception of the restriction rule. Completing this case would require additional reasoning about how restriction interacts with itself under synchronisation, and how the associated hyperenvironment components are preserved and rearranged across steps. The hyperenvironment permutation infrastructure already developed for the other cases provides the necessary foundation; the remaining work is primarily in constructing the specific extraction lemmas for the restriction-under-restriction scenario.
+
+% \paragraph{Co-finite quantification in \texttt{ProcStep}}
+% The current \texttt{ProcStep}$_\texttt{m}$ relation uses existential freshness conditions for binding constructors, while the typing rules use co-finite quantification. This asymmetry introduces proof overhead in the typability theorem, where the specific concrete names chosen by \texttt{ProcStep}$_\texttt{m}$ must be reconciled with the universally quantified premises of the corresponding typing rules. Refactoring \texttt{ProcStep}$_\texttt{m}$ to use co-finite quantification for its binding constructors --- specifically \texttt{tensor}, \texttt{one\_bot}, and \texttt{tensor\_parr} --- would eliminate this mismatch, remove the \texttt{all\_fresh} helper infrastructure, and likely allow the post-state disjointness premise \texttt{hD2} to be dropped entirely. Whether this refactoring also resolves the remaining \texttt{sorry} cases in \texttt{typability\_subject\_reduction}$_\texttt{m}$ is the primary open question and the main motivation for pursuing this direction.
+
+% \paragraph{Extending to full \pill{}}
+% Once the multiplicative fragment is complete, extending the formalisation to the full \pill{} calculus is more mechanical than conceptual. The static model is already defined for the full calculus, and the typing inversion lemmas --- which represent the most labour-intensive part of the session fidelity proofs --- are already in place and would be plug-and-play for the new cases.
+
+% The additive cases (\texttt{selectL\_choice} and \texttt{selectR\_choice}) have identical hyperenvironment structure to the \texttt{tensor\_parr} case, differing only in that $\thl{A \tensor B}$ and $\thl{A \parr B}$ are replaced by $\thl{A \oplus B}$ and $\thl{A \with B}$, so the proofs should follow the same strategy directly. The unit-like cases for selection (\texttt{oplus\_1}, \texttt{oplus\_2}) mirror the structure of the already proved \texttt{one} and \texttt{bot} cases. The quantifier case (\texttt{forall\_exists}) and the exponential cases (\texttt{bang\_quest}, \texttt{bang\_contract}, \texttt{bang\_weaken}) each step under restriction and would require hyperenvironment extraction lemmas of the same kind as the \texttt{res} case; once that extraction lemma is completed, these cases are expected to follow by analogous reasoning. The axiom-cut case additionally involves a name substitution step, but similarly does not appear to require new conceptual infrastructure beyond the existing ingredients of typing inversion, freshness generation, substitution preservation, local closure preservation, and hyperenvironment permutation and reconstruction.
+
+% A prior revision of the formalisation included step relation constructors for the full calculus together with the auxiliary \texttt{buildDup} and \texttt{buildDisp} constructions needed for server duplication and disposal, whose well-typedness has already been established. Reinstating these constructors and completing the corresponding session fidelity cases therefore represents the primary remaining work for a fully mechanised account of \pill{}.
+
+% \paragraph{Structural congruence}
+% Mechanising structural congruence would address the artificial stuck states that arise from the strict binary tree structure of the process syntax. The most practically significant laws are commutativity and associativity of parallel composition, which are needed for the \rname{Syn} rule to apply to processes that are not immediate siblings, as discussed in \cref{sec:discussion}. Scope extrusion introduces additional complexity in the locally nameless setting, since pulling a process under a restriction binder requires explicit De Bruijn shifting. Rather than adding a full congruence relation to the process syntax, a more tractable approach may be to extend the transition system with explicit symmetric structural rules, such as a \texttt{syn-comm} constructor, which would allow transitions modulo the relevant congruences while preserving the syntactic stability needed for proof search in Lean.
+
+% \paragraph{Behavioural metatheory}
+% The paper establishes a range of further results that are not mechanised in the current formalisation, including bisimilarity and congruence (Theorems~4.5, 4.9, 4.10 in \citet{abs-2106-11818}), the diamond property (Theorem~4.15), serialisation (Fact~4.18), non-interference (Theorem~4.20), and readiness (Theorem~4.21). These results build directly on session fidelity and would become accessible once the session fidelity proofs are complete.
+
+% \paragraph{Proof automation}
+% A recurring cost throughout the formalisation is the manual rearrangement of hyperenvironments using permutation and disjointness lemmas. Building a dedicated \texttt{aesop} rule set equipped with the hyperenvironment permutation and disjointness lemmas could automate much of this framing work and significantly reduce proof size across the development.
+
+\section{Future Work}\label{sec:future}
+The most immediate directions for future work concern completing the remaining session-fidelity proof obligation and extending the dynamic metatheory to the full \pill{} calculus.
+
+\paragraph{Completing the multiplicative fragment}
+The immediate remaining proof obligation is the \texttt{res} case of \texttt{typability\_subject\_reduction}$_\texttt{m}$. This case requires reconstructing the post-transition hyperenvironment after stepping the opened body of a restriction. The key missing ingredient is a block-preservation argument for \texttt{TypingStep}$_\texttt{m}$, showing that hyperenvironment components not involved in a transition are preserved up to permutation. This should provide the infrastructure needed to rebuild the outer \texttt{cut} typing derivation after applying the induction hypothesis to the opened body.
+
+\paragraph{Co-finite quantification in \texttt{ProcStep}}
+The current \texttt{ProcStep}$_\texttt{m}$ relation uses concrete freshness witnesses for binding constructors, while the typing rules use co-finite quantification. This asymmetry introduces proof overhead in the typability theorem, where the specific concrete names chosen by \texttt{ProcStep}$_\texttt{m}$ must be reconciled with the universally quantified premises of the corresponding typing rules. Refactoring \texttt{ProcStep}$_\texttt{m}$ to use co-finite quantification for its binding constructors would align the process and typing relations more closely and could reduce the need for auxiliary \emph{all fresh} lemmas. It may also make some explicit freshness and post-state disjointness premises derivable rather than primitive, although its effect on the erasure simulation proofs remains to be checked.
+
+\paragraph{Extending to full \pill{}}
+Once the multiplicative fragment is complete, extending the formalisation to the full \pill{} calculus appears to require additional proof engineering rather than a new formal architecture. The static model is already defined for the full calculus, and many typing inversion lemmas for the additive, polymorphic, axiom, and exponential constructs are already available.
+
+The additive synchronisation cases have the same general hyperenvironment shape as the \texttt{tensor\_parr} case, replacing the multiplicative pair $\thl{A \otimes B}$ and $\thl{A \parr B}$ with the corresponding additive types. The unit-like additive cases mirror the structure of the already proved \texttt{one} and \texttt{bot} cases. The polymorphic interaction additionally relies on the type-substitution and shifting lemmas developed for the locally nameless representation.
+
+The exponential and axiom-cut cases are more involved. Server use, duplication, and disposal generate larger continuation processes and manipulate dependency environments, while axiom-cut additionally involves name substitution. Nevertheless, the required ingredients appear to be the same as in the current development: typing inversion, freshness generation, substitution preservation, local closure preservation, and hyperenvironment permutation and reconstruction.
+
+A prior revision of the formalisation included step relation constructors for the full calculus together with the auxiliary \texttt{buildDup} and \texttt{buildDisp} constructions needed for server duplication and disposal. Since well-typedness of these constructions has already been established, parts of this earlier infrastructure may be reusable when extending the current dynamic metatheory.
+
+\paragraph{Structural congruence}
+A further direction is to mechanise process-level structural congruence and prove that it preserves typing and transitions. This would internalise the commutative, associative, and unit laws of parallel composition, as well as scope manipulation for restriction, rather than requiring these rearrangements to be handled manually through exchange rules and hyperenvironment permutation lemmas. Scope extrusion is the most delicate part in the locally nameless setting, since moving a process under a restriction binder requires explicit De Bruijn index management. An alternative is to add selected symmetry and reassociation principles directly to the transition relation; whether this is simpler than a full congruence development remains open.
+
+\paragraph{Behavioural metatheory}
+The paper establishes a range of further results that are not mechanised in the current formalisation, including similarity, bisimilarity, behavioural congruence, the diamond property, serialisation, non-interference, and readiness~\citep{abs-2106-11818}. These results build on the operational semantics and would be natural extensions once the remaining session-fidelity infrastructure is completed.
+
+\paragraph{Proof automation}
+A recurring cost throughout the formalisation is the manual rearrangement of hyperenvironments using permutation, disjointness, name-set, and freshness lemmas. Building a dedicated \texttt{aesop} rule set equipped with these lemmas could automate much of this framing work and significantly reduce proof size. This would not replace the main inversion arguments, such as the remaining \texttt{res} case, but it could remove much of the repetitive bookkeeping around them. Similarly, aligning \texttt{ProcStep}$_\texttt{m}$ more closely with the co-finite style of the typing rules could reduce the number of explicit freshness-bridging obligations.
+
+
+
+
+
+
+
+
+
+% TODO: Future work
+% TODO: Conclusion
+% TODO: Abstract(s)
+% TODO: Appendix 
+
+% Fix all remaining FIXMEs and TODOs
+% Resolve broken cross-references
+% British spelling pass
+% Consistency in calling type out put a payload type or just type. Do the same for paylod name / name
+% Remove highlighting from prose
+% Check all \thl and \phl are inside $...$
+% AI declaration
+% GitHub source code link
+% Appendix of full inductives
+
+% FIXME: Other things
+% Fix all remaining FIXMEs and TODOs scattered through the files
+% Resolve broken cross-references (\cref{app:...} appendix references)
+% Decide whether to include an appendix with full Lean inductives or drop those references
+% British spelling pass (formalise not formalize, mechanise, recognise etc.)
+% Consistency pass on bound/introduced names terminology
+% Remove or convert remaining \hl{...} highlighting in prose where it doesn't belong
+% Check all \thl and \phl are inside $...$
+% Turn remaining Note paragraphs into remark environments
+% Add GitHub source code link somewhere (acknowledgements or footnote on title page)
+% AI declaration (check with colleagues about requirements)
+
