@@ -9,7 +9,6 @@ theorem session_fidelity_envₘ
   induction hStep
   case one | bot => constructor
   case tensor y _ _ _ _ L 𝒟' hy =>
-    have ⟨z, hz⟩ := exists_one_fresh L
     have 𝒟y := Typing_tensor_all_fresh 𝒟' y hy
     obtain ⟨hnd, hpw⟩ := Typing_preserves_linearity 𝒟y
     have hD := HyperEnv.PairwiseDisjoint_implies_disjoint hpw
@@ -28,7 +27,6 @@ theorem session_fidelity_envₘ
     · exact hyΔ
     · simp only [Finset.notMem_empty, not_false_eq_true]
   case parr y _ _ _ _ L 𝒟' hy =>
-    have ⟨z, hz⟩ := exists_one_fresh L
     have 𝒟y := Typing_parr_all_fresh 𝒟' y hy
     obtain ⟨hnd, hpw⟩ := Typing_preserves_linearity 𝒟y
     simp only [HyperEnv.Nodup_singleton, Env.names_distributes, Env.Nodup_cons,

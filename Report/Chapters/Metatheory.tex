@@ -1,5 +1,5 @@
 \section{Metatheory}\label{sec:metatheory}
-This section establishes the metatheoretic results connecting the typed, process, and environment transition systems defined in \cref{subsec:semantics}. The goal is to verify that the formalisation is sound: well-typed processes evolve according to their session types, and their associated linear resources evolve consistently. The results are contained in the \path{SessionFidelity/} namespace and cover the multiplicative fragment \pimll{}.
+This section describes the metatheoretic results connecting the typed, process, and environment transition systems defined in \cref{subsec:semantics}. The goal is to verify that the formalisation is sound: well-typed processes evolve according to their session types, and their associated linear resources evolve consistently. The results are contained in the \path{SessionFidelity/} namespace. The proof architecture covers the mechanised \pimll{} fragment, but the formalisation currently leaves the \texttt{res} case as the remaining proof obligation.
 
 The paper additionally develops behavioural theory including 
 bisimilarity, the diamond property, serialisation, non-interference, and readiness~\citep{abs-2106-11818}. These results are not mechanised in the current formalisation and are discussed as future work in \cref{sec:future}.
@@ -10,9 +10,9 @@ Having defined the typed, process, and environment transition systems, we now es
 The formalisation, contained in the \path{SessionFidelity/} namespace, proceeds in two directions. First, erasure simulation shows that typed derivation steps project to valid process and environment transitions. Second, typability and subject reduction show that process transitions from well-typed processes can be lifted back to typed derivation steps and therefore preserve typing.
 
 \paragraph{Erasure simulations}
-The paper establishes erasure as a strong bisimulation between  $\mlts{d}$and  $\mlts{e}$ (Theorem~4.7 in \citet{abs-2106-11818}), meaning the relation $\{(\proc(\der{D}), \der{D}) \mid \der{D} \in \DerSet\}$ is closed in both directions. The mechanisation currently establishes only the forward direction via \texttt{session\_fidelity\_proc}$_\texttt{m}$. The backward direction, which would require lifting any process step to a typed step, is subsumed by \texttt{typability\_subject\_reduction}$_\texttt{m}$ but has not been composed into an explicit bisimulation statement.
+The paper establishes erasure as a strong bisimulation between $\mlts{p}$ and $\mlts{d}$ (Theorem~4.7 in \citet{abs-2106-11818}), meaning the relation $\{(\proc(\der{D}), \der{D}) \mid \der{D} \in \DerSet\}$ is closed in both directions. The mechanisation currently establishes the forward direction via \texttt{session\_fidelity\_proc}$_\texttt{m}$: every typed derivation step projects to a process step. The backward direction, which lifts process steps from well-typed processes to typed derivation steps, is captured by \texttt{typability\_subject\_reduction}$_\texttt{m}$, but has not been packaged as an explicit bisimulation statement.
 
-The files \path{ProcStep.lean} and \path{EnvStep.lean} establish that typed derivation steps simulate correctly under erasure. Given a typed transition $\texttt{TypingStep}_\texttt{m}~\der{D}\ l\ \der{D}'$, the process extracted from the source derivation transitions to the process extracted from the target derivation, and similarly for the associated environment.
+The files \path{ProcStep.lean} and \path{EnvStep.lean} establish the two projection results from typed derivation steps. Given a typed transition $\texttt{TypingStep}_\texttt{m}~\der{D}\ l\ \der{D}'$, \texttt{session\_fidelity\_proc}$_\texttt{m}$ projects it to a process transition between $\proc(\der{D})$ and $\proc(\der{D}')$, while \texttt{session\_fidelity\_env}$_\texttt{m}$ projects it to an environment transition between $\env(\der{D})$ and $\env(\der{D}')$. The first result corresponds to the forward direction of the paper's erasure theorem between $\mlts{p}$ and $\mlts{d}$; the second corresponds to derivation-level session fidelity, Theorem~4.9.
 
 \begin{lstlisting}[language=Lean4]
 theorem session_fidelity_proc/-$_\texttt{m}$-/
@@ -28,10 +28,13 @@ theorem session_fidelity_env/-$_\texttt{m}$-/
   EnvStep/-$_\texttt{m}$-/ (env /-$\der{D}$-/) l (env /-$\der{D}$-/')
 \end{lstlisting}
 
-These results establish that the typed transition system refines both projected semantics: every typed step has a corresponding process step and a corresponding environment step under erasure. The proofs proceed by induction on the typed transition derivation.
+These results establish that typed transitions project to the corresponding process and environment transitions. Both proofs proceed by induction on the typed transition derivation. Most cases are immediate constructor translations. The main exception is formed by the \texttt{tensor} and \texttt{parr} prefix cases, where the projected process and environment rules require explicit freshness and disjointness side conditions. These are recovered from the co-finite typing premises by instantiating the continuation with a sufficiently fresh auxiliary name and using the typing invariants \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_linearity}. For the process projection, this also requires relating the free names of an opened process to those of the original continuation.
 
 \paragraph{Typability}
-The main lifting theorem is mechanised in \path{Typability.lean}. It states that an untyped process transition from a well-typed process can be lifted to a transition between typing derivations:
+The main lifting theorem is stated in \path{Typability.lean}. It corresponds to the reverse direction of the erasure correspondence: given a process transition from a well-typed process, the transition can be lifted to the level of typing derivations.
+
+% FIXME: Correctness
+The theorem statement differs from the paper presentation, which formulates erasure extensionally, using set-valued transition functions and equality of successor sets. In the Lean formalisation, transitions are represented as inductive relations, so the same correspondence is decomposed into relational projection and lifting directions. The theorem \texttt{session\_fidelity\_proc}$_{\texttt{m}}$ gives the forward projection from typed derivation steps to process steps, while \texttt{typability\_subject\_reduction}$_\texttt{m}$ gives the converse lifting direction for processes equipped with a typing derivation. This avoids defining successor sets explicitly in Lean and allows the proof to follow the induction principles generated by the transition relations.
 
 \begin{lstlisting}[language=Lean4]
 theorem typability_subject_reduction/-$_\texttt{m}$-/
@@ -40,9 +43,11 @@ theorem typability_subject_reduction/-$_\texttt{m}$-/
     TypingStep/-$_\texttt{m}~\der{D}$-/ l /-$\der{D}$-/'
 \end{lstlisting}
 
-This theorem is the technical core of the session fidelity proof. It is proved by induction on the process transition derivation. Each case inverts the source typing derivation to recover the typing rule compatible with the observed process shape, then constructs a target hyperenvironment and typing derivation for the resulting process.
+This theorem forms the technical core of the session fidelity argument. Its proof proceeds by induction on the process transition derivation. Each case inverts the source typing derivation to recover the typing rule compatible with the observed process shape, then constructs a target hyperenvironment and typing derivation for the resulting process.
 
-The main mechanisation burden comes from reconciling the concrete freshness witnesses used by \texttt{ProcStep}$_\texttt{m}$ with the co-finite premises of the typing rules, and from rearranging hyperenvironments in the communication and restriction cases. In particular, synchronization under restriction requires isolating the environments containing the communicating endpoints, applying the transition under opened names, and reconstructing the target hyperenvironment up to permutation.
+The proof has two main technical obligations. First, it must reconcile the concrete freshness witnesses used by \texttt{ProcStep}$_\texttt{m}$ with the co-finite premises of the typing rules. This is handled by instantiating co-finite premises with sufficiently fresh names and using auxiliary \emph{all fresh} lemmas to obtain derivations for the concrete names appearing in the process transition. Second, in the communication and restriction cases, the proof must rearrange hyperenvironments to expose the components containing the communicating endpoints. In particular, synchronization under restriction requires opening the restricted process with fresh endpoints, applying the induction hypothesis to the opened body, and reconstructing the target hyperenvironment up to permutation.
+
+The remaining incomplete case is \texttt{res}. In this case, the induction hypothesis yields a typed step for the opened body of the restriction. The missing step is to invert this typed transition to recover the post-state components corresponding to the restricted endpoints, then repackage them into the co-finite premise required by the outer \texttt{cut} typing rule. This hyperenvironment reconstruction remains the main outstanding proof obligation.
 
 \paragraph{Subject reduction}
 Subject reduction is stated in \path{SubjectReduction.lean}. It is the standard type-preservation theorem for the process semantics: if a well-typed process takes a process transition, then there exists a corresponding evolved hyperenvironment under which the target process is well typed.
