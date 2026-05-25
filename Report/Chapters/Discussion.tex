@@ -60,3 +60,53 @@ The \texttt{typability\_subject\_reduction}$_\texttt{m}$ proof is complete for t
 
 % The old rendition didn't have an explicit constructor for doing ax_res i.e. axcut, like it had for tensor_parr and one_bot, so including this would probably unstuck the axcut case in the old session fidelity proof, this would however be a divergence form the paper as they only show the one_bot and tensor_parr constructor in the respective Proc-/Env-step relations.
 
+% TODO: Discussion
+% TODO: Conclusion
+% TODO: Abstract(s)
+% TODO: Appendix 
+
+%FIXME:
+% % A list of things which could also be mentioned
+%   % Diamond property
+%   % Readiness + potential + deadlock freedom
+% FIXME: Missing lemmas / properties to mention in future work section: 
+    % Behavioural theory (similarity, bisimilarity, congruence) - Theorems 4.5, 4.9, 4.10
+    % Diamond property — Theorem 4.15 
+    % Serialisation — Fact 4.18 
+    % Non-interference — Theorem 4.20
+    % Readiness — Theorem 4.21
+    % Similarity and typability — Theorem 4.12, Corollary 4.13
+
+% FIXME: Consider if substitution should be mentioend in section 3, or if it's fine to just mention it in section 4.
+% FIXME: Be consistent in regard to calling it a type or a type payload
+% FIXME: Decide whether to remove highlighting from prose
+% FIXME: Mention in discussion that process congruence does not need associativity since label are at most parallel, so associating either to a left nested process or a right nested process is binary and the order can be fixed with commutivity for exmaple: if l describe a step in Q and l' on P a step in in the following P | (Q | R) -[l | l']-> P' | (Q' | R'), then by commutivity P | (Q | R) = (Q | R) | P and syn can execute this. If l' had to hit R, then problems, but this disallowing associativity by standatd would be impossible as the process AST as Q and R paired so for the step to have been concieved l' must match to P at not Q. So, is that a question of whether the process is well-formed, or does associativity need to also exist? Could write something like: "A related question concerns associativity of parallel composition in the context of the \rname{Syn} rule. Since transition labels are at most binary, commutativity of parallel composition suffices to bring two processes that step under independent actions into the same parallel composition. However, when the two stepping components are not siblings in the process tree, for example, $\phl{P \pp (Q \pp R)}$ where $l$ steps $\phl{P}$ and $l'$ steps $\phl{Q}$, commutativity alone does not suffice. Reassociating to $\phl{(P \pp Q) \pp R}$ requires associativity of parallel composition, which is not currently mechanised. Whether the \rname{Syn} rule can instead be reformulated to handle arbitrary nesting without requiring full associativity in the congruence relation is an open question."
+
+
+% \begin{center}
+% \small
+% \begin{tabularx}{\textwidth}{l X}
+%     \toprule
+%     \textbf{ITEMS} & \textbf{TODO} \\
+%     Writing & Remove highlighting from process names not being part of a process in Background and BindingRepresentation \\
+%     Writing  & In the metatheory/proof strategies section, discuss the structural vs.\ step induction dilemma for \\
+%     LaTex & Make appendix of the full inductives from Lean
+%     \bottomrule
+% \end{tabularx}
+% \end{center}
+
+
+% FIXME: Other things
+% Fix all remaining FIXMEs and TODOs scattered through the files
+% Resolve broken cross-references (\cref{app:...} appendix references)
+% Decide whether to include an appendix with full Lean inductives or drop those references
+% British spelling pass (formalise not formalize, mechanise, recognise etc.)
+% Consistency pass on bound/introduced names terminology
+% Remove or convert remaining \hl{...} highlighting in prose where it doesn't belong
+% Check all \thl and \phl are inside $...$
+% Turn remaining Note paragraphs into remark environments
+% Add GitHub source code link somewhere (acknowledgements or footnote on title page)
+% AI declaration (check with colleagues about requirements)
+
+%FIXME: Include this 
+% The remaining \texttt{res} case depends on block-preservation lemmas for \texttt{TypingStep}$_\texttt{m}$, such as \texttt{TypingStep\_preserves\_block} and \texttt{TypingStep\_preserves\_single\_block}. These lemmas express that hyperenvironment components not involved in a transition are preserved up to permutation, and are intended to support the final reconstruction of the post-state restriction typing derivation.

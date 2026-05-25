@@ -4,15 +4,18 @@ This section describes the metatheoretic results connecting the typed, process, 
 The paper additionally develops behavioural theory including 
 bisimilarity, the diamond property, serialisation, non-interference, and readiness~\citep{abs-2106-11818}. These results are not mechanised in the current formalisation and are discussed as future work in \cref{sec:future}.
 
-\subsection{Session Fidelity}\label{subsec:session-fidelity}
-Having defined the typed, process, and environment transition systems, we now establish the metatheoretic results connecting them. The goal is to verify Session Fidelity for the mechanised \pimll{} fragment: well-typed processes evolve according to their session types, and their associated linear resources evolve consistently with the process transition.
+% \subsection{Session Fidelity}\label{subsec:session-fidelity}
+% Having defined the typed, process, and environment transition systems, we now establish the metatheoretic results connecting them. The goal is to verify Session Fidelity for the mechanised \pimll{} fragment: well-typed processes evolve according to their session types, and their associated linear resources evolve consistently with the process transition.
 
-The formalisation, contained in the \path{SessionFidelity/} namespace, proceeds in two directions. First, erasure simulation shows that typed derivation steps project to valid process and environment transitions. Second, typability and subject reduction show that process transitions from well-typed processes can be lifted back to typed derivation steps and therefore preserve typing.
+% The formalisation, contained in the \path{SessionFidelity/} namespace, proceeds in two directions. First, erasure simulation shows that typed derivation steps project to valid process and environment transitions. Second, typability and subject reduction show that process transitions from well-typed processes can be lifted back to typed derivation steps and therefore preserve typing.
+
+\subsection{Session Fidelity}\label{subsec:session-fidelity}
+The proof proceeds in two directions. First, erasure simulation shows that typed derivation steps project to valid process and environment transitions. Second, typability and subject reduction show that process transitions from well-typed processes can be lifted back to typed derivation steps and therefore preserve typing.
 
 \paragraph{Erasure simulations}
 The paper establishes erasure as a strong bisimulation between $\mlts{p}$ and $\mlts{d}$ (Theorem~4.7 in \citet{abs-2106-11818}), meaning the relation $\{(\proc(\der{D}), \der{D}) \mid \der{D} \in \DerSet\}$ is closed in both directions. The mechanisation currently establishes the forward direction via \texttt{session\_fidelity\_proc}$_\texttt{m}$: every typed derivation step projects to a process step. The backward direction, which lifts process steps from well-typed processes to typed derivation steps, is captured by \texttt{typability\_subject\_reduction}$_\texttt{m}$, but has not been packaged as an explicit bisimulation statement.
 
-The files \path{ProcStep.lean} and \path{EnvStep.lean} establish the two projection results from typed derivation steps. Given a typed transition $\texttt{TypingStep}_\texttt{m}~\der{D}\ l\ \der{D}'$, \texttt{session\_fidelity\_proc}$_\texttt{m}$ projects it to a process transition between $\proc(\der{D})$ and $\proc(\der{D}')$, while \texttt{session\_fidelity\_env}$_\texttt{m}$ projects it to an environment transition between $\env(\der{D})$ and $\env(\der{D}')$. The first result corresponds to the forward direction of the paper's erasure theorem between $\mlts{p}$ and $\mlts{d}$; the second corresponds to derivation-level session fidelity, Theorem~4.9.
+The files \path{ProcStep.lean} and \path{EnvStep.lean} establish the two projection results from typed derivation steps. Given a typed transition $\texttt{TypingStep}_\texttt{m}~\der{D}\ l\ \der{D}'$, \texttt{session\_fidelity\_proc}$_\texttt{m}$ projects it to a process transition between $\proc(\der{D})$ and $\proc(\der{D}')$, while \texttt{session\_fidelity\_env}$_\texttt{m}$ projects it to an environment transition between $\env(\der{D})$ and $\env(\der{D}')$. The first result corresponds to the forward direction of the paper's erasure theorem between $\mlts{p}$ and $\mlts{d}$. The second corresponds to derivation-level session fidelity, Theorem~4.9.
 
 \begin{lstlisting}[language=Lean4]
 theorem session_fidelity_proc/-$_\texttt{m}$-/
@@ -33,7 +36,6 @@ These results establish that typed transitions project to the corresponding proc
 \paragraph{Typability}
 The main lifting theorem is stated in \path{Typability.lean}. It corresponds to the reverse direction of the erasure correspondence: given a process transition from a well-typed process, the transition can be lifted to the level of typing derivations.
 
-% FIXME: Correctness
 The theorem statement differs from the paper presentation, which formulates erasure extensionally, using set-valued transition functions and equality of successor sets. In the Lean formalisation, transitions are represented as inductive relations, so the same correspondence is decomposed into relational projection and lifting directions. The theorem \texttt{session\_fidelity\_proc}$_{\texttt{m}}$ gives the forward projection from typed derivation steps to process steps, while \texttt{typability\_subject\_reduction}$_\texttt{m}$ gives the converse lifting direction for processes equipped with a typing derivation. This avoids defining successor sets explicitly in Lean and allows the proof to follow the induction principles generated by the transition relations.
 
 \begin{lstlisting}[language=Lean4]
@@ -50,7 +52,7 @@ The proof has two main technical obligations. First, it must reconcile the concr
 The remaining incomplete case is \texttt{res}. In this case, the induction hypothesis yields a typed step for the opened body of the restriction. The missing step is to invert this typed transition to recover the post-state components corresponding to the restricted endpoints, then repackage them into the co-finite premise required by the outer \texttt{cut} typing rule. This hyperenvironment reconstruction remains the main outstanding proof obligation.
 
 \paragraph{Subject reduction}
-Subject reduction is stated in \path{SubjectReduction.lean}. It is the standard type-preservation theorem for the process semantics: if a well-typed process takes a process transition, then there exists a corresponding evolved hyperenvironment under which the target process is well typed.
+Subject reduction is stated in \path{SubjectReduction.lean}. It says that if a well-typed process takes a process transition, then the target process is well typed under some evolved hyperenvironment, and that this hyperenvironment evolves according to the same label.
 
 \begin{lstlisting}[language=Lean4]
 theorem subject_reduction/-$_\texttt{m}$-/
@@ -59,69 +61,12 @@ theorem subject_reduction/-$_\texttt{m}$-/
   /-$\exists$-/ /-$\hyp{G}$-/', EnvStep/-$_\texttt{m}$-/ /-$\hyp{G}$-/ l /-$\hyp{G}$-/' /-$\land$-/ Typing n P' /-$\hyp{G}$-/'
 \end{lstlisting}
 
-Mechanically, this theorem is obtained by composing typability with environment erasure. First, \texttt{typability\_subject\_reduction}$_\texttt{m}$ lifts the process step to a typed derivation step, producing a target typing derivation. Then \texttt{session\_fidelity\_env}$_\texttt{m}$ projects this typed step to an environment transition. Thus the process and its typing resources evolve coherently under the same label.
+The proof is a direct composition of the previous results: \texttt{typability\_subject\_reduction}$_\texttt{m}$ lifts the process step to a typed derivation step, and \texttt{session\_fidelity\_env}$_\texttt{m}$ projects that typed step to the corresponding environment transition. This realises the process-level session fidelity result corresponding to Corollary~4.10 of \citet{abs-2106-11818}.
 
 \paragraph{Implementation considerations}
-Compared with the paper presentation, the formalisation makes several implicit structural obligations explicit. Since environment and hyperenvironment composition are implemented by total list concatenation, disjointness and freshness conditions appear as explicit premises in the typing and transition rules. Moreover, the process LTS uses concrete freshness witnesses, while the typing rules use co-finite quantification. This mismatch does not change the mathematical content of the semantics, but it introduces additional proof obligations in the typability theorem.
+In the mechanisation, several structural obligations that are implicit in the paper presentation become explicit. Since environment and hyperenvironment composition are implemented by total list concatenation, disjointness and freshness conditions appear as explicit premises in the typing and transition rules. Moreover, the process LTS uses concrete freshness witnesses, while the typing rules use co-finite quantification. This mismatch does not change the mathematical content of the semantics, but it introduces additional proof obligations in the typability theorem. Both issues are discussed further in \cref{sec:discussion,sec:future}.
 
 \paragraph{Interpretation}
-Together, these results establish the intended session fidelity property for the mechanised fragment. The process semantics cannot move independently of the typing environment: every process step from a well-typed source has a corresponding resource transition, and the resulting process remains well typed under the evolved hyperenvironment. Conversely, typed derivation steps project faithfully to both process-level and environment-level behaviour.
+Together, these results establish the session fidelity argument for the mechanised fragment, with one remaining gap. The erasure simulations are complete, and subject reduction follows once typability is fully established. The typability theorem is proved for all multiplicative cases except \texttt{res}. In this case, the proof must show that environments not involved in the transition are preserved, up to permutation, across restriction steps. The required infrastructure is largely in place, with the remaining work concentrated in the case analysis relating uninvolved parallel environments to the post-step hyperenvironment produced by the restricted transition. Once this case is closed, the full process-level session fidelity property follows for the mechanised \pimll{} fragment.
 
-The paper additionally establishes behavioural properties including bisimilarity, the diamond property, serialisation, non-interference, and readiness for \pimll{}. These results are not mechanised in the current formalisation; extending the mechanisation to cover them is discussed in \cref{sec:future}.
-
-
-
-
-
-
-
-
-
-% TODO: Metatheory
-% TODO: Discussion
-% TODO: Conclusion
-% TODO: Abstract(s)
-% TODO: Appendix 
-
-%FIXME:
-% % A list of things which could also be mentioned
-%   % Diamond property
-%   % Readiness + potential + deadlock freedom
-% FIXME: Missing lemmas / properties to mention in future work section: 
-    % Behavioural theory (similarity, bisimilarity, congruence) - Theorems 4.5, 4.9, 4.10
-    % Diamond property — Theorem 4.15 
-    % Serialisation — Fact 4.18 
-    % Non-interference — Theorem 4.20
-    % Readiness — Theorem 4.21
-    % Similarity and typability — Theorem 4.12, Corollary 4.13
-
-% FIXME: Consider if substitution should be mentioend in section 3, or if it's fine to just mention it in section 4.
-% FIXME: Be consistent in regard to calling it a type or a type payload
-% FIXME: Decide whether to remove highlighting from prose
-% FIXME: Mention in discussion that process congruence does not need associativity since label are at most parallel, so associating either to a left nested process or a right nested process is binary and the order can be fixed with commutivity for exmaple: if l describe a step in Q and l' on P a step in in the following P | (Q | R) -[l | l']-> P' | (Q' | R'), then by commutivity P | (Q | R) = (Q | R) | P and syn can execute this. If l' had to hit R, then problems, but this disallowing associativity by standatd would be impossible as the process AST as Q and R paired so for the step to have been concieved l' must match to P at not Q. So, is that a question of whether the process is well-formed, or does associativity need to also exist? Could write something like: "A related question concerns associativity of parallel composition in the context of the \rname{Syn} rule. Since transition labels are at most binary, commutativity of parallel composition suffices to bring two processes that step under independent actions into the same parallel composition. However, when the two stepping components are not siblings in the process tree, for example, $\phl{P \pp (Q \pp R)}$ where $l$ steps $\phl{P}$ and $l'$ steps $\phl{Q}$, commutativity alone does not suffice. Reassociating to $\phl{(P \pp Q) \pp R}$ requires associativity of parallel composition, which is not currently mechanised. Whether the \rname{Syn} rule can instead be reformulated to handle arbitrary nesting without requiring full associativity in the congruence relation is an open question."
-
-
-% \begin{center}
-% \small
-% \begin{tabularx}{\textwidth}{l X}
-%     \toprule
-%     \textbf{ITEMS} & \textbf{TODO} \\
-%     Writing & Remove highlighting from process names not being part of a process in Background and BindingRepresentation \\
-%     Writing  & In the metatheory/proof strategies section, discuss the structural vs.\ step induction dilemma for \\
-%     LaTex & Make appendix of the full inductives from Lean
-%     \bottomrule
-% \end{tabularx}
-% \end{center}
-
-
-% FIXME: Other things
-% Fix all remaining FIXMEs and TODOs scattered through the files
-% Resolve broken cross-references (\cref{app:...} appendix references)
-% Decide whether to include an appendix with full Lean inductives or drop those references
-% British spelling pass (formalise not formalize, mechanise, recognise etc.)
-% Consistency pass on bound/introduced names terminology
-% Remove or convert remaining \hl{...} highlighting in prose where it doesn't belong
-% Check all \thl and \phl are inside $...$
-% Turn remaining Note paragraphs into remark environments
-% Add GitHub source code link somewhere (acknowledgements or footnote on title page)
-% AI declaration (check with colleagues about requirements)
+The paper additionally establishes behavioural properties including bisimilarity, the diamond property, serialisation, non-interference, and readiness for \pimll{}. These results are not mechanised in the current formalisation. These results are not mechanised in the current formalisation; they are discussed in \cref{sec:future}.
