@@ -141,7 +141,7 @@ The most immediate directions for future work concern completing the remaining s
 \paragraph{Completing the multiplicative fragment}
 The immediate remaining proof obligation is the \texttt{res} case of \texttt{typability\_subject\_reduction}$_\texttt{m}$. This case requires reconstructing the post-transition hyperenvironment after stepping the opened body of a restriction. The key missing ingredient is a block-preservation argument for \texttt{TypingStep}$_\texttt{m}$, showing that hyperenvironment components not involved in a transition are preserved up to permutation. This should provide the infrastructure needed to rebuild the outer \texttt{cut} typing derivation after applying the induction hypothesis to the opened body.
 
-\paragraph{Co-finite quantification in \texttt{ProcStep}}
+\paragraph{Co-finite quantification in ProcStep}
 The current \texttt{ProcStep}$_\texttt{m}$ relation uses concrete freshness witnesses for binding constructors, while the typing rules use co-finite quantification. This asymmetry introduces proof overhead in the typability theorem, where the specific concrete names chosen by \texttt{ProcStep}$_\texttt{m}$ must be reconciled with the universally quantified premises of the corresponding typing rules. Refactoring \texttt{ProcStep}$_\texttt{m}$ to use co-finite quantification for its binding constructors would align the process and typing relations more closely and could reduce the need for auxiliary \emph{all fresh} lemmas. It may also make some explicit freshness and post-state disjointness premises derivable rather than primitive, although its effect on the erasure simulation proofs remains to be checked.
 
 \paragraph{Extending to full \pill{}}
@@ -184,6 +184,7 @@ A recurring cost throughout the formalisation is the manual rearrangement of hyp
 % AI declaration
 % GitHub source code link
 % Appendix of full inductives
+% Disable line numbers
 
 % FIXME: Other things
 % Fix all remaining FIXMEs and TODOs scattered through the files
