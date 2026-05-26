@@ -35,27 +35,41 @@ Overall, the development provides a substantial mechanised account of the static
 % TODO: Appendix 
 
 % TODO: Should there be an acknowledgements section?
-% TODO: Should there be a related work section?
+% TODO: Should there be a specific related work section it seems covred by the background, binding theory and architecture?
 
 % TODO: De duplicate the discussion and future work sections
-
 % TODO: Should the future work paragraphs be subsections instead, same with discussion.
-
-% TODO: Fix The unmarked TODOs in Background.lean
+% TODO: Fix The unmarked TODOs in Background.lean Check if they talk about what is used to say hD2 is irrelevant in the par1 and par2 constructors
 
 % TODO: Check bindingrepresentation includes reasoning for choice, benefits, drawbacks and alternatives:
   % De Bruijn for types
   % Locally Nameless for processes
   % Co-finite quantification (strong induction principle, simplification in typing and reduction proofs)
-
 % TODO: Generally check if disposiiton matches
 % TODO: Check if proof strategy description and comparison seems deep enough.
 
 % TODO: Show more synax in the process section?
 % TODO: Keep or delete comment on notation for Env.merge
 
-% TODO: Include githash for final comit before report submission
+% TODO: Include githash for final commit before report submission
 % TODO: Update the README on github
+
+
+% TODO: Add notation paragraph to processes along the lines of this:
+	% \paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The 		only divergence is that exponentials are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} to avoid clashes with 		Lean syntax.
+	% Also add notation explanation for \_h or replace with just |
+	% The main notation clarification would probably be the use of double brackets and parentheses.
+
+% TODO: Do a sanity check on this paragraph:
+% - Of particular importance are the commutation lemmas between opening and substitution:
+% 	open_substNames_comm establishes that opening and name substitution commute, and the corres-
+% 	ponding lemma for type substitution ensures that substituting under a binder produces the same
+% 	result regardless of order. These properties are essential in the typability proof, where the co-finite
+% 	witnesses produced by the typing rules must be reconciled with the concrete names introduced by
+% 	the process transitions. lines 1186-1191 just before subsection 4.1.3
+% - This formulation differs from the paper presentation, which formulates erasure extensionally,
+% 	using set-valued transition functions and equality of successor sets.
+
 
 % FIXME: Something funky is going on with the outlin for the Types.dual definitions and the table showing the correspondence between paper, LN and Lean types. Generally check all the listings to see if the outline does anything weird. If this is hard to fix maybe just remove them?
 
