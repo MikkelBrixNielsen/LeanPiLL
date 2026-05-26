@@ -1,10 +1,141 @@
 \appendix
 \section{Code Availability}\label{app:code-availability}
-The complete Lean development is included as supplementary material and is also available at:
-\begin{center}
-\url{https://github.com/[link_to_github]}
-\end{center}
-The submitted archive contains the exact version of the code corresponding to this thesis. The online repository may contain later updates. The appendix contains only selected excerpts of the development; the full collection of definitions, auxiliary lemmas, and proof scripts is available in the accompanying codebase.
+The complete Lean development corresponding to this thesis is submitted as a separate archive and is available at: \url{https://github.com/MikkelBrixNielsen/LeanPiLL}
+
+The submitted archive corresponds to the version of the formalisation described in this thesis. The online repository may contain later updates, while earlier experimental versions are available in the repository history. These earlier versions are not part of the submitted artefact. The appendix contains only selected excerpts of the development; the full collection of definitions, auxiliary lemmas, and proof scripts is available in the accompanying codebase.
+
+\section{Lean File Structure}\label{app:file-structure}
+\begin{lstlisting}[language=Lean4]
+PiLL/
+  Model/
+    Environments/
+    HyperEnvironments/
+    Judgement/
+    Processes/
+    STypes/
+    Base.lean
+  Semantics/
+    EnvStep/
+    JudgementStep/
+    ProcStep/
+    Labels.lean
+  SessionFidelity/
+    ProcStep.lean
+    EnvStep.lean
+    Typability.lean
+    SubjectReduction.lean
+\end{lstlisting}
+
+\section{Selected Core Definitions}\label{app:selected-core-definitions}
+These things should be included in this appendix
+\begin{verbatim}  
+Session types:
+- TVar
+- Types
+- Types.dual
+- TVar.lc / Types.lc
+- TVar.shift / Types.shift
+- Types.subst
+
+Processes and binding:
+- Channel
+- Proc
+- Channel.open / Proc.open
+- Channel.close / Proc.close
+- Proc.lc
+- Proc.f
+- Proc.substNames / Proc.substTypes
+- exists_one_fresh, maybe statement only
+
+Environments:
+- Elem
+- Env
+- Env.names
+- Env.merge
+- Env.Nodup
+- Env.disjoint
+- Env.lc / Env.shiftTypes / Env.substNames / Env.substTypes
+- selected names lemmas: names_nil, names_singleton, names_merge
+
+Hyperenvironments:
+- HyperEnv
+- HyperEnv.Perm
+- HyperEnv.names
+- HyperEnv.Nodup
+- HyperEnv.PairwiseDisjoint
+- HyperEnv.disjoint
+- merge laws / permutation laws
+
+Typing:
+- Full 'Typing' inductive relation, or at least all constructors in a compact listing
+\end{verbatim}
+
+\section{Selected Transition Definitions}\label{app:selected-transition-definitions}
+These things should be include in this appendix
+\begin{verbatim}
+  Labels:
+  - Mu
+  - Act
+  - Lbl
+  - Lbl.WF
+  - Lbl.f
+  - Lbl.i
+
+  Step relations:
+  - full or nearly full ProcStep_m
+  - full or nearly full EnvStep_m
+  - TypingStep signature
+  - selected TypingStep constructors: 
+    one, bot, tensor, parr, par_1, par_2, syn, one_bot, tensor_parr, res, perm_env, perm_hyper
+\end{verbatim}
+
+\section{Erasure Functions and Main Theorems}\label{app:main-theorems}
+These things should be included in this appendix
+\begin{verbatim}
+  - proc : Typing n P G -> Proc
+  - env  : Typing n P G -> HyperEnv
+  - session_fidelity_proc
+  - session_fidelity_env
+  - typability_subject_reduction
+  - subject_reduction
+\end{verbatim}
+
+\section{Selected Proof Infrastructure}\label{app:proof-infrastructure}
+These things should be indcluded in this appendix
+\begin{verbatim}
+  Core typing invariants:
+  - Typing_f_eq_names
+  - Typing_preserves_linearity
+  - maybe Typing_preserves_lc_context
+
+  Freshness/co-finite bridge:
+  - Typing_tensor_all_fresh
+  - Typing_parr_all_fresh
+  - Typing_res_all_fresh if is discussed, else something similar
+
+  Typing inversion:
+  - Typing_inv_one
+  - Typing_inv_tensor
+  - maybe Typing_inv_cut
+
+  Hyperenvironment extraction/block preservation:
+  - one representative HyperEnv.Perm.extract_* statement
+  - optionally one block-preservation lemma statement if it is clean enough
+\end{verbatim}
+
+% DON'T INCLUDE THESE KINDS OF THINGS
+% - Full Lemmas.lean files
+% - Full extraction proof files
+% - Tensor_Parr_Res_Crosslinked.lean proof bodies
+% - Tactic macros
+% - Notation files
+% - MultiStep.lean
+% - Old/experimental code
+% - Full proof scripts for session fidelity
+% - Behavioural metatheory future-work material
+
+
+
 
 % Binding section appendix
 % The introduction of the Types and Process definitions could link to the appendix containing their respective definitions with included syntax?
@@ -20,6 +151,9 @@ The submitted archive contains the exact version of the code corresponding to th
 %        Processes/SubstNames.lean, Processes/SubstTypes.lean, Fresh.lean
 % Purpose: Show how the locally nameless representation is implemented.
 % Include Names.lean (specifically Proc.f)
+% Free-name computation for processes
+% File: Processes/Names.lean
+% Purpose: Connect locally nameless syntax to the freshness side conditions used in transition rules.
 
 % Formalisation section appendix
   % subsection stypes
@@ -56,17 +190,228 @@ The submitted archive contains the exact version of the code corresponding to th
     % 
     % Notation.lean:
     % - do not include, repository only
+    % Listing with channel inductive can point to Processes/Basic.lean
+    % the table below can point to full definitions as well
+    % Opening listing for proc and channels can point to the appendix with open and close 
+    % The HasOpenTwo can point to base.lean appendix
+    % Channel close can point to full close definitions'
+    % Proc.lc listing can point to the appendix defininig these definitions
+    % Proc.f listing can point to Names appendix
+    % The stuff below with freshness can point to appendix for fresh.lean
+    % substitution section points to appendix with process name and type substitution
+    % Provide lemma snippets for open_substNames_comm and lc_of_open, f_close describe the proof strategy and such but don't show full Lean code only representative cases defer full thing to the zip?
+    % open_substNames_comm
 
+  % Subsection Environments
+    % % Candidate: Selected environment infrastructure
+    % Files:
+    %   Environment/Basic.lean
+    %   Environment/Lemmas.lean
+    %
+    % Possible excerpts:
+    %   - Elem and Env as lists of name/type pairs
+    %   - Env.names, Env.merge, Env.Nodup, Env.disjoint
+    %   - Env.lc, Env.shiftTypes, Env.substNames, Env.    substTypes
+    %   - Permutation instance and merge laws
+    %   - Selected name-set simplification lemmas: names_nil,     names_singleton, names_distributes, names_merge
+    %   - Selected permutation/disjointness lemmas:     names_eq_of_perm, perm_disjoint, disjoint_cons_iff,     Nodup_perm
+    %
+    % Purpose:
+    %   Show how environments are implemented as lists while    recovering the intended order-insensitive,
+    %   linear-resource behaviour through permutation,    name-set, disjointness, and Nodup lemmas.
+    % Listing for env definition and merge point to basic appendix
+    % Listing with merge comm and merge assoc laws point to appropriate appendix, the same for env.disjoint, env.names, env.nodup, env.serverusable
+    % Add reference to Env.Nodup_merge_iff show signature and describe proof show relevant constructors
+    % For lifted operations section show example of type-level or process-level function being lifted to env
 
+  % Subsection Hyperenvironments
+    % Schmeatic of proof to include for e.g. tensor parr defer the rest to zip file 
+    % lemma HyperEnv.Perm.extract_tensor_res
+    %(h_pre : 𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] ~
+    %  𝒢ᵣ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ])
+    %(h_post : ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] ~
+    %  𝒢ᵣ |ₕ [w ∶ A :: Γ] |ₕ [x ∶ B :: Δ]) :
+    %∃ 𝒢ₙ Γₙ Δₙ,
+    %  𝒢 |ₕ [Γ'‚ Δ'] ~ 𝒢ₙ |ₕ [x ∶ A ⨂ B :: Γₙ‚ Δₙ] ∧
+    %  ℋ |ₕ [Γ''‚ Δ''] ~ 𝒢ₙ |ₕ [w ∶ A :: Γₙ] |ₕ [x ∶ B ::  % Δₙ]
+    % Then explain that the full statement includes freshness and inequality hypotheses needed to rule out name collisions.
+    % Candidate: Selected hyperenvironment infrastructure
+    % Files:
+    %   HyperEnvironment/Basic.lean
+    %   HyperEnvironment/Lemmas/Basic.lean
+    %   HyperEnvironment/Lemmas/Extraction/*.lean
+    %
+    % Possible excerpts:
+    %   - HyperEnv as List Env
+    %   - HyperEnv.Perm, including internal Env permutation
+    %   - HyperEnv.names, Nodup, disjoint, PairwiseDisjoint
+    %   - shiftTypes and substNames over hyperenvironments
+    %   - selected name/permutation lemmas:
+    %       HyperEnv.names_cons
+    %       HyperEnv.subset_names_of_mem
+    %       HyperEnv.names_eq_of_perm
+    %       HyperEnv.merge_comm / merge_assoc / merge_unit    laws
+    %   - one representative extraction lemma statement:
+    %       extract_tensor_res or extract_tensor_parr_res
+    %
+    % Purpose:
+    %   Show how hyperenvironments are implemented as lists     while recovering
+    %   order-insensitive reasoning through a custom    permutation relation, and
+    %   document the kind of extraction lemma needed for    restriction cases.
+    %
+    % Repository only:
+    %   - Full extraction proofs
+    %   - Tensor_Parr_Res.lean
+    %   - Tensor_Parr_Res_Crosslinked.lean
+    %   - Long permutation/disjointness proof scripts
+    % Hyperenv definition point to appendix describing HyperEnv/Basic.lean
+    % Deep permutation section link to appendix describing deep permutation
+    % Well formedness should like to Nodup and pairwise disjoint appendix
+    % Maybe also show some lifted functions from env to HyperEnv if there are any interesting ones maybe Nodup or pairwise disjoint as these are mentioned in judgement for linearity of the typing relation 
 
+  % Subsection Judgements
+    % Candidate: Typing judgement definition
+    % File: Judgement/Basic.lean
+    % Possible excerpt:
+    %   - inductive Typing : Nat → Proc → HyperEnv → Prop
+    %   - all constructors, or at least:
+    %       mix₀, mix, one, bot, cut, tensor, parr,
+    %       oplus₁, oplus₂, amp, ax, quest, bang, w, c,     exists_, forall_
+    % Purpose:
+    %   Show how the full static typing system is   represented in Lean.
+    % Inductive predicate links to appendix with full   definitions
+    % The listing showing explicit rules can all get a  paragraph at the end linking them to judgement/Basic.  lean appendix, or maybe just put this on the entire   first section covering cofinite exchange rules type   depth
+    % Link the structural invariants section talking about  hyperenv names are equal to process frenames to the  relevant appendix for as well as these lemmas Judgement/ Linearity.lean proves Typing_preserves_disjointness and  Typing_preserves_linearity
+    % Candidate: Selected typing judgement infrastructure
+    % Files:
+    %   Judgement/Basic.lean
+    %   Judgement/Lemmas.lean
+    %   Judgement/Linearity.lean
+    %   Judgement/LocalClosure.lean
+    %   Judgement/Names.lean
+    %   Judgement/Weakening.lean
+    %   Judgement/Substitution/Types.lean
+    %   Judgement/Fresh.lean
+    %
+    % Possible excerpts:
+    %   - Full Typing inductive relation from Basic.lean
+    %   - Selected inversion lemma statements:
+    %       Typing_inv_one
+    %       Typing_inv_tensor
+    %       maybe Typing_inv_cut
+    %   - Regularity/local-closure statement:
+    %       Typing_preserves_lc_context
+    %   - Linearity statements:
+    %       Typing_preserves_disjointness
+    %       Typing_preserves_linearity
+    %   - Name/resource correspondence:
+    %       Typing_f_eq_names
+    %   - Type-variable infrastructure:
+    %       Typing_weakening
+    %       Typing_substTypes
+    %   - Freshness-bridging lemmas:
+    %       Typing_tensor_all_fresh
+    %       Typing_parr_all_fresh
+    %
+    % Purpose:
+    %   Show that the typing judgement is the central     invariant connecting
+    %   processes, hyperenvironments, local closure, free     names, and linearity.
+    %
+    % Repository only:
+    %   - Full inversion library
+    %   - Full substitution proofs
+    %   - Tactic macros
+    %   - Long proof scripts
+
+  % subsection semantics
+    % Candidate: Selected semantics infrastructure
+    % Files:
+    %   Semantics/Labels.lean
+    %   Semantics/ProcStep/Basic.lean
+    %   Semantics/EnvStep/Basic.lean
+    %   Semantics/JudgementStep/Basic.lean
+    %   Semantics/JudgementStep/Names.lean
+    %   Semantics/JudgementStep/Linearity.lean
+    %   Semantics/JudgementStep/WellFormed.lean
+    %
+    % Possible excerpts:
+    %   - Mu, Act, Lbl
+    %   - Lbl.WF, Lbl.f, Lbl.i
+    %   - Full or nearly full ProcStepₘ
+    %   - Full or nearly full EnvStepₘ
+    %   - TypingStepₘ signature and selected constructors:
+    %       one, bot, tensor, parr, par₁, par₂, syn, one_bot,     tensor_parr, res,
+    %       perm_env, perm_hyper
+    %   - Optional lemma statements:
+    %       TypingStepₘ_names_bound
+    %       TypingStepₘ_par_preserves_disjoint
+    %       TypingStepₘ_syn_preserves_disjoint
+    %       TypingStepₘ.preserves_WF
+    %
+    % Purpose:
+    %   Show how the mechanisation represents the three     transition systems and how
+    %   labels, freshness, disjointness, and exchange are     made explicit in Lean.
+    %
+    % Repository only:
+    %   - Full inversion lemmas for TypingStepₘ
+    %   - MultiStep.lean unless multi-step semantics are    discussed
+    %   - Full proofs of names/disjointness/well-formedness lemmas
+    % Don't include multistep
+    % Include label definitions
+    % include full procstep as it supports concrete freshness, cofinte mismatch, synchronisation under restriction, missing res typability case 
+    % Include full EnvStep since it is light and mirros paper presentation and it is interesting to show the exchange rules
+    % Include full typing step (consider if abbreviation is better, but still probably keep tensor, parr, one, bot as full)
+    % Include any other relevant lemmas if they are discussed
+    % The itemize can link to the appendix for each of the relations definitions
+    % Listing in labels paragraph can link to appendix with label definitions and potentially Lbl.f and Lbl.i as they are mentioned in prose
+    % for the par_1 listing link to the definitions again?
 
 % Metatheory section appendix
-
-
+  % Candidate: Main metatheory appendix
+  % Possible excerpts:
+  %   - proc : Typing n P 𝒢 → Proc
+  %   - env  : Typing n P 𝒢 → HyperEnv
+  %   - session_fidelity_procₘ
+  %   - session_fidelity_envₘ
+  %   - typability_subject_reductionₘ
+  %   - subject_reductionₘ
+  %   - Typing_f_eq_names
+  %   - Typing_preserves_linearity
+  %   - Typing_tensor_all_fresh
+  %   - Typing_parr_all_fresh
+  %   - optionally one representative extraction/ block-preservation lemma statement
+  %
+  % Purpose:
+  %   Show the central theorem statements and the key   invariants/proof infrastructure
+  %   supporting the session-fidelity development.
+  %
+  % Repository only:
+  %   - Full proof scripts
+  %   - Complete inversion libraries
+  %   - Full block-preservation/extraction development
+  %   - Behavioural future-work material
+  % In the appendices mention breifly the proof strategy and other relevant information for the theorems maybe show informative cases
 
 % Discussion section appendix
+  % Discussion-supporting appendix candidates:
+  % - TypingStepₘ.par₁ and TypingStepₘ.par₂, showing hD1/hD2.
+  % - ProcStepₘ.tensor, showing concrete freshness witnesses.
+  % - TypingStepₘ.tensor or Typing_tensor_all_fresh, showing co-finite/freshness reconciliation.
+  % - typability_subject_reductionₘ theorem statement, showing the remaining res obligation context.
+  % - Optional: one block-preservation or HyperEnv.Perm.extract_* lemma statement, if you want to document the res infrastructure.
 
 
 % Future work section appendix
+  % Does not need anything simply references the stuff already defiend for the other sections appendices
+  % res / block-preservation / hyperenvironment extraction → belongs under Selected Proof Infrastructure or stays codebase-only.
+  % Co-finite ProcStepₘ refactor → supported by the existing ProcStepₘ and all-fresh lemma excerpts.
+  % Full \pill extension → no appendix needed beyond the full Typing definition and code availability.
+  % Structural congruence → no current code, so no appendix.
+  % Behavioural metatheory → not mechanised, so no appendix.
+  % Proof automation → no appendix unless you already have an aesop rule set, which you do not.
+
+
+
+
 
 

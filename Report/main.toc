@@ -69,17 +69,20 @@
 \contentsline {paragraph}{Evolution of the session fidelity proof}{33}{section*.50}%
 \contentsline {paragraph}{Proof-engineering tradeoffs}{34}{section*.51}%
 \contentsline {paragraph}{Structural congruence}{34}{section*.52}%
-\contentsline {paragraph}{Current limitations}{34}{section*.53}%
+\contentsline {paragraph}{Current limitations}{35}{section*.53}%
 \contentsline {paragraph}{Proof automation}{35}{section*.54}%
 \contentsline {section}{\numberline {7}Future Work}{35}{section.7}%
 \contentsline {paragraph}{Completing the multiplicative fragment}{35}{section*.55}%
 \contentsline {paragraph}{Co-finite quantification in ProcStep}{35}{section*.56}%
-\contentsline {paragraph}{Co-finite quantification in ProcStep}{35}{section*.57}%
-\contentsline {paragraph}{Extending to full {\upshape $\pi $LL\xspace }\xspace {}}{36}{section*.58}%
-\contentsline {paragraph}{Structural congruence}{36}{section*.59}%
-\contentsline {paragraph}{Behavioural metatheory}{37}{section*.60}%
-\contentsline {paragraph}{Behavioural metatheory}{37}{section*.61}%
-\contentsline {paragraph}{Proof automation}{37}{section*.62}%
-\contentsline {section}{\numberline {8}Conclusion}{38}{section.8}%
-\contentsline {section}{References}{38}{section*.64}%
-\contentsline {section}{\numberline {A}Code Availability}{39}{section.A}%
+\contentsline {paragraph}{Extending to full {\upshape $\pi $LL\xspace }\xspace {}}{35}{section*.57}%
+\contentsline {paragraph}{Structural congruence}{36}{section*.58}%
+\contentsline {paragraph}{Behavioural metatheory}{37}{section*.59}%
+\contentsline {paragraph}{Proof automation}{37}{section*.60}%
+\contentsline {section}{\numberline {8}Conclusion}{37}{section.8}%
+\contentsline {section}{References}{38}{section*.62}%
+\contentsline {section}{\numberline {A}Code Availability}{38}{section.A}%
+\contentsline {section}{\numberline {B}Lean File Structure}{39}{section.B}%
+\contentsline {section}{\numberline {C}Selected Core Definitions}{39}{section.C}%
+\contentsline {section}{\numberline {D}Selected Transition Definitions}{40}{section.D}%
+\contentsline {section}{\numberline {E}Erasure Functions and Main Theorems}{40}{section.E}%
+\contentsline {section}{\numberline {F}Selected Proof Infrastructure}{40}{section.F}%
