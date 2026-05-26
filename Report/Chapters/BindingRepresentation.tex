@@ -150,3 +150,6 @@ Rather than opening the binder with a fresh explicit name, the typing judgment s
 Here, the rule states that the process is well-typed if, for any fresh channel variable $y$ outside some finite set of forbidden variables $L$, the opened process $\phl{P}$ is well-typed under the environment extended with the opened payload. By utilizing this mixed evaluation strategy, co-finite quantification for dynamic channels, and depth-indexed evaluation for static types, the architecture minimizes bureaucratic renaming overhead while maintaining a unified underlying syntax.
 
 With this mathematical foundation established, the conceptual theory of \pill{} is fully prepared for implementation. The following chapter details how this locally nameless architecture is concretely mechanised in the Lean 4 proof assistant.
+
+% FIXME: Should this be included?
+The corresponding Lean definitions for channels, opening and closing, and selected local-closure predicates are included in \cref{app:selected-definitions}; the full development is available in the accompanying codebase.

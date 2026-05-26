@@ -1,4 +1,72 @@
 \appendix
-\section{Full Lean code}
-\section{Proof cases}
-\section{Examples}
+\section{Code Availability}\label{app:code-availability}
+The complete Lean development is included as supplementary material and is also available at:
+\begin{center}
+\url{https://github.com/[link_to_github]}
+\end{center}
+The submitted archive contains the exact version of the code corresponding to this thesis. The online repository may contain later updates. The appendix contains only selected excerpts of the development; the full collection of definitions, auxiliary lemmas, and proof scripts is available in the accompanying codebase.
+
+% Binding section appendix
+% The introduction of the Types and Process definitions could link to the appendix containing their respective definitions with included syntax?
+% The example mathematical forall_DB rule could link to the appendix with typing definitions and so could the parr example_LN
+% The table comparing the types across paper KN and lean could link to their definitions 
+% Channel / type variable syntax
+% Opening and closing operations
+% Local closure predicates
+% Name substitution and type substitution
+% Fresh-name existence lemmas
+% Candidate: Selected binding infrastructure
+% Files: Processes/Basic.lean, Processes/OpenClose.lean, Processes/LocalClosure.lean,
+%        Processes/SubstNames.lean, Processes/SubstTypes.lean, Fresh.lean
+% Purpose: Show how the locally nameless representation is implemented.
+% Include Names.lean (specifically Proc.f)
+
+% Formalisation section appendix
+  % subsection stypes
+  % Selected Core Definitions / Session Types:
+    % TVar
+    % Types
+    % Types.dual
+    % TVar.lc and Types.lc
+    % TVar.shift and Types.shift
+    % Types.subst and TVar.shift
+    % selected lemma statements: dual_involution, lc_shift, lc_subst_inv (maybe)
+    % Basic.lean:
+    % - TVar
+    % - Types
+    % - Types.dual
+    % 
+    % Properties.lean:
+    % - TVar.lc
+    % - Types.lc
+    % - maybe Types.freeTypes if needed later
+    % 
+    % Shift.lean:
+    % - TVar.shift
+    % - Types.shift
+    % 
+    % Subst.lean:
+    % - Types.subst
+    % 
+    % Lemmas.lean:
+    % - Types.dual_involution statement
+    % - Types.lc_shift statement
+    % - Types.lc_subst_inv statement
+    % - no full lemma library
+    % 
+    % Notation.lean:
+    % - do not include, repository only
+
+
+
+
+% Metatheory section appendix
+
+
+
+% Discussion section appendix
+
+
+% Future work section appendix
+
+

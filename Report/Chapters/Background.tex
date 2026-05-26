@@ -84,7 +84,7 @@ Programs in \pimll{} are processes \hl{($\phl{P}$, $\phl{Q}$, $\phl{R}$, $\dots$
     \mid{} & \nil{}               & terminated process
 \end{bnftable}
 
-% -------- FIXME: Feels necessary to mention, but a too much like copy pate
+% -------- FIXME: Feels necessary to mention, but too much like copy pate
 Term \hl{$\phl{\send{x}{y}{P}}$} allocates a fresh name \hl{$\phl{y}$}, outputs it over \hl{$\phl{x}$}, and proceeds as \hl{$\phl{P}$}. Dually, \hl{$\phl{\recv{x}{y}{P}}$} inputs a name over \hl{$\phl{x}$}, binding it to \hl{$\phl{y}$} in \hl{$\phl{P}$}. Terms \hl{$\phl{\close{x}{P}}$} and \hl{$\phl{\wait{x}{P}}$} model empty output and input. Restriction \hl{$\phl{\res{xy}{P}}$} connects the two endpoints \hl{$\phl{x}$} and \hl{$\phl{y}$} of \hl{$\phl{P}$} to form a session, where the order of \hl{$\phl{x}$} and \hl{$\phl{y}$} is irrelevant and \hl{$\phl{\res{xy}{P}} = \phl{\res{yx}{P}}$}. Parallel composition \hl{$\phl{P \pp Q}$} runs \hl{$\phl{P}$} and \hl{$\phl{Q}$} concurrently, and \hl{$\phl{\nil}$} is the terminated process, acting as the unit of parallel composition.
 
 \begin{example}\label{ex:cut-unit-proc}

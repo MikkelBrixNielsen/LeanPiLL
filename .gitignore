@@ -1,8 +1,8 @@
 /.lake
 /.gemini/
 /.gemini_history
-lake-manifest.json
 lean_packages/
+lake-packages/
 /.vscode/
 *.code-workspace
 .DS_Store
