@@ -13,6 +13,12 @@
 \setlength{\marginparwidth}{2cm}
 \input{preamble}
 
+\makeatletter
+\renewcommand{\l@section}{\@dottedtocline{1}{0em}{2.3em}}
+\renewcommand{\l@subsection}{\@dottedtocline{2}{1.5em}{3.2em}}
+\renewcommand{\l@subsubsection}{\@dottedtocline{3}{3.8em}{4.1em}}
+\makeatother
+
 \usepackage{listings}
 \lstdefinelanguage{Lean4}{
   keywords={def, inductive, instance, theorem, lemma, where, match, if, then, else, fun, let, in, by, import, abbrev, class, Type, Prop, with, infixl, infixr, prefix, max},
@@ -137,10 +143,16 @@
 
 \clearpage
 \section*{Abstract}
-\addcontentsline{toc}{section}{Abstract}
 Words words words words words words words words words
 
 Ord ord ord ord ord ord ord ord ord ord ord
+\clearpage
+
+\begingroup
+\renewcommand{\addcontentsline}[3]{}
+\tableofcontents
+\endgroup
+
 \clearpage
 
 \input{Chapters/Introduction}
@@ -153,5 +165,6 @@ Ord ord ord ord ord ord ord ord ord ord ord
 \input{Chapters/Conclusion}
 \bibliography{references} % out commenting this breaks references
 % \input{appendix}
+\input{Chapters/Appendix}
 
 \end{document}

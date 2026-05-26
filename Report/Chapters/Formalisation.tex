@@ -35,7 +35,7 @@ The \texttt{Model} namespace formalizes the static structure of the full \pill{}
 
 % FIXME: How much of this is relevant, and maybe actually just mention the specifics when they become relevant throughout the other sections?
 % \paragraph{Base}\label{paragraph:base}
-% This file \texttt{Base.lean} contains the definitions for the shared operational interfaces used throughout the model as Lean typeclasses. The typeclasses include instances for shifting, substituting, opening and closing of names and types, as well as a few typeclases for having shared syntax between process and labels. For example, depending on context the notation $\dlsend{x}{y}$ can be use to prefix a process, in which case it evaluates to the send constructor, or it can be used as a label on a transition, in which case it would evaluate as a label instead. The same syntax is used leaving the the payload empty for refering to the empty send and its respective label. This pattern is repeated using $\dlrecv{x}{y}$ for both recieve variants as well. Notably, two classes are needed to define shifting for types and names, respectively, as the signature takes the subject, cut-off depth, and by how much to increment, which isn't enough to determine whether it should be names or types which is shifted.
+% This file \texttt{Base.lean} contains the definitions for the shared operational interfaces used throughout the model as Lean typeclasses. The typeclasses include instances for shifting, substituting, opening and closing of names and types, as well as a few typeclases for having shared syntax between process and labels. For example, depending on context the notation $\dlsend{x}{y}$ can be use to prefix a process, in which case it evaluates to the send constructor, or it can be used as a label on a transition, in which case it would evaluate as a label instead. The same syntax is used leaving the the payload empty for refering to the empty send and its respective label. This pattern is repeated using $\dlrecv{x}{y}$ for both receive variants as well. Notably, two classes are needed to define shifting for types and names, respectively, as the signature takes the subject, cut-off depth, and by how much to increment, which isn't enough to determine whether it should be names or types which is shifted.
 % \begin{verbatim}
 % class HasShiftNames (Subject : Type) where
 %   shift : Subject -> Nat -> Nat -> Subject
@@ -339,7 +339,7 @@ The choice of \texttt{List} as the underlying representation deserves explanatio
 
 \begin{lstlisting}[language=Lean4]
 abbrev Env.merge (/-$\Gamma~\Delta$-/ : Env) : Env := /-$\Gamma$-/ ++ /-$\Delta$-/
-infixl:69 "/-$,$-/" => Env.merge
+infixl:69 "/-$,$-/" => Env.merge  -- uses \glq to avoid clashing with the actual comma
 \end{lstlisting}
 
 Because lists do not naturally form a Partial Commutative Monoid (PCM) but are associative by definition, we only need to formally recover commutativity. 

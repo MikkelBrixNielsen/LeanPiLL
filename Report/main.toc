@@ -1,0 +1,87 @@
+\babel@toc {british}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {paragraph}{Motivation and correctness concerns.}{3}{section*.3}%
+\contentsline {paragraph}{Why mechanization.}{3}{section*.4}%
+\contentsline {paragraph}{Contributions.}{3}{section*.5}%
+\contentsline {paragraph}{Scope of the formalization.}{3}{section*.6}%
+\contentsline {section}{\numberline {2}Background}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Classical Linear Logic, CLL}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}The $\pi $-Calculus: Processes and Communication}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Types and Propositions-as-Sessions Correspondence}{6}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Environments, Hyperenvironments and Judgements}{6}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Operational Semantics}{8}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Process Semantics and Erasure}{10}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Semantics of Typing Environments}{12}{subsection.2.7}%
+\contentsline {subsection}{\numberline {2.8}Managing Bound Variables}{14}{subsection.2.8}%
+\contentsline {section}{\numberline {3}Binding Architecture}{14}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Design Goals and the Approach}{15}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}The Locally Nameless Representation}{15}{subsection.3.2}%
+\contentsline {paragraph}{LN Syntax for Types.}{15}{section*.14}%
+\contentsline {paragraph}{LN Syntax for Processes.}{16}{section*.15}%
+\contentsline {subsection}{\numberline {3.3}Opening and Closing Binders}{16}{subsection.3.3}%
+\contentsline {paragraph}{Opening (Instantiation)}{16}{section*.16}%
+\contentsline {paragraph}{Closing (Abstraction)}{17}{section*.17}%
+\contentsline {paragraph}{Locally Closed Terms}{17}{section*.18}%
+\contentsline {subsection}{\numberline {3.4}Co-finite Quantification}{17}{subsection.3.4}%
+\contentsline {paragraph}{Application to {\upshape $\pi $LL\xspace }\xspace {} Types}{18}{section*.19}%
+\contentsline {paragraph}{Application to {\upshape $\pi $LL\xspace }\xspace {} Channels}{18}{section*.20}%
+\contentsline {section}{\numberline {4}Formalisation}{19}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Model}{19}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}Session Types}{19}{subsubsection.4.1.1}%
+\contentsline {paragraph}{Duality}{20}{section*.22}%
+\contentsline {paragraph}{Local closure}{20}{section*.23}%
+\contentsline {paragraph}{Shifting}{20}{section*.24}%
+\contentsline {paragraph}{Substitution}{21}{section*.25}%
+\contentsline {paragraph}{Notation}{21}{section*.26}%
+\contentsline {subsubsection}{\numberline {4.1.2}Processes}{21}{subsubsection.4.1.2}%
+\contentsline {paragraph}{Opening and closing}{22}{section*.27}%
+\contentsline {paragraph}{Local closure}{23}{section*.28}%
+\contentsline {paragraph}{Free names and freshness}{24}{section*.29}%
+\contentsline {paragraph}{Substitution}{24}{section*.30}%
+\contentsline {paragraph}{Structural Properties}{24}{section*.31}%
+\contentsline {subsubsection}{\numberline {4.1.3}Environments}{25}{subsubsection.4.1.3}%
+\contentsline {paragraph}{Recovering the PCM structure}{25}{section*.32}%
+\contentsline {paragraph}{Server usability}{26}{section*.33}%
+\contentsline {paragraph}{Lifted operations}{26}{section*.34}%
+\contentsline {subsubsection}{\numberline {4.1.4}Hyperenvironments}{26}{subsubsection.4.1.4}%
+\contentsline {paragraph}{Deep permutation}{26}{section*.35}%
+\contentsline {paragraph}{Well-formedness}{27}{section*.36}%
+\contentsline {paragraph}{Lifted operations}{27}{section*.37}%
+\contentsline {subsubsection}{\numberline {4.1.5}Typing Judgements}{27}{subsubsection.4.1.5}%
+\contentsline {paragraph}{Type-depth indexing}{27}{section*.38}%
+\contentsline {paragraph}{Exchange and explicit side conditions}{28}{section*.39}%
+\contentsline {paragraph}{Co-finite quantification}{28}{section*.40}%
+\contentsline {paragraph}{Structural invariants}{28}{section*.41}%
+\contentsline {subsection}{\numberline {4.2}Semantics}{28}{subsection.4.2}%
+\contentsline {paragraph}{Labels}{29}{section*.42}%
+\contentsline {subsubsection}{\numberline {4.2.1}The Typed Transition System}{29}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}Projected Transition Systems}{30}{subsubsection.4.2.2}%
+\contentsline {paragraph}{Process steps}{30}{section*.43}%
+\contentsline {paragraph}{Environment steps}{30}{section*.44}%
+\contentsline {section}{\numberline {5}Metatheory}{31}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Session Fidelity}{31}{subsection.5.1}%
+\contentsline {paragraph}{Erasure simulations}{31}{section*.45}%
+\contentsline {paragraph}{Typability}{31}{section*.46}%
+\contentsline {paragraph}{Subject reduction}{32}{section*.47}%
+\contentsline {paragraph}{Implementation considerations}{32}{section*.48}%
+\contentsline {paragraph}{Interpretation}{33}{section*.49}%
+\contentsline {section}{\numberline {6}Discussion}{33}{section.6}%
+\contentsline {paragraph}{Evolution of the session fidelity proof}{33}{section*.50}%
+\contentsline {paragraph}{Proof-engineering tradeoffs}{33}{section*.51}%
+\contentsline {paragraph}{Structural congruence}{34}{section*.52}%
+\contentsline {paragraph}{Current limitations}{34}{section*.53}%
+\contentsline {paragraph}{Proof automation}{35}{section*.54}%
+\contentsline {section}{\numberline {7}Future Work}{35}{section.7}%
+\contentsline {paragraph}{Completing the multiplicative fragment}{35}{section*.55}%
+\contentsline {paragraph}{Co-finite quantification in ProcStep}{35}{section*.56}%
+\contentsline {paragraph}{Co-finite quantification in ProcStep}{35}{section*.57}%
+\contentsline {paragraph}{Extending to full {\upshape $\pi $LL\xspace }\xspace {}}{35}{section*.58}%
+\contentsline {paragraph}{Structural congruence}{36}{section*.59}%
+\contentsline {paragraph}{Behavioural metatheory}{37}{section*.60}%
+\contentsline {paragraph}{Behavioural metatheory}{37}{section*.61}%
+\contentsline {paragraph}{Proof automation}{37}{section*.62}%
+\contentsline {section}{\numberline {8}Conclusion}{37}{section.8}%
+\contentsline {section}{References}{37}{section*.64}%
+\contentsline {section}{\numberline {A}Full Lean code}{38}{section.A}%
+\contentsline {section}{\numberline {B}Proof cases}{38}{section.B}%
+\contentsline {section}{\numberline {C}Examples}{38}{section.C}%

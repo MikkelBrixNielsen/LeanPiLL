@@ -12,7 +12,7 @@ def Env.names (Γ : Env) : Finset FPName :=
   (Γ.map Prod.fst).toFinset
 
 abbrev Env.merge (Γ Δ : Env) : Env := Γ ++ Δ
-infixl:69 "‚ " => Env.merge
+infixl:69 "‚ " => Env.merge -- uses \glq to avoid clashing with the actual comma
 
 def Env.Nodup (Γ : Env) : Prop := (Γ.map Prod.fst).Nodup
 
