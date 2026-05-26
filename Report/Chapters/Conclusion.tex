@@ -1,7 +1,30 @@
-\section{Conclusion}
+% Paragraph 1: Motivation.
+% This thesis set out to mechanise an existing \pill theory in Lean, validating a technically delicate paper presentation.
 
+% Paragraph 2: Contributions.
+% formalised syntax, locally nameless binding, session types, processes, environments, hyperenvironments, typing, operational semantics, and session-fidelity infrastructure.
 
+% Paragraph 3: Metatheory status.
+% Erasure projections and subject-reduction structure are established, typability is complete except \emph{res},  remaining gap is hyperenvironment reconstruction.
 
+% Paragraph 4: Reflection.
+% The mechanisation exposed proof-engineering tradeoffs: list-based environments, explicit disjointness, concrete vs co-finite freshness, structural congruence not mechanised.
+
+% Paragraph 5: Closing.
+% Even incomplete, the development validates large parts of the theory and identifies a clear path to completing \pimll and extending to full \piLL.
+
+\section{Conclusion}\label{sec:conclusion}
+This thesis set out to mechanise the syntax, semantics, and metatheory of \pill{} in Lean. The goal was not to extend the source calculus, but to validate and clarify an existing theoretical framework by making its binding structure, freshness assumptions, linear resource accounting, and operational metatheory explicit in a proof assistant.
+
+The formalisation covers the static structure of the full calculus, including session types, processes, environments, hyperenvironments, and typing judgements. Processes are represented using a locally nameless encoding, while type variables are represented using De Bruijn indices. This avoids explicit reasoning about \(\alpha\)-equivalence while preserving readable free channel names in the mechanised syntax. The cost of this choice is the need for local-closure predicates, opening and closing operations, and co-finite reasoning principles.
+
+The operational semantics is mechanised for the multiplicative fragment \pimll{} through three related transition systems: a typed transition system over typing derivations, a process transition system obtained by erasing typing resources, and an environment transition system describing the corresponding evolution of hyperenvironments. This mirrors the erasure structure of the source theory while adapting it to Lean's relational presentation of inductive transition systems.
+
+The main metatheoretic development establishes the structure of the session-fidelity argument for the mechanised fragment. Typed derivation steps project to both process and environment transitions, and process transitions from well-typed sources can be lifted back to typed derivation steps in the completed multiplicative cases. Subject reduction is then obtained by composing this lifting result with the environment projection. The remaining proof obligation is the \texttt{res} case of \texttt{typability\_subject\_reduction}$_\texttt{m}$, where the proof must reconstruct the post-transition hyperenvironment after stepping under restriction.
+
+The mechanisation also exposes several proof-engineering tradeoffs. Representing environments and hyperenvironments as lists makes structural induction and inversion feasible, but requires explicit permutation, disjointness, and freshness reasoning. Similarly, the mismatch between concrete freshness witnesses in \texttt{ProcStep}$_\texttt{m}$ and co-finite premises in the typing rules introduces auxiliary proof obligations. Finally, the absence of process-level structural congruence keeps the transition systems syntax-directed, but requires some rearrangements to be handled manually through exchange rules and hyperenvironment permutation lemmas.
+
+Overall, the development provides a substantial mechanised account of the static structure of full \pill{} and the dynamic metatheory of its multiplicative fragment. It confirms that the central erasure and session-fidelity architecture of the source theory can be represented in Lean, while isolating the remaining proof infrastructure needed to complete the \pimll{} development and extend the mechanisation to the full calculus.
 
 
 
@@ -26,7 +49,7 @@
 % TODO: Show more synax in the process section?
 % TODO: Keep or delete comment on notation for Env.merge
 
-
+% Check that citations use the correcet style depending on sentence structure
 % Fix all remaining FIXMEs and TODOs
 % Resolve broken cross-references
 % British spelling pass

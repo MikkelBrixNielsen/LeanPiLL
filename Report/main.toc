@@ -3,20 +3,20 @@
 \contentsline {paragraph}{Motivation and correctness concerns.}{3}{section*.3}%
 \contentsline {paragraph}{Why mechanization.}{3}{section*.4}%
 \contentsline {paragraph}{Contributions.}{3}{section*.5}%
-\contentsline {paragraph}{Scope of the formalization.}{3}{section*.6}%
+\contentsline {paragraph}{Scope of the formalization.}{4}{section*.6}%
 \contentsline {section}{\numberline {2}Background}{4}{section.2}%
 \contentsline {subsection}{\numberline {2.1}Classical Linear Logic, CLL}{4}{subsection.2.1}%
 \contentsline {subsection}{\numberline {2.2}The $\pi $-Calculus: Processes and Communication}{5}{subsection.2.2}%
 \contentsline {subsection}{\numberline {2.3}Types and Propositions-as-Sessions Correspondence}{6}{subsection.2.3}%
-\contentsline {subsection}{\numberline {2.4}Environments, Hyperenvironments and Judgements}{6}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.4}Environments, Hyperenvironments and Judgements}{7}{subsection.2.4}%
 \contentsline {subsection}{\numberline {2.5}Operational Semantics}{8}{subsection.2.5}%
 \contentsline {subsection}{\numberline {2.6}Process Semantics and Erasure}{10}{subsection.2.6}%
 \contentsline {subsection}{\numberline {2.7}Semantics of Typing Environments}{12}{subsection.2.7}%
 \contentsline {subsection}{\numberline {2.8}Managing Bound Variables}{14}{subsection.2.8}%
-\contentsline {section}{\numberline {3}Binding Architecture}{14}{section.3}%
+\contentsline {section}{\numberline {3}Binding Architecture}{15}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Design Goals and the Approach}{15}{subsection.3.1}%
 \contentsline {subsection}{\numberline {3.2}The Locally Nameless Representation}{15}{subsection.3.2}%
-\contentsline {paragraph}{LN Syntax for Types.}{15}{section*.14}%
+\contentsline {paragraph}{LN Syntax for Types.}{16}{section*.14}%
 \contentsline {paragraph}{LN Syntax for Processes.}{16}{section*.15}%
 \contentsline {subsection}{\numberline {3.3}Opening and Closing Binders}{16}{subsection.3.3}%
 \contentsline {paragraph}{Opening (Instantiation)}{16}{section*.16}%
@@ -81,7 +81,7 @@
 \contentsline {paragraph}{Behavioural metatheory}{37}{section*.61}%
 \contentsline {paragraph}{Proof automation}{37}{section*.62}%
 \contentsline {section}{\numberline {8}Conclusion}{37}{section.8}%
-\contentsline {section}{References}{37}{section*.64}%
-\contentsline {section}{\numberline {A}Full Lean code}{38}{section.A}%
-\contentsline {section}{\numberline {B}Proof cases}{38}{section.B}%
-\contentsline {section}{\numberline {C}Examples}{38}{section.C}%
+\contentsline {section}{References}{38}{section*.64}%
+\contentsline {section}{\numberline {A}Full Lean code}{39}{section.A}%
+\contentsline {section}{\numberline {B}Proof cases}{39}{section.B}%
+\contentsline {section}{\numberline {C}Examples}{39}{section.C}%

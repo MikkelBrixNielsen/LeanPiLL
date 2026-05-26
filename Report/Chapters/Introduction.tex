@@ -3,14 +3,14 @@ The Curry-Howard correspondence establishes a deep connection between logic and 
 
 In this setting, linear logic captures resource-sensitive reasoning, while session types describe communication protocols between concurrent processes. The resulting correspondence, often referred to as propositions-as-sessions, provides a principled interpretation of interaction as logical proof transformation, and has been further related to process calculi such as the $\pi$-calculus.
 
-This line of work has been further developed by~\cite{abs-2106-11818}, who provide a unified account reconciling linear logic, the $\pi$-calculus, and their metatheory. Their framework serves as the formal basis for the system \pill{} considered in this thesis.
+This line of work has been further developed by~\citet{abs-2106-11818}, who provide a unified account reconciling linear logic, the $\pi$-calculus, and their metatheory. Their framework serves as the formal basis for the system \pill{} considered in this thesis.
 
 \paragraph{Motivation and correctness concerns.}
 Despite the elegance of these theoretical correspondences, their informal and paper-based presentations are prone to subtle errors. In particular, the application of inference rules in linear logic and session-typed systems often relies on implicit ordering conventions and intuitive interpretations of syntax. This can lead to mistakes that are not immediately apparent in written derivations.
 
-As an illustrative example, small inconsistencies can arise in the presentation of typing rules within such systems, where the intuitive alignment between variable ordering and type assignment does not precisely match the formal rule structure. These discrepancies are not flaws of the underlying theory, but rather reflect the difficulty of maintaining precision in informal presentations, including in the framework of Montesi and Peressotti.
+As an illustrative example, a small mistake in the application of a typing rule can arise when the intuitive order of names does not match the formal order imposed by the rule. In the multiplicative output rule, for instance, it is tempting to assign types following the order in which names appear syntactically. However, the continuation endpoint carries the continuation type, so the formal assignment differs from this intuitive ordering. The rule itself is correct, but its application is easy to get wrong in a paper derivation.
 
-As observed in discussions with the authors of the framework, such issues are easy to overlook because rule application is often guided by intuition rather than strict syntactic structure. This highlights that even formally correct rules may be unintuitive to apply due to their representation.
+Such mistakes do not indicate a flaw in the underlying theory. Rather, they reflect the difficulty of maintaining exact correspondence between syntax, names, and types in informal presentations. They are easy to overlook because rule application is often guided by intuition rather than by the strict syntactic structure of the rule. Even formally correct rules may therefore be unintuitive to apply when their representation suggests an ordering different from the one used by the premises. This makes the system a natural candidate for mechanisation, since in proof assistants such as Lean, every rule application must instantiate the required variables and side conditions explicitly.
 
 These observations motivate a more disciplined approach to formal reasoning, where correctness is ensured by construction rather than by inspection.
 
@@ -23,13 +23,13 @@ Moreover, mechanized developments have repeatedly demonstrated their ability to 
 In this thesis, we present a mechanized formalization of the $\pi$-calculus-based linear logic system \pill{} as developed by Montesi and Peressotti, with particular emphasis on its multiplicative fragment. The contributions are as follows:
 
 \begin{itemize}
-    \item A formalization of the syntax and typing system of \pill{} in Lean, including processes, session types, and substitution operations.
-    \item A formalization of the operational semantics for the multiplicative fragment of \pill{}.
-    \item Formal proofs of session fidelity for the multiplicative fragment.
-    \item A locally nameless representation of binding, eliminating the need for reasoning up to $\alpha$-equivalence and simplifying substitution reasoning.
+    \item A formalisation of the syntax and typing system of \pill{} in Lean, including processes, session types, environments, hyperenvironments, typing judgements, and substitution operations for both names and types.
+    \item A binding architecture based on De Bruijn indices for type variables and a locally nameless representation for process binders, avoiding explicit reasoning up to $\alpha$-equivalence.
+    \item A formalisation of the operational semantics for the multiplicative fragment of \pill{}.
+    \item A mechanised development of the session-fidelity proof architecture for the multiplicative fragment, with the remaining proof obligation isolated to the \texttt{res} case.
 \end{itemize}
 
 \paragraph{Scope of the formalization.}
-This thesis focuses on a mechanized reconstruction of the \pill{} system of~\cite{abs-2106-11818}, with particular emphasis on its multiplicative fragment. The syntactic and typing components of \pill{} have been fully mechanized, including processes, session types, typing judgments, and substitution operations. The operational semantics are defined for the multiplicative fragment, with the exception of the res-rule.
+This thesis focuses on a mechanized reconstruction of the \pill{} system of~\cite{abs-2106-11818}, with particular emphasis on its multiplicative fragment. The syntactic and typing components of \pill{} have been fully mechanized, including processes, session types, typing judgments, and substitution operations. The operational semantics are defined for the multiplicative fragment, while the corresponding session-fidelity proof currently leaves the \texttt{res} case as the remaining proof obligation.
 
-Consequently, metatheoretic results concerning typing apply to the full system, while results involving operational semantics are restricted to the multiplicative fragment. The aim of this work is not to extend the theory, but to provide a mechanically verified account of an existing theoretical framework.
+Consequently, metatheoretic results concerning typing apply to the full system, while results involving operational semantics are restricted to the multiplicative fragment. The aim of this work is not to extend the theory, but to provide a mechanised account of an existing theoretical framework and to identify the remaining proof obligations needed for its full verification.
