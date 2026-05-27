@@ -82,7 +82,10 @@
 \contentsline {section}{References}{38}{section*.62}%
 \contentsline {section}{\numberline {A}Code Availability}{38}{section.A}%
 \contentsline {section}{\numberline {B}Lean File Structure}{39}{section.B}%
-\contentsline {section}{\numberline {C}Selected Core Definitions}{39}{section.C}%
-\contentsline {section}{\numberline {D}Selected Transition Definitions}{40}{section.D}%
-\contentsline {section}{\numberline {E}Erasure Functions and Main Theorems}{40}{section.E}%
-\contentsline {section}{\numberline {F}Selected Proof Infrastructure}{40}{section.F}%
+\contentsline {section}{\numberline {C}Common Lean Notation}{39}{section.C}%
+\contentsline {section}{\numberline {D}Selected Core Definitions}{40}{section.D}%
+\contentsline {subsection}{\numberline {D.1}Session Types}{40}{subsection.D.1}%
+\contentsline {subsection}{\numberline {D.2}Processes}{43}{subsection.D.2}%
+\contentsline {section}{\numberline {E}Selected Transition Definitions}{49}{section.E}%
+\contentsline {section}{\numberline {F}Erasure Functions and Main Theorems}{50}{section.F}%
+\contentsline {section}{\numberline {G}Selected Proof Infrastructure}{50}{section.G}%

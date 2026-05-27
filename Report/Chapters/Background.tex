@@ -12,22 +12,22 @@ In particular, conjunction and disjunction split into multiplicative and additiv
 Intuitively, \hl{$\thl{A \tensor{} B}$} describes the joint availability of two independent resources, while \hl{$\thl{A \parr{} B}$} captures their dual form of interaction. Under a process interpretation, \hl{$\thl{\tensor{}}$} can be read as producing a value of type \hl{$\thl{A}$} and continuing as \hl{$\thl{B}$}, whereas \hl{$\thl{A \parr{} B}$} corresponds to receiving a value of type \hl{$\thl{A}$} and proceeding as \hl{$\thl{B}$}. The units \hl{$\thl{1}$} and \hl{$\thl{\bot{}}$} represent the absence of further output and input, respectively. A simplified presentation of these rules is given below:
 \begin{highlight}
 \begin{figure}[h]
-    \[
-    \infer[\rlabel{\rname{$1$}}{rule:ll-one}]
-      {\,\vdash \thl{1}\,}{}
-    \qquad\qquad
-    \infer[\rlabel{\rname{$\bot$}}{rule:ll-bot}]
-      {\,\vdash \thl{\Gamma}, \thl{\bot}\,}
-      {\,\vdash \thl{\Gamma}\,}
-    \qquad\qquad
-    \infer[\rlabel{\rname{$\tensor$}}{rule:ll-tensor}]
-      {\,\vdash \thl{\Gamma}, \thl{\Delta}, \thl{A \tensor B}\,}
-      {\,\vdash \thl{\Gamma}, \thl{A} \quad \vdash \thl{\Delta}, \thl{B}\,}
-    \qquad\qquad
-    \infer[\rlabel{\rname{$\parr$}}{rule:ll-parr}]
-      {\,\vdash \thl{\Gamma}, \thl{A \parr B}\,}
-      {\,\vdash \thl{\Gamma}, \thl{A}, \thl{B}\,}
-    \]
+  \[
+  \infer[\rlabel{\rname{$1$}}{rule:ll-one}]
+    {\,\vdash \thl{1}\,}{}
+  \qquad\qquad
+  \infer[\rlabel{\rname{$\bot$}}{rule:ll-bot}]
+    {\,\vdash \thl{\Gamma}, \thl{\bot}\,}
+    {\,\vdash \thl{\Gamma}\,}
+  \qquad\qquad
+  \infer[\rlabel{\rname{$\tensor$}}{rule:ll-tensor}]
+    {\,\vdash \thl{\Gamma}, \thl{\Delta}, \thl{A\tensor B}\,}
+    {\,\vdash \thl{\Gamma}, \thl{A} \quad \vdash \th{\Delta}, \thl{B}\,}
+  \qquad\qquad
+  \infer[\rlabel{\rname{$\parr$}}{rule:ll-parr}]
+    {\,\vdash \thl{\Gamma}, \thl{A \parr B}\,}
+    {\,\vdash \thl{\Gamma}, \thl{A}, \thl{B}\,}
+  \]
 \end{figure}
 \end{highlight} 
 
@@ -40,13 +40,13 @@ Dually, \cref{rule:ll-parr,rule:ll-bot} describe the behavior of the connective 
 For example, two independent instances of the unit \hl{$\thl{1}$} can be introduced by the \cref{rule:ll-one} and combined via \cref{rule:ll-tensor} to derive \hl{$\thl{1 \tensor 1}$}:
 \begin{highlight}
 \[
-    \infer[\tensor]
-        {\,\vdash \thl{1 \tensor 1}\,}
-        {
-            \infer[\textit{$1$}]{\,\vdash \thl{1}\,}{}
-            \quad
-            \infer[\textsc{1}]{\,\vdash \thl{1}\,}{}
-        }
+  \infer[\tensor]
+    {\,\vdash \thl{1 \tensor 1}\,}
+    {
+      \infer[\textit{$1$}]{\,\vdash \thl{1}\,}{}
+      \quad
+      \infer[\textsc{1}]{\,\vdash \thl{1}\,}{}
+    }
 \]
 \end{highlight}
 
