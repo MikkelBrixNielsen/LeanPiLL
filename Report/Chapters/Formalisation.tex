@@ -1,32 +1,3 @@
-% Commands for double brackets, syntax prefixes shifting etc.
-\newcommand{\dbrackL}{[\![}
-\newcommand{\dbrackR}{]\!]}
-\newcommand{\dbrack}[1]{[\![#1]\!]}
-\newcommand{\dparenL}{(\!(}
-\newcommand{\dparenR}{)\!)}
-\newcommand{\dparen}[1]{(\!(#1)\!)}
-\newcommand{\dangleL}{\langle\!\langle}
-\newcommand{\dangleR}{\rangle\!\rangle}
-\newcommand{\dangle}[1]{\dangleL #1 \dangleR}
-\newcommand{\dsend}[3]{#1\dbrack{#2}.#3}
-\newcommand{\drecv}[3]{#1\dparen{#2}.#3}
-\newcommand{\dres}[1]{\boldsymbol{\nu}\dparen{\bullet,\bullet}~P}
-\newcommand{\dserver}[3]{#1\dangle{#2}.#3}
-\newcommand{\dlsend}[2]{#1\dbrack{#2}}
-\newcommand{\dlrecv}[2]{#1\dparen{#2}}
-\newcommand{\dlserver}[2]{#1\dangle{#2}}
-\newcommand{\typeshift}[3]{#1\uparrow#2,#3}
-\newcommand{\typeshiftsingle}[1]{#1^{+}}
-\newcommand{\plink}[2]{#1\leftrightarrow_p#2}
-\newcommand{\llink}[2]{#1\leftrightarrow_l#2}
-\newcommand{\link}[2]{#1\leftrightarrow#2}
-\newcommand{\dopen}[2]{#1\dparenL#2\dparenR}
-\newcommand{\dclose}[2]{#1\dangleL#2\dangleR}
-\newcommand{\lpar}[2]{#1 \pp_l #2}
-\newcommand{\envmerge}[2]{#1,#2}
-\newcommand{\perm}[2]{#1\sim#2} 
-\newcommand{\hypermerge}[2]{#1\pp_h#2}
-
 \section{Formalisation}\label{sec:formalisation}
 This section describes the mechanisation of \pill{} in Lean 4, bridging the theoretical foundations developed in~\cref{sec:background,sec:binding-architecture} and their concrete implementation. The formalisation is organised into three top-level namespaces: \texttt{PiLL.Model}, which defines the static structure of the calculus, \texttt{PiLL.Semantics}, which defines its operational behaviour, and \texttt{PiLL.SessionFidelity}, which establishes the metatheoretic results connecting the two. Each component is presented in dependency order, highlighting design decisions and divergences from~\citet{abs-2106-11818}.
 
@@ -163,14 +134,20 @@ The operation is lifted to the full \texttt{Types} syntax by structural recursio
   | .forall_ B => .forall_ (B.subst (shift 0 1 A) (k + 1))
 \end{lstlisting}
 
+The interaction between substitution and local closure is captured by 
+\texttt{Types.lc\_subst\_inv}, which states that substituting a type 
+$A$ locally closed at depth $n + k$ for index $k$ in $B$ preserves 
+local closure: $(B\{A / k\}).\texttt{lc}(n+k) \iff B.\texttt{lc}(n+k+1)$. 
+Intuitively, substituting for index $k$ removes one binder from $B$, 
+so local closure at $n+k$ in the substituted term corresponds to local 
+closure at $n+k+1$ in the original. The specialisation 
+\texttt{Types.lc\_subst\_inv\_0} fixes $k = 0$, which is the form 
+later used in the proof of \texttt{Typing\_preserves\_lc}.
+
 \paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The only divergence is that exponentials are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} to avoid clashes with Lean syntax.
 
-The full inductive definition of \texttt{Types} and all lemmas from \path{STypes/Lemmas.lean} are listed in \cref{app:stypes}. % FIXME: Reference to appendix create appendix
+The full inductive definition of \texttt{Types} and \texttt{TVar} along with the mentioned operations are shown in \cref{app:session-types}.
 
-% FIXME: Make reference back to the section defining locally nameless for processes.
-% FIXME: Reference to section talking about how the binders work
-% FIXME: Last sentece could be phrased better.
-% FIXME: add references to section describing the contents of Model/Processes/Fresh.lean (replace the inline path? or maybe have together with the inline path?)
 \subsubsection{Processes}\label{subsubsec:processes}
 Processes are defined in \path{Processes/Basic.lean} as the inductive type \texttt{Proc}. Following the established locally nameless architecture, channel references are partitioned into a dedicated \texttt{Channel} inductive. Explicit free channels are instantiated as concrete natural numbers (\texttt{FPName}). While the raw process syntax permits arbitrary reuse of these numbers, using \texttt{Nat} allows the formalisation to systematically compute strictly fresh names by incrementing the supremum of any finite set of existing names (mechanised in \path{Processes/Fresh.lean}). Conversely, bound channels are represented using De Bruijn indices, encoding their relative distance to the corresponding binder.
 
@@ -313,16 +290,18 @@ def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
   | .input x P => .input x (P.substTypes (A.shift 0 1) (k + 1))
 \end{lstlisting}
 
-A consequence of this representation is that no analogous channel shifting operation, such as \texttt{shiftNames}, is required. In a pure De Bruijn encoding, variables are represented as relative indices and must be shifted when crossing binders. Free channels, however, are represented as global identifiers rather than relative positions, so their representation is unaffected by binder depth. This avoids structural adjustment of channel names during substitution and simplifies the process-level infrastructure.
+A consequence of this representation is that no analogous channel shifting operation is required. In a pure De Bruijn encoding, variables are represented as relative indices and must be shifted when crossing binders. Free channels, however, are represented as global identifiers rather than relative positions, so their representation is unaffected by binder depth. This avoids structural adjustment of channel names during substitution and simplifies the process-level infrastructure.
 
-\paragraph{Structural Properties} \path{Processes/Lemmas.lean} establishes the fundamental structural properties required by the later typing and operational metatheory. This includes commutation lemmas for interacting operations (e.g., \texttt{open\_substNames\_comm}, showing that opening commutes with name substitution), preservation properties for local closure (e.g., \texttt{lc\_of\_open}), and lemmas relating binders to free-name analysis (e.g., \texttt{f\_close}, proving that closing removes a free name from the resulting term).
+\paragraph{Structural Properties}
+\path{Processes/Lemmas.lean} establishes the fundamental structural properties required by the later typing and operational metatheory. The lemmas fall into three groups.
 
-Of particular importance are the commutation lemmas between opening and substitution: \texttt{open\_substNames\_comm} establishes that opening and name substitution commute, and the corresponding lemma for type substitution ensures that substituting under a binder 
-produces the same result regardless of order. These properties are essential in the typability proof, where the co-finite witnesses produced by the typing rules must be reconciled with the concrete names introduced by the process transitions.
+The first group supports the typing invariants. \texttt{Proc.f\_open\_erase} and \texttt{Proc.f\_open\_two\_erase} establish that opening a process with a fresh name and then erasing that name from the free name set recovers the original free names. These are used in the proof of \texttt{Typing\_f\_eq\_names}. \texttt{Proc.lc\_of\_open\_gen} and \texttt{Proc.lc\_of\_open\_two} show that opening a locally closed abstraction with a locally closed name yields a locally closed process, supporting the proof of \texttt{Typing\_preserves\_lc} showing that well-typed processes are locally closed.
 
-These results provide the core infrastructure required for the transition semantics developed in subsequent chapters.
+The second group supports the substitution lemmas. \texttt{Proc.open\_substNames\_comm} and \texttt{Proc.openCut\_substNames\_comm} establish that opening and name substitution commute, while the corresponding lemmas for type substitution (\texttt{Proc.open\_substTypes\_comm} and \texttt{Proc.openCut\_substTypes\_comm}) ensure that substituting under a binder produces the same result regardless of order. These are essential in the typability proof, where co-finite witnesses from the typing rules must be reconciled with the concrete names introduced by process transitions.
 
-For completeness, the full inductive definition of \texttt{Proc} and all lemmas from \path{Processes/Lemmas.lean} are listed in \cref{app:processes}. % FIXME: Make an appendix for this.
+The third group supports freshness reasoning. \texttt{Proc.not\_mem\_f\_open} states that a name fresh for both a process and a channel does not appear in the opened process, providing the freshness conditions needed in the typability cases. These results provide the core infrastructure required for the transition semantics developed in subsequent chapters.
+
+For completeness, the full inductive definition of \texttt{Proc} and all lemmas from \path{Processes/Lemmas.lean} are listed in \cref{app:processes}.
 
 \subsubsection{Environments}\label{subsubsec:environments}
 Environments are defined in \path{Environment/Basic.lean} as 
@@ -375,18 +354,28 @@ The relationship between linearity, disjointness, and merging of typing environm
 
 \begin{lstlisting}[language=Lean4]
 def Env.serverUsable (/-$\Gamma$-/ : Env) : Prop :=
-  /-$\forall$-/p, p /-$\in~\Gamma$-/ -> p.snd.isServerUsable
-prefix:max "?/-$_e$-/" => Env.serverUsable
+  /-$\forall$-/ p, p /-$\in~\Gamma$-/ -> p.snd.isServerUsable
+prefix:max "?/-$_\texttt{e}$-/" => Env.serverUsable
 \end{lstlisting}
 
 \paragraph{Lifted operations} Since environments contain types, the locally nameless operations from \cref{subsubsec:stypes} are lifted pointwise over the type component of each \texttt{Elem}. Local closure, type shifting, name substitution, and type substitution are all defined by mapping over the list. The file \path{Environment/Lemmas.lean} proves that these operations preserve the names, disjointness, nodup, and permutation properties of environments.
 
-The full definitions and lemmas are listed in \cref{app:environments}. %FIXME: make and references appendix
+The interaction between shifting and local closure is captured by 
+\texttt{Env.lc\_shift\_inv}, which states that shifting an environment 
+by one preserves local closure: $(\Gamma^+).\texttt{lc}(n+k+1) \iff 
+\Gamma.\texttt{lc}(n+k)$. Shifting increments all free type indices, 
+so an environment locally closed at depth $n+k$ becomes locally closed 
+at depth $n+k+1$ after shifting, and vice versa. The specialisation 
+\texttt{Env.lc\_shift\_inv\_0} is used in the \texttt{forall\_} case 
+of \texttt{Typing\_preserves\_lc} to recover local closure of the 
+unshifted environment from that of the shifted one.
 
 \subsubsection{Hyperenvironments}\label{subsubsec:hyperenvironments} Hyperenvironments are defined in \path{HyperEnvironment/Basic.lean} as \texttt{HyperEnv}, an abbreviation for a list of environments:
 
 \begin{lstlisting}[language=Lean4]
 abbrev HyperEnv := List Env
+abbrev HyperEnv.merge (/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv) : HyperEnv := /-$\hyp{G}$-/ ++ /-$\hyp{H}$-/
+infixl:55 " /-$\pp_\texttt{h}$-/ " => HyperEnv.merge
 \end{lstlisting}
 
 As for environments, merging is implemented as list concatenation, using \hl{$\thl{\emptyhyp}$} as the unit and \hl{$\thl{\hypermerge{\hyp{G}}{\hyp{H}}}$} as notation for composition. Associativity and unit laws therefore follow from the underlying list structure. However, recovering the commutative structure requires more than the ordinary list permutation relation, since hyperenvironments are lists whose elements are themselves environments considered modulo permutation.
@@ -434,10 +423,8 @@ The distinction is important because the two predicates rule out different viola
   
 Together, these predicates enforce global linearity: every channel appears at most once across the whole hyperenvironment.
 
-\paragraph{Lifted operations} 
-As with environments, type shifting, name substitution, and type substitution are lifted pointwise over the list of component environments. The file \path{HyperEnvironment/Lemmas/Basic.lean} proves that these operations preserve names, disjointness, pairwise disjointness, and the deep permutation relation. For example, preservation of permutation under shifting is proved by induction on \texttt{HyperEnv.Perm}, using the corresponding environment-level permutation lemma in the \texttt{cons} case.
-
-The full definitions and lemmas are listed in \cref{app:hyperenvironments}.
+\paragraph{Lifted operations}
+The operations on environments are lifted once more to hyperenvironments by applying them pointwise to each component environment. Thus, type shifting, name substitution, and type substitution on hyperenvironments follow the same pattern as the corresponding operations on environments. The file \path{HyperEnvironment/Lemmas/Basic.lean} proves that these lifted operations preserve the structural invariants used later in the development, including names, disjointness, pairwise disjointness, and deep permutation. For example, preservation of deep permutation under shifting is proved by induction on the proof of the hyperenvironment permutation relation, using the corresponding environment-level permutation lemmas. Since these definitions are obtained uniformly from the environment-level construction, they are not reproduced in full here. The complete definitions and proofs are included in the accompanying Lean archive.
 
 % FIXME: Check correct references
 \subsubsection{Typing Judgements}\label{subsubsec:judgements}
@@ -476,7 +463,7 @@ The shift \hl{$\thl{\typeshiftsingle{\Gamma}}$} abbreviates shifting the type in
 Because environments and hyperenvironments are represented as lists, the unordered and partial structure of the theoretical hyperenvironment is recovered explicitly. The typing relation includes exchange rules for reasoning up to permutation equivalence:
 
 \begin{lstlisting}[language=Lean4]
-| exchange_env   : Typing n P (/-$\Gamma$-/ :: /-$\hyp{G}$-/) -> /-$\perm{\Gamma}{\Delta}$-/ -> Typing n P (/-$\Delta$-/ :: /-$\hyp{G}$-/)
+| exchange_env   : Typing n P (/-$\Gamma :: \hyp{G}$-/) -> /-$\perm{\Gamma}{\Delta}$-/ -> Typing n P (/-$\Delta :: \hyp{G}$-/)
 | exchange_hyper : Typing n P /-$\hyp{G}$-/ -> /-$\perm{\hyp{G}}{\hyp{H}}$-/ -> Typing n P /-$\hyp{H}$-/
 \end{lstlisting}
 
@@ -485,7 +472,7 @@ The exchange rules recover the unordered character of the paper presentation wit
 The same design principle reappears later in the operational semantics, where transitions must also respect permutation equivalence of environments and hyperenvironments.
 
 % \paragraph{Explicit Disjointness Constraints}
-% In the paper presentation of \pill{}, the disjointness of environments during operations like parallel composition or tensor is implicitly guaranteed by the structural properties of the merge operator for environments and hyperenvironments. However, because the Lean formalisation relies on total list concatenation, these disjointness requirements must be enforced explicitly at the rule level. Many typing constructors carry explicit disjointness and freshness premises to ensure that merging operations remain valid. For example, the \texttt{mix} rule requires a proof that the two hyperenvironments are mutually disjoint (\texttt{hD~: $\hyp{G}$.disjoint $\hyp{H}$}), and the \texttt{tensor} rule requires explicit proof that the subject channel $x$ does not already exist in the continuations (\texttt{hF~: x $\notin \Gamma$.names $\land$ x $\notin \Delta$.names}). While these local constraints clutter the inductive definitions compared to their paper counterparts, they are necessary to ensure that the formalised typing relation preserves the partiality of the theoretical merge operator and its underlying monoid structure. The global metatheoretical consequences of these local constraints, namely, that well-typed processes inherently preserve context linearity, are detailed in \cref{sec:metatheory}. % FIXME: reference
+% In the paper presentation of \pill{}, the disjointness of environments during operations like parallel composition or tensor is implicitly guaranteed by the structural properties of the merge operator for environments and hyperenvironments. However, because the Lean formalisation relies on total list concatenation, these disjointness requirements must be enforced explicitly at the rule level. Many typing constructors carry explicit disjointness and freshness premises to ensure that merging operations remain valid. For example, the \texttt{mix} rule requires a proof that the two hyperenvironments are mutually disjoint (\texttt{hD~: $\hyp{G}$.disjoint $\hyp{H}$}), and the \texttt{tensor} rule requires explicit proof that the subject channel $x$ does not already exist in the continuations (\texttt{hF~: x $\notin \Gamma$.names $\land$ x $\notin \Delta$.names}). While these local constraints clutter the inductive definitions compared to their paper counterparts, they are necessary to ensure that the formalised typing relation preserves the partiality of the theoretical merge operator and its underlying monoid structure. The global metatheoretical consequences of these local constraints, namely, that well-typed processes inherently preserve context linearity, are detailed in \cref{sec:metatheory}.
 
 \paragraph{Co-finite quantification}
 Binding rules use co-finite quantification as described in \cref{subsec:co-finite-quantification}. For example, the \texttt{parr} constructor types an input prefix by requiring the opened continuation to be well typed for every fresh payload name outside a finite set $L$:
@@ -500,7 +487,7 @@ Binding rules use co-finite quantification as described in \cref{subsec:co-finit
 
 \begin{lstlisting}[language=Lean4]
 | parr (hF : x /-$\notin \Gamma$-/.names) (L : Finset FPName) :
-    (/-$\forall$-/y /-$\notin$-/ L, Typing n (/-$\dopen{\texttt{P}}{\texttt{\#y}}$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/]) ->
+    (/-$\forall$-/ y /-$\notin$-/ L, Typing n (/-$\dopen{\texttt{P}}{\texttt{\#y}}$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/]) ->
     Typing n (/-$\drecv{\texttt{x}}{\bullet}{\texttt{P}}$-/) [/-$\cht{\texttt{x}}{\texttt{A} \parr \texttt{B}} :: \Gamma$-/]
 \end{lstlisting}
 
@@ -514,52 +501,30 @@ Here, the process carries no explicit payload name; the bound occurrence in the 
 \]
 \end{highlight}
 
+The proof proceeds by induction on the typing derivation. Most cases follow by unfolding \texttt{Proc.f} and \texttt{HyperEnv.names} and rewriting with the induction hypothesis. In the co-finite binding cases, the proof instantiates fresh names, applies the induction hypothesis to the opened process, and then uses \texttt{Proc.f\_open\_erase} to cancel the introduced names from the free name set and recover equality for the closed process.
+
 This ensures exact correspondence between process free names and typed environment entries: no free process channel is left untyped, and no environment entry is unused.
 
-Building on this, \path{Judgement/Properties/Linearity.lean} proves \texttt{Typing\_preserves\_linearity}: any well-typed hyperenvironment is pairwise disjoint and all component environments have no duplicates. Together these results guarantee that typing derivations can only be constructed for well-formed, linear contexts.
+Building on this, \path{Judgement/Properties/Linearity.lean} proves that 
+any well-typed hyperenvironment is pairwise disjoint and all component 
+environments have no duplicate names.
 
-% FIXME: Perhaps mentions this along with showing the actual signatures? 
-% \begin{remark}
-% Together, \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_disjointness} imply that a well-typed process cannot contain duplicate free channel occurrences. If a process had two distinct free occurrences of the same name, the exactness of the name correspondence would require two entries for that name in the hyperenvironment, violating pairwise disjointness. Since the typing relation is inductive with no implicit contraction or weakening rules, this guarantees that linearity at the type level entails linearity at the process level.
-% \end{remark}
+\begin{highlight}
+\[
+\judge{n}{P}{\hyp{G}} \implies 
+\texttt{Nodup}~\thl{\hyp{G}} \land \thl{\hyp{G}}.\texttt{PairwiseDisjoint}
+\]
+\end{highlight}
 
-The full inductive definition of \texttt{Typing} is listed in 
-\cref{app:judgements}.
+The proof proceeds by induction on the typing derivation. Most non-binding rules are discharged uniformly by unfolding the relevant definitions and applying the induction hypothesis. The co-finite binding cases (\texttt{cut}, \texttt{tensor}, \texttt{parr}, and contraction \texttt{c}) require instantiating fresh names and reconstructing both nodupness and disjointness of the component environments from the opened induction hypothesis. The exchange cases use preservation of these properties under permutation. 
 
-% FIXME: Relevance
-% \paragraph{Type weakening}
-% \path{Judgement/Weakening.lean} establishes that typing is stable under type-level index shifting:
-% \begin{highlight}  
-% \[
-% \judge{n}{P}{\hyp{G}} \implies \forall d~c, \judge{n+c}{\typeshift{P}{d}{c}}{\typeshift{\hyp{G}}{d}{c}}
-% \]
-% \end{highlight}
+Together, \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_linearity} guarantee that typing derivations can only be constructed for well-formed, linear contexts. In particular, a well-typed process cannot contain duplicate free channel occurrences: by the name correspondence, duplicate free names would require duplicate entries in the hyperenvironment, contradicting pairwise disjointness. 
 
-% This is used whenever a process is placed under a new type binder, the existing derivation can be lifted to the new depth by shifting both the process and its hyperenvironment. The proof proceeds by structural induction on the typing derivation, with the \texttt{forall\_} case requiring careful composition of the shift operations.
+A third invariant, \texttt{Typing\_preserves\_lc}, establishes that every well-typed process is locally closed and that every component environment in its hyperenvironment is locally closed at the current type-binder depth. The proof is split into \texttt{Typing\_preserves\_lc\_proc} for the process and \texttt{Typing\_preserves\_lc\_context} for the hyperenvironment, then packaged together. Both proceed by induction on the typing derivation. The co-finite binding cases use \texttt{Proc.lc\_of\_open\_gen} and \texttt{Proc.lc\_of\_open\_two} to recover local closure of the closed process from that of the opened one. The \texttt{forall\_} and \texttt{exists\_} cases additionally require \texttt{Env.lc\_shift\_inv\_0} and \texttt{Types.lc\_subst\_inv\_0} to invert the effect of shifting and substitution on the environment and type indices respectively.
 
-% \begin{example}[That parr rule]
-% The \texttt{parr} constructor types an input prefix, directly corresponding to \cref{rule:pill-parr} from \cref{fig:pill-typing-rules}:
+\paragraph{Substitution}
+\path{Judgement/Subst.lean} establishes that typing is stable under both forms of substitution. \texttt{Typing\_substNames} states that if $\judge{n}{P}{\hyp{G}}$ and $y$ does not appear in $\thl{\hyp{G}}$ except possibly as $x$, then substituting $y$ for $x$ throughout yields a well-typed process under the correspondingly substituted hyperenvironment. \texttt{Typing\_substTypes} gives the analogous result for type substitution, where substituting a type $A$ for De Bruijn index $k$ throughout a derivation yields a well-typed process at depth $n-1$. Both proofs proceed by induction on the typing derivation and rely on the commutation lemmas from \cref{subsubsec:processes}.
 
-% \begin{lstlisting}[language=Lean4]
-% | parr {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} (hF : x /-$\notin \Gamma$-/.names)
-%     (L : Finset FPName) :
-%     (/-$\forall$-/ y /-$\notin$-/ L, Typing n (/-$\dopen{\texttt{P}}{\texttt{\#y}}$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/]) ->
-%     Typing n (/-$\drecv{\texttt{x}}{\bullet}{P}$-/) [/-$\cht{\texttt{x}}{\texttt{A} \parr \texttt{B}} :: \Gamma$-/]
-% \end{lstlisting}
-
-% \begin{lstlisting}[language=Lean4]
-% | parr (hF : x /-$\notin \Gamma$-/.names) (L : Finset FPName) :
-%     (/-$\forall$-/y /-$\notin$-/ L, Typing n (/-$\dopen{\texttt{P}}{\texttt{\#y}}$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/]) ->
-%     Typing n (/-$\drecv{\texttt{x}}{\bullet}{\texttt{P}}$-/) [/-$\cht{\texttt{x}}{\texttt{A} \parr \texttt{B}} :: \Gamma$-/]
-% \end{lstlisting}
-
-% Several features of the locally nameless architecture are visible here. The process $\phl{\drecv{x}{\bullet}{P}}$ carries no explicit payload name. The co-finite premise requires the opened continuation $\phl{\dopen{P}{\#y}}$ to be well-typed for any $y \notin L$, instantiating the bound index $0$ in $\phl{P}$ with the free name $y$. As discussed previously, the co-finite quantifier allows the continuation to be instantiated with any sufficiently fresh name required by the proof context.The explicit disjointness condition \texttt{hF} ensures that the subject channel $x$ does not already appear in $\Gamma$, enforcing the partiality of the merge operator.
-% \end{example}
-
-% The full inductive definition of \texttt{Typing} is listed in 
-% \cref{app:judgements}.
-
-% FIXME: update this section if step relations changes to pure cofinite.
 \subsection{Semantics}\label{subsec:semantics}
 The dynamic behaviour of the \pimll{} fragment is formalised in the \path{Semantics/} namespace. Following the erasure structure described in \cref{subsec:operational-semantics}, the development contains three related transition systems: a typed transition system over typing derivations, and two projected systems describing the induced process and environment behaviour.
 
@@ -570,7 +535,7 @@ The dynamic behaviour of the \pimll{} fragment is formalised in the \path{Semant
 \end{itemize}
 
 \paragraph{Labels}\label{subsubsec:labels}
-Transition labels are formalised in \path{Labels.lean}. Although the operational semantics mechanised here target \pimll{}, the underlying action vocabulary is defined for the full \pill{} calculus to support future extensions.
+Transition labels are formalised in \path{Labels.lean}, directly realising the label algebra introduced in \cref{subsec:operational-semantics}. Although the operational semantics mechanised here target \pimll{}, the action vocabulary is defined for the full \pill{} calculus to support future extensions. The free and introduced name functions $\fs$ and $\is$ are realised as \texttt{Lbl.f} and \texttt{Lbl.i}, computed by structural recursion on the label. The disjointness condition on \texttt{par} labels is enforced as the decidable predicate \texttt{Lbl.WF}, which appears as an explicit side condition in the parallel synchronisation rules.
 
 The core action type, \texttt{Act}, captures observable communication events, including empty communication, channel transmission, type instantiation, and server interaction. Selection and server actions are parameterised by the auxiliary datatype \texttt{Mu}. The \texttt{Lbl} inductive then extends observable actions with the silent transition $\tau$, explicit session-link labels, and a parallel constructor combining two observable actions directly, reflecting the synchronized action labels used by the parallel rules.
 
@@ -589,7 +554,9 @@ inductive Lbl : Type
   | par   (l l' : Act)
 \end{lstlisting}
 
-Each label defines computable sets of free names (\texttt{Lbl.f}) and introduced names (\texttt{Lbl.i}), which are used in the side conditions for the \cref{rule:pill-mix-1,rule:pill-proc-mix-2,rule:pill-mix-sync}. To preserve alignment with the theoretical presentation, we use the \texttt{HasBracket} and \texttt{HasParen} typeclasses for \texttt{Act} and \texttt{Lbl} to allow the notation for process prefixes to be reused uniformly for labels as well. For instance, $\dlsend{x}{y}$ denotes both the output process prefix and the corresponding output label.
+Each label defines computable sets of free names (\texttt{Lbl.f}) and introduced names (\texttt{Lbl.i}), which are used in the side conditions for the \cref{rule:pill-mix-1,rule:pill-proc-mix-2,rule:pill-mix-sync}. To allow label notation to mirror process prefix notation, \texttt{Act} and \texttt{Lbl} implement the \texttt{HasBracket} and \texttt{HasParen} typeclasses: for instance, $\dlsend{x}{y}$ denotes both the output prefix and the corresponding output label.
+
+The full definitions of the label and action inductives can be found in \cref{app:labels}.
 
 \subsubsection{The Typed Transition System}\label{subsubsec:judgementstep}
 The primary LTS, \texttt{TypingStep}$_\texttt{m}$, is a relation between typing derivations. Its constructors mirror the operational rules shown in \cref{fig:mpill-sos}, but make the type-theoretic content of each step explicit: every transition carries a typing derivation as its source and produces a typing derivation as its target. The system is therefore intrinsically typed.
@@ -616,8 +583,7 @@ As established previously, both environment and hyperenvironment composition are
 % \begin{remark}
 %   The inclusion of \texttt{hD2} to track post-state disjointness was to simplify induction, but is not strictly necessary as this is a derivable fact stemming from the pre-state disjointness (\texttt{hD1}) and the freshness condition $i(l) \cap Q.f = \emptyset$. Combining \texttt{Typing\_f\_eq\_names} and \texttt{hD1}, we can establish that $(P.f \cup i(l)) \cap Q.f = \emptyset$. Combining this with a structural property of the TypingStep relation stating $\hyp{G}' \subseteq \hyp{G} \cup i(l)$, we can deduce that $\hyp{G}' \cap Q.f = \emptyset$. By rewriting this using \texttt{Typing\_f\_eq\_names}, we obtain the required post-state disjointness \texttt{hD2}.
   
-% The formal proof of this structural property is provided in \cref{app:typingstep-poststate-subset} % FIXME: make appendix and update reference
-% \end{remark}
+% The formal proof of this structural property is provided in \cref{app:typingstep-poststate-subset}
 
 The post-state disjointness proof \texttt{hD2} is included explicitly as a convenience: while it is derivable from \texttt{hD1}, the freshness condition $i(l) \cap Q.f = \emptyset$, and the structural property that transitions only introduce names recorded by their label, keeping it as a premise avoids reconstructing this fact repeatedly in later proofs.
 
@@ -649,6 +615,6 @@ The structural evolution of hyperenvironments, written $\hyp{G} \xrightarrow{l} 
 $\Gamma, \cht{x}{\bot} \xrightarrow{x()} \Gamma$.
 Similarly, an empty output on an endpoint typed by $1$ evolves $\cht{x}{1}$ to the empty environment. These rules describe how session types evolve as actions are performed, independently of any particular process term.
 
-The relation does not independently enforce all disjointness and well-formedness conditions. Those properties are supplied by the typing derivation in \texttt{TypingStep}$_\texttt{m}$. This separation keeps the projected resource semantics lightweight: the environment relation describes how resources change, while the typed semantics proves that these changes occur from well-formed linear contexts.
+The relation does not independently enforce all disjointness and well-formedness conditions. Those properties are supplied by the typing derivation in \texttt{TypingStep}$_\texttt{m}$. This separation keeps the projected resource semantics lightweight: the environment relation describes how resources change, while the typed semantics proves that these changes occur from well-formed typing environments.
 
 The following metatheory shows that these transition systems agree: typed transitions project to process and environment transitions, and process transitions from well-typed states can be lifted back to typed transitions.

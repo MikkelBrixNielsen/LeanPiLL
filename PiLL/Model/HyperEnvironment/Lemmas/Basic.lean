@@ -594,6 +594,7 @@ lemma HyperEnv.Perm_merge_cancel_left {𝒢 ℋ 𝒥 : HyperEnv} :
   induction 𝒥
   case nil => exact h
   case cons Ξ 𝒥' ih => exact ih (HyperEnv.Perm.cons_cancel_left h)
+
 lemma HyperEnv.disjoint_names_left {𝒢 : HyperEnv} {S : Finset FPName} :
   Disjoint 𝒢.names S ↔ ∀ Γ ∈ 𝒢, Disjoint Γ.names S := by
   induction 𝒢

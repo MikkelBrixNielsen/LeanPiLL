@@ -13,13 +13,45 @@
 \setlength{\marginparwidth}{2cm}
 \input{preamble}
 
+% Commands for double brackets, syntax prefixes shifting etc.
+\newcommand{\dbrackL}{[\![}
+\newcommand{\dbrackR}{]\!]}
+\newcommand{\dbrack}[1]{[\![#1]\!]}
+\newcommand{\dparenL}{(\!(}
+\newcommand{\dparenR}{)\!)}
+\newcommand{\dparen}[1]{(\!(#1)\!)}
+\newcommand{\dangleL}{\langle\!\langle}
+\newcommand{\dangleR}{\rangle\!\rangle}
+\newcommand{\dangle}[1]{\dangleL #1 \dangleR}
+\newcommand{\dsend}[3]{#1\dbrack{#2}.#3}
+\newcommand{\drecv}[3]{#1\dparen{#2}.#3}
+\newcommand{\dres}[1]{\boldsymbol{\nu}\dparen{\bullet,\bullet}~P}
+\newcommand{\dserver}[3]{#1\dangle{#2}.#3}
+\newcommand{\dlsend}[2]{#1\dbrack{#2}}
+\newcommand{\dlrecv}[2]{#1\dparen{#2}}
+\newcommand{\dlserver}[2]{#1\dangle{#2}}
+\newcommand{\typeshift}[3]{#1\uparrow#2,#3}
+\newcommand{\typeshiftsingle}[1]{#1^{+}}
+\newcommand{\plink}[2]{#1\leftrightarrow_p#2}
+\newcommand{\llink}[2]{#1\leftrightarrow_l#2}
+\newcommand{\link}[2]{#1\leftrightarrow#2}
+\newcommand{\dopen}[2]{#1\dparenL#2\dparenR}
+\newcommand{\dclose}[2]{#1\dangleL#2\dangleR}
+\newcommand{\lpar}[2]{#1 \pp_l #2}
+\newcommand{\envmerge}[2]{#1,#2}
+\newcommand{\perm}[2]{#1\sim#2} 
+\newcommand{\hypermerge}[2]{#1\pp_h#2}
+
 \makeatletter
 \renewcommand{\l@section}{\@dottedtocline{1}{0em}{2.3em}}
 \renewcommand{\l@subsection}{\@dottedtocline{2}{1.5em}{3.2em}}
 \renewcommand{\l@subsubsection}{\@dottedtocline{3}{3.8em}{4.1em}}
 \makeatother
 
+\usepackage{bbm}
 \usepackage{listings}
+\crefname{lstlisting}{Listing}{Listings}
+\Crefname{lstlisting}{Listing}{Listings}
 \lstdefinelanguage{Lean4}{
   keywords={def, abbrev, inductive, structure, class, instance, theorem, lemma, example, where, match, with, if, then, else,
     fun, let, in, by, import, namespace, section, variable, universe, Type, Prop, infixl, infixr, prefix, max},
@@ -170,7 +202,6 @@ Ord ord ord ord ord ord ord ord ord ord ord
 \input{Chapters/FutureWork}
 \input{Chapters/Conclusion}
 \bibliography{references} % out commenting this breaks references
-% \input{appendix}
 \input{Chapters/Appendix}
 
 \end{document}

@@ -587,6 +587,9 @@ The operational semantics of \pill{} are given as a labelled transition system (
 
 Actions are defined in the set $\ActSet = \{\lclose{x}, \lwait{x}, \lsend{x}{y}, \lrecv{x}{y} \mid x, y \text{ names}\}$, representing empty output, empty input, name output, and name input respectively. These come together with the silent label $\tau$ for internal communication and the parallel composition of labels $l \mid l'$ to form the set of transition labels, defined as $\LblSet = \{\tau, l, (\lsync{l}{l'}) \mid l, l' \in \ActSet, \is(l) \cap \is(l') = \emptyset\}$. The restriction imposed on the parallel composition of labels exists to ensure two labels do not introduce the same name, which would break linear resource management.
 
+The free and introduced names of labels are defined by $\fs(x[]) = \fs(x()) = \fs(x[y]) = \fs(x(y)) = \{x\}$, $\fs(\tau) = \is(\tau) = \emptyset$, and $\fs(l \mid l') = \fs(l) \cup \fs(l')$; and introduced names by $\is(x[]) = \is(x()) = \emptyset$, $\is(x[y]) = \is(x(y)) = \{y\}$, and $\is(l \mid l') = \is(l) \cup \is(l')$. The parallel label $l \mid l'$ additionally requires $\is(l) \cap \is(l') = \emptyset$, ensuring no two components introduce the same name.
+
+
 \begin{example}
   \Cref{fig:cut-unit-trans} shows a possible execution for the derivation of the process from~\cref{ex:cut-unit-proc}.
 \end{example}

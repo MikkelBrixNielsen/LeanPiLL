@@ -25,6 +25,12 @@ theorem session_fidelity_env/-$_\texttt{m}$-/
 
 These results establish that typed transitions project to the corresponding process and environment transitions. Both proofs proceed by induction on the typed transition derivation. Most cases are immediate constructor translations. The main exception is formed by the \texttt{tensor} and \texttt{parr} prefix cases, where the projected process and environment rules require explicit freshness and disjointness side conditions. These are recovered from the co-finite typing premises by instantiating the continuation with a sufficiently fresh auxiliary name and using the typing invariants \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_linearity}. For the process projection, this also requires relating the free names of an opened process to those of the original continuation.
 
+These are recovered from the co-finite typing premises by instantiating 
+the continuation with a sufficiently fresh auxiliary name and using the 
+typing invariants \texttt{Typing\_f\_eq\_names} and 
+\texttt{Typing\_preserves\_linearity} established in 
+\cref{subsubsec:subsubsec:judgements}.
+
 \paragraph{Typability}
 The main lifting theorem is stated in \path{Typability.lean}. It corresponds to the reverse direction of the erasure correspondence: given a process transition from a well-typed process, the transition can be lifted to the level of typing derivations.
 
@@ -61,4 +67,4 @@ In the mechanisation, several structural obligations that are implicit in the pa
 \paragraph{Interpretation}
 Together, these results establish the structure of the session fidelity argument for the mechanised fragment, with one remaining gap. The erasure simulations are complete, and subject reduction follows once typability is fully established. The typability theorem is proved for all multiplicative cases except \texttt{res}. In this case, the proof must show that environments not involved in the transition are preserved, up to permutation, across restriction steps. The required infrastructure is largely in place, with the remaining work concentrated in the case analysis relating uninvolved parallel environments to the post-step hyperenvironment produced by the restricted transition. Once this case is closed, the full process-level session fidelity property follows for the mechanised \pimll{} fragment.
 
-The paper additionally establishes behavioural properties including bisimilarity, the diamond property, serialisation, non-interference, and readiness for \pimll{}. These results are not mechanised in the current formalisation; they are discussed in \cref{sec:future}.
+The paper (\citep{abs-2106-11818}) additionally establishes behavioural properties including bisimilarity, the diamond property, serialisation, non-interference, and readiness for \pimll{}. These results are not mechanised in the current formalisation; they are discussed in \cref{sec:future}.

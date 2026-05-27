@@ -51,8 +51,20 @@ Overall, the development provides a substantial mechanised account of the static
 
 
 
-% TODO: Conclusion
+% NOTE: Since I am also supposed to hand in the entire codebase I think it would makes sense to include inductive definitions in full (more or less) and maybe include the larger theorems like session fidelity and stuff in an abbreviated form or something and then just keep these still relevant metatheoretic results to just being inline signatures and some prose.
+
+
+% TODO: Remove env and hyperenv references to appendix unless it's regarding important lemmas. Instead breifly mention their proof strategy when applicable.
+
+
+% TODO: Look at typability section again in metatheory section.
+% TODO: Rephrase the first paragraph in Evolution of the session fidelity proof
+
+% TODO: Decide based on the current process section and session types section whether an appendix for either is relevant, maybe just keep it to their maint definitions and keep the lemma explanations in prose.
+
+
 % TODO: Appendix 
+% TODO: Conclusion
 % TODO: Abstract(s)
 
 % TODO: Should there be an acknowledgements section?
@@ -94,6 +106,35 @@ Overall, the development provides a substantial mechanised account of the static
 % 	using set-valued transition functions and equality of successor sets.
 
 % TODO: Change typing context -> typing environment
+
+% TODO: Mention somewhere that the formalised typing rules have inverted ordering so instead of taking elements from the back they take them from the front / head of the list (with some exceptions)
+
+% TODO: Replace bold nu instance with $\mathit{v}$
+
+% TODO: Check if Types.subst notation is mentioned anywhere 
+
+% TODO: Flesh out the proof strategies used when mentioning key lemmas.
+
+% TODO:
+% - Redo the structural invariants section for processes in the formalisation section to talk about something like this instead of what is currently there.
+% 	Proc.not_mem_f_open - Typability
+% 	Proc.f_open_erase, Proc.f_open_two_erase - Typing_f_eq_names
+% 	Proc.lc_of_open_two, Proc.lc_of_open_gen - Typing_preserves_lc_proc to get Typing_preserves_lc
+% 	Proc.open_substNames_comm, Proc.openCut_substNames_comm - Typing_substNames
+% 	Proc.openCut_substTypes_comm, Proc.open_substTypes_comm_notation- Typing_substTypes
+% 	Proc.shiftTypes_openCut_comm, Proc.shiftTypes_open0_comm - Typing_weakening (Decide if talking about this)
+
+% - Look at typability section again in metatheory section.
+% - Rephrase the first paragraph in Evolution of the session fidelity proof
+
+% Since I am also supposed to hand in the entire codebase I think it would makes sense to include inductive  definitions in full (more or less) and maybe include the larger theorems like session fidelity and stuff in an abbreviated form or something and then just keep these still relevant metatheoretic results to just being inline signatures and some prose?  
+
+
+
+
+
+
+
 
 
 % FIXME: Something funky is going on with the outlin for the Types.dual definitions and the table showing the correspondence between paper, LN and Lean types. Generally check all the listings to see if the outline does anything weird. If this is hard to fix maybe just remove them?
