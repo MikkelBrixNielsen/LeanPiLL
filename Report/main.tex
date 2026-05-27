@@ -21,7 +21,10 @@
 
 \usepackage{listings}
 \lstdefinelanguage{Lean4}{
-  keywords={def, inductive, instance, theorem, lemma, where, match, if, then, else, fun, let, in, by, import, abbrev, class, Type, Prop, with, infixl, infixr, prefix, max},
+  keywords={def, abbrev, inductive, structure, class, instance, theorem, lemma, example, where, match, with, if, then, else,
+    fun, let, in, by, import, namespace, section, variable, universe, Type, Prop, infixl, infixr, prefix, max},
+  morekeywords=[2]{simp, rw, exact, apply, intro, intros, cases, constructor, induction, have, refine, aesop, omega, rfl, assumption, contradiction},
+  morekeywords=[3]{simp, reducible, irreducible, inline},
   sensitive=true,
   comment=[l]{--},
   morestring=[b]",
@@ -31,6 +34,8 @@
   language=Lean4,
   basicstyle=\ttfamily\small,
   keywordstyle=\bfseries,
+  keywordstyle=[2]\bfseries,
+  keywordstyle=[3]\bfseries,
   commentstyle=\ttfamily,
   breaklines=true,
   frame=single,

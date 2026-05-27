@@ -30,6 +30,27 @@ Overall, the development provides a substantial mechanised account of the static
 
 
 
+
+% FIXME: Maybe use this somewhere (discussion perhaps).
+% To ensure strict resource accounting, our formalization enforces linearity at two levels. Intra-block uniqueness is enforced at the List level via \texttt{List.Nodup}, preventing duplicate bindings within a single process environment. Inter-block separation is enforced at the Finset level. Because the Finsets are pairwise disjoint, the underlying lists are guaranteed to share no elements. This hybrid approach prevents set-theoretic erasure while maximizing the use of Lean's robust Finset automation library
+
+% So, basically it can be summed up to if there were multiple occurrences of a specific free name in a process then there would also have to be multiple occurrences in the hyperenvironment since each rule types each free name mentioned in a process, but from the linearity theorem we know that hypernvironments don't contain duplicate free names.
+
+% 1) Look at the rules to see that none of them silently introduces a name in the process term without typing it.
+% 2) Any term on the for \judge{n}{P}{G} must have a derivation based these constructors to be valid
+% 3) Linearity theorem proves no duplicates free names in a hyperenv
+% 4) So, the process term cannot have multiple occurrences of a free name
+% 5) Otherwise if it did, then there'd be duplicate names in the hyperenv but this is not allowed, so the typing cannot be valid
+
+% More academically
+% Steps 1 & 2 (The Rules & Constructors): This is known as the Closed-World Assumption of inductive types. Because $n \vdash P \mathrel{::} \mathcal{G}$ is an inductive relation, validity only arises from the defined constructors. There are no implicit structural rules (like Contraction or Weakening) that allow free names to appear or duplicate without explicitly passing through the typing environment.Step 3 (The Linearity Theorem): This is your Global Environment Invariant. By proving Nodup and PairwiseDisjoint, you established that the semantic domain (the hyperenvironment) strictly models linear logic.Steps 4 & 5 (The Conclusion & Contradiction): This is the Contrapositive Guarantee. Because the typing rules act as a strict bijection between syntactic names and environment names (the Exactness Lemma), any syntactic duplication would necessitate a semantic duplication. Since semantic duplication is provably false, syntactic duplication is un-typeable.
+
+
+
+
+
+
+
 % TODO: Conclusion
 % TODO: Appendix 
 % TODO: Abstract(s)
@@ -49,7 +70,7 @@ Overall, the development provides a substantial mechanised account of the static
 % TODO: Check if proof strategy description and comparison seems deep enough.
 
 % TODO: Show more synax in the process section?
-% TODO: Keep or delete comment on notation for Env.merge
+% TODO: Keep or delete comment on notation for Env.merge / say something in prose about it actually being \glq to avoid colliding with how lean interprets commas normally
 
 % TODO: Include githash for final commit before report submission
 % TODO: Update the README on github
@@ -60,6 +81,8 @@ Overall, the development provides a substantial mechanised account of the static
 	% Also add notation explanation for \_h or replace with just |
 	% The main notation clarification would probably be the use of double brackets and parentheses.
 
+% TODO: Replace commas with /-‚-/ in listings and ‚ in prose regarding Env.merge
+
 % TODO: Do a sanity check on this paragraph:
 % - Of particular importance are the commutation lemmas between opening and substitution:
 % 	open_substNames_comm establishes that opening and name substitution commute, and the corres-
@@ -69,6 +92,8 @@ Overall, the development provides a substantial mechanised account of the static
 % 	the process transitions. lines 1186-1191 just before subsection 4.1.3
 % - This formulation differs from the paper presentation, which formulates erasure extensionally,
 % 	using set-valued transition functions and equality of successor sets.
+
+% TODO: Change typing context -> typing environment
 
 
 % FIXME: Something funky is going on with the outlin for the Types.dual definitions and the table showing the correspondence between paper, LN and Lean types. Generally check all the listings to see if the outline does anything weird. If this is hard to fix maybe just remove them?

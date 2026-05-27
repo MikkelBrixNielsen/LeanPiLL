@@ -516,7 +516,12 @@ Here, the process carries no explicit payload name; the bound occurrence in the 
 
 This ensures exact correspondence between process free names and typed environment entries: no free process channel is left untyped, and no environment entry is unused.
 
-Building on this, \path{Judgement/Linearity.lean} proves \texttt{Typing\_preserves\_disjointness}: any well-typed hyperenvironment is pairwise disjoint. Together these results guarantee that typing derivations can only be constructed for well-formed, linear contexts.
+Building on this, \path{Judgement/Properties/Linearity.lean} proves \texttt{Typing\_preserves\_linearity}: any well-typed hyperenvironment is pairwise disjoint and all component environments have no duplicates. Together these results guarantee that typing derivations can only be constructed for well-formed, linear contexts.
+
+% FIXME: Perhaps mentions this along with showing the actual signatures? 
+% \begin{remark}
+% Together, \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_disjointness} imply that a well-typed process cannot contain duplicate free channel occurrences. If a process had two distinct free occurrences of the same name, the exactness of the name correspondence would require two entries for that name in the hyperenvironment, violating pairwise disjointness. Since the typing relation is inductive with no implicit contraction or weakening rules, this guarantees that linearity at the type level entails linearity at the process level.
+% \end{remark}
 
 The full inductive definition of \texttt{Typing} is listed in 
 \cref{app:judgements}.

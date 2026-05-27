@@ -92,7 +92,7 @@ notation:80 x"/-$\dparenL$-/y/-$\dparenR$-/" => HasParen.paren x y
 class HasPerm (/-$\alpha$-/ : Type) where
   perm : /-$\alpha$-/ -> /-$\alpha$-/ -> Prop
 
-infixr:54 " ~ " => HasPerm.perm
+infixr:54 " /-$\sim$-/ " => HasPerm.perm
 \end{lstlisting}
 
 
@@ -299,8 +299,7 @@ def Channel.open (u v : Channel) (k : Nat) : Channel :=
 instance : HasOpen Channel Channel Nat where
   open_ u v k := Channel.open u v k
 
-def Finset.open (zs : Finset Channel) (v : Channel) (k : Nat) :
-  Finset Channel :=
+def Finset.open (zs : Finset Channel) (v : Channel) (k : Nat) : Finset Channel :=
   zs.image (fun u => u.open v k)
 
 instance : HasOpen (Finset Channel) Channel Nat where
@@ -346,8 +345,7 @@ def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
 instance : HasClose Channel FPName Nat where
   close_ u x k := Channel.close u x k
 
-def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) :
-  Finset Channel :=
+def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) : Finset Channel :=
   zs.image (fun u => u.close x k)
 
 instance : HasClose (Finset Channel) FPName Nat where
@@ -564,14 +562,325 @@ lemma exists_two_fresh (L : Finset FPName) :
 
 The construction uses the fact that free process names are represented as natural numbers. For a finite set $L$, \texttt{freshName L} is defined as one more than the maximum element of $L$. The lemma \texttt{fresh\_is\_fresh} states that every element of $L$ is strictly smaller than this value, so \texttt{freshName L} cannot itself be a member of $L$. The one-name freshness lemma chooses this value directly. The two-name version first chooses a fresh name $u$ for $L$, then chooses a second name $v$ fresh for $L \cup \{u\}$, ensuring both $v \notin L$ and $u \neq v$.
 
+\subsection{Environments}
 
+% FIXME: Introdoctory text
 
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Lean representation of typing environments. Environments are implemented as lists of name/type pairs, with names extracted into finite sets for freshness and disjointness reasoning.},
+  label={lst:lean-env-basic}
+]
+abbrev Elem := (FPName /-$\times$-/ Types)
 
+abbrev Elem.mk (x : FPName) (A : Types) : Elem := (x, A)
+infixr:68 " /-$\colon$-/ " => Elem.mk
 
+abbrev Env := List Elem
 
+def Env.names (/-$\Gamma$-/ : Env) : Finset FPName :=
+  (/-$\Gamma$-/.map Prod.fst).toFinset
 
+abbrev Env.merge (/-$\Gamma$-/ /-$\sim$-/ /-$\Delta$-/ : Env) : Env := /-$\Gamma$-/ ++ /-$\Delta$-/
+infixl:69 "/-‚-/ " => Env.merge
 
+def Env.Nodup (/-$\Gamma$-/ : Env) : Prop :=
+  (/-$\Gamma$-/.map Prod.fst).Nodup
 
+@[simp] def Env.disjoint (/-$\Gamma$-/ /-$\Delta$-/ : Env) : Prop :=
+  Disjoint /-$\Gamma$-/.names /-$\Delta$-/.names
+\end{lstlisting}
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Selected structural predicates on environments. Local closure lifts type local closure pointwise to every type in the environment, while server usability is used by the exponential rules.},
+  label={lst:lean-env-structural-predicates}
+]
+def Env.lc (k : Nat) (/-$\Gamma$-/ : Env) : Prop :=
+  /-$\forall$-/ (x, A), (x, A) /-$\in$-/ /-$\Gamma$-/, A.lc k
+
+def Env.serverUsable (/-$\Gamma$-/ : Env) : Prop :=
+  /-$\forall$-/ p, p /-$\in$-/ /-$\Gamma$-/ -> (p.snd).isServerUsable
+
+prefix:max "?/-$_e$-/" => Env.serverUsable
+
+def Env.freeTypes (/-$\Gamma$-/ : Env) :=
+  /-$\Gamma$-/.foldl (fun acc (_, A) => acc /-$\cup$-/ A.freeTypes) /-$\emptyhyp$-/
+
+notation "ft(" /-$\Gamma$-/ ")/-$_e$-/" => Env.freeTypes /-$\Gamma$-/
+\end{lstlisting}
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Type-level operations lifted pointwise to environments. These operations are used by the polymorphic typing rules and by substitution-preservation lemmas.},
+  label={lst:lean-env-type-operations}
+]
+def Env.shiftTypes (d c : Nat) (/-$\Gamma$-/ : Env) : Env :=
+  /-$\Gamma$-/.map (fun (x, A) => (x, A.shift d c))
+
+instance : HasShift Env where
+  shift /-$\Gamma$-/ d c := Env.shiftTypes d c /-$\Gamma$-/
+
+def Env.substTypes (/-$\Gamma$-/ : Env) (A : Types) (k : Nat) : Env :=
+  /-$\Gamma$-/.map (fun (x, B) => (x, B.subst A k))
+
+instance : HasSubst Env Types Nat where
+  subst /-$\Gamma$-/ A k := Env.substTypes /-$\Gamma$-/ A k
+\end{lstlisting}
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Substitution of free process names in environments. Since environments map free channel names to types, name substitution acts on the first component of each environment entry.},
+  label={lst:lean-env-name-substitution}
+]
+def Env.substNames (/-$\Gamma$-/ : Env) (R T : FPName) : Env :=
+  /-$\Gamma$-/.map (fun (x, A) => if x == T then (R, A) else (x, A))
+
+instance : HasSubst Env FPName FPName where
+  subst /-$\Gamma$-/ R T := Env.substNames /-$\Gamma$-/ R T
+\end{lstlisting}
+
+% FIXME: Relevance
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Selected name-set simplification lemmas for environments. These lemmas normalise environment names through the list representation and are used repeatedly in freshness and disjointness proofs.},
+  label={lst:lean-env-name-lemmas}
+]
+@[simp] lemma Env.names_nil :
+  Env.names [] = /-$\emptyset$-/ := by
+  ...
+
+@[simp] lemma Env.names_singleton {x : FPName} {A : Types} :
+  Env.names [x /-$\Coloneqq$-/ A] = {x} := by
+  ...
+
+@[simp] lemma Env.names_distributes {/-$\Gamma$-/ : Env} {x : FPName} {A : Types} :
+  Env.names (x /-$\colon$-/ A :: /-$\Gamma$-/) = {x} /-$\cup$-/ /-$\Gamma$-/.names := by
+  ...
+
+@[simp] lemma Env.names_merge {/-$\Gamma$-/ /-$\Delta$-/ : Env} :
+  (/-$\Gamma$‚ $\Delta$-/).names = /-$\Gamma$-/.names /-$\cup$-/ /-$\Delta$-/.names := by
+  ...
+\end{lstlisting}
+
+The proofs of these lemmas are mostly structural consequences of the list representation. 
+Name-set lemmas unfold \texttt{Env.names} and reduce to facts about \texttt{List.map} and \texttt{Finset.toFinset}. 
+Permutation lemmas use the fact that list permutation preserves membership and therefore preserves the induced name set. The full proof scripts are included in the accompanying Lean development.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Selected permutation and disjointness lemmas for environments. These lemmas recover order-insensitive reasoning over the list representation of environments.},
+  label={lst:lean-env-perm-disjoint-lemmas}
+]
+lemma Env.names_eq_of_perm {/-$\Gamma$-/ /-$\Delta$-/ : Env} (h : /-$\Gamma$-/ /-$\sim$-/ /-$\Delta$-/) :
+  /-$\Gamma$-/.names = /-$\Delta$-/.names := by
+  ...
+
+lemma Env.Nodup_perm {/-$\Gamma$-/ /-$\Delta$-/ : Env} :
+  /-$\Gamma$-/ /-$\sim$-/ /-$\Delta$-/ -> /-$\Gamma$-/.Nodup -> /-$\Delta$-/.Nodup := by
+  ...
+
+lemma Env.perm_disjoint {/-$\Gamma$-/ /-$\Delta$-/ /-$\Xi$-/ : Env} (hP : /-$\Gamma$-/ /-$\sim$-/ /-$\Delta$-/) :
+  /-$\Gamma$-/.disjoint /-$\Xi$-/ /-$\leftrightarrow$-/ /-$\Delta$-/.disjoint /-$\Xi$-/ := by
+  ...
+
+lemma Env.disjoint_cons_iff {/-$\Gamma$-/ /-$\Delta$-/ : Env} {x y : FPName} {A : Types} :
+  Disjoint (Env.names (x /-$\Coloneqq$-/ A :: /-$\Gamma$-/))
+           (Env.names (y /-$\Coloneqq$-/ A/-$^\bot$-/ :: /-$\Delta$-/)) /-$\leftrightarrow$-/
+    (y /-$\neq$-/ x /-$\land$-/ y /-$\notin$-/ /-$\Gamma$-/.names /-$\land$-/
+     x /-$\notin$-/ /-$\Delta$-/.names /-$\land$-/ Disjoint /-$\Gamma$-/.names /-$\Delta$-/.names) := by
+  ...
+\end{lstlisting}
+
+The lemmas above lemmas connect the list-based implementation of environments with the order-insensitive reasoning expected of typing environments. Permuting an environment preserves its set of channel names, and therefore also preserves disjointness against any third environment. The disjointness expansion lemma rewrites disjointness between two extended environments into explicit freshness obligations on the head names and the remaining environments. These lemmas are repeatedly used when reconstructing typing derivations after exchange or when extracting the freshness conditions needed by transition rules.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Selected monoidal laws for environment merge. Since merge is implemented as list append, unit and associativity hold directly, while commutativity is recovered up to permutation.},
+  label={lst:lean-env-merge-laws}
+]
+lemma Env.merge_unitL (/-$\Gamma$-/ : Env) :
+  ([] : Env)/-‚-/ /-$\Gamma$-/ = /-$\Gamma$-/ := by
+  ...
+
+lemma Env.merge_unitR (/-$\Gamma$-/ : Env) :
+  /-$\Gamma$-//-‚-/ ([] : Env) = /-$\Gamma$-/ := by
+  ...
+
+lemma Env.merge_assoc (/-$\Gamma$-/ /-$\Delta$-/ /-$\Xi$-/ : Env) :
+  /-$\Gamma$-//-‚-/ /-$\Delta$-//-‚-/ /-$\Xi$-/ = /-$\Gamma$-//-‚-/ (/-$\Delta$-/, /-$\Xi$-/) := by
+  ...
+
+lemma Env.merge_comm (/-$\Gamma$-/ /-$\Delta$-/ : Env) :
+  /-$\Gamma$ ‚ $\Delta$-/ /-$\sim$-/ /-$\Delta$ ‚ $\Gamma$-/ := by
+  ...
+\end{lstlisting}
+
+The merge operation on environments is implemented as list append. Consequently, the empty environment acts as a left and right unit, and associativity follows directly from associativity of append. Commutativity, however, cannot hold as definitional equality because lists remember order. Instead, the formalisation proves commutativity up to \texttt{List.Perm}. These lemmas recover the intended order-insensitive behaviour of typing environments while retaining a list-based representation that remains convenient for induction and inversion.
+
+\subsection{Hyperenvironments}
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Lean representation of hyperenvironments. A hyperenvironment is implemented as a list of environments, corresponding to the separated components of a typing context.},
+  label={lst:lean-hyperenv-basic}
+]
+abbrev HyperEnv := List Env
+
+notation "[" /-$\Gamma$-/ "]" => ([/-$\Gamma$-/] : HyperEnv)
+
+def HyperEnv.names (/-$\hyp{G}$-/ : HyperEnv) : Finset FPName :=
+  /-$\hyp{G}$-/.foldr (fun /-$\Gamma$-/ acc => /-$\Gamma$-/.names /-$\cup$-/ acc) /-$\emptyhyp$-/
+
+def HyperEnv.Nodup (/-$\hyp{G}$-/ : HyperEnv) : Prop :=
+  /-$\forall$-/ /-$\Gamma$-/ /-$\in$-/ /-$\hyp{G}$-/, Env.Nodup /-$\Gamma$-/
+
+def HyperEnv.PairwiseDisjoint (/-$\hyp{G}$-/ : HyperEnv) : Prop :=
+  List.Pairwise Env.disjoint /-$\hyp{G}$-/
+
+@[simp] def HyperEnv.disjoint (/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv) : Prop :=
+  Disjoint /-$\hyp{G}$-/.names /-$\hyp{H}$-/.names
+\end{lstlisting}
+
+The definitions above lift the environment-level resource invariants to hyperenvironments. The function \texttt{HyperEnv.names} collects all channel names appearing in any component, while \texttt{HyperEnv.Nodup} requires each individual environment to contain no duplicate names. The stronger invariant \texttt{HyperEnv.PairwiseDisjoint} states that distinct components are pairwise disjoint, capturing the linear separation of resources across parallel components.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Deep permutation of hyperenvironments. Hyperenvironment permutation allows both reordering of environment components and permutation inside each individual environment.},
+  label={lst:lean-hyperenv-perm}
+]
+inductive HyperEnv.Perm : HyperEnv -> HyperEnv -> Prop where
+  | nil :
+      Perm [] []
+
+  | cons {/-$\Gamma$-/ /-$\Delta$-/ : Env} {/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv} :
+      /-$\Gamma$-/ /-$\sim$-/ /-$\Delta$-/ -> Perm /-$\hyp{G}$-/ /-$\hyp{H}$-/ -> Perm (/-$\Gamma$-/ :: /-$\hyp{G}$-/) (/-$\Delta$-/ :: /-$\hyp{H}$-/)
+
+  | swap (/-$\Gamma$-/ /-$\Delta$-/ : Env) (/-$\hyp{G}$-/ : HyperEnv) :
+      Perm (/-$\Gamma$-/ :: /-$\Delta$-/ :: /-$\hyp{G}$-/) (/-$\Delta$-/ :: /-$\Gamma$-/ :: /-$\hyp{G}$-/)
+
+  | trans {/-$\hyp{G}$-/ /-$\hyp{H}$-/ /-$\hyp{J}$-/ : HyperEnv} :
+      Perm /-$\hyp{G}$-/ /-$\hyp{H}$-/ -> Perm /-$\hyp{H}$-/ /-$\hyp{J}$-/ -> Perm /-$\hyp{G}$-/ /-$\hyp{J}$-/
+
+instance : HasPerm HyperEnv where
+  perm := HyperEnv.Perm
+\end{lstlisting}
+
+The permutation relation in above listing is a deep permutation relation. It does not only reorder the outer list of environments; the \texttt{cons} constructor also allows the head environments themselves to be permuted. This is essential because both environments and hyperenvironments are implemented as lists, while the typing theory treats exchange as structurally irrelevant.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Type- and name-level operations lifted to hyperenvironments. These definitions lift the corresponding environment operations componentwise.},
+  label={lst:lean-hyperenv-lifted-operations}
+]
+def HyperEnv.shiftTypes (d c : Nat) (/-$\hyp{G}$-/ : HyperEnv) : HyperEnv :=
+  /-$\hyp{G}$-/.map (fun /-$\Gamma$-/ => /-$\Gamma$-/.shiftTypes d c)
+
+instance : HasShift HyperEnv where
+  shift /-$\hyp{G}$-/ d c := HyperEnv.shiftTypes d c /-$\hyp{G}$-/
+
+def HyperEnv.substTypes (/-$\hyp{G}$-/ : HyperEnv) (A : Types) (k : Nat) : HyperEnv :=
+  /-$\hyp{G}$-/.map (fun /-$\Gamma$-/ => /-$\Gamma$-/.substTypes A k)
+
+instance : HasSubst HyperEnv Types Nat where
+  subst /-$\hyp{G}$-/ A k := HyperEnv.substTypes /-$\hyp{G}$-/ A k
+
+def HyperEnv.substNames (/-$\hyp{G}$-/ : HyperEnv) (R T : FPName) : HyperEnv :=
+  /-$\hyp{G}$-/.map (fun /-$\Gamma$-/ => /-$\Gamma$-/.substNames R T)
+
+instance : HasSubst HyperEnv FPName FPName where
+  subst /-$\hyp{G}$-/ R T := HyperEnv.substNames /-$\hyp{G}$-/ R T
+\end{lstlisting}
+
+The operations in the above listing are lifted pointwise from environments to hyperenvironments. This reflects the implementation choice that a hyperenvironment is a list of independent environment components: type shifting, type substitution, and name substitution do not change the hyperenvironment structure, but only transform each component. The corresponding typeclass instances allow the same notation for shifting and substitution to be reused uniformly across types, processes, environments, and hyperenvironments.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Selected simplification lemmas for hyperenvironment names. These lemmas normalise name-set goals involving empty, singleton, cons, and merged hyperenvironments.},
+  label={lst:lean-hyperenv-name-lemmas}
+]
+@[simp] lemma HyperEnv.names_nil :
+  HyperEnv.names [] = /-$\emptyhyp$-/ := by
+  ...
+
+@[simp] lemma HyperEnv.names_singleton {/-$\Gamma$-/ : Env} :
+  HyperEnv.names [/-$\Gamma$-/] = /-$\Gamma$-/.names := by
+  ...
+
+@[simp] lemma HyperEnv.names_cons {/-$\Gamma$-/ : Env} {/-$\hyp{G}$-/ : HyperEnv} :
+  HyperEnv.names (/-$\Gamma$-/ :: /-$\hyp{G}$-/) = /-$\Gamma$-/.names /-$\cup$-/ /-$\hyp{G}$-/.names := by
+  ...
+
+lemma HyperEnv.subset_names_of_mem {/-$\Gamma$-/ : Env} {/-$\hyp{G}$-/ : HyperEnv}
+  (h : /-$\Gamma$-/ /-$\in$-/ /-$\hyp{G}$-/) :
+  /-$\Gamma$-/.names /-$\subset$-/ /-$\hyp{G}$-/.names := by
+  ...
+
+lemma HyperEnv.names_eq_of_perm {/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv}
+  (hP : /-$\hyp{G}$-/ /-$\sim$-/ /-$\hyp{H}$-/) :
+  /-$\hyp{G}$-/.names = /-$\hyp{H}$-/.names := by
+  ...
+\end{lstlisting}
+
+The lemmas in the above listing connect the list implementation of hyperenvironments with finite-set reasoning about names. They are used to reduce freshness and disjointness side conditions to ordinary finite-set goals. In particular, \texttt{HyperEnv.names\_eq\_of\_perm} shows that deep permutation preserves the set of names appearing in a hyperenvironment.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Selected monoidal laws for hyperenvironment merge. Hyperenvironment merge is implemented by list append; commutativity is recovered up to deep permutation.},
+  label={lst:lean-hyperenv-merge-laws}
+]
+abbrev HyperEnv.merge (/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv) : HyperEnv := /-$\hyp{G}$-/ ++ /-$\hyp{H}$-/
+
+infixl:65 " /-$\pp_\texttt{h}$-/ " => HyperEnv.merge
+
+lemma HyperEnv.merge_unitL (/-$\hyp{G}$-/ : HyperEnv) :
+  /-$\emptyhyp$-/ /-$\pp_\texttt{h}$-/ /-$\hyp{G}$-/ = /-$\hyp{G}$-/ := by
+  ...
+
+lemma HyperEnv.merge_unitR (/-$\hyp{G}$-/ : HyperEnv) :
+  /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ /-$\emptyhyp$-/ = /-$\hyp{G}$-/ := by
+  ...
+
+lemma HyperEnv.merge_assoc (/-$\hyp{G}$-/ /-$\hyp{H}$-/ /-$\hyp{J}$-/ : HyperEnv) :
+  /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ /-$\hyp{J}$-/ = /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ (/-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ /-$\hyp{J}$-/) := by
+  ...
+
+lemma HyperEnv.merge_comm (/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv) :
+  /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ /-$\hyp{H}$-/ /-$\sim$-/ /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ /-$\hyp{G}$-/ := by
+  ...
+\end{lstlisting}
+
+As with environments, hyperenvironment merge is implemented as list append. Unit and associativity are therefore inherited from append, while commutativity is stated up to deep permutation. These lemmas recover the intended exchange behaviour of hyperenvironments without replacing the list representation by a quotient or finite-set structure.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Selected preservation lemmas for hyperenvironment permutation. These lemmas show that the structural invariants used by typing are stable under deep permutation.},
+  label={lst:lean-hyperenv-perm-lemmas}
+]
+lemma HyperEnv.Perm.refl (/-$\hyp{G}$-/ : HyperEnv) :
+  /-$\hyp{G}$-/ /-$\sim$-/ /-$\hyp{G}$-/ := by
+  ...
+
+lemma HyperEnv.Perm.symm {/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv} :
+  /-$\hyp{G}$-/ /-$\sim$-/ /-$\hyp{H}$-/ -> /-$\hyp{H}$-/ /-$\sim$-/ /-$\hyp{G}$-/ := by
+  ...
+
+lemma HyperEnv.Nodup_perm {/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv}
+  (hP : /-$\hyp{G}$-/ /-$\sim$-/ /-$\hyp{H}$-/) :
+  HyperEnv.Nodup /-$\hyp{G}$-/ -> HyperEnv.Nodup /-$\hyp{H}$-/ := by
+  ...
+
+lemma HyperEnv.PairwiseDisjoint_perm {/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv}
+  (hP : /-$\hyp{G}$-/ /-$\sim$-/ /-$\hyp{H}$-/) :
+  HyperEnv.PairwiseDisjoint /-$\hyp{G}$-/ -> HyperEnv.PairwiseDisjoint /-$\hyp{H}$-/ := by
+  ...
+
+lemma HyperEnv.perm_disjoint {/-$\hyp{G}$-/ /-$\hyp{H}$-/ /-$\hyp{J}$-/ : HyperEnv}
+  (hP : /-$\hyp{G}$-/ /-$\sim$-/ /-$\hyp{H}$-/) :
+  /-$\hyp{G}$-/.disjoint /-$\hyp{J}$-/ /-$\leftrightarrow$-/ /-$\hyp{H}$-/.disjoint /-$\hyp{J}$-/ := by
+  ...
+\end{lstlisting}
+
+The preservation lemmas in the above listing are used whenever a proof rearranges a hyperenvironment before applying a typing or transition rule. They ensure that the structural invariants of typing, such as no-duplicate names and pairwise disjointness, are stable under the deep permutation relation.
 
 
 
@@ -584,34 +893,42 @@ The construction uses the fact that free process names are represented as natura
 These things should be included in this appendix
 \begin{verbatim}  
 
-Processes and binding:
-- Channel
-- Proc
-- Channel.open / Proc.open
-- Channel.close / Proc.close
-- Proc.lc
-- Proc.f
-- Proc.substNames / Proc.substTypes
-- exists_one_fresh, maybe statement only
+% Session Types:
+% - TVar
+% - Types
+% - Types.dual
+% - Tvar.shfit / Types.shift
+% - Types.subst
+% - TVar.lc / Types.lc
 
-Environments:
-- Elem
-- Env
-- Env.names
-- Env.merge
-- Env.Nodup
-- Env.disjoint
-- Env.lc / Env.shiftTypes / Env.substNames / Env.substTypes
-- selected names lemmas: names_nil, names_singleton, names_merge
+% Processes and binding:
+% - Channel
+% - Proc
+% - Channel.open / Proc.open
+% - Channel.close / Proc.close
+% - Proc.lc
+% - Proc.f
+% - Proc.substNames / Proc.substTypes
+% - exists_one_fresh, maybe statement only
 
-Hyperenvironments:
-- HyperEnv
-- HyperEnv.Perm
-- HyperEnv.names
-- HyperEnv.Nodup
-- HyperEnv.PairwiseDisjoint
-- HyperEnv.disjoint
-- merge laws / permutation laws
+% Environments:
+% - Elem
+% - Env
+% - Env.names
+% - Env.merge
+% - Env.Nodup
+% - Env.disjoint
+% - Env.lc / Env.shiftTypes / Env.substNames / Env.substTypes
+% - selected names lemmas: names_nil, names_singleton, names_merge
+
+% Hyperenvironments:
+% - HyperEnv
+% - HyperEnv.Perm
+% - HyperEnv.names
+% - HyperEnv.Nodup
+% - HyperEnv.PairwiseDisjoint
+% - HyperEnv.disjoint
+% - merge laws / permutation laws
 
 Typing:
 - Full 'Typing' inductive relation, or at least all constructors in a compact listing
@@ -780,13 +1097,13 @@ These things should be indcluded in this appendix
   % Subsection Hyperenvironments
     % Schmeatic of proof to include for e.g. tensor parr defer the rest to zip file 
     % lemma HyperEnv.Perm.extract_tensor_res
-    %(h_pre : 𝒢 |ₕ [u ∶ C :: Γ'] |ₕ [v ∶ Cᗮ :: Δ'] ~
-    %  𝒢ᵣ |ₕ [x ∶ A ⨂ B :: Γ‚ Δ])
-    %(h_post : ℋ |ₕ [u ∶ C :: Γ''] |ₕ [v ∶ Cᗮ :: Δ''] ~
-    %  𝒢ᵣ |ₕ [w ∶ A :: Γ] |ₕ [x ∶ B :: Δ]) :
-    %∃ 𝒢ₙ Γₙ Δₙ,
-    %  𝒢 |ₕ [Γ'‚ Δ'] ~ 𝒢ₙ |ₕ [x ∶ A ⨂ B :: Γₙ‚ Δₙ] ∧
-    %  ℋ |ₕ [Γ''‚ Δ''] ~ 𝒢ₙ |ₕ [w ∶ A :: Γₙ] |ₕ [x ∶ B ::  % Δₙ]
+    %(h_pre : /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [u ∶ C :: /-$\Gamma$-/'] /-$\pp_\texttt{h}$-/ [v ∶ Cᗮ :: /-$\Delta$-/'] /-$\sim$-/
+    %  /-$\hyp{G}$-/ᵣ /-$\pp_\texttt{h}$-/ [x ∶ A ⨂ B :: /-$\Gamma$-/‚ /-$\Delta$-/])
+    %(h_post : /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [u ∶ C :: /-$\Gamma$-/''] /-$\pp_\texttt{h}$-/ [v ∶ Cᗮ :: /-$\Delta$-/''] /-$\sim$-/
+    %  /-$\hyp{G}$-/ᵣ /-$\pp_\texttt{h}$-/ [w ∶ A :: /-$\Gamma$-/] /-$\pp_\texttt{h}$-/ [x ∶ B :: /-$\Delta$-/]) :
+    %∃ /-$\hyp{G}$-/ₙ /-$\Gamma$-/ₙ /-$\Delta$-/ₙ,
+    %  /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'‚ /-$\Delta$-/'] /-$\sim$-/ /-$\hyp{G}$-/ₙ /-$\pp_\texttt{h}$-/ [x ∶ A ⨂ B :: /-$\Gamma$-/ₙ‚ /-$\Delta$-/ₙ] ∧
+    %  /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/''‚ /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-/ₙ /-$\pp_\texttt{h}$-/ [w ∶ A :: /-$\Gamma$-/ₙ] /-$\pp_\texttt{h}$-/ [x ∶ B ::  % /-$\Delta$-/ₙ]
     % Then explain that the full statement includes freshness and inequality hypotheses needed to rule out name collisions.
     % Candidate: Selected hyperenvironment infrastructure
     % Files:
@@ -922,8 +1239,8 @@ These things should be indcluded in this appendix
 % Metatheory section appendix
   % Candidate: Main metatheory appendix
   % Possible excerpts:
-  %   - proc : Typing n P 𝒢 -> Proc
-  %   - env  : Typing n P 𝒢 -> HyperEnv
+  %   - proc : Typing n P /-$\hyp{G}$-/ -> Proc
+  %   - env  : Typing n P /-$\hyp{G}$-/ -> HyperEnv
   %   - session_fidelity_procₘ
   %   - session_fidelity_envₘ
   %   - typability_subject_reductionₘ

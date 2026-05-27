@@ -86,6 +86,8 @@
 \contentsline {section}{\numberline {D}Selected Core Definitions}{40}{section.D}%
 \contentsline {subsection}{\numberline {D.1}Session Types}{40}{subsection.D.1}%
 \contentsline {subsection}{\numberline {D.2}Processes}{43}{subsection.D.2}%
-\contentsline {section}{\numberline {E}Selected Transition Definitions}{49}{section.E}%
-\contentsline {section}{\numberline {F}Erasure Functions and Main Theorems}{50}{section.F}%
-\contentsline {section}{\numberline {G}Selected Proof Infrastructure}{50}{section.G}%
+\contentsline {subsection}{\numberline {D.3}Environments}{48}{subsection.D.3}%
+\contentsline {subsection}{\numberline {D.4}Hyperenvironments}{51}{subsection.D.4}%
+\contentsline {section}{\numberline {E}Selected Transition Definitions}{55}{section.E}%
+\contentsline {section}{\numberline {F}Erasure Functions and Main Theorems}{56}{section.F}%
+\contentsline {section}{\numberline {G}Selected Proof Infrastructure}{56}{section.G}%
