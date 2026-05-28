@@ -14,15 +14,17 @@
 \input{preamble}
 
 % Commands for double brackets, syntax prefixes shifting etc.
-\newcommand{\dbrackL}{[\![}
-\newcommand{\dbrackR}{]\!]}
-\newcommand{\dbrack}[1]{[\![#1]\!]}
-\newcommand{\dparenL}{(\!(}
-\newcommand{\dparenR}{)\!)}
-\newcommand{\dparen}[1]{(\!(#1)\!)}
-\newcommand{\dangleL}{\langle\!\langle}
-\newcommand{\dangleR}{\rangle\!\rangle}
-\newcommand{\dangle}[1]{\dangleL #1 \dangleR}
+\newcommand{\llangle}{\langle\mkern-4mu\langle}
+\newcommand{\rrangle}{\rangle\mkern-4mu\rangle}
+\newcommand{\dbrackL}{\lbrack\mkern-4mu\lbrack}
+\newcommand{\dbrackR}{\rbrack\mkern-4mu\rbrack}
+\newcommand{\dbrack}[1]{\dbrackL#1\dbrackR}
+\newcommand{\dparenL}{\lparen\mkern-4mu\lparen}
+\newcommand{\dparenR}{\rparen\mkern-4mu\rparen}
+\newcommand{\dparen}[1]{\dparenL#1\dparenR}
+\newcommand{\dangleL}{\llangle}
+\newcommand{\dangleR}{\rrangle}
+\newcommand{\dangle}[1]{\dangleL#1\dangleR}
 \newcommand{\dsend}[3]{#1\dbrack{#2}.#3}
 \newcommand{\drecv}[3]{#1\dparen{#2}.#3}
 \newcommand{\dres}[1]{\boldsymbol{\nu}\dparen{\bullet,\bullet}~P}
@@ -193,15 +195,15 @@ Ord ord ord ord ord ord ord ord ord ord ord
 
 \clearpage
 
-\input{Chapters/Introduction}
-\input{Chapters/background}
-\input{Chapters/BindingRepresentation}
-\input{Chapters/Formalisation}
-\input{Chapters/Metatheory}
-\input{Chapters/Discussion}
-\input{Chapters/FutureWork}
-\input{Chapters/Conclusion}
-\bibliography{references} % out commenting this breaks references
+% \input{Chapters/Introduction}
+% \input{Chapters/background}
+% \input{Chapters/BindingRepresentation}
+% \input{Chapters/Formalisation}
+% \input{Chapters/Metatheory}
+% \input{Chapters/Discussion}
+% \input{Chapters/FutureWork}
+% \input{Chapters/Conclusion}
+% \bibliography{references} % out commenting this breaks references
 \input{Chapters/Appendix}
 
 \end{document}

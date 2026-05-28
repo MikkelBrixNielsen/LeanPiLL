@@ -90,7 +90,7 @@ class HasParen (Subject Content Result : Type) where
 notation:80 x"/-$\dbrackL\dbrackR$-/" => HasBracket.brack x ()
 notation:80 x"/-$\dbrackL$-/"y"/-$\dbrackR$-/" => HasBracket.brack x y
 notation:80 x"/-$\dparenL\dparenR$-/" => HasParen.paren x ()
-notation:80 x"/-$\dparenL$-/y/-$\dparenR$-/" => HasParen.paren x y
+notation:80 x"/-$\dparenL$-/ y/-$\dparenR$-/" => HasParen.paren x y
 
 class HasPerm (/-$\alpha$-/ : Type) where
   perm : /-$\alpha$-/ -> /-$\alpha$-/ -> Prop
@@ -926,69 +926,69 @@ inductive Typing : Nat -> Proc -> HyperEnv -> Prop where
 
   | bot {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {n : Nat} (hF : x /-$\notin$-/ /-$\Gamma$-/.names) :
       Typing n P [/-$\Gamma$-/] ->
-      Typing n (#x/-$\dparenL$-//-$\dparenR$-/.P) [/-$\cht{\texttt{x}}{\bot} ::\Gamma$-/]
+      Typing n (#x/-$\dparenL$-//-$\dparenR$-/.P) [/-$\cht{\texttt{x}}{\bot} \texttt{::}\Gamma$-/]
 
   | cut {/-$\hyp{G}$-/ : HyperEnv} {/-$\Gamma$-/ /-$\Delta$-/ : Env} {P : Proc} {A : Types} {n : Nat} 
     (L : Finset FPName) :
       (/-$\forall$-/ x /-$\notin$-/ L, /-$\forall$-/ y /-$\notin$-/ L, x /-$\neq$-/ y ->
-        Typing n (P/-$\dparenL$-/#x, #y/-$\dparenR$-/) (/-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{A}} ::\Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y}}{\dual{\texttt{A}}} ::\Delta$-/])) ->
+        Typing n (P/-$\dparenL$-/#x, #y/-$\dparenR$-/) (/-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{A}} \texttt{::} \Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y}}{\dual{\texttt{A}}} \texttt{::} \Delta$-/])) ->
       Typing n (/-$\mathit{v}\dparenL$-//-$\bullet$-/,/-$\bullet$-//-$\dparenR$-/ P) (/-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/, /-$\Delta$-/])
 
   | tensor {/-$\Gamma$-/ /-$\Delta$-/ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat}
       (hF : x /-$\notin$-/ /-$\Gamma$-/.names /-$\land$-/ x /-$\notin$-/ /-$\Delta$-/.names) (L : Finset FPName) :
-      (/-$\forall$-/ y /-$\notin$-/ L, Typing n (P/-$\dparenL$-/#y/-$\dparenR$-/) ([/-$\cht{\texttt{y}}{\texttt{A}} :: \Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}} :: \Delta$-/])) ->
-      Typing n (#x/-$\dbrackL$-//-$\bullet$-//-$\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\texttt{A}\tensor\texttt{B}} :: \Gamma$,$\Delta$-/]
+      (/-$\forall$-/ y /-$\notin$-/ L, Typing n (P/-$\dparenL$-/#y/-$\dparenR$-/) ([/-$\cht{\texttt{y}}{\texttt{A}} \texttt{::} \Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}} \texttt{::} \Delta$-/])) ->
+      Typing n (#x/-$\dbrackL$-//-$\bullet$-//-$\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\texttt{A}\tensor\texttt{B}} \texttt{::} \Gamma$,$\Delta$-/]
 
   | parr {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A B : Types}
       {n : Nat} (hF : x /-$\notin$-/ /-$\Gamma$-/.names) (L : Finset FPName) :
-      (/-$\forall$-/ y /-$\notin$-/ L, Typing n (P/-$\dparenL$-/#y/-$\dparenR$-/) [/-$\cht{\texttt{y}}{\texttt{A}} :: \cht{\texttt{x}}{\texttt{B}} ::\Gamma$-/]) ->
-      Typing n (#x/-$\dparenL$-//-$\bullet$-//-$\dparenR$-/.P) [/-$\cht{\texttt{x}}{\texttt{A}\parr\texttt{B}} :: \Gamma$-/]
+      (/-$\forall$-/ y /-$\notin$-/ L, Typing n (P/-$\dparenL$-/#y/-$\dparenR$-/) [/-$\cht{\texttt{y}}{\texttt{A}} \texttt{::} \cht{\texttt{x}}{\texttt{B}} \texttt{::}\Gamma$-/]) ->
+      Typing n (#x/-$\dparenL$-//-$\bullet$-//-$\dparenR$-/.P) [/-$\cht{\texttt{x}}{\texttt{A}\parr\texttt{B}} \texttt{::} \Gamma$-/]
 
   | oplus/-$_\texttt{1}$-/ {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
-      B.lc n -> Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} :: \Gamma$-/] ->
-      Typing n (#x/-$\dbrackL\mathbf{L}\dbrackR$-/.P) [/-$\cht{x}{\texttt{A}\oplus\texttt{B}} :: \Gamma$-/]
+      B.lc n -> Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} \texttt{::} \Gamma$-/] ->
+      Typing n (#x/-$\dbrackL\mathbf{L}\dbrackR$-/.P) [/-$\cht{x}{\texttt{A}\oplus\texttt{B}} \texttt{::} \Gamma$-/]
 
   | oplus/-$_\texttt{2}$-/ {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
-      A.lc n -> Typing n P [/-$\cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/] ->
-      Typing n (#x/-$\dbrackL\mathbf{R}\dbrackR$-/.P) [/-$\cht{x}{\texttt{A}\oplus\texttt{B}} :: \Gamma$-/]
+      A.lc n -> Typing n P [/-$\cht{\texttt{x}}{\texttt{B}} \texttt{::} \Gamma$-/] ->
+      Typing n (#x/-$\dbrackL\mathbf{R}\dbrackR$-/.P) [/-$\cht{x}{\texttt{A}\oplus\texttt{B}} \texttt{::} \Gamma$-/]
 
   | amp {/-$\Gamma$-/ : Env} {P Q : Proc} {x : FPName} {A B : Types} {n : Nat} :
-      Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} :: \Gamma$-/] -> Typing n Q [/-$\cht{\texttt{x}}{\texttt{B}} :: \Gamma$-/] ->
-      Typing n (#x.case{/-$\mathbf{L}$-/ : P, /-$\mathbf{R}$-/ : Q}) [/-$\cht{\texttt{x}}{\texttt{A}\:\&\:\texttt{B}} :: \Gamma$-/]
+      Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} \texttt{::} \Gamma$-/] -> Typing n Q [/-$\cht{\texttt{x}}{\texttt{B}} \texttt{::} \Gamma$-/] ->
+      Typing n (#x.case{/-$\mathbf{L}$-/ : P, /-$\mathbf{R}$-/ : Q}) [/-$\cht{\texttt{x}}{\texttt{A}\:\&\:\texttt{B}} \texttt{::} \Gamma$-/]
 
   | quest {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} :
-      Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} :: \Gamma$-/] ->
-      Typing n (#x/-$\dbrackL\mathbf{USE}\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\texttt{??A}} :: \Gamma$-/]
+      Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} \texttt{::} \Gamma$-/] ->
+      Typing n (#x/-$\dbrackL\mathbf{USE}\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\texttt{??A}} \texttt{::} \Gamma$-/]
 
   | bang {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat} :
-      ?/-$_\texttt{e}$-//-$\Gamma$-/ -> Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} :: \Gamma$-/] ->
-      Typing n (!#x/-$\langle\Gamma$-/.names.image Channel.free/-$\rangle$-/.{P}) [/-$\cht{\texttt{x}}{\texttt{!!A}} :: \Gamma$-/]
+      ?/-$_\texttt{e}$-//-$\Gamma$-/ -> Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} \texttt{::} \Gamma$-/] ->
+      Typing n (!#x/-$\langle\Gamma$-/.names.image Channel.free/-$\rangle$-/.{P}) [/-$\cht{\texttt{x}}{\texttt{!!A}} \texttt{::} \Gamma$-/]
 
   | w {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat}
       (hF : x /-$\notin$-/ /-$\Gamma$-/.names) :
       A.lc n -> Typing n P [/-$\Gamma$-/] ->
-      Typing n (#x/-$\dbrackL\mathbf{DISP}\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\texttt{??A}} :: \Gamma$-/]
+      Typing n (#x/-$\dbrackL\mathbf{DISP}\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\texttt{??A}} \texttt{::} \Gamma$-/]
 
   | c {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A : Types} {n : Nat}
       (hF : x /-$\notin$-/ /-$\Gamma$-/.names) (L : Finset FPName) :
-      (/-$\forall$-/ y /-$\notin$-/ L, Typing n P/-$\dparenL$-/#y/-$\dparenR$-/ [/-$\cht{\texttt{x}}{\texttt{??A}} :: \cht{\texttt{y}}{\texttt{??A}} :: \Gamma$-/]) ->
-      Typing n (#x/-$\dbrackL$-/DUP/-$\dbrackR$-//-$\dparenL$-//-$\bullet$-//-$\dparenR$-/.P) [/-$\cht{\texttt{x}}{\texttt{??A}} :: \Gamma$-/]
+      (/-$\forall$-/ y /-$\notin$-/ L, Typing n P/-$\dparenL$-/#y/-$\dparenR$-/ [/-$\cht{\texttt{x}}{\texttt{??A}} \texttt{::} \cht{\texttt{y}}{\texttt{??A}} \texttt{::} \Gamma$-/]) ->
+      Typing n (#x/-$\dbrackL$-/DUP/-$\dbrackR$-//-$\dparenL$-//-$\bullet$-//-$\dparenR$-/.P) [/-$\cht{\texttt{x}}{\texttt{??A}} \texttt{::} \Gamma$-/]
 
   | exists_ {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
-      A.lc n -> Typing n P [/-$\cht{\texttt{x}}{\texttt{B\{A // 0\}}} :: \Gamma$-/] ->
-      Typing n (#x/-$\dbrackL$-/A/-$\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\exists\texttt{.B}} :: \Gamma$-/]
+      A.lc n -> Typing n P [/-$\cht{\texttt{x}}{\texttt{B\{A // 0\}}} \texttt{::} \Gamma$-/] ->
+      Typing n (#x/-$\dbrackL$-/A/-$\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\exists\texttt{.B}} \texttt{::} \Gamma$-/]
 
   | forall_ {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {B : Types} {n : Nat} :
-      Typing (n + 1) P [/-$\cht{\texttt{x}}{\texttt{B}} :: \Gamma^+$-/] ->
-      Typing n (#x/-$\dparenL\diamond\dparenR$-/.P) [/-$\cht{\texttt{x}}{\forall\texttt{.B}} :: \Gamma$-/]
+      Typing (n + 1) P [/-$\cht{\texttt{x}}{\texttt{B}} \texttt{::} \Gamma^+$-/] ->
+      Typing n (#x/-$\dparenL\diamond\dparenR$-/.P) [/-$\cht{\texttt{x}}{\forall\texttt{.B}} \texttt{::} \Gamma$-/]
 
   | ax {x y : FPName} {A : Types} {n : Nat} (hneq : x /-$\neq$-/ y) :
       A.lc n ->
-      Typing n (#x/-$\:\leftrightarrow_\texttt{p}\:$-/#y) [/-$\cht{\texttt{x}}{\dual{\texttt{A}}} ::$-/ [/-$\cht{\texttt{y}}{\texttt{A}}$-/]]
+      Typing n (#x/-$\:\leftrightarrow_\texttt{p}\:$-/#y) [/-$\cht{\texttt{x}}{\dual{\texttt{A}}} \texttt{::}$-/ [/-$\cht{\texttt{y}}{\texttt{A}}$-/]]
 
   | exchange_env {/-$\hyp{G}$-/ : HyperEnv} {/-$\Gamma$-/ /-$\Delta$-/ : Env} {P : Proc} {n : Nat} :
-      Typing n P (/-$\Gamma ::\hyp{G}$-/) -> /-$\Gamma \sim \Delta$-/ ->
-      Typing n P (/-$\Delta ::\hyp{G}$-/)
+      Typing n P (/-$\Gamma \texttt{::}\hyp{G}$-/) -> /-$\Gamma \sim \Delta$-/ ->
+      Typing n P (/-$\Delta \texttt{::}\hyp{G}$-/)
 
   | exchange_hyper {/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv} {P : Proc} {n : Nat} :
       Typing n P /-$\hyp{G}$-/ -> /-$\hyp{G} \sim \hyp{H}$-/ ->
@@ -1075,7 +1075,6 @@ deriving Repr, DecidableEq
   | .par l l' => (iNamesAct l) /-$\cap$-/ (iNamesAct l') = /-$\emptyset$-/
 \end{lstlisting}
 
-
 \subsection{Transition Systems}\label{app:transition-systems}
 This appendix collects the full inductive definitions of the three 
 transition relations for \pimll{}, as referenced from 
@@ -1084,108 +1083,108 @@ constructors of \texttt{TypingStep}$_\texttt{m}$ are elided for length;
 their full definitions are available in the accompanying source archive. 
 
 \begin{lstlisting}[language=Lean4,
-  caption={The typed transition relation \texttt{TypingStep}$_\texttt{m}$. The \texttt{tensor\_parr} and \texttt{res} constructors are abbreviated; full definitions are in the accompanying source.},
+  caption={The typed transition relation \texttt{TypingStep}$_\texttt{m}$.},
   label={lst:app-typingstep}]
 inductive TypingStep/-$_\texttt{m}$-/ :
     {n : Nat} -> {/-$\hyp{G}$-/ : HyperEnv} -> {P : Proc} -> Typing n P /-$\hyp{G}$-/ -> Lbl -> 
     {n' : Nat} -> {/-$\hyp{G}$-/' : HyperEnv} -> {P' : Proc} -> Typing n' P' /-$\hyp{G}$-/' -> Prop where
+  
   | one {P : Proc} {x : FPName} {n : Nat} {/-$\der{D}$-/ : Typing n P /-$\emptyhyp$-/} :
-      TypingStep/-$_\texttt{m}$-/ (Typing.one (x := x) /-$\der{D}$-/) (x/-$\llbracket\rrbracket$-/) /-$\der{D}$-/
+      TypingStep/-$_\texttt{m}$-/ (Typing.one (x := x) /-$\der{D}$-/) (x/-$\dbrackL\dbrackR$-/) /-$\der{D}$-/
+      
   | bot {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {n : Nat}
-      {hF : x /- $\notin$ -/ /-$\Gamma$-/.names} {/-$\der{D}$-/ : Typing n P [/-$\Gamma$-/]} :
-      TypingStep/-$_\texttt{m}$-/ (Typing.bot (x := x) hF /-$\der{D}$-/) (x/-$\langle\rangle$-/) /-$\der{D}$-/
+      {hF : /-$ \texttt{x} \notin \Gamma$-/.names} {/-$\der{D}$-/ : Typing n P [/-$\Gamma$-/]} :
+      TypingStep/-$_\texttt{m}$-/ (Typing.bot (x := x) hF /-$\der{D}$-/) (x/-$\dparenL\dparenR$-/) /-$\der{D}$-/
+
   | tensor {/-$\Gamma\ \Delta$-/ : Env} {P : Proc} {x y : FPName} {A B : Types} {n : Nat}
-      {hF : x /- $\notin$ -/ /-$\Gamma$-/.names /- $\wedge$ -/ x /- $\notin$ -/ /-$\Delta$-/.names} {L : Finset FPName}
-      {huniq : /- $\forall$ -/ z, z /- $\notin$ -/ L -> Typing n (P/-$\langle$-/#z/-$\rangle$-/) ([z /- $\colon$ -/ A :: /-$\Gamma$-/] /-$|_h$-/ [x /- $\colon$ -/ B :: /-$\Delta$-/])}
-      {hy : y /- $\notin$ -/ ({x} /- $\cup$ -/ P.f /- $\cup$ -/ /-$\Gamma$-/.names /- $\cup$ -/ /-$\Delta$-/.names)} :
-      TypingStep/-$_\texttt{m}$-/ (Typing.tensor hF L huniq) (x/-$\llbracket$-/y/-$\rrbracket$-/) (Typing_tensor_all_fresh huniq y hy)
+      {hF : /-$\texttt{x} \notin \Gamma\texttt{.names} \land \texttt{x} \notin \Delta$-/.names} {L : Finset FPName}
+      {huniq : /-$\forall$-/ z, z /-$\notin$-/ L -> Typing n (P/-$\dparenL$-/#z/-$\dparenR$-/) ([/-$\cht{\texttt{z}}{\texttt{A}} \texttt{::} \Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}} \texttt{::} \Delta$-/])}
+      {hy : y /-$\notin$-/ ({x} /-$\cup$-/ P.f /-$\cup$-/ /-$\Gamma$-/.names /-$\cup$-/ /-$\Delta$-/.names)} :
+      TypingStep/-$_\texttt{m}$-/ (Typing.tensor hF L huniq) (x/-$\dbrackL$-/ y/-$\dbrackR$-/) (Typing_tensor_all_fresh huniq y hy)
+
   | parr {/-$\Gamma$-/ : Env} {P : Proc} {x y : FPName} {A B : Types} {n : Nat}
-      {hF : x /- $\notin$ -/ /-$\Gamma$-/.names} {L : Finset FPName}
-      {huniq : /- $\forall$ -/ z, z /- $\notin$ -/ L -> Typing n (P/-$\langle$-/#z/-$\rangle$-/) [z /- $\colon$ -/ A :: x /- $\colon$ -/ B :: /-$\Gamma$-/]}
-      {hy : y /- $\notin$ -/ ({x} /- $\cup$ -/ P.f /- $\cup$ -/ /-$\Gamma$-/.names)} :
-      TypingStep/-$_\texttt{m}$-/ (Typing.parr hF L huniq) (x/-$\langle$-/y/-$\rangle$-/) (Typing_parr_all_fresh huniq y hy)
-  | par/-$_1$-/ {/-$\mathcal{G}\ \mathcal{H}\ \mathcal{G}'$-/ : HyperEnv} {P Q P' : Proc} {l : Lbl} {n : Nat}
-      {hD1 : /-$\mathcal{G}$-/.disjoint /-$\mathcal{H}$-/} {hD2 : /-$\mathcal{G}'$-/.disjoint /-$\mathcal{H}$-/}
-      {/-$\der{D}$-/ : Typing n P /-$\mathcal{G}$-/} {/-$\der{D}$-/' : Typing n P' /-$\mathcal{G}'$-/} {/-$\mathcal{E}$-/ : Typing n Q /-$\mathcal{H}$-/}
-      (h : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') (disj : l.i /- $\cap$ -/ Q.f = /- $\emptyset$ -/) :
-      TypingStep/-$_\texttt{m}$-/ (Typing.mix hD1 /-$\der{D}\ \mathcal{E}$-/) l (Typing.mix hD2 /-$\der{D}'\ \mathcal{E}$-/)
-  | par/-$_2$-/ {/-$\mathcal{G}\ \mathcal{H}\ \mathcal{H}'$-/ : HyperEnv} {P Q Q' : Proc} {l : Lbl} {n : Nat}
-      {hD1 : /-$\mathcal{G}$-/.disjoint /-$\mathcal{H}$-/} {hD2 : /-$\mathcal{G}$-/.disjoint /-$\mathcal{H}'$-/}
-      {/-$\der{D}$-/ : Typing n P /-$\mathcal{G}$-/} {/-$\mathcal{E}$-/ : Typing n Q /-$\mathcal{H}$-/} {/-$\mathcal{E}$-/' : Typing n Q' /-$\mathcal{H}'$-/}
-      (h : TypingStep/-$_\texttt{m}$-/ /-$\mathcal{E}$-/ l /-$\mathcal{E}$-/') (disj : l.i /- $\cap$ -/ P.f = /- $\emptyset$ -/) :
-      TypingStep/-$_\texttt{m}$-/ (Typing.mix hD1 /-$\der{D}\ \mathcal{E}$-/) l (Typing.mix hD2 /-$\der{D}\ \mathcal{E}$-/')
-  | syn {/-$\mathcal{G}\ \mathcal{G}'\ \mathcal{H}\ \mathcal{H}'$-/ : HyperEnv} {P P' Q Q' : Proc}
-      {l l' : Act} {n : Nat}
-      {hD1 : /-$\mathcal{G}$-/.disjoint /-$\mathcal{H}$-/} {hD2 : /-$\mathcal{G}'$-/.disjoint /-$\mathcal{H}'$-/}
-      {/-$\der{D}$-/ : Typing n P /-$\mathcal{G}$-/} {/-$\der{D}$-/' : Typing n P' /-$\mathcal{G}'$-/}
-      {/-$\mathcal{E}$-/ : Typing n Q /-$\mathcal{H}$-/} {/-$\mathcal{E}$-/' : Typing n Q' /-$\mathcal{H}'$-/}
-      (h/-$_1$-/ : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/')
-      (h/-$_2$-/ : TypingStep/-$_\texttt{m}$-/ /-$\mathcal{E}$-/ l' /-$\mathcal{E}$-/')
-      (disj : (l /-$|_l$-/ l').i /- $\cap$ -/ (P /-$|_p$-/ Q).f = /- $\emptyset$ -/) (WF : (l /-$|_l$-/ l').WF) :
-      TypingStep/-$_\texttt{m}$-/ (Typing.mix hD1 /-$\der{D}\ \mathcal{E}$-/) (l /-$|_l$-/ l') (Typing.mix hD2 /-$\der{D}'\ \mathcal{E}$-/')
-  | one_bot {/-$\mathcal{G}$-/ : HyperEnv} {/-$\Gamma$-/ : Env} {P P' : Proc} {n : Nat}
-      {L : Finset FPName}
-      {huniq : /- $\forall$ -/ x /- $\notin$ -/ L, /- $\forall$ -/ y /- $\notin$ -/ L, x /- $\neq$ -/ y ->
-        Typing n (P/-$\langle$-/#x, #y/-$\rangle$-/) (/-$\mathcal{G}\ |_h$-/ [x /- $\colon$ -/ /-$\one$-/ :: /- $\emptyset$ -/] /-$|_h$-/ [y /- $\colon$ -/ /-$\bot$-/ :: /-$\Gamma$-/])}
+      {hF : x /-$\notin$-//-$\Gamma$-/.names} {L : Finset FPName}
+      {huniq : /-$\forall$-/ z, z /-$\notin$-/ L -> Typing n (P/-$\dparenL$-/#z/-$\dparenR$-/) [z /-$\colon$-/A :: x /-$\colon$-/B :: /-$\Gamma$-/]}
+      {hy : y /-$\notin$-/({x} /-$\cup$-/ P.f /-$\cup$-//-$\Gamma$-/.names)} :
+      TypingStep/-$_\texttt{m}$-/ (Typing.parr hF L huniq) (x/-$\dparenL$-/ y/-$\dparenR$-/) (Typing_parr_all_fresh huniq y hy)
+
+  | par/-$_1$-/ {/-$\hyp{G}\ \hyp{H}\ \hyp{G}'$-/ : HyperEnv} {P Q P' : Proc} {l : Lbl} {n : Nat}
+      {hD1 : /-$\hyp{G}$-/.disjoint /-$\hyp{H}$-/} {hD2 : /-$\hyp{G}'$-/.disjoint /-$\hyp{H}$-/}
+      {/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/} {/-$\der{D}$-/' : Typing n P' /-$\hyp{G}'$-/} {/-$\der{E}$-/ : Typing n Q /-$\hyp{H}$-/}
+      (h : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') (disj : l.i /-$\cap$-/ Q.f = /-$\emptyset$-/) :
+      TypingStep/-$_\texttt{m}$-/ (Typing.mix hD1 /-$\der{D}\ \der{E}$-/) l (Typing.mix hD2 /-$\der{D}'\ \der{E}$-/)
+
+  | par/-$_2$-/ {/-$\hyp{G}\ \hyp{H}\ \hyp{H}'$-/ : HyperEnv} {P Q Q' : Proc} {l : Lbl} {n : Nat}
+      {hD1 : /-$\hyp{G}$-/.disjoint /-$\hyp{H}$-/} {hD2 : /-$\hyp{G}$-/.disjoint /-$\hyp{H}'$-/}
+      {/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/} {/-$\der{E}$-/ : Typing n Q /-$\hyp{H}$-/} {/-$\der{E}$-/' : Typing n Q' /-$\hyp{H}'$-/}
+      (h : TypingStep/-$_\texttt{m}$-/ /-$\der{E}$-/ l /-$\der{E}$-/') (disj : l.i /-$\cap$-/ P.f = /-$\emptyset$-/) :
+      TypingStep/-$_\texttt{m}$-/ (Typing.mix hD1 /-$\der{D}\ \der{E}$-/) l (Typing.mix hD2 /-$\der{D}\ \der{E}$-/')
+
+  | syn {/-$\hyp{G}\ \hyp{G}'\ \hyp{H}\ \hyp{H}'$-/ : HyperEnv} {P P' Q Q' : Proc} {l l' : Act} {n : Nat}
+      {hD1 : /-$\hyp{G}$-/.disjoint /-$\hyp{H}$-/} {hD2 : /-$\hyp{G}'$-/.disjoint /-$\hyp{H}'$-/}
+      {/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/} {/-$\der{D}$-/' : Typing n P' /-$\hyp{G}'$-/}
+      {/-$\der{E}$-/ : Typing n Q /-$\hyp{H}$-/} {/-$\der{E}$-/' : Typing n Q' /-$\hyp{H}'$-/}
+      (h/-$_1$-/ : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') (h/-$_2$-/ : TypingStep/-$_\texttt{m}$-/ /-$\der{E}$-/ l' /-$\der{E}$-/')
+      (disj : (l /-$\pp_\texttt{l}$-/ l').i /-$\cap$-/ (P /-$\pp_\texttt{p}$-/ Q).f = /-$\emptyset$-/) (WF : (l /-$\pp_\texttt{l}$-/ l').WF) :
+      TypingStep/-$_\texttt{m}$-/ (Typing.mix hD1 /-$\der{D}\ \der{E}$-/) (l /-$\pp_\texttt{l}$-/ l') (Typing.mix hD2 /-$\der{D}'\ \der{E}$-/')
+
+  | one_bot {/-$\hyp{G}$-/ : HyperEnv} {/-$\Gamma$-/ : Env} {P P' : Proc} {n : Nat} {L : Finset FPName}
+      {huniq : /-$\forall$-/ x /-$\notin$-/ L, /-$\forall$-/ y /-$\notin$-/ L, x /-$\neq$-/ y ->
+        Typing n (P/-$\dparenL$-/#x, #y/-$\dparenR$-/) (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{1}} \texttt{::} \emptyhyp$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y}}{\bot} \texttt{::} \Gamma$-/])}
       {x y : FPName}
-      {hx : x /- $\notin$ -/ ({y} /- $\cup$ -/ P.f /- $\cup$ -/ /-$\mathcal{G}$-/.names /- $\cup$ -/ /-$\Gamma$-/.names)}
-      {hy : y /- $\notin$ -/ (P.f /- $\cup$ -/ /-$\mathcal{G}$-/.names /- $\cup$ -/ /-$\Gamma$-/.names)}
-      {/-$\der{D}$-/' : Typing n P' (/-$\mathcal{G}\ |_h$-/ [/- $\emptyset$ -//-$\,$-//-$\Gamma$-/])}
+      {hx : x /-$\notin$-/ ({y} /-$\cup$-/ P.f /-$\cup$-/ /-$\hyp{G}$-/.names /-$\cup$-/ /-$\Gamma$-/.names)}
+      {hy : y /-$\notin$-/ (P.f /-$\cup$-/ /-$\hyp{G}$-/.names /-$\cup$-/ /-$\Gamma$-/.names)}
+      {/-$\der{D}$-/' : Typing n P' (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\emptyset\texttt{,}\Gamma$-/])}
       (hStep : TypingStep/-$_\texttt{m}$-/ (Typing_one_bot_all_fresh huniq x y hx hy)
-        (x/-$\llbracket$-/()/-$\rrbracket$-/ /-$|_l$-/ y/-$\langle$-/()/-$\rangle$-/) /-$\der{D}$-/') :
+        (/-$\dlsend{\texttt{x}}{} \pp_\texttt{l} \dlrecv{\texttt{y}}{}$-/) /-$\der{D}$-/') :
       TypingStep/-$_\texttt{m}$-/ (Typing.cut L huniq) (/-$\tau$-/) /-$\der{D}$-/'
-| tensor_parr {/-$\mathcal{G}$-/ : HyperEnv} {/-$\Gamma\ \Delta\ \Xi$-/ : Env}
-      {P P' : Proc} {A B : Types} {n : Nat} {L : Finset FPName}
-      {huniq : /- $\forall$ -/ x /- $\notin$ -/ L, /- $\forall$ -/ y /- $\notin$ -/ L, x /- $\neq$ -/ y ->
-        Typing n (P/-$\langle$-/#x, #y/-$\rangle$-/)
-          (/-$\mathcal{G}\ |_h$-/ [x /- $\colon$ -/ /-$A \tensor B$-/ :: /-$\Gamma$-//-$\,$-//-$\Delta$-/] /-$|_h$-/ [y /- $\colon$ -/ /-$A^\bot \parr B^\bot$-/ :: /-$\Xi$-/])}
-      {huniq' : /- $\forall$ -/ x /- $\notin$ -/ L, /- $\forall$ -/ y /- $\notin$ -/ L, x /- $\neq$ -/ y ->
-                /- $\forall$ -/ x' /- $\notin$ -/ L, /- $\forall$ -/ y' /- $\notin$ -/ L, x' /- $\neq$ -/ y' ->
-                x /- $\neq$ -/ x' -> x /- $\neq$ -/ y' -> y /- $\neq$ -/ x' -> y /- $\neq$ -/ y' ->
-        Typing n (P'/-$\langle 2\ |\ $-/#x, #y/-$\rangle\langle$-/#x', #y'/-$\rangle$-/)
-          (/-$\mathcal{G}\ |_h$-/ [x /- $\colon$ -/ B :: /-$\Delta$-/] /-$|_h$-/ [x' /- $\colon$ -/ A :: /-$\Gamma$-/]
-               /-$|_h$-/ [y' /- $\colon$ -/ /-$A^\bot$-/ :: y /- $\colon$ -/ /-$B^\bot$-/ :: /-$\Xi$-/])}
-      {x y : FPName} (hx : x /- $\notin$ -/ L) (hy : y /- $\notin$ -/ L) (hneq : x /- $\neq$ -/ y)
-      {x' y' : FPName} (hx' : x' /- $\notin$ -/ L) (hy' : y' /- $\notin$ -/ L) (hneq' : x' /- $\neq$ -/ y')
-      (hxx' : x /- $\neq$ -/ x') (hxy' : x /- $\neq$ -/ y')
-      (hyx' : y /- $\neq$ -/ x') (hyy' : y /- $\neq$ -/ y')
-      (hxP : x /- $\notin$ -/ P.f) (hyP : y /- $\notin$ -/ P.f)
-      (hx'P : x' /- $\notin$ -/ P.f) (hy'P : y' /- $\notin$ -/ P.f)
-      (hxP' : x /- $\notin$ -/ P'.f) (hyP' : y /- $\notin$ -/ P'.f)
-      (hx'P' : x' /- $\notin$ -/ P'.f) (hy'P' : y' /- $\notin$ -/ P'.f)
+
+  | tensor_parr {/-$\hyp{G}$-/ : HyperEnv} {/-$\Gamma\ \Delta\ \Xi$-/ : Env} {P P' : Proc} {A B : Types} 
+      {n : Nat} {L : Finset FPName}
+      {huniq : /-$\forall$-/ x /-$\notin$-/ L, /-$\forall$-/ y /-$\notin$-/ L, x /-$\neq$-/ y ->
+        Typing n (P/-$\dparenL$-/#x, #y/-$\dparenR$-/)
+          (/-$\hyp{G}\ \pp_\texttt{h} [\cht{x}{\texttt{A} \tensor \texttt{B}} \texttt{::} \Gamma\texttt{,} \Delta$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{y}{\dual{\texttt{A}} \parr \dual{\texttt{B}}} \texttt{::} \Xi$-/])}
+      {huniq' : /-$\forall$-/ x /-$\notin$-/ L, /-$\forall$-/ y /-$\notin$-/ L, x /-$\neq$-/ y ->
+                /-$\forall$-/ x' /-$\notin$-/ L, /-$\forall$-/ y' /-$\notin$-/ L, x' /-$\neq$-/ y' ->
+                x /-$\neq$-/ x' -> x /-$\neq$-/ y' -> y /-$\neq$-/ x' -> y /-$\neq$-/ y' ->
+        Typing n (P'/-$\dparenL 2\ |\ $-/#x, #y/-$\dparenR\dparenL$-/#x', #y'/-$\dparenR$-/)
+          (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}} \texttt{::} \Delta$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}} \texttt{::} \Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y'}}{\dual{\texttt{A}}} \texttt{::} \cht{\texttt{y}}{\dual{\texttt{B}}} \texttt{::} \Xi$-/])}
+      {x y : FPName} (hx : x /-$\notin$-/ L) (hy : y /-$\notin$-/ L) (hneq : x /-$\neq$-/ y)
+      {x' y' : FPName} (hx' : x' /-$\notin$-/ L) (hy' : y' /-$\notin$-/ L) (hneq' : x' /-$\neq$-/ y')
+      (hxx' : x /-$\neq$-/ x') (hxy' : x /-$\neq$-/ y') (hyx' : y /-$\neq$-/ x') (hyy' : y /-$\neq$-/ y')
+      (hxP : x /-$\notin$-/ P.f) (hyP : y /-$\notin$-/ P.f) (hx'P : x' /-$\notin$-/ P.f) (hy'P : y' /-$\notin$-/ P.f)
+      (hxP' : x /-$\notin$-/ P'.f) (hyP' : y /-$\notin$-/ P'.f) (hx'P' : x' /-$\notin$-/ P'.f) (hy'P' : y' /-$\notin$-/ P'.f)
       (hStep : TypingStep/-$_\texttt{m}$-/ (huniq x hx y hy hneq)
-        (x/-$\llbracket$-/x'/-$\rrbracket$-/ /-$|_l$-/ y/-$\langle$-/y'/-$\rangle$-/)
+        (/-$\dlsend{\texttt{x}}{\texttt{x'}} \pp_\texttt{l} \dlrecv{\texttt{y}}{\texttt{y'}}$-/)
         (huniq' x hx y hy hneq x' hx' y' hy' hneq' hxx' hxy' hyx' hyy')) :
       TypingStep/-$_\texttt{m}$-/ (Typing.cut L huniq) (/-$\tau$-/)
         (Typing_double_cut_tensor_parr huniq')
-  | res {/-$\mathcal{G}\ \mathcal{G}'$-/ : HyperEnv} {/-$\Gamma\ \Gamma'\ \Delta\ \Delta'$-/ : Env}
-      {P P' : Proc} {A : Types} {n : Nat} {l : Lbl} {L L' : Finset FPName}
-      {huniq : /- $\forall$ -/ z /- $\notin$ -/ L, /- $\forall$ -/ w /- $\notin$ -/ L, z /- $\neq$ -/ w ->
-        Typing n (P/-$\langle$-/#z, #w/-$\rangle$-/)
-          (/-$\mathcal{G}\ |_h$-/ [z /- $\colon$ -/ A :: /-$\Gamma$-/] /-$|_h$-/ [w /- $\colon$ -/ /-$A^\bot$-/ :: /-$\Delta$-/])}
-      {huniq' : /- $\forall$ -/ z /- $\notin$ -/ L', /- $\forall$ -/ w /- $\notin$ -/ L', z /- $\neq$ -/ w ->
-        Typing n (P'/-$\langle$-/#z, #w/-$\rangle$-/)
-          (/-$\mathcal{G}'\ |_h$-/ [z /- $\colon$ -/ A :: /-$\Gamma'$-/] /-$|_h$-/ [w /- $\colon$ -/ /-$A^\bot$-/ :: /-$\Delta'$-/])}
-      {x y : FPName} (hneq : x /- $\neq$ -/ y)
-      (hx_pre  : x /- $\notin$ -/ P.f  /- $\cup$ -/ /-$\mathcal{G}$-/.names /- $\cup$ -/ /-$\Gamma$-/.names /- $\cup$ -/ /-$\Delta$-/.names)
-      (hy_pre  : y /- $\notin$ -/ P.f  /- $\cup$ -/ /-$\mathcal{G}$-/.names /- $\cup$ -/ /-$\Gamma$-/.names /- $\cup$ -/ /-$\Delta$-/.names)
-      (hx_post : x /- $\notin$ -/ P'.f /- $\cup$ -/ /-$\mathcal{G}'$-/.names /- $\cup$ -/ /-$\Gamma'$-/.names /- $\cup$ -/ /-$\Delta'$-/.names)
-      (hy_post : y /- $\notin$ -/ P'.f /- $\cup$ -/ /-$\mathcal{G}'$-/.names /- $\cup$ -/ /-$\Gamma'$-/.names /- $\cup$ -/ /-$\Delta'$-/.names)
-      (hlx : x /- $\notin$ -/ l.f /- $\cup$ -/ l.i) (hly : y /- $\notin$ -/ l.f /- $\cup$ -/ l.i)
+
+  | res {/-$\hyp{G}\ \hyp{G}'$-/ : HyperEnv} {/-$\Gamma\ \Gamma'\ \Delta\ \Delta'$-/ : Env} {P P' : Proc} {A : Types}
+      {n : Nat} {l : Lbl} {L L' : Finset FPName}
+      {huniq : /-$\forall$-/ z /-$\notin$-/ L, /-$\forall$-/ w /-$\notin$-/ L, z /-$\neq$-/ w ->
+        Typing n (P/-$\dparenL$-/#z, #w/-$\dparenR$-/) (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\cht{\texttt{z}}{\texttt{A}} \texttt{::} \Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{w}}{\dual{\texttt{A}}} \texttt{::} \Delta$-/])}
+      {huniq' : /-$\forall$-/ z /-$\notin$-/ L', /-$\forall$-/ w /-$\notin$-/ L', z /-$\neq$-/ w ->
+        Typing n (P'/-$\dparenL$-/#z, #w/-$\dparenR$-/) (/-$\hyp{G}'\ \pp_\texttt{h}$-/ [/-$\cht{\texttt{z}}{\texttt{A}} \texttt{::} \Gamma'$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{w}}{\dual{\texttt{A}}} :: \Delta'$-/])}
+      {x y : FPName} (hneq : x /-$\neq$-/ y)
+      (hx_pre : x /-$\notin$-/ P.f /-$\cup\ \hyp{G}$-/.names /-$\cup\ \Gamma$-/.names /-$\cup\ \Delta$-/.names)
+      (hy_pre : y /-$\notin$-/ P.f /-$\cup\ \hyp{G}$-/.names /-$\cup\ \Gamma$-/.names /-$\cup\ \Delta$-/.names)
+      (hx_post : x /-$\notin$-/ P'.f /-$\cup\ \hyp{G}'$-/.names /-$\cup\ \Gamma'$-/.names /-$\cup\ \Delta'$-/.names)
+      (hy_post : y /-$\notin$-/ P'.f /-$\cup\ \hyp{G}'$-/.names /-$\cup\ \Gamma'$-/.names /-$\cup\ \Delta'$-/.names)
+      (hlx : x /-$\notin$-/ l.f /-$\cup$-/ l.i) (hly : y /-$\notin$-/ l.f /-$\cup$-/ l.i)
       (hStep : TypingStep/-$_\texttt{m}$-/
         (Typing_res_all_fresh huniq x y hx_pre hy_pre hneq) l
         (Typing_res_all_fresh huniq' x y hx_post hy_post hneq)) :
       TypingStep/-$_\texttt{m}$-/ (Typing.cut L huniq) l (Typing.cut L' huniq')
-  | perm_env {/-$\mathcal{G}\ \mathcal{H}$-/ : HyperEnv} {/-$\Gamma\ \Gamma'$-/ : Env}
-      {P P' : Proc} {n n' : Nat} {l : Lbl}
-      {/-$\der{D}$-/ : n /-$\vdash$-/ P /- $\vdash$ -/ (/-$\Gamma$-/ :: /-$\mathcal{G}$-/)} {/-$\der{D}$-/' : n' /-$\vdash$-/ P' /- $\vdash$ -/ /-$\mathcal{H}$-/}
-      (hP1 : /-$\Gamma$-/ ~ /-$\Gamma'$-/)
+
+  | perm_env {/-$\hyp{G}\ \hyp{H}$-/ : HyperEnv} {/-$\Gamma\ \Gamma'$-/ : Env} {P P' : Proc} {n n' : Nat} {l : Lbl}
+      {/-$\der{D}$-/ : /-$\judge{\texttt{n}}{\texttt{P}}{\Gamma \texttt{::} \hyp{G}}$-/} {/-$\der{D}$-/' : /-$\judge{\texttt{n}}{\texttt{P'}}{\hyp{H}}$-/} (hP1 : /-$\Gamma$-/ ~ /-$\Gamma'$-/)
       (hTS : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') :
       TypingStep/-$_\texttt{m}$-/ (Typing.exchange_env /-$\der{D}$-/ hP1) l /-$\der{D}$-/'
-  | perm_hyper {/-$\mathcal{G}\ \mathcal{G}'\ \mathcal{H}\ \mathcal{H}'$-/ : HyperEnv}
-      {P P' : Proc} {n n' : Nat} {l : Lbl}
-      {/-$\der{D}$-/ : n /-$\vdash$-/ P /- $\vdash$ -/ /-$\mathcal{G}$-/} {/-$\der{D}$-/' : n' /-$\vdash$-/ P' /- $\vdash$ -/ /-$\mathcal{H}$-/}
-      (hP1 : /-$\mathcal{G}$-/ ~ /-$\mathcal{G}'$-/) (hP2 : /-$\mathcal{H}$-/ ~ /-$\mathcal{H}'$-/)
+
+  | perm_hyper {/-$\hyp{G}\ \hyp{G}'\ \hyp{H}\ \hyp{H}'$-/ : HyperEnv} {P P' : Proc} {n n' : Nat} {l : Lbl}
+      {/-$\der{D}$-/ : n /-$\vdash$-/ P /-$\vdash\hyp{G}$-/} {/-$\der{D}$-/' : n' /-$\vdash$-/ P' /-$\vdash\hyp{H}$-/}
+      (hP1 : /-$\hyp{G}$-/ ~ /-$\hyp{G}'$-/) (hP2 : /-$\hyp{H}$-/ ~ /-$\hyp{H}'$-/)
       (hTS : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') :
       TypingStep/-$_\texttt{m}$-/ (Typing.exchange_hyper /-$\der{D}$-/ hP1) l
         (Typing.exchange_hyper /-$\der{D}$-/' hP2)
@@ -1196,48 +1195,48 @@ inductive TypingStep/-$_\texttt{m}$-/ :
   label={lst:app-envstep}]
 inductive EnvStep/-$_\texttt{m}$-/ : HyperEnv -> Lbl -> HyperEnv -> Prop where
   | one {x : FPName} :
-      EnvStep/-$_\texttt{m}$-/ [[x /- $\colon$ -/ /-$\one$-/]] (x/-$\llbracket\rrbracket$-/) /-$\emptyhyp$-/
+      EnvStep/-$_\texttt{m}$-/ [[x /-$\colon$-//-$\one$-/]] (x/-$\dbrackL\dbrackR$-/) /-$\emptyhyp$-/
   | tensor {/-$\Gamma$-/ /-$\Delta$-/ : Env} {x x' : FPName} {A B : Types}
-      (hF : x' /- $\notin$ -/ HyperEnv.names [x /- $\colon$ -/ /-$A \tensor B$-/ :: /-$\Gamma$-//-$\,$-//-$\Delta$-/]) :
-      EnvStep/-$_\texttt{m}$-/ [x /- $\colon$ -/ /-$A \tensor B$-/ :: /-$\Gamma$-//-$\,$-//-$\Delta$-/] (x/-$\llbracket$-/x'/-$\rrbracket$-/) ([x' /- $\colon$ -/ A :: /-$\Gamma$-/] /-$|_h$-/ [x /- $\colon$ -/ B :: /-$\Delta$-/])
+      (hF : x' /-$\notin$-/HyperEnv.names [x /-$\colon$-//-$A \tensor B$-/ :: /-$\Gamma$-//-$\,$-//-$\Delta$-/]) :
+      EnvStep/-$_\texttt{m}$-/ [x /-$\colon$-//-$A \tensor B$-/ :: /-$\Gamma$-//-$\,$-//-$\Delta$-/] (x/-$\dbrackL$-/ x'/-$\dbrackR$-/) ([x' /-$\colon$-/A :: /-$\Gamma$-/] /-$\pp_\texttt{h}$-/ [x /-$\colon$-/B :: /-$\Delta$-/])
   | bot {/-$\Gamma$-/ : Env} {x : FPName} :
-      EnvStep/-$_\texttt{m}$-/ [x /- $\colon$ -/ /-$\bot$-/ :: /-$\Gamma$-/] (x/-$\langle\rangle$-/) [/-$\Gamma$-/]
+      EnvStep/-$_\texttt{m}$-/ [x /-$\colon$-//-$\bot$-/ :: /-$\Gamma$-/] (x/-$\dparenL\dparenR$-/) [/-$\Gamma$-/]
   | parr {/-$\Gamma$-/ : Env} {x x' : FPName} {A B : Types}
-      (hF : x' /- $\notin$ -/ HyperEnv.names [x /- $\colon$ -/ /-$A \parr B$-/ :: /-$\Gamma$-/]) :
-      EnvStep/-$_\texttt{m}$-/ [x /- $\colon$ -/ /-$A \parr B$-/ :: /-$\Gamma$-/] (x/-$\langle$-/x'/-$\rangle$-/) [x' /- $\colon$ -/ A :: x /- $\colon$ -/ B :: /-$\Gamma$-/]
-  | par/-$_1$-/ {/-$\mathcal{G}\ \mathcal{G}'\ \mathcal{H}$-/ : HyperEnv} {l : Lbl} :
-      EnvStep/-$_\texttt{m}$-/ /-$\mathcal{G}$-/ l /-$\mathcal{G}'$-/ ->
-      EnvStep/-$_\texttt{m}$-/ (/-$\mathcal{G}\ |_h\ \mathcal{H}$-/) l (/-$\mathcal{G}'\ |_h\ \mathcal{H}$-/)
-  | par/-$_2$-/ {/-$\mathcal{G}\ \mathcal{H}\ \mathcal{H}'$-/ : HyperEnv} {l : Lbl} :
-      EnvStep/-$_\texttt{m}$-/ /-$\mathcal{H}$-/ l /-$\mathcal{H}'$-/ ->
-      EnvStep/-$_\texttt{m}$-/ (/-$\mathcal{G}\ |_h\ \mathcal{H}$-/) l (/-$\mathcal{G}\ |_h\ \mathcal{H}'$-/)
-  | syn {/-$\mathcal{G}\ \mathcal{G}'\ \mathcal{H}\ \mathcal{H}'$-/ : HyperEnv} {l l' : Act} :
-      EnvStep/-$_\texttt{m}$-/ /-$\mathcal{G}$-/ l /-$\mathcal{G}'$-/ -> EnvStep/-$_\texttt{m}$-/ /-$\mathcal{H}$-/ l' /-$\mathcal{H}'$-/ ->
-      EnvStep/-$_\texttt{m}$-/ (/-$\mathcal{G}\ |_h\ \mathcal{H}$-/) (l /-$|_l$-/ l') (/-$\mathcal{G}'\ |_h\ \mathcal{H}'$-/)
-  | one_bot {/-$\mathcal{G}$-/ : HyperEnv} {/-$\Gamma$-/ : Env} {x y : FPName} :
-      EnvStep/-$_\texttt{m}$-/ (/-$\mathcal{G}\ |_h$-/ [[x /- $\colon$ -/ /-$\one$-/]] /-$|_h$-/ [y /- $\colon$ -/ /-$\bot$-/ :: /-$\Gamma$-/]) (x/-$\llbracket\rrbracket$-/ /-$|_l$-/ y/-$\langle\rangle$-/) (/-$\mathcal{G}\ |_h$-/ [/-$\Gamma$-/]) ->
-      EnvStep/-$_\texttt{m}$-/ (/-$\mathcal{G}\ |_h$-/ [/-$\Gamma$-/]) (/-$\tau$-/) (/-$\mathcal{G}\ |_h$-/ [/-$\Gamma$-/])
-  | tensor_parr {/-$\mathcal{G}$-/ : HyperEnv} {/-$\Gamma\ \Delta\ \Xi$-/ : Env} {x x' y y' : FPName} {A B : Types} :
+      (hF : x' /-$\notin$-/HyperEnv.names [x /-$\colon$-//-$A \parr B$-/ :: /-$\Gamma$-/]) :
+      EnvStep/-$_\texttt{m}$-/ [x /-$\colon$-//-$A \parr B$-/ :: /-$\Gamma$-/] (x/-$\dparenL$-/ x'/-$\dparenR$-/) [x' /-$\colon$-/A :: x /-$\colon$-/B :: /-$\Gamma$-/]
+  | par/-$_1$-/ {/-$\hyp{G}\ \hyp{G}'\ \hyp{H}$-/ : HyperEnv} {l : Lbl} :
+      EnvStep/-$_\texttt{m}$-/ /-$\hyp{G}$-/ l /-$\hyp{G}'$-/ ->
+      EnvStep/-$_\texttt{m}$-/ (/-$\hyp{G}\ \pp_\texttt{h}\ \hyp{H}$-/) l (/-$\hyp{G}'\ \pp_\texttt{h}\ \hyp{H}$-/)
+  | par/-$_2$-/ {/-$\hyp{G}\ \hyp{H}\ \hyp{H}'$-/ : HyperEnv} {l : Lbl} :
+      EnvStep/-$_\texttt{m}$-/ /-$\hyp{H}$-/ l /-$\hyp{H}'$-/ ->
+      EnvStep/-$_\texttt{m}$-/ (/-$\hyp{G}\ \pp_\texttt{h}\ \hyp{H}$-/) l (/-$\hyp{G}\ \pp_\texttt{h}\ \hyp{H}'$-/)
+  | syn {/-$\hyp{G}\ \hyp{G}'\ \hyp{H}\ \hyp{H}'$-/ : HyperEnv} {l l' : Act} :
+      EnvStep/-$_\texttt{m}$-/ /-$\hyp{G}$-/ l /-$\hyp{G}'$-/ -> EnvStep/-$_\texttt{m}$-/ /-$\hyp{H}$-/ l' /-$\hyp{H}'$-/ ->
+      EnvStep/-$_\texttt{m}$-/ (/-$\hyp{G}\ \pp_\texttt{h}\ \hyp{H}$-/) (l /-$\pp_\texttt{l}$-/ l') (/-$\hyp{G}'\ \pp_\texttt{h}\ \hyp{H}'$-/)
+  | one_bot {/-$\hyp{G}$-/ : HyperEnv} {/-$\Gamma$-/ : Env} {x y : FPName} :
+      EnvStep/-$_\texttt{m}$-/ (/-$\hyp{G}\ \pp_\texttt{h}$-/ [[x /-$\colon$-//-$\one$-/]] /-$\pp_\texttt{h}$-/ [y /-$\colon$-//-$\bot$-/ :: /-$\Gamma$-/]) (x/-$\dbrackL\dbrackR$-/ /-$\pp_\texttt{l}$-/ y/-$\dparenL\dparenR$-/) (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\Gamma$-/]) ->
+      EnvStep/-$_\texttt{m}$-/ (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\Gamma$-/]) (/-$\tau$-/) (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\Gamma$-/])
+  | tensor_parr {/-$\hyp{G}$-/ : HyperEnv} {/-$\Gamma\ \Delta\ \Xi$-/ : Env} {x x' y y' : FPName} {A B : Types} :
       EnvStep/-$_\texttt{m}$-/
-        (/-$\mathcal{G}\ |_h$-/ [x /- $\colon$ -/ /-$A \tensor B$-/ :: /-$\Gamma$-//-$\,$-//-$\Delta$-/] /-$|_h$-/ [y /- $\colon$ -/ /-$A^\bot \parr B^\bot$-/ :: /-$\Xi$-/])
-        (x/-$\llbracket$-/x'/-$\rrbracket$-/ /-$|_l$-/ y/-$\langle$-/y'/-$\rangle$-/)
-        (/-$\mathcal{G}\ |_h$-/ [x /- $\colon$ -/ B :: /-$\Delta$-/] /-$|_h$-/ [x' /- $\colon$ -/ A :: /-$\Gamma$-/] /-$|_h$-/ [y' /- $\colon$ -/ /-$A^\bot$-/ :: y /- $\colon$ -/ /-$B^\bot$-/ :: /-$\Xi$-/]) ->
-      EnvStep/-$_\texttt{m}$-/ (/-$\mathcal{G}\ |_h$-/ [/-$\Gamma$-//-$\,$-//-$\Delta$-//-$\,$-//-$\Xi$-/]) (/-$\tau$-/) (/-$\mathcal{G}\ |_h$-/ [/-$\Gamma$-//-$\,$-//-$\Delta$-//-$\,$-//-$\Xi$-/])
-  | res {/-$\mathcal{G}\ \mathcal{G}'$-/ : HyperEnv} {/-$\Gamma\ \Gamma'\ \Delta\ \Delta'$-/ : Env}
+        (/-$\hyp{G}\ \pp_\texttt{h}$-/ [x /-$\colon$-//-$A \tensor B$-/ :: /-$\Gamma$-//-$\,$-//-$\Delta$-/] /-$\pp_\texttt{h}$-/ [y /-$\colon$-//-$A^\bot \parr B^\bot$-/ :: /-$\Xi$-/])
+        (x/-$\dbrackL$-/ x'/-$\dbrackR$-/ /-$\pp_\texttt{l}$-/ y/-$\dparenL$-/ y'/-$\dparenR$-/)
+        (/-$\hyp{G}\ \pp_\texttt{h}$-/ [x /-$\colon$-/B :: /-$\Delta$-/] /-$\pp_\texttt{h}$-/ [x' /-$\colon$-/A :: /-$\Gamma$-/] /-$\pp_\texttt{h}$-/ [y' /-$\colon$-//-$A^\bot$-/ :: y /-$\colon$-//-$B^\bot$-/ :: /-$\Xi$-/]) ->
+      EnvStep/-$_\texttt{m}$-/ (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\Gamma$-//-$\,$-//-$\Delta$-//-$\,$-//-$\Xi$-/]) (/-$\tau$-/) (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\Gamma$-//-$\,$-//-$\Delta$-//-$\,$-//-$\Xi$-/])
+  | res {/-$\hyp{G}\ \hyp{G}'$-/ : HyperEnv} {/-$\Gamma\ \Gamma'\ \Delta\ \Delta'$-/ : Env}
       {x y : FPName} {A : Types} {l : Lbl}
-      (hFx : x /- $\notin$ -/ l.i /- $\cup$ -/ l.f) (hFy : y /- $\notin$ -/ l.i /- $\cup$ -/ l.f) :
+      (hFx : x /-$\notin$-/ l.i /-$\cup$-/ l.f) (hFy : y /-$\notin$-/ l.i /-$\cup$-/ l.f) :
       EnvStep/-$_\texttt{m}$-/
-        (/-$\mathcal{G}\ |_h$-/ [x /- $\colon$ -/ A :: /-$\Gamma$-/] /-$|_h$-/ [y /- $\colon$ -/ /-$A^\bot$-/ :: /-$\Delta$-/]) l
-        (/-$\mathcal{G}'\ |_h$-/ [x /- $\colon$ -/ A :: /-$\Gamma'$-/] /-$|_h$-/ [y /- $\colon$ -/ /-$A^\bot$-/ :: /-$\Delta'$-/]) ->
-      EnvStep/-$_\texttt{m}$-/ (/-$\mathcal{G}\ |_h$-/ [/-$\Gamma$-//-$\,$-//-$\Delta$-/]) l (/-$\mathcal{G}'\ |_h$-/ [/-$\Gamma'$-//-$\,$-//-$\Delta'$-/])
-  | perm_env {/-$\mathcal{G}\ \mathcal{H}$-/ : HyperEnv} {/-$\Gamma\ \Gamma'$-/ : Env} {l : Lbl}
+        (/-$\hyp{G}\ \pp_\texttt{h}$-/ [x /-$\colon$-/A :: /-$\Gamma$-/] /-$\pp_\texttt{h}$-/ [y /-$\colon$-//-$A^\bot$-/ :: /-$\Delta$-/]) l
+        (/-$\hyp{G}'\ \pp_\texttt{h}$-/ [x /-$\colon$-/A :: /-$\Gamma'$-/] /-$\pp_\texttt{h}$-/ [y /-$\colon$-//-$A^\bot$-/ :: /-$\Delta'$-/]) ->
+      EnvStep/-$_\texttt{m}$-/ (/-$\hyp{G}\ \pp_\texttt{h}$-/ [/-$\Gamma$-//-$\,$-//-$\Delta$-/]) l (/-$\hyp{G}'\ \pp_\texttt{h}$-/ [/-$\Gamma'$-//-$\,$-//-$\Delta'$-/])
+  | perm_env {/-$\hyp{G}\ \hyp{H}$-/ : HyperEnv} {/-$\Gamma\ \Gamma'$-/ : Env} {l : Lbl}
       (hP : /-$\Gamma$-/ ~ /-$\Gamma'$-/) :
-      EnvStep/-$_\texttt{m}$-/ (/-$\Gamma$-/ :: /-$\mathcal{G}$-/) l /-$\mathcal{H}$-/ ->
-      EnvStep/-$_\texttt{m}$-/ (/-$\Gamma'$-/ :: /-$\mathcal{G}$-/) l /-$\mathcal{H}$-/
-  | perm_hyper {/-$\mathcal{G}\ \mathcal{G}'\ \mathcal{H}\ \mathcal{H}'$-/ : HyperEnv} {l : Lbl}
-      (hP1 : /-$\mathcal{G}$-/ ~ /-$\mathcal{G}'$-/) (hP2 : /-$\mathcal{H}$-/ ~ /-$\mathcal{H}'$-/) :
-      EnvStep/-$_\texttt{m}$-/ /-$\mathcal{G}$-/ l /-$\mathcal{H}$-/ ->
-      EnvStep/-$_\texttt{m}$-/ /-$\mathcal{G}'$-/ l /-$\mathcal{H}'$-/
+      EnvStep/-$_\texttt{m}$-/ (/-$\Gamma$-/ :: /-$\hyp{G}$-/) l /-$\hyp{H}$-/ ->
+      EnvStep/-$_\texttt{m}$-/ (/-$\Gamma'$-/ :: /-$\hyp{G}$-/) l /-$\hyp{H}$-/
+  | perm_hyper {/-$\hyp{G}\ \hyp{G}'\ \hyp{H}\ \hyp{H}'$-/ : HyperEnv} {l : Lbl}
+      (hP1 : /-$\hyp{G}$-/ ~ /-$\hyp{G}'$-/) (hP2 : /-$\hyp{H}$-/ ~ /-$\hyp{H}'$-/) :
+      EnvStep/-$_\texttt{m}$-/ /-$\hyp{G}$-/ l /-$\hyp{H}$-/ ->
+      EnvStep/-$_\texttt{m}$-/ /-$\hyp{G}'$-/ l /-$\hyp{H}'$-/
 \end{lstlisting}
 
 \begin{lstlisting}[language=Lean4,
@@ -1245,42 +1244,42 @@ inductive EnvStep/-$_\texttt{m}$-/ : HyperEnv -> Lbl -> HyperEnv -> Prop where
   label={lst:app-procstep}]
 inductive ProcStep/-$_\texttt{m}$-/ : (P : Proc) -> Lbl -> (P' : Proc) -> Prop where
   | one {P : Proc} {x : FPName} :
-      ProcStep/-$_\texttt{m}$-/ (#x/-$\llbracket\rrbracket$-//-$\cdot$-/P) (x/-$\llbracket\rrbracket$-/) P
-  | tensor {P : Proc} {x y : FPName} (hF : y /- $\notin$ -/ {x} /- $\cup$ -/ P.f) :
-      ProcStep/-$_\texttt{m}$-/ (#x/-$\llbracket\bullet\rrbracket$-//-$\cdot$-/P) (x/-$\llbracket$-/y/-$\rrbracket$-/) P/-$\langle$-/#y/-$\rangle$-/
+      ProcStep/-$_\texttt{m}$-/ (#x/-$\dbrackL\dbrackR$-//-$\cdot$-/ P) (x/-$\dbrackL\dbrackR$-/) P
+  | tensor {P : Proc} {x y : FPName} (hF : y /-$\notin$-/{x} /-$\cup$-/ P.f) :
+      ProcStep/-$_\texttt{m}$-/ (#x/-$\dbrackL\bullet\dbrackR$-//-$\cdot$-/ P) (x/-$\dbrackL$-/ y/-$\dbrackR$-/) P/-$\dparenL$-/#y/-$\dparenR$-/
   | bot {P : Proc} {x : FPName} :
-      ProcStep/-$_\texttt{m}$-/ (#x/-$\langle\rangle$-//-$\cdot$-/P) (x/-$\langle\rangle$-/) P
-  | parr {P : Proc} {x y : FPName} (hF : y /- $\notin$ -/ {x} /- $\cup$ -/ P.f) :
-      ProcStep/-$_\texttt{m}$-/ (#x/-$\langle\bullet\rangle$-//-$\cdot$-/P) (x/-$\langle$-/y/-$\rangle$-/) P/-$\langle$-/#y/-$\rangle$-/
+      ProcStep/-$_\texttt{m}$-/ (#x/-$\dparenL\dparenR$-//-$\cdot$-/ P) (x/-$\dparenL\dparenR$-/) P
+  | parr {P : Proc} {x y : FPName} (hF : y /-$\notin$-/{x} /-$\cup$-/ P.f) :
+      ProcStep/-$_\texttt{m}$-/ (#x/-$\dparenL\bullet\dparenR$-//-$\cdot$-/ P) (x/-$\dparenL$-/ y/-$\dparenR$-/) P/-$\dparenL$-/#y/-$\dparenR$-/
   | par/-$_1$-/ {P P' Q : Proc} {l : Lbl} :
-      ProcStep/-$_\texttt{m}$-/ P l P' -> l.i /- $\cap$ -/ Q.f = /- $\emptyset$ -/ ->
-      ProcStep/-$_\texttt{m}$-/ (P /-$|_p$-/ Q) l (P' /-$|_p$-/ Q)
+      ProcStep/-$_\texttt{m}$-/ P l P' -> l.i /-$\cap$-/Q.f = /-$\emptyset$-/->
+      ProcStep/-$_\texttt{m}$-/ (P /-$\pp_\texttt{p}$-/ Q) l (P' /-$\pp_\texttt{p}$-/ Q)
   | par/-$_2$-/ {P Q Q' : Proc} {l : Lbl} :
-      ProcStep/-$_\texttt{m}$-/ Q l Q' -> l.i /- $\cap$ -/ P.f = /- $\emptyset$ -/ ->
-      ProcStep/-$_\texttt{m}$-/ (P /-$|_p$-/ Q) l (P /-$|_p$-/ Q')
+      ProcStep/-$_\texttt{m}$-/ Q l Q' -> l.i /-$\cap$-/ P.f = /-$\emptyset$-/->
+      ProcStep/-$_\texttt{m}$-/ (P /-$\pp_\texttt{p}$-/ Q) l (P /-$\pp_\texttt{p}$-/ Q')
   | syn {P P' Q Q' : Proc} {l l' : Act} :
       ProcStep/-$_\texttt{m}$-/ P l P' -> ProcStep/-$_\texttt{m}$-/ Q l' Q' ->
-      (l /-$|_l$-/ l').i /- $\cap$ -/ (P /-$|_p$-/ Q).f = /- $\emptyset$ -/ -> (l /-$|_l$-/ l').WF ->
-      ProcStep/-$_\texttt{m}$-/ (P /-$|_p$-/ Q) (l /-$|_l$-/ l') (P' /-$|_p$-/ Q')
+      (l /-$\pp_\texttt{l}$-/ l').i /-$\cap$-/(P /-$\pp_\texttt{p}$-/ Q).f = /-$\emptyset$-/-> (l /-$\pp_\texttt{l}$-/ l').WF ->
+      ProcStep/-$_\texttt{m}$-/ (P /-$\pp_\texttt{p}$-/ Q) (l /-$\pp_\texttt{l}$-/ l') (P' /-$\pp_\texttt{p}$-/ Q')
   | one_bot {P P' : Proc} {x y : FPName}
-      (hx : x /- $\notin$ -/ P.f) (hy : y /- $\notin$ -/ P.f) (hneq : x /- $\neq$ -/ y) :
-      ProcStep/-$_\texttt{m}$-/ P/-$\langle$-/#x, #y/-$\rangle$-/ (x/-$\llbracket\rrbracket$-/ /-$|_l$-/ y/-$\langle\rangle$-/) P' ->
-      ProcStep/-$_\texttt{m}$-/ (/-$\nu$-//-$\langle\bullet,\bullet\rangle$-/ P) (/-$\tau$-/) P'
+      (hx : x /-$\notin$-/ P.f) (hy : y /-$\notin$-/ P.f) (hneq : x /-$\neq$-/ y) :
+      ProcStep/-$_\texttt{m}$-/ P/-$\dparenL$-/#x, #y/-$\dparenR$-/ (x/-$\dbrackL\dbrackR$-/ /-$\pp_\texttt{l}$-/ y/-$\dparenL\dparenR$-/) P' ->
+      ProcStep/-$_\texttt{m}$-/ (/-$\nu$-//-$\dparenL\bullet,\bullet\dparenR$-/ P) (/-$\tau$-/) P'
   | tensor_parr {P P' : Proc} {x x' y y' : FPName}
-      (hxP : x /- $\notin$ -/ P.f) (hyP : y /- $\notin$ -/ P.f)
-      (hx'P : x' /- $\notin$ -/ P.f) (hy'P : y' /- $\notin$ -/ P.f)
-      (hxP' : x /- $\notin$ -/ P'.f) (hyP' : y /- $\notin$ -/ P'.f)
-      (hx'P' : x' /- $\notin$ -/ P'.f) (hy'P' : y' /- $\notin$ -/ P'.f)
-      (hxx' : x /- $\neq$ -/ x') (hxy : x /- $\neq$ -/ y) (hxy' : x /- $\neq$ -/ y')
-      (hyx' : y /- $\neq$ -/ x') (hyy' : y /- $\neq$ -/ y') (hx'y' : x' /- $\neq$ -/ y') :
-      ProcStep/-$_\texttt{m}$-/ P/-$\langle$-/#x, #y/-$\rangle$-/ (x/-$\llbracket$-/x'/-$\rrbracket$-/ /-$|_l$-/ y/-$\langle$-/y'/-$\rangle$-/) P'/-$\langle 2\ |\ $-/#x, #y/-$\rangle\langle$-/#x', #y'/-$\rangle$-/ ->
-      ProcStep/-$_\texttt{m}$-/ (/-$\nu$-//-$\langle\bullet,\bullet\rangle$-/ P) (/-$\tau$-/) (/-$\nu$-//-$\langle\bullet,\bullet\rangle$-/ (/-$\nu$-//-$\langle\bullet,\bullet\rangle$-/ P'))
+      (hxP : x /-$\notin$-/ P.f) (hyP : y /-$\notin$-/ P.f)
+      (hx'P : x' /-$\notin$-/ P.f) (hy'P : y' /-$\notin$-/ P.f)
+      (hxP' : x /-$\notin$-/ P'.f) (hyP' : y /-$\notin$-/ P'.f)
+      (hx'P' : x' /-$\notin$-/ P'.f) (hy'P' : y' /-$\notin$-/ P'.f)
+      (hxx' : x /-$\neq$-/ x') (hxy : x /-$\neq$-/ y) (hxy' : x /-$\neq$-/ y')
+      (hyx' : y /-$\neq$-/ x') (hyy' : y /-$\neq$-/ y') (hx'y' : x' /-$\neq$-/ y') :
+      ProcStep/-$_\texttt{m}$-/ P/-$\dparenL$-/#x, #y/-$\dparenR$-/ (x/-$\dbrackL$-/ x'/-$\dbrackR$-/ /-$\pp_\texttt{l}$-/ y/-$\dparenL$-/ y'/-$\dparenR$-/) P'/-$\dparenL 2\ |\ $-/#x, #y/-$\dparenR\dparenL$-/#x', #y'/-$\dparenR$-/ ->
+      ProcStep/-$_\texttt{m}$-/ (/-$\nu$-//-$\dparenL\bullet,\bullet\dparenR$-/ P) (/-$\tau$-/) (/-$\nu$-//-$\dparenL\bullet,\bullet\dparenR$-/ (/-$\nu$-//-$\dparenL\bullet,\bullet\dparenR$-/ P'))
   | res {P P' : Proc} {l : Lbl} {x y : FPName}
-      (hneq : x /- $\neq$ -/ y)
-      (hx : x /- $\notin$ -/ P.f /- $\cup$ -/ P'.f) (hy : y /- $\notin$ -/ P.f /- $\cup$ -/ P'.f)
-      (hlx : x /- $\notin$ -/ l.f /- $\cup$ -/ l.i) (hly : y /- $\notin$ -/ l.f /- $\cup$ -/ l.i) :
-      ProcStep/-$_\texttt{m}$-/ P/-$\langle$-/#x, #y/-$\rangle$-/ l P'/-$\langle$-/#x, #y/-$\rangle$-/ ->
-      ProcStep/-$_\texttt{m}$-/ (/-$\nu$-//-$\langle\bullet,\bullet\rangle$-/ P) l (/-$\mathit{v}\langle\bullet,\bullet\rangle$-/ P')
+      (hneq : x /-$\neq$-/ y)
+      (hx : x /-$\notin$-/ P.f /-$\cup$-/ P'.f) (hy : y /-$\notin$-/ P.f /-$\cup$-/ P'.f)
+      (hlx : x /-$\notin$-/ l.f /-$\cup$-/ l.i) (hly : y /-$\notin$-/ l.f /-$\cup$-/ l.i) :
+      ProcStep/-$_\texttt{m}$-/ P/-$\dparenL$-/#x, #y/-$\dparenR$-/ l P'/-$\dparenL$-/#x, #y/-$\dparenR$-/ ->
+      ProcStep/-$_\texttt{m}$-/ (/-$\nu$-//-$\dparenL\bullet,\bullet\dparenR$-/ P) l (/-$\mathit{v}\dparenL\bullet,\bullet\dparenR$-/ P')
 \end{lstlisting}
 
 
@@ -1301,162 +1300,9 @@ inductive ProcStep/-$_\texttt{m}$-/ : (P : Proc) -> Lbl -> (P' : Proc) -> Prop w
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% Notation
-% - Types: subst, shift, dual, ?? and !!
-% - Processes: parallel, open, openTwo, close, closeTwo
-
-% Session Types
-% - TVar / Types definition
-% - Types.dual
-% - Duality involution
-% - TVar.lc / Type.lc - Types.lc_0
-% - TVar.shift / Types.shift
-% - Types.subst
-
-% Processes
-% - Channel / Proc definition
-% - Chanenl / Proc open and close 
-% - Channel.lc / Proc.lc - Proc.lc_0
-% - Proc.f
-% - Show fresh lemmas and have prose for their proof strategy
-% - Channel.substNames / Proc.substNames
-% - Channel.substTypes / Proc.substTypes
-
-% Environments:
-% - Delete entry
-
-% Hyperenvironment:
-% - definition
-% - definition for perm relation (show almost completely in prose only missing type annotation, so drop?)
-
-% Judgements
-% - Full definition
-% - Typing_preserves_linearity (mentioned extensively in prose so drop?)
-% - Typing_f_eq_names (mentioned extensively in prose so drop?)
-
-% Semantics
-% - JudgementStep definitions
-% - ProcStep definitions
-% - EnvStep definitions
-% - Labels, Act and Mu definitions (Lbl.f and Lbl.i since they are mentioned)
-
-% Metatheory
-% - session_fidelity_proc (signature and proof description)
-% - session_fidelity_env (signature and proof description)
-% - typability_subject_reduction (signature and proof description)
-% - subject_reduction (signature and proof description)
-
-% - Representative all_fresh lemmas maybe res / tensor or parr
-% - Representative HyperEnv.Perm.extract_* (tensor_parr or something) 
-% - TypingStep_preserve_block signature
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% These things should be included in this appendix
-% \begin{verbatim}  
-
-% Session Types:
-% - TVar
-% - Types
-% - Types.dual
-% - Tvar.shfit / Types.shift
-% - Types.subst
-% - TVar.lc / Types.lc
-
-% Processes and binding:
-% - Channel
-% - Proc
-% - Channel.open / Proc.open
-% - Channel.close / Proc.close
-% - Proc.lc
-% - Proc.f
-% - Proc.substNames / Proc.substTypes
-% - exists_one_fresh, maybe statement only
-
-% Environments:
-% - Elem
-% - Env
-% - Env.names
-% - Env.merge
-% - Env.Nodup
-% - Env.disjoint
-% - Env.lc / Env.shiftTypes / Env.substNames / Env.substTypes
-% - selected names lemmas: names_nil, names_singleton, names_merge
-
-% Hyperenvironments:
-% - HyperEnv
-% - HyperEnv.Perm
-% - HyperEnv.names
-% - HyperEnv.Nodup
-% - HyperEnv.PairwiseDisjoint
-% - HyperEnv.disjoint
-% - merge laws / permutation laws
-
-% Typing:
-% - Full 'Typing' inductive relation, or at least all constructors in a compact listing
-% \end{verbatim}
-
-\section{Selected Transition Definitions}\label{app:selected-transition-definitions}
-These things should be include in this appendix
-\begin{verbatim}
-  Labels:
-  - Mu
-  - Act
-  - Lbl
-  - Lbl.WF
-  - Lbl.f
-  - Lbl.i
-
-  Step relations:
-  - full or nearly full ProcStep_m
-  - full or nearly full EnvStep_m
-  - TypingStep signature
-  - selected TypingStep constructors: 
-    one, bot, tensor, parr, par_1, par_2, syn, one_bot, tensor_parr, res, perm_env, perm_hyper
-\end{verbatim}
-
 \section{Erasure Functions and Main Theorems}\label{app:main-theorems}
 These things should be included in this appendix
 \begin{verbatim}
-  - proc : Typing n P G -> Proc
-  - env  : Typing n P G -> HyperEnv
   - session_fidelity_proc
   - session_fidelity_env
   - typability_subject_reduction
@@ -1466,11 +1312,6 @@ These things should be included in this appendix
 \section{Selected Proof Infrastructure}\label{app:proof-infrastructure}
 These things should be indcluded in this appendix
 \begin{verbatim}
-  Core typing invariants:
-  - Typing_f_eq_names
-  - Typing_preserves_linearity
-  - maybe Typing_preserves_lc_context
-
   Freshness/co-finite bridge:
   - Typing_tensor_all_fresh
   - Typing_parr_all_fresh
@@ -1483,14 +1324,8 @@ These things should be indcluded in this appendix
 
   Hyperenvironment extraction/block preservation:
   - one representative HyperEnv.Perm.extract_* statement
-  - optionally one block-preservation lemma statement if it is clean enough
+  - optionally one block-preservation lemma statement if it is clean enough TypingStep_preserve_block signature
 \end{verbatim}
-
-
-
-
-
-
 
 % DON'T INCLUDE THESE KINDS OF THINGS
 % - Full Lemmas.lean files
@@ -1502,285 +1337,3 @@ These things should be indcluded in this appendix
 % - Old/experimental code
 % - Full proof scripts for session fidelity
 % - Behavioural metatheory future-work material
-
-
-
-
-% Binding section appendix
-% The introduction of the Types and Process definitions could link to the appendix containing their respective definitions with included syntax?
-% The example mathematical forall_DB rule could link to the appendix with typing definitions and so could the parr example_LN
-% The table comparing the types across paper KN and lean could link to their definitions 
-% Channel / type variable syntax
-% Opening and closing operations
-% Local closure predicates
-% Name substitution and type substitution
-% Fresh-name existence lemmas
-% Candidate: Selected binding infrastructure
-% Files: Processes/Basic.lean, Processes/OpenClose.lean, Processes/LocalClosure.lean,
-%        Processes/SubstNames.lean, Processes/SubstTypes.lean, Fresh.lean
-% Purpose: Show how the locally nameless representation is implemented.
-% Include Names.lean (specifically Proc.f)
-% Free-name computation for processes
-% File: Processes/Names.lean
-% Purpose: Connect locally nameless syntax to the freshness side conditions used in transition rules.
-
-% Formalisation section appendix
-  % subsection stypes
-  % Selected Core Definitions / Session Types:
-    % TVar
-    % Types
-    % Types.dual
-    % TVar.lc and Types.lc
-    % TVar.shift and Types.shift
-    % Types.subst and TVar.shift
-    % selected lemma statements: dual_involution, lc_shift, lc_subst_inv (maybe)
-    % Basic.lean:
-    % - TVar
-    % - Types
-    % - Types.dual
-    % 
-    % Properties.lean:
-    % - TVar.lc
-    % - Types.lc
-    % - maybe Types.freeTypes if needed later
-    % 
-    % Shift.lean:
-    % - TVar.shift
-    % - Types.shift
-    % 
-    % Subst.lean:
-    % - Types.subst
-    % 
-    % Lemmas.lean:
-    % - Types.dual_involution statement
-    % - Types.lc_shift statement
-    % - Types.lc_subst_inv statement
-    % - no full lemma library
-    % 
-    % Notation.lean:
-    % - do not include, repository only
-    % Listing with channel inductive can point to Processes/Basic.lean
-    % the table below can point to full definitions as well
-    % Opening listing for proc and channels can point to the appendix with open and close 
-    % The HasOpenTwo can point to base.lean appendix
-    % Channel close can point to full close definitions'
-    % Proc.lc listing can point to the appendix defininig these definitions
-    % Proc.f listing can point to Names appendix
-    % The stuff below with freshness can point to appendix for fresh.lean
-    % substitution section points to appendix with process name and type substitution
-    % Provide lemma snippets for open_substNames_comm and lc_of_open, f_close describe the proof strategy and such but don't show full Lean code only representative cases defer full thing to the zip?
-    % open_substNames_comm
-
-  % Subsection Environments
-    % % Candidate: Selected environment infrastructure
-    % Files:
-    %   Environment/Basic.lean
-    %   Environment/Lemmas.lean
-    %
-    % Possible excerpts:
-    %   - Elem and Env as lists of name/type pairs
-    %   - Env.names, Env.merge, Env.Nodup, Env.disjoint
-    %   - Env.lc, Env.shiftTypes, Env.substNames, Env.    substTypes
-    %   - Permutation instance and merge laws
-    %   - Selected name-set simplification lemmas: names_nil,     names_singleton, names_distributes, names_merge
-    %   - Selected permutation/disjointness lemmas:     names_eq_of_perm, perm_disjoint, disjoint_cons_iff,     Nodup_perm
-    %
-    % Purpose:
-    %   Show how environments are implemented as lists while    recovering the intended order-insensitive,
-    %   linear-resource behaviour through permutation,    name-set, disjointness, and Nodup lemmas.
-    % Listing for env definition and merge point to basic appendix
-    % Listing with merge comm and merge assoc laws point to appropriate appendix, the same for env.disjoint, env.names, env.nodup, env.serverusable
-    % Add reference to Env.Nodup_merge_iff show signature and describe proof show relevant constructors
-    % For lifted operations section show example of type-level or process-level function being lifted to env
-
-  % Subsection Hyperenvironments
-    % Schmeatic of proof to include for e.g. tensor parr defer the rest to zip file 
-    % lemma HyperEnv.Perm.extract_tensor_res
-    %(h_pre : /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [u /-$\colon$-/ C /-$::$-/ /-$\Gamma$-/'] /-$\pp_\texttt{h}$-/ [v /-$\colon$-/ Cᗮ /-$::$-/ /-$\Delta$-/'] /-$\sim$-/
-    % /-$\hyp{G}$-/ᵣ /-$\pp_\texttt{h}$-/ [x /-$\colon$-/ A ⨂ B /-$::$-/ /-$\Gamma$-/, /-$\Delta$-/])
-    %(h_post : /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [u /-$\colon$-/ C /-$::$-/ /-$\Gamma$-/''] /-$\pp_\texttt{h}$-/ [v /-$\colon$-/ Cᗮ /-$::$-/ /-$\Delta$-/''] /-$\sim$-/
-    % /-$\hyp{G}$-/ᵣ /-$\pp_\texttt{h}$-/ [w /-$\colon$-/ A /-$::$-/ /-$\Gamma$-/] /-$\pp_\texttt{h}$-/ [x /-$\colon$-/ B /-$::$-/ /-$\Delta$-/]) :
-    %$\exists$ /-$\hyp{G}$-/ₙ /-$\Gamma$-/ₙ /-$\Delta$-/ₙ,
-    % /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/', /-$\Delta$-/'] /-$\sim$-/ /-$\hyp{G}$-/ₙ /-$\pp_\texttt{h}$-/ [x /-$\colon$-/ A ⨂ B /-$::$-/ /-$\Gamma$-/ₙ, /-$\Delta$-/ₙ] ∧
-    % /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-/ₙ /-$\pp_\texttt{h}$-/ [w /-$\colon$-/ A /-$::$-/ /-$\Gamma$-/ₙ] /-$\pp_\texttt{h}$-/ [x /-$\colon$-/ B /-$::$-/   % /-$\Delta$-/ₙ]
-    % Then explain that the full statement includes freshness and inequality hypotheses needed to rule out name collisions.
-    % Candidate: Selected hyperenvironment infrastructure
-    % Files:
-    %   HyperEnvironment/Basic.lean
-    %   HyperEnvironment/Lemmas/Basic.lean
-    %   HyperEnvironment/Lemmas/Extraction/*.lean
-    %
-    % Possible excerpts:
-    %   - HyperEnv as List Env
-    %   - HyperEnv.Perm, including internal Env permutation
-    %   - HyperEnv.names, Nodup, disjoint, PairwiseDisjoint
-    %   - shiftTypes and substNames over hyperenvironments
-    %   - selected name/permutation lemmas:
-    %       HyperEnv.names_cons
-    %       HyperEnv.subset_names_of_mem
-    %       HyperEnv.names_eq_of_perm
-    %       HyperEnv.merge_comm / merge_assoc / merge_unit    laws
-    %   - one representative extraction lemma statement:
-    %       extract_tensor_res or extract_tensor_parr_res
-    %
-    % Purpose:
-    %   Show how hyperenvironments are implemented as lists     while recovering
-    %   order-insensitive reasoning through a custom    permutation relation, and
-    %   document the kind of extraction lemma needed for    restriction cases.
-    %
-    % Repository only:
-    %   - Full extraction proofs
-    %   - Tensor_Parr_Res.lean
-    %   - Tensor_Parr_Res_Crosslinked.lean
-    %   - Long permutation/disjointness proof scripts
-    % Hyperenv definition point to appendix describing HyperEnv/Basic.lean
-    % Deep permutation section link to appendix describing deep permutation
-    % Well formedness should like to Nodup and pairwise disjoint appendix
-    % Maybe also show some lifted functions from env to HyperEnv if there are any interesting ones maybe Nodup or pairwise disjoint as these are mentioned in judgement for linearity of the typing relation 
-
-  % Subsection Judgements
-    % Candidate: Typing judgement definition
-    % File: Judgement/Basic.lean
-    % Possible excerpt:
-    %   - inductive Typing : Nat -> Proc -> HyperEnv -> Prop
-    %   - all constructors, or at least:
-    %       mix₀, mix, one, bot, cut, tensor, parr,
-    %       oplus₁, oplus₂, amp, ax, quest, bang, w, c,     exists_, forall_
-    % Purpose:
-    %   Show how the full static typing system is   represented in Lean.
-    % Inductive predicate links to appendix with full   definitions
-    % The listing showing explicit rules can all get a  paragraph at the end linking them to judgement/Basic.  lean appendix, or maybe just put this on the entire   first section covering cofinite exchange rules type   depth
-    % Link the structural invariants section talking about  hyperenv names are equal to process frenames to the  relevant appendix for as well as these lemmas Judgement/ Linearity.lean proves Typing_preserves_disjointness and  Typing_preserves_linearity
-    % Candidate: Selected typing judgement infrastructure
-    % Files:
-    %   Judgement/Basic.lean
-    %   Judgement/Lemmas.lean
-    %   Judgement/Linearity.lean
-    %   Judgement/LocalClosure.lean
-    %   Judgement/Names.lean
-    %   Judgement/Weakening.lean
-    %   Judgement/Substitution/Types.lean
-    %   Judgement/Fresh.lean
-    %
-    % Possible excerpts:
-    %   - Full Typing inductive relation from Basic.lean
-    %   - Selected inversion lemma statements:
-    %       Typing_inv_one
-    %       Typing_inv_tensor
-    %       maybe Typing_inv_cut
-    %   - Regularity/local-closure statement:
-    %       Typing_preserves_lc_context
-    %   - Linearity statements:
-    %       Typing_preserves_disjointness
-    %       Typing_preserves_linearity
-    %   - Name/resource correspondence:
-    %       Typing_f_eq_names
-    %   - Type-variable infrastructure:
-    %       Typing_weakening
-    %       Typing_substTypes
-    %   - Freshness-bridging lemmas:
-    %       Typing_tensor_all_fresh
-    %       Typing_parr_all_fresh
-    %
-    % Purpose:
-    %   Show that the typing judgement is the central     invariant connecting
-    %   processes, hyperenvironments, local closure, free     names, and linearity.
-    %
-    % Repository only:
-    %   - Full inversion library
-    %   - Full substitution proofs
-    %   - Tactic macros
-    %   - Long proof scripts
-
-  % subsection semantics
-    % Candidate: Selected semantics infrastructure
-    % Files:
-    %   Semantics/Labels.lean
-    %   Semantics/ProcStep/Basic.lean
-    %   Semantics/EnvStep/Basic.lean
-    %   Semantics/JudgementStep/Basic.lean
-    %   Semantics/JudgementStep/Names.lean
-    %   Semantics/JudgementStep/Linearity.lean
-    %   Semantics/JudgementStep/WellFormed.lean
-    %
-    % Possible excerpts:
-    %   - Mu, Act, Lbl
-    %   - Lbl.WF, Lbl.f, Lbl.i
-    %   - Full or nearly full ProcStepₘ
-    %   - Full or nearly full EnvStepₘ
-    %   - TypingStepₘ signature and selected constructors:
-    %       one, bot, tensor, parr, par₁, par₂, syn, one_bot,     tensor_parr, res,
-    %       perm_env, perm_hyper
-    %   - Optional lemma statements:
-    %       TypingStepₘ_names_bound
-    %       TypingStepₘ_par_preserves_disjoint
-    %       TypingStepₘ_syn_preserves_disjoint
-    %       TypingStepₘ.preserves_WF
-    %
-    % Purpose:
-    %   Show how the mechanisation represents the three     transition systems and how
-    %   labels, freshness, disjointness, and exchange are     made explicit in Lean.
-    %
-    % Repository only:
-    %   - Full inversion lemmas for TypingStepₘ
-    %   - MultiStep.lean unless multi-step semantics are    discussed
-    %   - Full proofs of names/disjointness/well-formedness lemmas
-    % Don't include multistep
-    % Include label definitions
-    % include full procstep as it supports concrete freshness, cofinte mismatch, synchronisation under restriction, missing res typability case 
-    % Include full EnvStep since it is light and mirros paper presentation and it is interesting to show the exchange rules
-    % Include full typing step (consider if abbreviation is better, but still probably keep tensor, parr, one, bot as full)
-    % Include any other relevant lemmas if they are discussed
-    % The itemize can link to the appendix for each of the relations definitions
-    % Listing in labels paragraph can link to appendix with label definitions and potentially Lbl.f and Lbl.i as they are mentioned in prose
-    % for the par_1 listing link to the definitions again?
-
-% Metatheory section appendix
-  % Candidate: Main metatheory appendix
-  % Possible excerpts:
-  %   - proc : Typing n P /-$\hyp{G}$-/ -> Proc
-  %   - env  : Typing n P /-$\hyp{G}$-/ -> HyperEnv
-  %   - session_fidelity_procₘ
-  %   - session_fidelity_envₘ
-  %   - typability_subject_reductionₘ
-  %   - subject_reductionₘ
-  %   - Typing_f_eq_names
-  %   - Typing_preserves_linearity
-  %   - Typing_tensor_all_fresh
-  %   - Typing_parr_all_fresh
-  %   - optionally one representative extraction/ block-preservation lemma statement
-  %
-  % Purpose:
-  %   Show the central theorem statements and the key   invariants/proof infrastructure
-  %   supporting the session-fidelity development.
-  %
-  % Repository only:
-  %   - Full proof scripts
-  %   - Complete inversion libraries
-  %   - Full block-preservation/extraction development
-  %   - Behavioural future-work material
-  % In the appendices mention breifly the proof strategy and other relevant information for the theorems maybe show informative cases
-
-% Discussion section appendix
-  % Discussion-supporting appendix candidates:
-  % - TypingStepₘ.par₁ and TypingStepₘ.par₂, showing hD1/hD2.
-  % - ProcStepₘ.tensor, showing concrete freshness witnesses.
-  % - TypingStepₘ.tensor or Typing_tensor_all_fresh, showing co-finite/freshness reconciliation.
-  % - typability_subject_reductionₘ theorem statement, showing the remaining res obligation context.
-  % - Optional: one block-preservation or HyperEnv.Perm.extract_* lemma statement, if you want to document the res infrastructure.
-
-
-% Future work section appendix
-  % Does not need anything simply references the stuff already defiend for the other sections appendices
-  % res / block-preservation / hyperenvironment extraction -> belongs under Selected Proof Infrastructure or stays codebase-only.
-  % Co-finite ProcStepₘ refactor -> supported by the existing ProcStepₘ and all-fresh lemma excerpts.
-  % Full \pill extension -> no appendix needed beyond the full Typing definition and code availability.
-  % Structural congruence -> no current code, so no appendix.
-  % Behavioural metatheory -> not mechanised, so no appendix.
-  % Proof automation -> no appendix unless you already have an aesop rule set, which you do not.
-
-
-
-
-
-

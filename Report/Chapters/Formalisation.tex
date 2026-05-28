@@ -393,15 +393,7 @@ prefix:max "?/-$_\texttt{e}$-/" => Env.serverUsable
 
 \paragraph{Lifted operations} Since environments contain types, the locally nameless operations from \cref{subsubsec:stypes} are lifted pointwise over the type component of each \texttt{Elem}. Local closure, type shifting, name substitution, and type substitution are all defined by mapping over the list. The file \path{Environment/Lemmas.lean} proves that these operations preserve the names, disjointness, nodup, and permutation properties of environments.
 
-The interaction between shifting and local closure is captured by 
-\texttt{Env.lc\_shift\_inv}, which states that shifting an environment 
-by one preserves local closure: $(\Gamma^+).\texttt{lc}(n+k+1) \iff 
-\Gamma.\texttt{lc}(n+k)$. Shifting increments all free type indices, 
-so an environment locally closed at depth $n+k$ becomes locally closed 
-at depth $n+k+1$ after shifting, and vice versa. The specialisation 
-\texttt{Env.lc\_shift\_inv\_0} is used in the \texttt{forall\_} case 
-of \texttt{Typing\_preserves\_lc} to recover local closure of the 
-unshifted environment from that of the shifted one.
+The interaction between shifting and local closure is captured by \texttt{Env.lc\_shift\_inv}, which states that shifting an environment by one preserves local closure: $(\Gamma^+).\texttt{lc}(n+k+1) \iff \Gamma.\texttt{lc}(n+k)$. Shifting increments all free type indices, so an environment locally closed at depth $n+k$ becomes locally closed at depth $n+k+1$ after shifting, and vice versa. The specialisation \texttt{Env.lc\_shift\_inv\_0} is used in the \texttt{forall\_} case of \texttt{Typing\_preserves\_lc} to recover local closure of the unshifted environment from that of the shifted one.
 
 \subsubsection{Hyperenvironments}\label{subsubsec:hyperenvironments} Hyperenvironments are defined in \path{HyperEnvironment/Basic.lean} as \texttt{HyperEnv}, an abbreviation for a list of environments:
 

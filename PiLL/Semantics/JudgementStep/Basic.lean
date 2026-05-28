@@ -43,7 +43,7 @@ inductive TypingStepₘ : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typ
       (disj : (l |ₗ l').i ∩ (P |ₚ Q).f = ∅)
       (WF : (l |ₗ l').WF) :
       TypingStepₘ (Typing.mix hD1 𝒟 ℰ) (l |ₗ l') (Typing.mix hD2 𝒟' ℰ')
-| one_bot
+  | one_bot
       {𝒢 𝒢' : HyperEnv} {Γ : Env} {P P' : Proc} {n : Nat} {L : Finset FPName}
       {huniq : ∀ x ∉ L, ∀ y ∉ L, x ≠ y →
         Typing n (P⸨#x, #y⸩) (𝒢 |ₕ [x ∶ 1 :: ∅] |ₕ [y ∶ ⊥ :: Γ])}
@@ -51,9 +51,9 @@ inductive TypingStepₘ : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typ
       {hx : x ∉ ({y} ∪ P.f ∪ 𝒢.names ∪ Γ.names)}
       {hy : y ∉ (P.f ∪ 𝒢.names ∪ Γ.names)}
       {𝒟' : Typing n P' (𝒢 |ₕ [∅‚ Γ])}
-      (hStep : TypingStepₘ (Typing_one_bot_all_fresh huniq x y hx hy) (x⟦()⟧ |ₗ y⸨()⸩) 𝒟') :
+      (hStep : TypingStepₘ (Typing_one_bot_all_fresh huniq x y hx hy) (x⟦⟧ |ₗ y⸨⸩) 𝒟') :
       TypingStepₘ (Typing.cut L huniq) (τ) 𝒟'
-| tensor_parr
+  | tensor_parr
       {𝒢 : HyperEnv} {Γ Δ Ξ : Env} {P P' : Proc} {A B : Types} {n : Nat} {L : Finset FPName}
       {huniq : ∀ x ∉ L, ∀ y ∉ L, x ≠ y →
         Typing n
@@ -75,7 +75,7 @@ inductive TypingStepₘ : {n : Nat} → {𝒢 : HyperEnv} → {P : Proc} → Typ
         (Typing.cut L huniq)
         (τ)
         (Typing_double_cut_tensor_parr huniq')
-| res
+  | res
       {𝒢 𝒢' : HyperEnv} {Γ Γ' Δ Δ' : Env} {P P' : Proc} {A : Types} {n : Nat} {l : Lbl}
       {L L' : Finset FPName}
       {huniq : ∀ z ∉ L, ∀ w ∉ L, z ≠ w →
