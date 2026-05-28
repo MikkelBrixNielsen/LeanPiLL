@@ -54,6 +54,8 @@ Notably, the polymorphic binders \hl{$\thl{\forall.A}$} and \hl{$\thl{\exists.A}
 
 \begin{lstlisting}[language=Lean4]
 def Types.dual : Types -> Types
+  | .atom n     => .atomDual n
+  | .atomDual n => .atom n
   | .tensor A B  => .parr    (dual A) (dual B)
   | .forall_ A   => .exists_ (dual A)
   | .one         => .bot
@@ -122,10 +124,12 @@ def TVar.shift (d c : Nat) : TVar -> TVar
 \begin{lstlisting}[language=Lean4]
 def Types.subst (B A : Types) (k : Nat) : Types :=
   match B with
+  | .var (.free n)  => .var (.free n)
   | .var (.bound i) =>
       if i == k then A
       else if i > k then .var (.bound (i - 1))
       else .var (.bound i)
+  | .tensor A B => .tensor (A.subst A k) (B.subst A k)
 \end{lstlisting}
 
 The operation is lifted to the full \texttt{Types} syntax by structural recursion. For ordinary connectives, substitution distributes across subterms. When descending into a polymorphic binder such as \texttt{forall\_}, the target depth is incremented to $k+1$, and the payload type $A$ is shifted by one. This prevents the free indices in $A$ from being captured by the newly entered binder:
@@ -145,8 +149,6 @@ closure at $n+k+1$ in the original. The specialisation
 later used in the proof of \texttt{Typing\_preserves\_lc}.
 
 \paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The only divergence is that exponentials are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} to avoid clashes with Lean syntax.
-
-The full inductive definition of \texttt{Types} and \texttt{TVar} along with the mentioned operations are shown in \cref{app:session-types}.
 
 \subsubsection{Processes}\label{subsubsec:processes}
 Processes are defined in \path{Processes/Basic.lean} as the inductive type \texttt{Proc}. Following the established locally nameless architecture, channel references are partitioned into a dedicated \texttt{Channel} inductive. Explicit free channels are instantiated as concrete natural numbers (\texttt{FPName}). While the raw process syntax permits arbitrary reuse of these numbers, using \texttt{Nat} allows the formalisation to systematically compute strictly fresh names by incrementing the supremum of any finite set of existing names (mechanised in \path{Processes/Fresh.lean}). Conversely, bound channels are represented using De Bruijn indices, encoding their relative distance to the corresponding binder.
@@ -175,13 +177,13 @@ As discussed in \cref{subsec:locally-nameless}, binding constructs in the proces
 \end{center}
 \end{highlight} 
 
-Notice that \texttt{cut} takes only a continuation \hl{$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of \hl{$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the transmitted payload is anonymized into the continuation.
+Notice that \texttt{cut} takes only a continuation \hl{$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of \hl{$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the transmitted payload is anonymized into the continuation. The full inductive definition is listed in \cref{app:processes}.
 
 \paragraph{Opening and closing} \path{Processes/OpenClose.lean} defines opening and closing operations following the locally nameless principles established in \cref{subsec:opening-and-closing}. In the theoretical presentation, opening a process at depth $k$ with $x$ is denoted as \hl{$\phl{\{k \mapsto x\}P}$}, and conversely, abstracting a specific name back into a bound index is denoted as \hl{$\phl{\{k \mapsfrom x\}P}$}. 
 
 To mechanise this in Lean, we denote explicit free channels as $\#x$ (mapping to \texttt{Channel.free x}) and introduce custom notation for these substitution operations. Expressions such as $\dopen{P}{k | \#x}$ and $\dopen{P}{k | \#x,\#y}$ denote the opening of a process by instantiating the $k$-th (and $k+1$-th) bound indices with free channels. Conversely, $\dclose{P}{k | \#x}$ and $\dclose{P}{k | \#x, \#y}$ denote the closing of a process by abstracting $x$ and $y$ back into De Bruijn indices. For convenience, the depth parameter can be omitted when operating at the innermost binder ($k=0$), simplifying the notation to $\dopen{P}{\#x,\#y}$ and $\dclose{P}{\#x,\#y}$.
 
-Because binders are represented positionally, the depth parameter $k$ increments according to the number of channels bound by each constructor. For standard communication prefixes like \texttt{tensor}, \texttt{parr}, and the server \texttt{duplicate} operation, exactly one channel is bound, incrementing $k$ by one. The restriction constructor (\texttt{cut}) simultaneously binds two dual endpoints, requiring $k$ to increment by two. Notably, the \texttt{input} constructor binds a type variable rather than a channel. Consequently, it does not affect the channel depth parameter $k$.
+Because binders are represented positionally, the depth parameter $k$ increments according to the number of channels bound by each constructor. For standard communication prefixes like \texttt{tensor}, \texttt{parr}, and the server \texttt{duplicate} operation, exactly one channel is bound, incrementing $k$ by one. The restriction constructor (\texttt{cut}) simultaneously binds two dual endpoints, requiring $k$ to increment by two. The \texttt{input} constructor binds a type variable rather than a channel and therefore leaves $k$ unchanged. The \texttt{server} constructor additionally carries an explicit set of dependency channels \texttt{zs~: Finset Channel}, representing the replicable processes the server depends on, which must be acted on simutaneously with $x$ and $P$.
 
 \begin{lstlisting}[language=Lean4]
 def Proc.open (P : Proc) (u : Channel) (k : Nat) : Proc :=
@@ -189,17 +191,21 @@ def Proc.open (P : Proc) (u : Channel) (k : Nat) : Proc :=
   | .tensor x P     => .tensor (x.open u k) (P.open u (k + 1))  
   | .parr   x P     => .parr   (x.open u k) (P.open u (k + 1))  
   | .cut      P     => .cut                 (P.open u (k + 2))
+  | .duplicate x P  => .duplicate (x.open u k) (P.open u (k + 1))
+  | .server x zs P  => .server (x.open u k) (zs.open u k) (P.open u k)
   | .input  x P     => .input  (x.open u k) (P.open u k)
   | ...
 \end{lstlisting}
 
-At the leaves of the syntax tree, this recursive traversal delegates to the base case defined by \texttt{Channel.open}. For bound channels, the function evaluates the De Bruijn index $i$ against the target depth $k$, replacing it with the instantiated channel $v$ upon an exact match. Explicit free channels remain entirely unaffected:
+At the leaves of the syntax tree, this recursive traversal delegates to the base case defined by \texttt{Channel.open} and \texttt{Finset.open}. For bound channels, the De Bruijn index $i$ is compared against the target depth $k$ and replaced with $v$ upon an exact match. For dependency sets, \texttt{Channel.open} is mapped pointwise. In both cases free channels remain entirely unaffected:
 
 \begin{lstlisting}[language=Lean4]
 def Channel.open (u v : Channel) (k : Nat) : Channel :=
   match u with
   | bound i => if i == k then v else bound i
-  | c => c
+
+def Finset.open (zs : Finset Channel) (v : Channel) (k : Nat) : Finset Channel :=
+  zs.image (fun u => u.open v k)
 \end{lstlisting}
 
 For restriction the \texttt{HasOpenTwo} typeclass from \path{Base.lean} is instantiated by opening sequentially: first replacing index $k+1$ with the second endpoint $v$, then replacing index $k$ with the first endpoint $u$:
@@ -209,79 +215,98 @@ instance : HasOpenTwo Proc Channel Channel Nat where
   open_ P u v k := (Proc.open (Proc.open P v (k + 1)) u k)
 \end{lstlisting}
 
-To complete the bidirectional infrastructure, \texttt{Proc.close} and \texttt{Channel.close} define the corresponding closing operation. Used primarily when abstracting explicit free names into new scopes, \texttt{Proc.close} traverses the process tree using a structural recursion identical to \texttt{Proc.open}, applying the exact same depth-incrementing rules for single and double binders. When the recursion reaches a leaf node, it delegates to \texttt{Channel.close}. If the leaf is a free channel (\texttt{FPName}), the function compares it against the target name $x$, upon a match, the explicit name is \emph{abstracted} into a bound De Bruijn index at the accumulated depth $k$:
+To complete the bidirectional infrastructure, \texttt{Proc.close}, \texttt{Channel.close}, and \texttt{Finset.close} define the corresponding closing operation. \texttt{Proc.close} traverses the process tree using a structural recursion identical to \texttt{Proc.open}, applying the same depth-incrementing rules. At the leaves, \texttt{Channel.close} compares each free channel against the target name $x$ and abstracts it into a bound De Bruijn index at depth $k$ upon a match, while bound indices are left unchanged. Dependency sets are handled pointwise by \texttt{Finset.close}:
 
 \begin{lstlisting}[language=Lean4]
 def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
   match u with
   | .free name => if x == name then .bound k else .free name
   | .bound i   => .bound i
+
+def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) : Finset Channel :=
+  zs.image (fun u => u.close x k)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Lean4]
+def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
+  match u with
+  | .free name => if x == name then .bound k else .free name
+  | .bound i   => .bound i
+
+def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) : Finset Channel :=
+  zs.image (fun u => u.close x k)
 \end{lstlisting}
 
 \paragraph{Local closure} \path{Processes/LocalClosure.lean}
 defines local closure for processes as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. The type depth is needed when a process embeds a type, for instance as the payload of an output prefix, since the embedded type must be checked relative to the current type-binder depth.
 
-The structural recursion evaluates each constructor by incrementing the appropriate depth counter according to the number and sort of binders introduced. Channel binders increase the channel depth $k$, while type binders increase the type depth $n$. For example, \texttt{tensor} binds a single continuation channel, incrementing the depth to $k+1$, whereas \texttt{cut} binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, \texttt{input} binds a type variable, leaving $k$ unchanged while incrementing $n$ to $n+1$. Constructors introducing no binders, leave both counters unchanged:
+The structural recursion evaluates each constructor by incrementing the appropriate depth counter according to the number and sort of binders introduced. Channel binders increase the channel depth $k$, while type binders increase the type depth $n$. For example, \texttt{tensor} binds a single continuation channel, incrementing the depth to $k+1$, whereas \texttt{cut} binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, \texttt{input} binds a type variable, leaving $k$ unchanged while incrementing $n$ to $n+1$. The \texttt{server} constructor therefore requires local closure of \texttt{x}, \texttt{zs}, and \texttt{P}. Constructors introducing no binders, leave both counters unchanged
 
 \begin{lstlisting}[language=Lean4]
 def Proc.lc : Nat -> Nat -> Proc -> Prop
-  | _, _, .nil         => True
-  | k, n, .one x P     => x.lc k /-$\land$-/ P.lc k n
-  | k, n, .tensor x P  => x.lc k /-$\land$-/ P.lc (k + 1) n
-  | k, n, .cut P       => P.lc (k + 2) n
-  | k, n, .input x P   => x.lc k /-$\land$-/ P.lc k (n + 1)
+  | _, _, .nil            => True
+  | k, n, .one x P        => x.lc k /-$\land$-/ P.lc k n
+  | k, n, .tensor x P     => x.lc k /-$\land$-/ P.lc (k + 1) n
+  | k, n, .cut P          => P.lc (k + 2) n
+  | k, n, .input x P      => x.lc k /-$\land$-/ P.lc k (n + 1)
+  | k, n, .duplicate x P  => x.lc k /-$\land$-/ P.lc (k + 1) n
   | ...
+\end{lstlisting}
+
+At the leaves, \texttt{Channel.lc} checks that any bound index is strictly within the current depth, while free channels are trivially locally closed. For dependency sets, \texttt{Finset.lc} requires every channel in the set to satisfy \texttt{Channel.lc k}:
+
+\begin{lstlisting}[language=Lean4]
+def Channel.lc : Nat -> Channel -> Prop
+  | _, .free _   => True
+  | k, .bound i  => i < k
+
+def Finset.lc (zs : Finset Channel) (k : Nat) : Prop :=
+  /-$\forall$-/ z /-$\in$-/ zs, z.lc k
 \end{lstlisting}
 
 A process is considered globally \emph{closed} when it contains no dangling indices of either sort, meaning \texttt{Proc.lc 0 0} holds. This is registered as the abbreviation \texttt{Proc.lc\_0}.
 
-% \paragraph{Free names} \path{Processes/Names.lean} defines 
-% \texttt{Proc.f~: Proc $\to$ Finset FPName} to compute the free channel names of a process. The function traverses the syntax tree structurally, collecting all explicit free channel identifiers into a finite set. Because locally nameless binders are represented using anonymous indices, bound channels contribute nothing to this set.
-
-% For constructors carrying explicit subject channels, such as \texttt{tensor} and \texttt{link}, the free names of those channels are combined with the recursively computed free names of their continuations. Constructors without explicit channel identifiers of their own, such as \texttt{cut}, contribute only the free names recursively obtained from their continuations:
-
-% \begin{lstlisting}[language=Lean4]
-% def Proc.f : Proc -> Finset FPName
-%   | .cut P      => P.f
-%   | .par P Q    => P.f /-$\cup$-/ Q.f
-%   | .link x y   => x.f /-$\cup$-/ y.f
-%   | .tensor x P => x.f /-$\cup$-/ P.f
-%   | .one x P    => x.f /-$\cup$-/ P.f
-%   | .nil        => {}
-%   | ...
-% \end{lstlisting}
-
-% \paragraph{Freshness} \path{Processes/Fresh.lean} establishes freshness to support the generation of globally unique names. Given a finite set $L$ of forbidden names, a strictly fresh name is deterministically computed as $\max(L) + 1$. The formalisation provides two critical lemmas, \texttt{exists\_one\_fresh} and \texttt{exists\_two\_fresh}, which guarantee the generation of one or two distinct names residing entirely outside of $L$. These lemmas are essential for providing witnesses to satisfy the co-finite quantification premises used throughout the typing and transition rules, particularly for restriction, which requires introducing two fresh, non-colliding endpoints simultaneously.
-
 \paragraph{Free names and freshness} \path{Processes/Names.lean} defines \texttt{Proc.f~: Proc $\to$ Finset FPName} to compute the free channel names of a process. The function traverses the syntax tree structurally, collecting all explicit free channel identifiers into a finite set. Since locally nameless binders are represented using anonymous indices, bound channels contribute nothing to this set.
 
-For constructors carrying explicit subject channels, such as \texttt{tensor} and \texttt{link}, the free names of those channels are combined with the recursively computed free names of their continuations. Constructors without explicit channel identifiers of their own, such as \texttt{cut}, contribute only the free names recursively obtained from their continuations:
+For constructors carrying explicit subject channels, such as \texttt{tensor} and \texttt{link}, the free names of those channels are combined with the recursively computed free names of their continuations. Constructors without explicit channel identifiers of their own, such as \texttt{cut}, contribute only the free names recursively obtained from their continuations. The \texttt{server} constructor contributes the free names of its subject channel, its dependency set and continuation:
 
 \begin{lstlisting}[language=Lean4]
 def Proc.f : Proc -> Finset FPName
-  | .cut P      => P.f
-  | .par P Q    => P.f /-$\cup$-/ Q.f
-  | .link x y   => x.f /-$\cup$-/ y.f
-  | .tensor x P => x.f /-$\cup$-/ P.f
-  | .one x P    => x.f /-$\cup$-/ P.f
+  | .cut P          => P.f
+  | .par P Q        => P.f /-$\cup$-/ Q.f
+  | .link x y       => x.f /-$\cup$-/ y.f
+  | .tensor x P     => x.f /-$\cup$-/ P.f
+  | .one x P        => x.f /-$\cup$-/ P.f
+  | .server x zs P  => x.f /-$\cup$-/ zs.f /-$\cup$-/ P.f
   | .nil        => {}
   | ...
 \end{lstlisting}
 
-The resulting finite set is used by \path{Processes/Fresh.lean} to generate names outside a forbidden context. Given a finite set $L$ of forbidden names, a fresh name is computed as $\max(L)+1$. The lemmas \texttt{exists\_one\_fresh} and \texttt{exists\_two\_fresh} guarantee one or two distinct names outside $L$, respectively. These lemmas provide witnesses for the co-finite quantification premises used throughout the typing and transition rules, in particular for restriction, where two fresh and distinct endpoints must be introduced simultaneously.
+At the leaves, \texttt{Channel.f} returns the singleton set for free channels and the empty set for bound indices. For dependency sets, \texttt{Finset.f} collects free names across all channels in the set via \texttt{biUnion}:
 
-% \paragraph{Name substitution} \path{Processes/SubstNames.lean} establishes the machinery for name substitution as \texttt{Proc.substNames (R T~: FPName)~: Proc $\to$ Proc}, replacing all explicit free occurrences of the target name $T$ with the replacement name $R$. Because the locally nameless architecture strictly partitions free names and bound indices into disjoint syntactic categories, substituting a free name $R$ only interacts with other explicit free names at the leaves of the syntax tree. Binders, which operate exclusively via relative De Bruijn indices, are fundamentally blind to the concrete name $R$. Therefore, this operation is intrinsically capture-avoiding by construction, completely eliminating the need for complex freshness constraints or $\alpha$-renaming during substitution.
+\begin{lstlisting}[language=Lean4]
+def Channel.f : Channel -> Finset FPName
+  | .free x  => {x}
+  | .bound _ => {}
 
-% \paragraph{Type substitution} \path{Processes/SubstTypes.lean} establishes the machinery needed for type substitution as \texttt{Proc.substTypes (A~: Types) (k~: Nat)~: Proc $\to$ Proc}, eagerly substituting $A$ for the De Bruijn index $k$ throughout a process. Because the syntax is two-sorted, the operation delegates to the type-level substitution machinery whenever it encounters an embedded type. For example, within an \texttt{output} prefix, \texttt{Types.subst} is applied directly to the transmitted type. When traversing an \texttt{input} prefix, which binds a type variable, the substitution descends with an incremented depth $k + 1$. Simultaneously, $A$ is explicitly shifted (\texttt{A.shift 0 1}) to prevent its free variables from being captured by the newly entered binder, mirroring the pattern used in \texttt{Types.subst} from \cref{subsubsec:stypes}:
+def Finset.f (zs : Finset Channel) : Finset FPName :=
+  zs.biUnion Channel.f
+\end{lstlisting}
 
-% \begin{lstlisting}[language=Lean4]
-% def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
-%   | .input x P => .input x (P.substTypes (A.shift 0 1) (k + 1))
-% \end{lstlisting}
-
-% A consequence of the locally nameless representation is that no channel shifting operation (e.g. \texttt{shiftNames}) is required. In a pure De Bruijn encoding such as that used for \texttt{Types} in \cref{subsubsec:stypes}, variables are represented as relative indices and must be shifted when traversing binders to preserve correct binding structure. By contrast, free channels (\texttt{FPName}) are represented as global identifiers rather than relative positions, and are therefore unaffected by binder depth. This avoids the need for structural adjustment of channel names during substitution, simplifying the process-level infrastructure.
+The resulting finite set is used by \path{Processes/Fresh.lean} to generate names outside a forbidden context. Since free process names are natural numbers, a fresh name for a finite set $L$ is computed as \texttt{freshName L} $= \sup(L) + 1$, with \texttt{fresh\_is\_fresh} confirming that every element of $L$ is strictly smaller than this value. The lemmas \texttt{exists\_one\_fresh} and \texttt{exists\_two\_fresh} then guarantee one or two distinct names outside $L$, providing witnesses for the co-finite quantification premises used throughout the typing and transition rules, in particular for restriction, where two fresh and distinct endpoints must be introduced simultaneously.
 
 \paragraph{Substitution} The process syntax supports two substitution operations, reflecting its two-sorted binding structure. Name substitution is defined in \path{Processes/SubstNames.lean} as the function \texttt{Proc.substNames (R T~: FPName)~: Proc $\to$ Proc}, replacing all explicit free occurrences of the target name $T$ with the replacement name $R$. Since bound channels are represented by De Bruijn indices, name substitution only acts on explicit free channel leaves and leaves binders untouched. Consequently, the operation is capture-avoiding by construction and does not require $\alpha$-renaming or additional freshness side conditions.
+
+Name substitution is defined in \path{Processes/SubstNames.lean} as \texttt{Proc.substNames (R T~: FPName)~: Proc $\to$ Proc}, replacing all explicit free occurrences of $T$ with $R$. At the leaves, \texttt{Channel.subst} replaces a matching free channel and leaves bound indices unchanged; dependency sets are handled pointwise by \texttt{Finset.subst}:
+
+\begin{lstlisting}[language=Lean4]
+def Channel.subst (R T : FPName) : Channel -> Channel
+  | .free x  => if x == T then .free R else .free x
+  | .bound i => .bound i
+
+def Finset.subst (zs : Finset Channel) (R T : FPName) : Finset Channel :=
+  zs.image (fun u => u.subst R T)
+\end{lstlisting}
 
 Type substitution is defined in \path{Processes/SubstTypes.lean} as \texttt{Proc.substTypes (A~: Types) (k~: Nat)~: Proc $\to$ Proc}, substituting $A$ for the De Bruijn type index $k$ throughout a process. Whenever the traversal encounters an embedded type, such as the payload of an output prefix, it delegates to the type-level substitution operation \texttt{Types.subst}. When crossing an \texttt{input} prefix, which binds a type variable, the target depth is incremented and the substituted type is shifted, mirroring the binder case of \texttt{Types.subst} from \cref{subsubsec:stypes}:
 
@@ -292,6 +317,16 @@ def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
 
 A consequence of this representation is that no analogous channel shifting operation is required. In a pure De Bruijn encoding, variables are represented as relative indices and must be shifted when crossing binders. Free channels, however, are represented as global identifiers rather than relative positions, so their representation is unaffected by binder depth. This avoids structural adjustment of channel names during substitution and simplifies the process-level infrastructure.
 
+\paragraph{Type shifting}
+\path{Processes/SubstTypes.lean} also defines \texttt{Proc.shiftTypes (d c~: Nat)~: Proc $\to$ Proc}, which lifts the type-level shifting operation to processes. The traversal is uniform across most constructors, delegating to \texttt{Types.shift} whenever an embedded type is encountered, such as the payload of an \texttt{output} prefix. The only non-trivial case is \texttt{input}, which binds a type variable and therefore increments the cutoff depth $d$ before traversing its continuation, mirroring the binder case of \texttt{Types.shift}:
+
+\begin{lstlisting}[language=Lean4]
+def Proc.shiftTypes (d c : Nat) : Proc -> Proc
+  | .output x P A  => .output x (P.shiftTypes d c) (A.shift d c)
+  | .input x P     => .input x (P.shiftTypes (d + 1) c)
+  | ...
+\end{lstlisting}
+
 \paragraph{Structural Properties}
 \path{Processes/Lemmas.lean} establishes the fundamental structural properties required by the later typing and operational metatheory. The lemmas fall into three groups.
 
@@ -300,8 +335,6 @@ The first group supports the typing invariants. \texttt{Proc.f\_open\_erase} and
 The second group supports the substitution lemmas. \texttt{Proc.open\_substNames\_comm} and \texttt{Proc.openCut\_substNames\_comm} establish that opening and name substitution commute, while the corresponding lemmas for type substitution (\texttt{Proc.open\_substTypes\_comm} and \texttt{Proc.openCut\_substTypes\_comm}) ensure that substituting under a binder produces the same result regardless of order. These are essential in the typability proof, where co-finite witnesses from the typing rules must be reconciled with the concrete names introduced by process transitions.
 
 The third group supports freshness reasoning. \texttt{Proc.not\_mem\_f\_open} states that a name fresh for both a process and a channel does not appear in the opened process, providing the freshness conditions needed in the typability cases. These results provide the core infrastructure required for the transition semantics developed in subsequent chapters.
-
-For completeness, the full inductive definition of \texttt{Proc} and all lemmas from \path{Processes/Lemmas.lean} are listed in \cref{app:processes}.
 
 \subsubsection{Environments}\label{subsubsec:environments}
 Environments are defined in \path{Environment/Basic.lean} as 

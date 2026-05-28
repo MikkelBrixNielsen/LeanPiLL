@@ -134,116 +134,116 @@ inductive Types : Type where
 deriving DecidableEq, BEq, Repr
 \end{lstlisting}
 
-% FIXME: Write better caption
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Duality on session types. The definition exchangee each connective with its dual.},
-  label={lst:lean-types-dual}
-]
-def Types.dual : Types -> Types
-  | .atom a       => .atomDual a
-  | .atomDual a   => .atom a
-  | .var v        => .varDual v
-  | .varDual v    => .var v
-  | .one          => .bot
-  | .bot          => .one
-  | .tensor A B   => .parr (dual A) (dual B)
-  | .parr A B     => .tensor (dual A) (dual B)
-  | .oplus A B    => .amp (dual A) (dual B)
-  | .amp A B      => .oplus (dual A) (dual B)
-  | .bang A       => .quest (dual A)
-  | .quest A      => .bang (dual A)
-  | .forall_ A    => .exists_ (dual A)
-  | .exists_ A    => .forall_ (dual A)
-\end{lstlisting}
+% % FIXME: Write better caption
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Duality on session types. The definition exchangee each connective with its dual.},
+%   label={lst:lean-types-dual}
+% ]
+% def Types.dual : Types -> Types
+%   | .atom a       => .atomDual a
+%   | .atomDual a   => .atom a
+%   | .var v        => .varDual v
+%   | .varDual v    => .var v
+%   | .one          => .bot
+%   | .bot          => .one
+%   | .tensor A B   => .parr (dual A) (dual B)
+%   | .parr A B     => .tensor (dual A) (dual B)
+%   | .oplus A B    => .amp (dual A) (dual B)
+%   | .amp A B      => .oplus (dual A) (dual B)
+%   | .bang A       => .quest (dual A)
+%   | .quest A      => .bang (dual A)
+%   | .forall_ A    => .exists_ (dual A)
+%   | .exists_ A    => .forall_ (dual A)
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Local closure predicates for type variables and session types. A bound type variable is locally closed at depth $k$ when its De Bruijn index is smaller than $k$. Quantifiers increase the depth by one.},
-  label={lst:lean-types-local-closure}
-]
-def TVar.lc : Nat -> TVar -> Prop
-  | _, .free _  => True
-  | k, .bound i => i < k
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Local closure predicates for type variables and session types. A bound type variable is locally closed at depth $k$ when its De Bruijn index is smaller than $k$. Quantifiers increase the depth by one.},
+%   label={lst:lean-types-local-closure}
+% ]
+% def TVar.lc : Nat -> TVar -> Prop
+%   | _, .free _  => True
+%   | k, .bound i => i < k
 
-def Types.lc : Nat -> Types -> Prop
-  | _, .atom _      => True
-  | _, .atomDual _  => True
-  | k, .var v       => TVar.lc k v
-  | k, .varDual v   => TVar.lc k v
-  | _, .one         => True
-  | _, .bot         => True
-  | k, .tensor A B  => A.lc k /-$\land$-/ B.lc k
-  | k, .parr A B    => A.lc k /-$\land$-/ B.lc k
-  | k, .oplus A B   => A.lc k /-$\land$-/ B.lc k
-  | k, .amp A B     => A.lc k /-$\land$-/ B.lc k
-  | k, .bang A      => A.lc k
-  | k, .quest A     => A.lc k
-  | k, .forall_ A   => A.lc (k+1)
-  | k, .exists_ A   => A.lc (k+1)
+% def Types.lc : Nat -> Types -> Prop
+%   | _, .atom _      => True
+%   | _, .atomDual _  => True
+%   | k, .var v       => TVar.lc k v
+%   | k, .varDual v   => TVar.lc k v
+%   | _, .one         => True
+%   | _, .bot         => True
+%   | k, .tensor A B  => A.lc k /-$\land$-/ B.lc k
+%   | k, .parr A B    => A.lc k /-$\land$-/ B.lc k
+%   | k, .oplus A B   => A.lc k /-$\land$-/ B.lc k
+%   | k, .amp A B     => A.lc k /-$\land$-/ B.lc k
+%   | k, .bang A      => A.lc k
+%   | k, .quest A     => A.lc k
+%   | k, .forall_ A   => A.lc (k+1)
+%   | k, .exists_ A   => A.lc (k+1)
 
-def Types.lc_0 : Types -> Prop := Types.lc 0
-\end{lstlisting}
+% def Types.lc_0 : Types -> Prop := Types.lc 0
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Shifting for type variables and session types. The parameter $d$ is the cutoff depth and $c$ is the shift amount. Bound variables below the cutoff are locally bound and left unchanged; variables at or above the cutoff are shifted.},
-  label={lst:lean-types-shift}
-]
-def TVar.shift (d c : Nat) : TVar -> TVar
-  | .bound i => if i < d then .bound i else .bound (i + c)
-  | .free n => .free n
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Shifting for type variables and session types. The parameter $d$ is the cutoff depth and $c$ is the shift amount. Bound variables below the cutoff are locally bound and left unchanged; variables at or above the cutoff are shifted.},
+%   label={lst:lean-types-shift}
+% ]
+% def TVar.shift (d c : Nat) : TVar -> TVar
+%   | .bound i => if i < d then .bound i else .bound (i + c)
+%   | .free n => .free n
 
-instance : HasShift TVar where 
-  shift v d c := TVar.shift d c v
+% instance : HasShift TVar where 
+%   shift v d c := TVar.shift d c v
 
-def Types.shift (d c : Nat) : Types -> Types
-  | .var v        => .var (v.shift d c)
-  | .varDual v    => .varDual (v.shift d c)
-  | .forall_ A    => .forall_ (A.shift (d + 1) c)
-  | .exists_ A    => .exists_ (A.shift (d + 1) c)
-  | .tensor A B   => .tensor (A.shift d c) (B.shift d c)
-  | .parr A B     => .parr (A.shift d c) (B.shift d c)
-  | .quest A      => .quest (A.shift d c)
-  | .bang A       => .bang (A.shift d c)
-  | .amp A B      => .amp (A.shift d c) (B.shift d c)
-  | .oplus A B    => .oplus (A.shift d c) (B.shift d c)
-  | t             => t
+% def Types.shift (d c : Nat) : Types -> Types
+%   | .var v        => .var (v.shift d c)
+%   | .varDual v    => .varDual (v.shift d c)
+%   | .forall_ A    => .forall_ (A.shift (d + 1) c)
+%   | .exists_ A    => .exists_ (A.shift (d + 1) c)
+%   | .tensor A B   => .tensor (A.shift d c) (B.shift d c)
+%   | .parr A B     => .parr (A.shift d c) (B.shift d c)
+%   | .quest A      => .quest (A.shift d c)
+%   | .bang A       => .bang (A.shift d c)
+%   | .amp A B      => .amp (A.shift d c) (B.shift d c)
+%   | .oplus A B    => .oplus (A.shift d c) (B.shift d c)
+%   | t             => t
 
-instance : HasShift Types 
-  where shift T d c := Types.shift 
-\end{lstlisting}
+% instance : HasShift Types 
+%   where shift T d c := Types.shift 
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Substitution for type variables. Substitution replaces the bound variable at index $k$ with the type $A$, shifts $A$ when traversing under quantifiers, and adjusts indices above $k$ to account for the removed binder.},
-  label={lst:lean-types-subst}
-]
-def Types.subst (B A : Types) (k : Nat) : Types :=
-  match B with
-  | .var (.bound i) =>
-      if i == k then A
-      else if i > k then .var (.bound (i - 1))
-      else .var (.bound i)
-  | .varDual (.bound i) =>
-      if i == k then (.dual A)
-      else if i > k then .varDual (.bound (i - 1))
-      else .varDual (.bound i)
-  | .var (.free i)        => .var (.free i)
-  | .varDual (.free i)    => .varDual (.free i)
-  | .forall_ B            => .forall_ (B.subst (shift 0 1 A) (k + 1))
-  | .exists_ B            => .exists_ (B.subst (shift 0 1 A) (k + 1))
-  | .tensor L R           => .tensor (L.subst A k) (R.subst A k)
-  | .parr L R             => .parr (L.subst A k) (R.subst A k)
-  | .quest B              => .quest (B.subst A k)
-  | .bang B               => .bang (B.subst A k)
-  | .amp L R              => .amp (L.subst A k) (R.subst A k)
-  | .oplus L R            => .oplus (L.subst A k) (R.subst A k)
-  | t                     => t
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Substitution for type variables. Substitution replaces the bound variable at index $k$ with the type $A$, shifts $A$ when traversing under quantifiers, and adjusts indices above $k$ to account for the removed binder.},
+%   label={lst:lean-types-subst}
+% ]
+% def Types.subst (B A : Types) (k : Nat) : Types :=
+%   match B with
+%   | .var (.bound i) =>
+%       if i == k then A
+%       else if i > k then .var (.bound (i - 1))
+%       else .var (.bound i)
+%   | .varDual (.bound i) =>
+%       if i == k then (.dual A)
+%       else if i > k then .varDual (.bound (i - 1))
+%       else .varDual (.bound i)
+%   | .var (.free i)        => .var (.free i)
+%   | .varDual (.free i)    => .varDual (.free i)
+%   | .forall_ B            => .forall_ (B.subst (shift 0 1 A) (k + 1))
+%   | .exists_ B            => .exists_ (B.subst (shift 0 1 A) (k + 1))
+%   | .tensor L R           => .tensor (L.subst A k) (R.subst A k)
+%   | .parr L R             => .parr (L.subst A k) (R.subst A k)
+%   | .quest B              => .quest (B.subst A k)
+%   | .bang B               => .bang (B.subst A k)
+%   | .amp L R              => .amp (L.subst A k) (R.subst A k)
+%   | .oplus L R            => .oplus (L.subst A k) (R.subst A k)
+%   | t                     => t
 
-instance : HasSubst Types Types Nat 
-  where subst := Types.subst
-\end{lstlisting}
+% instance : HasSubst Types Types Nat 
+%   where subst := Types.subst
+% \end{lstlisting}
 
 \subsection{Processes}\label{app:processes}
 This appendix gives the core Lean representation of channels and process syntax. Channels are represented using the locally nameless approach discussed in \cref{sec:binding-architecture}, separating free names from bound indices.
@@ -285,281 +285,281 @@ inductive Proc : Type where
 deriving DecidableEq, BEq
 \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Opening for channels and processes. Opening replaces the bound index at the current depth with a concrete channel. Constructors that bind channels increase the depth before traversing their continuation.},
-  label={lst:lean-proc-open}
-]
-def Channel.open (u v : Channel) (k : Nat) : Channel :=
-  match u with
-  | bound i => if i == k then v else bound i
-  | c => c
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Opening for channels and processes. Opening replaces the bound index at the current depth with a concrete channel. Constructors that bind channels increase the depth before traversing their continuation.},
+%   label={lst:lean-proc-open}
+% ]
+% def Channel.open (u v : Channel) (k : Nat) : Channel :=
+%   match u with
+%   | bound i => if i == k then v else bound i
+%   | c => c
 
-instance : HasOpen Channel Channel Nat where
-  open_ u v k := Channel.open u v k
+% instance : HasOpen Channel Channel Nat where
+%   open_ u v k := Channel.open u v k
 
-def Finset.open (zs : Finset Channel) (v : Channel) (k : Nat) : Finset Channel :=
-  zs.image (fun u => u.open v k)
+% def Finset.open (zs : Finset Channel) (v : Channel) (k : Nat) : Finset Channel :=
+%   zs.image (fun u => u.open v k)
 
-instance : HasOpen (Finset Channel) Channel Nat where
-  open_ zs v k := Finset.open zs v k
+% instance : HasOpen (Finset Channel) Channel Nat where
+%   open_ zs v k := Finset.open zs v k
 
-def Proc.open (P : Proc) (u : Channel) (k : Nat) : Proc :=
-  match P with
-  | .nil              => .nil
-  | .one x P          => .one (x.open u k) (P.open u k)
-  | .bot x P          => .bot (x.open u k) (P.open u k)
-  | .tensor x P       => .tensor (x.open u k) (P.open u (k + 1))
-  | .parr x P         => .parr (x.open u k) (P.open u (k + 1))
-  | .cut P            => .cut (P.open u (k + 2))
-  | .par P Q          => .par (P.open u k) (Q.open u k)
-  | .server x zs P    => .server (x.open u k) (zs.open u k) (P.open u k)
-  | .duplicate x P    => .duplicate (x.open u k) (P.open u (k + 1))
-  | .consume x P      => .consume (x.open u k) (P.open u k)
-  | .dispose x P      => .dispose (x.open u k) (P.open u k)
-  | .selectL x P      => .selectL (x.open u k) (P.open u k)
-  | .selectR x P      => .selectR (x.open u k) (P.open u k)
-  | .amp x P Q        => .amp (x.open u k) (P.open u k) (Q.open u k)
-  | .output x P A     => .output (x.open u k) (P.open u k) A
-  | .input x P        => .input (x.open u k) (P.open u k)
-  | .link x y         => .link (x.open u k) (y.open u k)
+% def Proc.open (P : Proc) (u : Channel) (k : Nat) : Proc :=
+%   match P with
+%   | .nil              => .nil
+%   | .one x P          => .one (x.open u k) (P.open u k)
+%   | .bot x P          => .bot (x.open u k) (P.open u k)
+%   | .tensor x P       => .tensor (x.open u k) (P.open u (k + 1))
+%   | .parr x P         => .parr (x.open u k) (P.open u (k + 1))
+%   | .cut P            => .cut (P.open u (k + 2))
+%   | .par P Q          => .par (P.open u k) (Q.open u k)
+%   | .server x zs P    => .server (x.open u k) (zs.open u k) (P.open u k)
+%   | .duplicate x P    => .duplicate (x.open u k) (P.open u (k + 1))
+%   | .consume x P      => .consume (x.open u k) (P.open u k)
+%   | .dispose x P      => .dispose (x.open u k) (P.open u k)
+%   | .selectL x P      => .selectL (x.open u k) (P.open u k)
+%   | .selectR x P      => .selectR (x.open u k) (P.open u k)
+%   | .amp x P Q        => .amp (x.open u k) (P.open u k) (Q.open u k)
+%   | .output x P A     => .output (x.open u k) (P.open u k) A
+%   | .input x P        => .input (x.open u k) (P.open u k)
+%   | .link x y         => .link (x.open u k) (y.open u k)
 
-instance : HasOpen Proc Channel Nat where
-  open_ P v k := Proc.open P v k
+% instance : HasOpen Proc Channel Nat where
+%   open_ P v k := Proc.open P v k
 
-instance : HasOpenTwo Proc Channel Channel Nat where
-  open_ P u v k := (Proc.open (Proc.open P v (k + 1)) u k)
-\end{lstlisting}
+% instance : HasOpenTwo Proc Channel Channel Nat where
+%   open_ P u v k := (Proc.open (Proc.open P v (k + 1)) u k)
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Closing for channels and processes. Closing abstracts a free channel name into a bound index at the current depth. Multi-name binders are handled by increasing the depth under the binder.},
-  label={lst:lean-proc-close}
-]
-def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
-  match u with
-  | .free name => if x == name then .bound k else .free name
-  | .bound i  => .bound i
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Closing for channels and processes. Closing abstracts a free channel name into a bound index at the current depth. Multi-name binders are handled by increasing the depth under the binder.},
+%   label={lst:lean-proc-close}
+% ]
+% def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
+%   match u with
+%   | .free name => if x == name then .bound k else .free name
+%   | .bound i  => .bound i
 
-instance : HasClose Channel FPName Nat where
-  close_ u x k := Channel.close u x k
+% instance : HasClose Channel FPName Nat where
+%   close_ u x k := Channel.close u x k
 
-def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) : Finset Channel :=
-  zs.image (fun u => u.close x k)
+% def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) : Finset Channel :=
+%   zs.image (fun u => u.close x k)
 
-instance : HasClose (Finset Channel) FPName Nat where
-  close_ zs x k := Finset.close zs x k
+% instance : HasClose (Finset Channel) FPName Nat where
+%   close_ zs x k := Finset.close zs x k
 
-def Proc.close (P : Proc) (z : FPName) (k : Nat) : Proc :=
-  match P with
-  | .nil              => .nil
-  | .one x P          => .one (x.close z k) (P.close z k)
-  | .bot x P          => .bot (x.close z k) (P.close z k)
-  | .tensor x P       => .tensor (x.close z k) (P.close z (k + 1))
-  | .parr x P         => .parr (x.close z k) (P.close z (k + 1))
-  | .cut P            => .cut (P.close z (k + 2))
-  | .par P Q          => .par (P.close z k) (Q.close z k)
-  | .selectL x P      => .selectL (x.close z k) (P.close z k)
-  | .selectR x P      => .selectR (x.close z k) (P.close z k)
-  | .amp x P Q        => .amp (x.close z k) (P.close z k) (Q.close z k)
-  | .output x P A     => .output (x.close z k) (P.close z k) A
-  | .input x P        => .input (x.close z k) (P.close z k)
-  | .server x zs P    => .server (x.close z k) (zs.close z k) (P.close z k)
-  | .consume x P      => .consume (x.close z k) (P.close z k)
-  | .duplicate x P    => .duplicate (x.close z k) (P.close z (k + 1))
-  | .dispose x P      => .dispose (x.close z k) (P.close z k)
-  | .link x y         => .link (x.close z k) (y.close z k)
+% def Proc.close (P : Proc) (z : FPName) (k : Nat) : Proc :=
+%   match P with
+%   | .nil              => .nil
+%   | .one x P          => .one (x.close z k) (P.close z k)
+%   | .bot x P          => .bot (x.close z k) (P.close z k)
+%   | .tensor x P       => .tensor (x.close z k) (P.close z (k + 1))
+%   | .parr x P         => .parr (x.close z k) (P.close z (k + 1))
+%   | .cut P            => .cut (P.close z (k + 2))
+%   | .par P Q          => .par (P.close z k) (Q.close z k)
+%   | .selectL x P      => .selectL (x.close z k) (P.close z k)
+%   | .selectR x P      => .selectR (x.close z k) (P.close z k)
+%   | .amp x P Q        => .amp (x.close z k) (P.close z k) (Q.close z k)
+%   | .output x P A     => .output (x.close z k) (P.close z k) A
+%   | .input x P        => .input (x.close z k) (P.close z k)
+%   | .server x zs P    => .server (x.close z k) (zs.close z k) (P.close z k)
+%   | .consume x P      => .consume (x.close z k) (P.close z k)
+%   | .duplicate x P    => .duplicate (x.close z k) (P.close z (k + 1))
+%   | .dispose x P      => .dispose (x.close z k) (P.close z k)
+%   | .link x y         => .link (x.close z k) (y.close z k)
 
-instance : HasClose Proc FPName Nat where
-  close_ P x k := Proc.close P x k
+% instance : HasClose Proc FPName Nat where
+%   close_ P x k := Proc.close P x k
 
-instance : HasCloseTwo Proc FPName FPName Nat where
-  close_ P x y k := (Proc.close (Proc.close P y (k + 1)) x k)
-\end{lstlisting}
+% instance : HasCloseTwo Proc FPName FPName Nat where
+%   close_ P x y k := (Proc.close (Proc.close P y (k + 1)) x k)
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Local closure for channels and processes. The first index tracks bound channel depth, while the second tracks bound type-variable depth. Channel binders increase the channel depth, while type input increases the type-variable depth.},
-  label={lst:lean-proc-local-closure}
-]
-def Channel.lc : Nat -> Channel -> Prop
-  | _, .free _    => True
-  | k, .bound i   => i < k
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Local closure for channels and processes. The first index tracks bound channel depth, while the second tracks bound type-variable depth. Channel binders increase the channel depth, while type input increases the type-variable depth.},
+%   label={lst:lean-proc-local-closure}
+% ]
+% def Channel.lc : Nat -> Channel -> Prop
+%   | _, .free _    => True
+%   | k, .bound i   => i < k
 
-def Finset.lc (zs : Finset Channel) (k : Nat) : Prop :=
- /-$\forall$-/ z /-$\in$-/ zs, z.lc k
+% def Finset.lc (zs : Finset Channel) (k : Nat) : Prop :=
+%  /-$\forall$-/ z /-$\in$-/ zs, z.lc k
 
-def Proc.lc : Nat -> Nat -> Proc -> Prop
-  | _, _, .nil              => True
-  | k, n, .one x P          => x.lc k /-$\land$-/ P.lc k n
-  | k, n, .bot x P          => x.lc k /-$\land$-/ P.lc k n
-  | k, n, .tensor x P       => x.lc k /-$\land$-/ P.lc (k + 1) n
-  | k, n, .parr x P         => x.lc k /-$\land$-/ P.lc (k + 1) n
-  | k, n, .cut P            => P.lc (k + 2) n
-  | k, n, .par P Q          => P.lc k n /-$\land$-/ Q.lc k n
-  | k, n, .selectL x P      => x.lc k /-$\land$-/ P.lc k n
-  | k, n, .selectR x P      => x.lc k /-$\land$-/ P.lc k n
-  | k, n, .amp x P Q        => x.lc k /-$\land$-/ P.lc k n /-$\land$-/ Q.lc k n
-  | k, n, .output x P A     => x.lc k /-$\land$-/ P.lc k n /-$\land$-/ A.lc n
-  | k, n, .input x P        => x.lc k /-$\land$-/ P.lc k (n + 1)
-  | k, n, .server x zs P    => x.lc k /-$\land$-/ zs.lc k /-$\land$-/ P.lc k n
-  | k, n, .consume x P      => x.lc k /-$\land$-/ P.lc k n
-  | k, n, .duplicate x P    => x.lc k /-$\land$-/ P.lc (k + 1) n
-  | k, n, .dispose x P      => x.lc k /-$\land$-/ P.lc k n
-  | k, _, .link x y         => x.lc k /-$\land$-/ y.lc k
+% def Proc.lc : Nat -> Nat -> Proc -> Prop
+%   | _, _, .nil              => True
+%   | k, n, .one x P          => x.lc k /-$\land$-/ P.lc k n
+%   | k, n, .bot x P          => x.lc k /-$\land$-/ P.lc k n
+%   | k, n, .tensor x P       => x.lc k /-$\land$-/ P.lc (k + 1) n
+%   | k, n, .parr x P         => x.lc k /-$\land$-/ P.lc (k + 1) n
+%   | k, n, .cut P            => P.lc (k + 2) n
+%   | k, n, .par P Q          => P.lc k n /-$\land$-/ Q.lc k n
+%   | k, n, .selectL x P      => x.lc k /-$\land$-/ P.lc k n
+%   | k, n, .selectR x P      => x.lc k /-$\land$-/ P.lc k n
+%   | k, n, .amp x P Q        => x.lc k /-$\land$-/ P.lc k n /-$\land$-/ Q.lc k n
+%   | k, n, .output x P A     => x.lc k /-$\land$-/ P.lc k n /-$\land$-/ A.lc n
+%   | k, n, .input x P        => x.lc k /-$\land$-/ P.lc k (n + 1)
+%   | k, n, .server x zs P    => x.lc k /-$\land$-/ zs.lc k /-$\land$-/ P.lc k n
+%   | k, n, .consume x P      => x.lc k /-$\land$-/ P.lc k n
+%   | k, n, .duplicate x P    => x.lc k /-$\land$-/ P.lc (k + 1) n
+%   | k, n, .dispose x P      => x.lc k /-$\land$-/ P.lc k n
+%   | k, _, .link x y         => x.lc k /-$\land$-/ y.lc k
 
-def Proc.lc_0 : Proc -> Prop := Proc.lc 0 0
-\end{lstlisting}
+% def Proc.lc_0 : Proc -> Prop := Proc.lc 0 0
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Free-name computation for channels, finite sets of channels, and processes. Bound indices contribute no free names, while free channel occurrences are collected structurally through the process syntax.},
-  label={lst:lean-proc-free-names}
-]
-def Channel.f : Channel -> Finset FPName
-  | .free x     => {x}
-  | .bound _    => {}
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Free-name computation for channels, finite sets of channels, and processes. Bound indices contribute no free names, while free channel occurrences are collected structurally through the process syntax.},
+%   label={lst:lean-proc-free-names}
+% ]
+% def Channel.f : Channel -> Finset FPName
+%   | .free x     => {x}
+%   | .bound _    => {}
 
-def Finset.f (zs : Finset Channel) : Finset FPName :=
-  zs.biUnion Channel.f
+% def Finset.f (zs : Finset Channel) : Finset FPName :=
+%   zs.biUnion Channel.f
 
-def Proc.f : Proc -> Finset FPName
-  | .tensor x P         => x.f /-$\cup$-/ P.f
-  | .parr x P           => x.f /-$\cup$-/ P.f
-  | .one x P            => x.f /-$\cup$-/ P.f
-  | .bot x P            => x.f /-$\cup$-/ P.f
-  | .cut P              => P.f
-  | .par P Q            => P.f /-$\cup$-/ Q.f
-  | .nil                => {}
-  | .selectL x P        => x.f /-$\cup$-/ P.f
-  | .selectR x P        => x.f /-$\cup$-/ P.f
-  | .amp x P Q          => x.f /-$\cup$-/ P.f /-$\cup$-/ Q.f
-  | .output x P _       => x.f /-$\cup$-/ P.f
-  | .input  x P         => x.f /-$\cup$-/ P.f
-  | .server x zs P      => x.f /-$\cup$-/ zs.f /-$\cup$-/ P.f
-  | .consume x P        => x.f /-$\cup$-/ P.f
-  | .duplicate x P      => x.f /-$\cup$-/ P.f
-  | .dispose x P        => x.f /-$\cup$-/ P.f
-  | .link x y           => x.f /-$\cup$-/ y.f
-\end{lstlisting}
+% def Proc.f : Proc -> Finset FPName
+%   | .tensor x P         => x.f /-$\cup$-/ P.f
+%   | .parr x P           => x.f /-$\cup$-/ P.f
+%   | .one x P            => x.f /-$\cup$-/ P.f
+%   | .bot x P            => x.f /-$\cup$-/ P.f
+%   | .cut P              => P.f
+%   | .par P Q            => P.f /-$\cup$-/ Q.f
+%   | .nil                => {}
+%   | .selectL x P        => x.f /-$\cup$-/ P.f
+%   | .selectR x P        => x.f /-$\cup$-/ P.f
+%   | .amp x P Q          => x.f /-$\cup$-/ P.f /-$\cup$-/ Q.f
+%   | .output x P _       => x.f /-$\cup$-/ P.f
+%   | .input  x P         => x.f /-$\cup$-/ P.f
+%   | .server x zs P      => x.f /-$\cup$-/ zs.f /-$\cup$-/ P.f
+%   | .consume x P        => x.f /-$\cup$-/ P.f
+%   | .duplicate x P      => x.f /-$\cup$-/ P.f
+%   | .dispose x P        => x.f /-$\cup$-/ P.f
+%   | .link x y           => x.f /-$\cup$-/ y.f
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Substitution of free channel names in processes. The substitution acts only on free channels and leaves bound indices unchanged.},
-  label={lst:lean-proc-subst-names}
-]
-def FPName.subst (R T : FPName) : FPName -> FPName :=
-  (fun x => if x = T then R else x)
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Substitution of free channel names in processes. The substitution acts only on free channels and leaves bound indices unchanged.},
+%   label={lst:lean-proc-subst-names}
+% ]
+% def FPName.subst (R T : FPName) : FPName -> FPName :=
+%   (fun x => if x = T then R else x)
 
-instance : HasSubst FPName FPName FPName where
-  subst x R T := FPName.subst R T x
+% instance : HasSubst FPName FPName FPName where
+%   subst x R T := FPName.subst R T x
 
-def Channel.subst (R T : FPName) : Channel -> Channel
-  | .free x => if x == T then .free R else .free x
-  | .bound i => .bound i
+% def Channel.subst (R T : FPName) : Channel -> Channel
+%   | .free x => if x == T then .free R else .free x
+%   | .bound i => .bound i
 
-instance : HasSubst Channel FPName FPName where
-  subst C R T := Channel.subst R T C
+% instance : HasSubst Channel FPName FPName where
+%   subst C R T := Channel.subst R T C
 
-def Finset.subst (zs : Finset Channel) (R T : FPName) : Finset Channel :=
-  zs.image (fun u => u.subst R T)
+% def Finset.subst (zs : Finset Channel) (R T : FPName) : Finset Channel :=
+%   zs.image (fun u => u.subst R T)
 
-instance : HasSubst (Finset Channel) FPName FPName where
-  subst S R T := Finset.subst S R T
+% instance : HasSubst (Finset Channel) FPName FPName where
+%   subst S R T := Finset.subst S R T
 
-def Proc.substNames (R T : FPName) : Proc -> Proc
-  | .nil              => .nil
-  | .one x P          => .one (x.subst R T) (P.substNames R T)
-  | .bot x P          => .bot (x.subst R T) (P.substNames R T)
-  | .tensor x P       => .tensor (x.subst R T) (P.substNames R T)
-  | .parr x P         => .parr (x.subst R T) (P.substNames R T)
-  | .cut P            => .cut (P.substNames R T)
-  | .par P Q          => .par (P.substNames R T) (Q.substNames R T)
-  | .selectL x P      => .selectL (x.subst R T) (P.substNames R T)
-  | .selectR x P      => .selectR (x.subst R T) (P.substNames R T)
-  | .amp x P Q        => .amp (x.subst R T) (P.substNames R T) (Q.substNames R T)
-  | .output x P A     => .output (x.subst R T) (P.substNames R T) A
-  | .input x P        => .input (x.subst R T) (P.substNames R T)
-  | .server x zs P       => .server (x.subst R T) (zs.subst R T) (P.substNames R T)
-  | .consume x P      => .consume (x.subst R T) (P.substNames R T)
-  | .duplicate x P    => .duplicate (x.subst R T) (P.substNames R T)
-  | .dispose x P      => .dispose (x.subst R T) (P.substNames R T)
-  | .link x y         => .link (x.subst R T) (y.subst R T)
+% def Proc.substNames (R T : FPName) : Proc -> Proc
+%   | .nil              => .nil
+%   | .one x P          => .one (x.subst R T) (P.substNames R T)
+%   | .bot x P          => .bot (x.subst R T) (P.substNames R T)
+%   | .tensor x P       => .tensor (x.subst R T) (P.substNames R T)
+%   | .parr x P         => .parr (x.subst R T) (P.substNames R T)
+%   | .cut P            => .cut (P.substNames R T)
+%   | .par P Q          => .par (P.substNames R T) (Q.substNames R T)
+%   | .selectL x P      => .selectL (x.subst R T) (P.substNames R T)
+%   | .selectR x P      => .selectR (x.subst R T) (P.substNames R T)
+%   | .amp x P Q        => .amp (x.subst R T) (P.substNames R T) (Q.substNames R T)
+%   | .output x P A     => .output (x.subst R T) (P.substNames R T) A
+%   | .input x P        => .input (x.subst R T) (P.substNames R T)
+%   | .server x zs P       => .server (x.subst R T) (zs.subst R T) (P.substNames R T)
+%   | .consume x P      => .consume (x.subst R T) (P.substNames R T)
+%   | .duplicate x P    => .duplicate (x.subst R T) (P.substNames R T)
+%   | .dispose x P      => .dispose (x.subst R T) (P.substNames R T)
+%   | .link x y         => .link (x.subst R T) (y.subst R T)
 
-instance : HasSubst Proc FPName FPName where
-  subst P R T := Proc.substNames R T P
-\end{lstlisting}
+% instance : HasSubst Proc FPName FPName where
+%   subst P R T := Proc.substNames R T P
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Type substitution and type-variable shifting lifted to processes. Type substitution only affects type annotations and traverses under type input by shifting the substituted type.},
-  label={lst:lean-proc-subst-types}
-]
-def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
-  | .nil              => .nil
-  | .one x P          => .one x (P.substTypes A k)
-  | .bot x P          => .bot x (P.substTypes A k)
-  | .tensor x P       => .tensor x (P.substTypes A k)
-  | .parr x P         => .parr x (P.substTypes A k)
-  | .cut P            => .cut (P.substTypes A k)
-  | .par P Q          => .par (P.substTypes A k) (Q.substTypes A k)
-  | .selectL x P      => .selectL x (P.substTypes A k)
-  | .selectR x P      => .selectR x (P.substTypes A k)
-  | .amp x P Q        => .amp x (P.substTypes A k) (Q.substTypes A k)
-  | .output x P B     => .output x (P.substTypes A k) (B.subst A k)
-  | .input x P        => .input x (P.substTypes (A.shift 0 1) (k + 1))
-  | .server x zs P    => .server x zs (P.substTypes A k)
-  | .consume x P      => .consume x (P.substTypes A k)
-  | .duplicate x P    => .duplicate x (P.substTypes A k)
-  | .dispose x P      => .dispose x (P.substTypes A k)
-  | .link x y         => .link x y
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Type substitution and type-variable shifting lifted to processes. Type substitution only affects type annotations and traverses under type input by shifting the substituted type.},
+%   label={lst:lean-proc-subst-types}
+% ]
+% def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
+%   | .nil              => .nil
+%   | .one x P          => .one x (P.substTypes A k)
+%   | .bot x P          => .bot x (P.substTypes A k)
+%   | .tensor x P       => .tensor x (P.substTypes A k)
+%   | .parr x P         => .parr x (P.substTypes A k)
+%   | .cut P            => .cut (P.substTypes A k)
+%   | .par P Q          => .par (P.substTypes A k) (Q.substTypes A k)
+%   | .selectL x P      => .selectL x (P.substTypes A k)
+%   | .selectR x P      => .selectR x (P.substTypes A k)
+%   | .amp x P Q        => .amp x (P.substTypes A k) (Q.substTypes A k)
+%   | .output x P B     => .output x (P.substTypes A k) (B.subst A k)
+%   | .input x P        => .input x (P.substTypes (A.shift 0 1) (k + 1))
+%   | .server x zs P    => .server x zs (P.substTypes A k)
+%   | .consume x P      => .consume x (P.substTypes A k)
+%   | .duplicate x P    => .duplicate x (P.substTypes A k)
+%   | .dispose x P      => .dispose x (P.substTypes A k)
+%   | .link x y         => .link x y
 
-instance : HasSubst Proc Types Nat where
-  subst P A k := Proc.substTypes A k P
+% instance : HasSubst Proc Types Nat where
+%   subst P A k := Proc.substTypes A k P
 
-def Proc.shiftTypes (d c : Nat) : Proc -> Proc
-  | .nil              => .nil
-  | .one x P          => .one x (P.shiftTypes d c)
-  | .bot x P          => .bot x (P.shiftTypes d c)
-  | .tensor x P       => .tensor x (P.shiftTypes d c)
-  | .parr x P         => .parr x (P.shiftTypes d c)
-  | .cut P            => .cut (P.shiftTypes d c)
-  | .par P Q          => .par (P.shiftTypes d c) (Q.shiftTypes d c)
-  | .selectL x P      => .selectL x (P.shiftTypes d c)
-  | .selectR x P      => .selectR x (P.shiftTypes d c)
-  | .amp x P Q        => .amp x (P.shiftTypes d c) (Q.shiftTypes d c)
-  | .output x P A     => .output x (P.shiftTypes d c) (A.shift d c)
-  | .input x P        => .input x (P.shiftTypes (d + 1) c)
-  | .server x zs P    => .server x zs (P.shiftTypes d c)
-  | .consume x P      => .consume x (P.shiftTypes d c)
-  | .duplicate x P    => .duplicate x (P.shiftTypes d c)
-  | .dispose x P      => .dispose x (P.shiftTypes d c)
-  | .link x y         => .link x y
+% def Proc.shiftTypes (d c : Nat) : Proc -> Proc
+%   | .nil              => .nil
+%   | .one x P          => .one x (P.shiftTypes d c)
+%   | .bot x P          => .bot x (P.shiftTypes d c)
+%   | .tensor x P       => .tensor x (P.shiftTypes d c)
+%   | .parr x P         => .parr x (P.shiftTypes d c)
+%   | .cut P            => .cut (P.shiftTypes d c)
+%   | .par P Q          => .par (P.shiftTypes d c) (Q.shiftTypes d c)
+%   | .selectL x P      => .selectL x (P.shiftTypes d c)
+%   | .selectR x P      => .selectR x (P.shiftTypes d c)
+%   | .amp x P Q        => .amp x (P.shiftTypes d c) (Q.shiftTypes d c)
+%   | .output x P A     => .output x (P.shiftTypes d c) (A.shift d c)
+%   | .input x P        => .input x (P.shiftTypes (d + 1) c)
+%   | .server x zs P    => .server x zs (P.shiftTypes d c)
+%   | .consume x P      => .consume x (P.shiftTypes d c)
+%   | .duplicate x P    => .duplicate x (P.shiftTypes d c)
+%   | .dispose x P      => .dispose x (P.shiftTypes d c)
+%   | .link x y         => .link x y
 
-instance : HasShift Proc where
-  shift P d c := Proc.shiftTypes d c P
+% instance : HasShift Proc where
+%   shift P d c := Proc.shiftTypes d c P
 
-\end{lstlisting}
+% \end{lstlisting}
 
-\begin{lstlisting}[
-  language=Lean4,
-  caption={Fresh-name generation for finite sets of free process names.},
-  label={lst:lean-fresh-names}
-]
-def freshName (s : Finset FPName) : FPName :=
-  s.sup id + 1
+% \begin{lstlisting}[
+%   language=Lean4,
+%   caption={Fresh-name generation for finite sets of free process names.},
+%   label={lst:lean-fresh-names}
+% ]
+% def freshName (s : Finset FPName) : FPName :=
+%   s.sup id + 1
 
-lemma fresh_is_fresh (s : Finset FPName) (x : FPName) (h : x /-$\in$-/ s) :
-  id x < freshName s
+% lemma fresh_is_fresh (s : Finset FPName) (x : FPName) (h : x /-$\in$-/ s) :
+%   id x < freshName s
 
-lemma exists_one_fresh (L : Finset FPName) :
- /-$\exists$-/ u, u /-$\notin$-/ L
+% lemma exists_one_fresh (L : Finset FPName) :
+%  /-$\exists$-/ u, u /-$\notin$-/ L
 
-lemma exists_two_fresh (L : Finset FPName) :
- /-$\exists$-/ u v, u /-$\notin$-/ L /-$\land$-/ v /-$\notin$-/ L /-$\land$-/ u /-$\neq$-/ v
-\end{lstlisting}
+% lemma exists_two_fresh (L : Finset FPName) :
+%  /-$\exists$-/ u v, u /-$\notin$-/ L /-$\land$-/ v /-$\notin$-/ L /-$\land$-/ u /-$\neq$-/ v
+% \end{lstlisting}
 
-The construction uses the fact that free process names are represented as natural numbers. For a finite set $L$, \texttt{freshName L} is defined as one more than the maximum element of $L$. The lemma \texttt{fresh\_is\_fresh} states that every element of $L$ is strictly smaller than this value, so \texttt{freshName L} cannot itself be a member of $L$. The one-name freshness lemma chooses this value directly. The two-name version first chooses a fresh name $u$ for $L$, then chooses a second name $v$ fresh for $L \cup \{u\}$, ensuring both $v \notin L$ and $u \neq v$.
+% The construction uses the fact that free process names are represented as natural numbers. For a finite set $L$, \texttt{freshName L} is defined as one more than the maximum element of $L$. The lemma \texttt{fresh\_is\_fresh} states that every element of $L$ is strictly smaller than this value, so \texttt{freshName L} cannot itself be a member of $L$. The one-name freshness lemma chooses this value directly. The two-name version first chooses a fresh name $u$ for $L$, then chooses a second name $v$ fresh for $L \cup \{u\}$, ensuring both $v \notin L$ and $u \neq v$.
 
 % NOTE: Don't include as this is basically all in prose in the formalisation section or irrelevant.
 % \subsection{Environments}
@@ -1087,8 +1087,8 @@ their full definitions are available in the accompanying source archive.
   caption={The typed transition relation \texttt{TypingStep}$_\texttt{m}$. The \texttt{tensor\_parr} and \texttt{res} constructors are abbreviated; full definitions are in the accompanying source.},
   label={lst:app-typingstep}]
 inductive TypingStep/-$_\texttt{m}$-/ :
-    {n : Nat} -> {/-$\hyp{G}$-/ : HyperEnv} -> {P : Proc} -> Typing n P /-$\hyp{G}$-/ ->
-    Lbl -> {n' : Nat} -> {/-$\hyp{G}$-/' : HyperEnv} -> {P' : Proc} -> Typing n' P' /-$\hyp{G}$-/' -> Prop where
+    {n : Nat} -> {/-$\hyp{G}$-/ : HyperEnv} -> {P : Proc} -> Typing n P /-$\hyp{G}$-/ -> Lbl -> 
+    {n' : Nat} -> {/-$\hyp{G}$-/' : HyperEnv} -> {P' : Proc} -> Typing n' P' /-$\hyp{G}$-/' -> Prop where
   | one {P : Proc} {x : FPName} {n : Nat} {/-$\der{D}$-/ : Typing n P /-$\emptyhyp$-/} :
       TypingStep/-$_\texttt{m}$-/ (Typing.one (x := x) /-$\der{D}$-/) (x/-$\llbracket\rrbracket$-/) /-$\der{D}$-/
   | bot {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {n : Nat}
