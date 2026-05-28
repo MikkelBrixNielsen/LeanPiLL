@@ -138,15 +138,7 @@ The operation is lifted to the full \texttt{Types} syntax by structural recursio
   | .forall_ B => .forall_ (B.subst (shift 0 1 A) (k + 1))
 \end{lstlisting}
 
-The interaction between substitution and local closure is captured by 
-\texttt{Types.lc\_subst\_inv}, which states that substituting a type 
-$A$ locally closed at depth $n + k$ for index $k$ in $B$ preserves 
-local closure: $(B\{A / k\}).\texttt{lc}(n+k) \iff B.\texttt{lc}(n+k+1)$. 
-Intuitively, substituting for index $k$ removes one binder from $B$, 
-so local closure at $n+k$ in the substituted term corresponds to local 
-closure at $n+k+1$ in the original. The specialisation 
-\texttt{Types.lc\_subst\_inv\_0} fixes $k = 0$, which is the form 
-later used in the proof of \texttt{Typing\_preserves\_lc}.
+The interaction between substitution and local closure is captured by \texttt{Types.lc\_subst\_inv}, which states that substituting a type $A$ locally closed at depth $n + k$ for index $k$ in $B$ preserves local closure: $(B\{A / k\}).\texttt{lc}(n+k) \iff B.\texttt{lc}(n+k+1)$. Intuitively, substituting for index $k$ removes one binder from $B$, so local closure at $n+k$ in the substituted term corresponds to local closure at $n+k+1$ in the original. The specialisation \texttt{Types.lc\_subst\_inv\_0} fixes $k = 0$, which is the form later used in the proof of \texttt{Typing\_preserves\_lc}.
 
 \paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The only divergence is that exponentials are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} to avoid clashes with Lean syntax.
 
@@ -470,19 +462,23 @@ The type-depth index is relevant whenever the derivation crosses a polymorphic b
     Typing n (#x/-$\dparenL\diamond\dparenR$-/.P) [/-$\cht{\texttt{x}}{\forall.\texttt{B}} :: \Gamma$-/]
 \end{lstlisting}
 
-The shift \hl{$\thl{\typeshiftsingle{\Gamma}}$} abbreviates shifting the type indices in $\Gamma$ by one, mirroring the binder-sensitive shifting used by type substitution in \cref{subsubsec:stypes}.
+The shift \hl{$\thl{\typeshiftsingle{\Gamma}}$} abbreviates shifting the type indices in $\Gamma$ by one starting at depth $0$, mirroring the binder-sensitive shifting used by type substitution in \cref{subsubsec:stypes}.
 
-% \paragraph{Exchange rules}
-% Rather than building commutativity into every constructor, the typing relation includes two explicit structural rules that allow reasoning up to permutation equivalence:
+% The depth index is also relevant for the~\ref{rule:pill-mix} rule, which requires both sub-derivations to share the same depth $n$. Derivations at different depths can be brought into alignment using \texttt{Typing\_weakening}, which states that if $\judge{n}{P}{\hyp{G}}$ then $\judge{n+c}{\typeshift{P}{d}{c}}{\typeshift{\hyp{G}}{d}{c}}$ for any $c$. This lifts a derivation to a greater depth by shifting all embedded type indices, and is the mechanism by which polymorphic and non-polymorphic components can be composed under~\ref{rule:pill-mix}.
 
 % \begin{lstlisting}[language=Lean4]
-% | exchange_env   : Typing n P (/-$\Gamma$-/ :: /-$\hyp{G}$-/) -> /-$\perm{\Gamma}{\Delta}$-/ -> Typing n P (/-$\Delta$-/ :: /-$\hyp{G}$-/)
-% | exchange_hyper : Typing n P /-$\hyp{G}$-/ -> /-$\perm{\hyp{G}}{\hyp{H}}$-/ -> Typing n P /-$\hyp{H}$-/
+% lemma Typing_weakening {n : Nat} {P : Proc} {/-$\hyp{G}$-/ : HyperEnv} :
+%   Typing n P /-$\hyp{G}$-/ -> /-$\forall$-/ d c, Typing (n + c) (P /-$\uparrow$-/ d, c) (/-$\hyp{G}$-/ /-$\uparrow$-/ d, c) := by ...
 % \end{lstlisting}
 
-% \texttt{exchange\_env} allows replacing a component environment with any permutation-equivalent one, while \texttt{exchange\_hyper} allows replacing the entire hyperenvironment. Together these recover the unordered character of the theoretical presentation from \cref{subsubsec:environments} without requiring a quotient type.
+The depth index is also relevant for the~\ref{rule:pill-mix} rule, which requires both sub-derivations to share the same depth $n$. When derivations are available at different depths, they can be brought into alignment using \texttt{Typing\_weakening}. This lemma states that a derivation at depth $n$ can be lifted to depth $n+c$ by shifting the embedded type indices in both the process and the hyperenvironment:
 
-% The same pattern recurs in \texttt{TypingStep}$_\texttt{m}$ and \texttt{EnvStep}, where analogous exchange constructors allow the source and target hyperenvironments to be replaced by permutation-equivalent ones. This reflects a pervasive consequence of the list-based representation: wherever the theoretical presentation reasons silently about unordered collections, the formalisation requires an explicit structural rule.
+\begin{lstlisting}[language=Lean4]
+lemma Typing_weakening {n : Nat} {P : Proc} {/-$\hyp{G}$-/ : HyperEnv} :
+  Typing n P /-$\hyp{G}$-/ -> /-$\forall$-/ d c, Typing (n + c) (P /-$\uparrow$-/ d, c) (/-$\hyp{G}$-/ /-$\uparrow$-/ d, c) := by ...
+\end{lstlisting}
+
+This provides the weakening principle needed to compose derivations across polymorphic binders while keeping embedded type indices in scope.
 
 \paragraph{Exchange and explicit side conditions}
 Because environments and hyperenvironments are represented as lists, the unordered and partial structure of the theoretical hyperenvironment is recovered explicitly. The typing relation includes exchange rules for reasoning up to permutation equivalence:
