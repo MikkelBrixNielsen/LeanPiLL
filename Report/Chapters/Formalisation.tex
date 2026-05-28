@@ -219,16 +219,6 @@ def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) : Finset Channel :
   zs.image (fun u => u.close x k)
 \end{lstlisting}
 
-\begin{lstlisting}[language=Lean4]
-def Channel.close (u : Channel) (x : FPName) (k : Nat) : Channel :=
-  match u with
-  | .free name => if x == name then .bound k else .free name
-  | .bound i   => .bound i
-
-def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) : Finset Channel :=
-  zs.image (fun u => u.close x k)
-\end{lstlisting}
-
 \paragraph{Local closure} \path{Processes/LocalClosure.lean}
 defines local closure for processes as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. The type depth is needed when a process embeds a type, for instance as the payload of an output prefix, since the embedded type must be checked relative to the current type-binder depth.
 
@@ -464,17 +454,10 @@ The type-depth index is relevant whenever the derivation crosses a polymorphic b
 
 The shift \hl{$\thl{\typeshiftsingle{\Gamma}}$} abbreviates shifting the type indices in $\Gamma$ by one starting at depth $0$, mirroring the binder-sensitive shifting used by type substitution in \cref{subsubsec:stypes}.
 
-% The depth index is also relevant for the~\ref{rule:pill-mix} rule, which requires both sub-derivations to share the same depth $n$. Derivations at different depths can be brought into alignment using \texttt{Typing\_weakening}, which states that if $\judge{n}{P}{\hyp{G}}$ then $\judge{n+c}{\typeshift{P}{d}{c}}{\typeshift{\hyp{G}}{d}{c}}$ for any $c$. This lifts a derivation to a greater depth by shifting all embedded type indices, and is the mechanism by which polymorphic and non-polymorphic components can be composed under~\ref{rule:pill-mix}.
-
-% \begin{lstlisting}[language=Lean4]
-% lemma Typing_weakening {n : Nat} {P : Proc} {/-$\hyp{G}$-/ : HyperEnv} :
-%   Typing n P /-$\hyp{G}$-/ -> /-$\forall$-/ d c, Typing (n + c) (P /-$\uparrow$-/ d, c) (/-$\hyp{G}$-/ /-$\uparrow$-/ d, c) := by ...
-% \end{lstlisting}
-
 The depth index is also relevant for the~\ref{rule:pill-mix} rule, which requires both sub-derivations to share the same depth $n$. When derivations are available at different depths, they can be brought into alignment using \texttt{Typing\_weakening}. This lemma states that a derivation at depth $n$ can be lifted to depth $n+c$ by shifting the embedded type indices in both the process and the hyperenvironment:
 
 \begin{lstlisting}[language=Lean4]
-lemma Typing_weakening {n : Nat} {P : Proc} {/-$\hyp{G}$-/ : HyperEnv} :
+lemma Typing_weakening :
   Typing n P /-$\hyp{G}$-/ -> /-$\forall$-/ d c, Typing (n + c) (P /-$\uparrow$-/ d, c) (/-$\hyp{G}$-/ /-$\uparrow$-/ d, c) := by ...
 \end{lstlisting}
 
@@ -615,26 +598,18 @@ Strictly stepping typing derivations can expose structural artifacts that are us
 \subsubsection{Projected Transition Systems}\label{subsubsec:inducedlts}
 The process and environment transition systems are defined to capture the two erasure views of a typed transition. \texttt{ProcStep}$_\texttt{m}$ records the process behaviour obtained by forgetting typing resources, while \texttt{EnvStep}$_\texttt{m}$ records the corresponding resource evolution. These relations are later connected to \texttt{TypingStep}$_\texttt{m}$ by the simulation theorems in \cref{subsec:session-fidelity}.
 
-% While \texttt{TypingStep}$_\texttt{m}$ defines the complete, resource-aware dynamics of the calculus, extracting the independent process and environment LTSs is mathematically necessary to demonstrate that the linear type system is sound with respect to the underlying untyped semantics. 
-
-% By projecting the complete typing derivations into these independent transition systems, the formalisation reproduces the paper's erasure properties. 
-
-% Consequently, these projected relations not only fulfill the theoretical requirements of the calculus, but also serve the practical purpose of separating concerns, thereby keeping the mechanised simulation proofs tractable.
-
 \paragraph{Process steps}
 \texttt{ProcStep}$_\texttt{m}$ models the syntactic evolution of processes independently of typing resources. Unlike the typing relation, it is not indexed by a typing derivation and therefore does not use co-finite premises. Binder-opening rules instead choose concrete fresh names directly and record the required freshness as explicit side conditions. For example, the \texttt{tensor} rule opens the continuation with a concrete name $y$, requiring $y$ to be fresh for both the subject channel and the continuation:
 
 \begin{lstlisting}[language=Lean4]
-  | tensor {P : Proc} {x y : FPName} (hF : y /-$\notin$-/ {x} /-$\cup$-/ P.f) :
+  | tensor (hF : y /-$\notin$-/ {x} /-$\cup$-/ P.f) :
       ProcStep/-$_\texttt{m}$-/ (/-$\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}$-/) (/-$\dlsend{\texttt{x}}{\texttt{y}}$-/) /-$\dopen{\texttt{P}}{\texttt{\#y}}$-/
 \end{lstlisting}
 
-This creates a mismatch with the co-finite formulation of the typing rules. Thus \texttt{ProcStep}$_\texttt{m}$ remains close to a standard concrete transition relation, while the additional freshness reconciliation is handled in the typability proof. A co-finite formulation of \texttt{ProcStep}$_\texttt{m}$ would align more directly with the typing rules, but the present formulation keeps the erased LTS closer to a standard concrete transition relation.
+This creates a mismatch with the co-finite formulation of the typing rules. Thus \texttt{ProcStep}$_\texttt{m}$ remains close to a standard concrete transition relation, while the additional freshness reconciliation is handled in the typability proof. A co-finite formulation of \texttt{ProcStep}$_\texttt{m}$ would align more directly with the typing rules, but the present formulation keeps the erased LTS closer to a standard concrete transition relation. The full inductive definition of \texttt{ProcStep} is defined in \cref{app:transition-systems} \cref{lst:app-procstep}.
 
 \paragraph{Environment steps}
-The structural evolution of hyperenvironments, written $\hyp{G} \xrightarrow{l} \hyp{H}$, is formalised by \texttt{EnvStep}$_\texttt{m}$. Unlike the typed transition system, \texttt{EnvStep}$_\texttt{m}$ deliberately contains only the resource transformation described by the label. For example, an input action on an endpoint typed by $\bot$ consumes that resource:
-$\Gamma, \cht{x}{\bot} \xrightarrow{x()} \Gamma$.
-Similarly, an empty output on an endpoint typed by $1$ evolves $\cht{x}{1}$ to the empty environment. These rules describe how session types evolve as actions are performed, independently of any particular process term.
+The structural evolution of hyperenvironments, written $\hyp{G} \xrightarrow{l} \hyp{H}$, is formalised by \texttt{EnvStep}$_\texttt{m}$. Unlike the typed transition system, \texttt{EnvStep}$_\texttt{m}$ deliberately contains only the resource transformation described by the label. For example, an input action on an endpoint typed by $\bot$ consumes that resource: $\Gamma, \cht{x}{\bot} \xrightarrow{x()} \Gamma$. Similarly, an empty output on an endpoint typed by $1$ evolves $\cht{x}{1}$ to the empty environment. These rules describe how session types evolve as actions are performed, independently of any particular process term.
 
 The relation does not independently enforce all disjointness and well-formedness conditions. Those properties are supplied by the typing derivation in \texttt{TypingStep}$_\texttt{m}$. This separation keeps the projected resource semantics lightweight: the environment relation describes how resources change, while the typed semantics proves that these changes occur from well-formed typing environments.
 

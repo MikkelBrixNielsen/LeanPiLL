@@ -25,11 +25,7 @@ theorem session_fidelity_env/-$_\texttt{m}$-/
 
 These results establish that typed transitions project to the corresponding process and environment transitions. Both proofs proceed by induction on the typed transition derivation. Most cases are immediate constructor translations. The main exception is formed by the \texttt{tensor} and \texttt{parr} prefix cases, where the projected process and environment rules require explicit freshness and disjointness side conditions. These are recovered from the co-finite typing premises by instantiating the continuation with a sufficiently fresh auxiliary name and using the typing invariants \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_linearity}. For the process projection, this also requires relating the free names of an opened process to those of the original continuation.
 
-These are recovered from the co-finite typing premises by instantiating 
-the continuation with a sufficiently fresh auxiliary name and using the 
-typing invariants \texttt{Typing\_f\_eq\_names} and 
-\texttt{Typing\_preserves\_linearity} established in 
-\cref{subsubsec:subsubsec:judgements}.
+These are recovered from the co-finite typing premises by instantiating the continuation with a sufficiently fresh auxiliary name and using the typing invariants \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_linearity} established in \cref{subsubsec:judgements}.
 
 \paragraph{Typability}
 The main lifting theorem is stated in \path{Typability.lean}. It corresponds to the reverse direction of the erasure correspondence: given a process transition from a well-typed process, the transition can be lifted to the level of typing derivations.

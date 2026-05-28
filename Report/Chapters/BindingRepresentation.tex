@@ -1,17 +1,3 @@
-% When introducing LN say something like "We adopt a locally nameless representation to simplify mechanization and avoid α-equivalence reasoning.”
-
-% This sections should primarly focus on what tools have been chosen and why. Save the implementation details of how they have been used or influenced definitons to later when actually describing the formalization.
-    % The problem bindings in paper and conventions used to not have to reason directly about this but rather by assumptiosn one can get around them.
-    % What do we want to achieve by chaning the binding representation and using these tools (design goals / choices). 
-
-
-% This is probably to implementation heavy to be in this section, but some of it may be usable:
-    % The problem of papers using bergendt naming conventions, which is very convinient but does not hold in a mechanization.
-    % The burden of formalizing alpha equivalence, and capture avoiding substitution all because of having explicitly named variables (needs explicit freshness and essentially have no constraints). 
-    % Locally Namesless as a tool to lessen the burden of explicit names variables, while still keeping some readability but letting the free names of a process (resepctively the names mentioned in an environment) be explicit and turning the bound variables into indices, reducing AlphaEq to structural Eq, since it is defined to only care about the bound names, as they are the only relevant names when talking about the behaviour of a process, since the free names are simply local to the processes itself, so its behavior does not change whether we are talking about it saving a value to x or y and then using that variable later, where as whether or not the process sends through the bound variable z or w can have entirely different meanings.
-    % De Durijn as a tool to be able to reason about the safety of inserting a type into a Typing with out it accedentally capturing another Type name. (This made the proof of type substitution into a typing possible without having to default to assuming the bergendt variable convetion but rather formalizing it)
-    % The above supports a rigid mechanization in Lean being fully self contained i.e. not relying on assumed convetions but rather having the tools necessary to reason along these convetions without bogging down and simply writing sorry, or only enforcing a local hypothesis not supported by the underlying type system. By including the above into processes and types the foundation of the typing system now includes this notion and can use it in proofs.
-
 \section{Binding Architecture}\label{sec:binding-architecture}
 This chapter develops the locally nameless binding architecture used 
 throughout the formalisation. We begin by stating the design goals that 
@@ -24,7 +10,7 @@ This chapter introduces the binding representation used throughout the formalisa
 \begin{enumerate}
     \item \textbf{Eliminate $\alpha$-equivalence overhead.} $\alpha$-equivalent terms should be represented identically, reducing $\alpha$-equivalence reasoning to definitional equality within the proof assistant.
     \item \textbf{Preserve human readability.} Terms should remain explicit and concrete, keeping substitution and freshness reasoning close to their paper-based presentation.
-    \item \textbf{Avoid informal meta-level conventions.} The representation should not rely on Barendregt's convention or unverified freshness assumptions; capture avoidance and freshness conditions should instead be enforced by construction.
+    \item \textbf{Avoid informal meta-level conventions.} The representation should not rely on Barendregt's convention or unverified freshness assumptions. Capture avoidance and freshness conditions should instead be enforced by construction.
 \end{enumerate}
 
 Although both channels and type variables involve binding, they exhibit fundamentally different operational behaviour. Session channels participate in dynamic communication and substitution across concurrent processes, while polymorphic type variables remain statically scoped within typing derivations. The formalisation therefore adopts different binding strategies for these two classes of identifiers while maintaining a common underlying binding architecture.
@@ -58,7 +44,7 @@ Here, a free type variable carries a unique identifier $x$, while a bound type v
 \end{highlight}
 
 \paragraph{LN Syntax for Processes.}
-Similarly, the standard process syntax displayed in~\Cref{tab:pill-proc-syntax} is updated to reflect the locally nameless separation of channel endpoints. A channel is split into its bound and free counterparts, where bound channel names are represented by indices, while free channels remain explicit identifiers. 
+Similarly, the standard process syntax displayed in~\Cref{tab:pill-proc-syntax} is updated to reflect the locally nameless separation of channel endpoints. A channel is split into its bound and free counterparts, where bound channel names are represented by indices, while free channels remain explicit identifiers. This split reflects a semantic distinction: free channel names are observable, appearing in transition labels and typing environments, while bound names are purely structural. Renaming a bound variable never changes the behaviour of a process, whereas renaming a free channel can alter which sessions it participates in. The locally nameless representation makes this distinction explicit by construction.
 
 Naively removing the bound names from the process syntax would turn binding operations such as \hl{$\phl{\send{x}{y}{P}}$} and \hl{$\phl{\recv{x}{y}{P}}$} into \hl{$\phl{\send{x}{}{P}}$} and \hl{$\phl{\recv{x}{}{P}}$} making them syntactically indistinguishable from their non-binding unit counterparts. To combat this we annotate anonymous binders using placeholder symbols. We use $\bullet$ for a bound process name, and $\diamond$ for a bound type variable.
 
@@ -150,6 +136,3 @@ Rather than opening the binder with a fresh explicit name, the typing judgment s
 Here, the rule states that the process is well-typed if, for any fresh channel variable $y$ outside some finite set of forbidden variables $L$, the opened process $\phl{P}$ is well-typed under the environment extended with the opened payload. By utilizing this mixed evaluation strategy, co-finite quantification for dynamic channels, and depth-indexed evaluation for static types, the architecture minimizes bureaucratic renaming overhead while maintaining a unified underlying syntax.
 
 With this mathematical foundation established, the conceptual theory of \pill{} is fully prepared for implementation. The following chapter details how this locally nameless architecture is concretely mechanised in the Lean 4 proof assistant.
-
-% FIXME: Should this be included?
-The corresponding Lean definitions for channels, opening and closing, and selected local-closure predicates are included in \cref{app:selected-definitions}; the full development is available in the accompanying codebase.
