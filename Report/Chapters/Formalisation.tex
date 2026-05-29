@@ -2,7 +2,7 @@
 This section describes the mechanisation of \pill{} in Lean 4, bridging the theoretical foundations developed in~\cref{sec:background,sec:binding-architecture} and their concrete implementation. The formalisation is organised into three top-level namespaces: \texttt{PiLL.Model}, which defines the static structure of the calculus, \texttt{PiLL.Semantics}, which defines its operational behaviour, and \texttt{PiLL.SessionFidelity}, which establishes the metatheoretic results connecting the two. Each component is presented in dependency order, highlighting design decisions and divergences from~\citet{abs-2106-11818}.
 
 \subsection{Model}\label{subsec:model}
-The \texttt{Model} namespace formalizes the static structure of the full \pill{} calculus and is organized around the layered architecture introduced in~\cref{sec:background}. The mechanisation proceeds bottom-up: session types, defined in \texttt{STypes/}, provide the binding structure used by processes in \texttt{Processes/}, processes are then typed relative to environments and hyperenvironments from \texttt{Environments/} and \texttt{HyperEnvironment/}, finally, typing derivations and their metatheoretic infrastructure are collected in \texttt{Judgement/}. This includes inversion lemmas, linearity properties, substitution principles, and the co-finite freshness machinery described in~\cref{subsec:co-finite-quantification}. Shared syntactic infrastructure used across these layers is provided by \texttt{Base.lean}.
+The \texttt{Model} namespace formalizes the static structure of the full \pill{} calculus and is organized around the layered architecture introduced in~\cref{sec:background}. The mechanisation proceeds bottom-up: session types, defined in \texttt{STypes/}, provide the binding structure used by processes in \texttt{Processes/}, processes are then typed relative to environments and hyperenvironments from \texttt{Environments/} and \texttt{HyperEnvironment/}, finally, typing derivations and their metatheoretic infrastructure are collected in \texttt{Judgement/}. This includes inversion lemmas, linearity properties, substitution principles, and the co-finite freshness machinery described in~\cref{subsec:co-finite-quantification}. Shared syntactic infrastructure used across these layers is provided by \texttt{Base.lean}. An overveiw of the file structure can be found in \cref{lst:lean-file-structure}.
 
 % FIXME: How much of this is relevant, and maybe actually just mention the specifics when they become relevant throughout the other sections?
 % \paragraph{Base}\label{paragraph:base}
@@ -140,7 +140,13 @@ The operation is lifted to the full \texttt{Types} syntax by structural recursio
 
 The interaction between substitution and local closure is captured by \texttt{Types.lc\_subst\_inv}, which states that substituting a type $A$ locally closed at depth $n + k$ for index $k$ in $B$ preserves local closure: $(B\{A / k\}).\texttt{lc}(n+k) \iff B.\texttt{lc}(n+k+1)$. Intuitively, substituting for index $k$ removes one binder from $B$, so local closure at $n+k$ in the substituted term corresponds to local closure at $n+k+1$ in the original. The specialisation \texttt{Types.lc\_subst\_inv\_0} fixes $k = 0$, which is the form later used in the proof of \texttt{Typing\_preserves\_lc}.
 
-\paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The only divergence is that exponentials are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} to avoid clashes with Lean syntax.
+\paragraph{Notation} \path{STypes/Notation.lean} introduces notation 
+mirroring the mathematical presentation from \cref{subsec:types}. The 
+only divergence is that exponentials are written \hl{$\thl{\bang\bang A}$} 
+and \hl{$\thl{\query\query A}$} to avoid clashes with Lean syntax, and 
+linear implication $\thl{A \linimp B}$ is defined as syntactic sugar 
+for $\thl{A^\bot \parr B}$. The full notation is listed in 
+\cref{app:common-notation}.
 
 \subsubsection{Processes}\label{subsubsec:processes}
 Processes are defined in \path{Processes/Basic.lean} as the inductive type \texttt{Proc}. Following the established locally nameless architecture, channel references are partitioned into a dedicated \texttt{Channel} inductive. Explicit free channels are instantiated as concrete natural numbers (\texttt{FPName}). While the raw process syntax permits arbitrary reuse of these numbers, using \texttt{Nat} allows the formalisation to systematically compute strictly fresh names by incrementing the supremum of any finite set of existing names (mechanised in \path{Processes/Fresh.lean}). Conversely, bound channels are represented using De Bruijn indices, encoding their relative distance to the corresponding binder.
@@ -173,9 +179,9 @@ Notice that \texttt{cut} takes only a continuation \hl{$\phl{P}$} with no explic
 
 \paragraph{Opening and closing} \path{Processes/OpenClose.lean} defines opening and closing operations following the locally nameless principles established in \cref{subsec:opening-and-closing}. In the theoretical presentation, opening a process at depth $k$ with $x$ is denoted as \hl{$\phl{\{k \mapsto x\}P}$}, and conversely, abstracting a specific name back into a bound index is denoted as \hl{$\phl{\{k \mapsfrom x\}P}$}. 
 
-To mechanise this in Lean, we denote explicit free channels as $\#x$ (mapping to \texttt{Channel.free x}) and introduce custom notation for these substitution operations. Expressions such as $\dopen{P}{k | \#x}$ and $\dopen{P}{k | \#x,\#y}$ denote the opening of a process by instantiating the $k$-th (and $k+1$-th) bound indices with free channels. Conversely, $\dclose{P}{k | \#x}$ and $\dclose{P}{k | \#x, \#y}$ denote the closing of a process by abstracting $x$ and $y$ back into De Bruijn indices. For convenience, the depth parameter can be omitted when operating at the innermost binder ($k=0$), simplifying the notation to $\dopen{P}{\#x,\#y}$ and $\dclose{P}{\#x,\#y}$.
+To mechanise this in Lean, we denote explicit free channels as $\#x$ (mapping to \texttt{Channel.free x}) and introduce custom notation for these substitution operations. Expressions such as $\dopen{P}{k | \#x}$ and $\dopen{P}{k | \#x,\#y}$ denote the opening of a process by instantiating the $k$-th (and $k+1$-th) bound indices with free channels. Conversely, $\dclose{P}{k | \#x}$ and $\dclose{P}{k | \#x, \#y}$ denote the closing of a process by abstracting $x$ and $y$ back into De Bruijn indices. For convenience, the depth parameter can be omitted when operating at the innermost binder ($k=0$), simplifying the notation to $\dopen{P}{\#x,\#y}$ and $\dclose{P}{\#x,\#y}$. The typeclasses and notation declarations supporting these overloaded operations are collected in \cref{app:common-notation}.
 
-Because binders are represented positionally, the depth parameter $k$ increments according to the number of channels bound by each constructor. For standard communication prefixes like \texttt{tensor}, \texttt{parr}, and the server \texttt{duplicate} operation, exactly one channel is bound, incrementing $k$ by one. The restriction constructor (\texttt{cut}) simultaneously binds two dual endpoints, requiring $k$ to increment by two. The \texttt{input} constructor binds a type variable rather than a channel and therefore leaves $k$ unchanged. The \texttt{server} constructor additionally carries an explicit set of dependency channels \texttt{zs~: Finset Channel}, representing the replicable processes the server depends on, which must be acted on simutaneously with $x$ and $P$.
+Because binders are represented positionally, the depth parameter $k$ increments according to the number of channels bound by each constructor. For standard communication prefixes like \texttt{tensor}, \texttt{parr}, and the server \texttt{duplicate} operation, exactly one channel is bound, incrementing $k$ by one. The restriction constructor (\texttt{cut}) simultaneously binds two dual endpoints, requiring $k$ to increment by two. The \texttt{input} constructor binds a type variable rather than a channel and therefore leaves $k$ unchanged. The \texttt{server} constructor additionally carries an explicit set of dependency channels \texttt{zs~: Finset Channel}, representing the replicable processes the server depends on,which must be acted on simultaneously with $x$ and $P$.
 
 \begin{lstlisting}[language=Lean4]
 def Proc.open (P : Proc) (u : Channel) (k : Nat) : Proc :=
@@ -189,7 +195,7 @@ def Proc.open (P : Proc) (u : Channel) (k : Nat) : Proc :=
   | ...
 \end{lstlisting}
 
-At the leaves of the syntax tree, this recursive traversal delegates to the base case defined by \texttt{Channel.open} and \texttt{Finset.open}. For bound channels, the De Bruijn index $i$ is compared against the target depth $k$ and replaced with $v$ upon an exact match. For dependency sets, \texttt{Channel.open} is mapped pointwise. In both cases free channels remain entirely unaffected:
+For channel occurrences, the recursive traversal delegates to \texttt{Channel.open}, for the dependency set carried by a server, it uses the pointwise lifting \texttt{Finset.open}. For bound channels, the De Bruijn index $i$ is compared against the target depth $k$ and replaced with $v$ upon an exact match. For dependency sets, \texttt{Channel.open} is mapped pointwise. In both cases free channels remain entirely unaffected:
 
 \begin{lstlisting}[language=Lean4]
 def Channel.open (u v : Channel) (k : Nat) : Channel :=
@@ -200,7 +206,7 @@ def Finset.open (zs : Finset Channel) (v : Channel) (k : Nat) : Finset Channel :
   zs.image (fun u => u.open v k)
 \end{lstlisting}
 
-For restriction the \texttt{HasOpenTwo} typeclass from \path{Base.lean} is instantiated by opening sequentially: first replacing index $k+1$ with the second endpoint $v$, then replacing index $k$ with the first endpoint $u$:
+For restriction, the two-name opening interface is instantiated by sequential opening, replacing index $k+1$ with the second endpoint $v$, then replacing index $k$ with the first endpoint $u$:
 
 \begin{lstlisting}[language=Lean4]
 instance : HasOpenTwo Proc Channel Channel Nat where
@@ -317,6 +323,8 @@ The first group supports the typing invariants. \texttt{Proc.f\_open\_erase} and
 The second group supports the substitution lemmas. \texttt{Proc.open\_substNames\_comm} and \texttt{Proc.openCut\_substNames\_comm} establish that opening and name substitution commute, while the corresponding lemmas for type substitution (\texttt{Proc.open\_substTypes\_comm} and \texttt{Proc.openCut\_substTypes\_comm}) ensure that substituting under a binder produces the same result regardless of order. These are essential in the typability proof, where co-finite witnesses from the typing rules must be reconciled with the concrete names introduced by process transitions.
 
 The third group supports freshness reasoning. \texttt{Proc.not\_mem\_f\_open} states that a name fresh for both a process and a channel does not appear in the opened process, providing the freshness conditions needed in the typability cases. These results provide the core infrastructure required for the transition semantics developed in subsequent chapters.
+
+\paragraph{Notation} \path{Processes/Notation.lean} introduces process prefix notation mirroring the locally nameless syntax established in \cref{subsec:locally-nameless}. For example, \hl{$\phl{\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}}$} maps to \texttt{Proc.tensor (\#x) P} and \hl{$\phl{\res{(\bullet,\bullet)}{\texttt{P}}}$} maps to \texttt{Proc.cut P}. Parallel composition and the terminated process are written \hl{$\phl{P \pp Q}$} and \hl{$\phl{\nil}$} respectively. The full notation is listed in \cref{app:common-notation}.
 
 \subsubsection{Environments}\label{subsubsec:environments}
 Environments are defined in \path{Environment/Basic.lean} as 
@@ -509,7 +517,7 @@ The proof proceeds by induction on the typing derivation. Most cases follow by u
 
 This ensures exact correspondence between process free names and typed environment entries: no free process channel is left untyped, and no environment entry is unused.
 
-Building on this, \path{Judgement/Properties/Linearity.lean} proves that 
+Building on this,~\path{Judgement/Properties/Linearity.lean} proves that 
 any well-typed hyperenvironment is pairwise disjoint and all component 
 environments have no duplicate names.
 

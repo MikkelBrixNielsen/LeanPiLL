@@ -50,15 +50,14 @@
 \renewcommand{\l@subsubsection}{\@dottedtocline{3}{3.8em}{4.1em}}
 \makeatother
 
-\usepackage{bbm}
 \usepackage{listings}
 \crefname{lstlisting}{Listing}{Listings}
 \Crefname{lstlisting}{Listing}{Listings}
 \lstdefinelanguage{Lean4}{
   keywords={def, abbrev, inductive, structure, class, instance, theorem, lemma, example, where, match, with, if, then, else,
-    fun, let, in, by, import, namespace, section, variable, universe, Type, Prop, infixl, infixr, prefix, max},
+    fun, let, in, by, import, namespace, section, variable, universe, Type, Prop, infixl, infixr, prefix, max, postfix, infix},
   morekeywords=[2]{simp, rw, exact, apply, intro, intros, cases, constructor, induction, have, refine, aesop, omega, rfl, assumption, contradiction},
-  morekeywords=[3]{simp, reducible, irreducible, inline},
+  morekeywords=[3]{notation, reducible, irreducible, inline},
   sensitive=true,
   comment=[l]{--},
   morestring=[b]",
@@ -195,15 +194,15 @@ Ord ord ord ord ord ord ord ord ord ord ord
 
 \clearpage
 
-\input{Chapters/Introduction}
-\input{Chapters/background}
-\input{Chapters/BindingRepresentation}
-\input{Chapters/Formalisation}
-\input{Chapters/Metatheory}
-\input{Chapters/Discussion}
-\input{Chapters/FutureWork}
-\input{Chapters/Conclusion}
-\bibliography{references} % out commenting this breaks references
+% \input{Chapters/Introduction}
+% \input{Chapters/background}
+% \input{Chapters/BindingRepresentation}
+% \input{Chapters/Formalisation}
+% \input{Chapters/Metatheory}
+% \input{Chapters/Discussion}
+% \input{Chapters/FutureWork}
+% \input{Chapters/Conclusion}
+% \bibliography{references} % out commenting this breaks references
 \input{Chapters/Appendix}
 
 \end{document}

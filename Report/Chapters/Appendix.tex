@@ -37,7 +37,7 @@ PiLL/
 \section{Common Lean Notation}\label{app:common-notation}
 The notation is purely an overloading layer. Each syntactic category supplies its own instance, while the displayed symbols allow the same operation to be written uniformly throughout the formalisation.
 
-The development uses a collection of typeclasses to overload recurring operations across syntactic categories. This allows shifting, substitution, opening, closing, prefix notation, and permutation to be written uniformly for types, processes, environments, hyperenvironments, actions, and labels. The following listing gives the common notation layer used throughout the later appendix excerpts.
+\paragraph{Type Classes} The development uses a collection of typeclasses to overload recurring operations across syntactic categories. This allows shifting, substitution, opening, closing, prefix notation, and permutation to be written uniformly for types, processes, environments, hyperenvironments, actions, and labels. The following listing gives the common notation layer used throughout the later appendix excerpts.
 
 \begin{lstlisting}[
   language=Lean4,
@@ -95,6 +95,58 @@ class HasPerm (/-$\alpha$-/ : Type) where
   perm : /-$\alpha$-/ -> /-$\alpha$-/ -> Prop
 
 infixr:54 " /-$\sim$-/ " => HasPerm.perm
+\end{lstlisting}
+
+\paragraph{Type Notation}
+The notation in the following listing presents the Lean constructors for session types using the symbols adopted throughout the thesis. In particular, it defines notation for the linear-logic connectives, exponentials, quantifiers, duality, and linear implication, allowing later definitions and theorem statements to closely resemble their mathematical presentation.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Notation for session-type constructors. These declarations provide concrete syntax for the linear-logic connectives, exponentials, quantifiers, duality, and linear implication.},
+  label={lst:lean-type-notation}
+]
+instance : One Types := /-$\langle$-/Types.one/-$\rangle$-/
+instance : Bot Types := /-$\langle$-/Types.bot/-$\rangle$-/
+infixr:90 " /-$\tensor$-/ " => Types.tensor
+infixr:90 " /-$\oplus$-/ " => Types.oplus
+infixr:90 " /-$\parr$-/ " => Types.parr
+infixr:90 " & " => Types.amp
+prefix:95 "??" => Types.quest
+prefix:95 "!!" => Types.bang
+prefix:max "/-$\exists$-/." => Types.exists_
+prefix:max "/-$\forall$-/." => Types.forall_
+postfix:max "/-$^\bot$-/" => Types.dual
+infix:90 " /-$\mathbin{\multimap}$-/ " => Types.linImpl
+\end{lstlisting}
+
+\paragraph{Process Notation}
+The following listing defines the concrete Lean notation used for process terms. The notation mirrors the process syntax introduced in the theoretical presentation, including prefix forms, restriction, branching, server actions, links, parallel composition, and the inactive process. This notation is used throughout the later typing and transition-system listings.
+
+\begin{lstlisting}[
+  language=Lean4, 
+  caption={Notation for process constructors. These declarations provide concrete syntax for prefixes, restriction, branching, server actions, links, parallel composition, and the inactive process.},
+  label={lst:lean-process-notation}
+]
+notation:80 x "/-$\dbrackL$-//-$\dbrackR$-/." P => Proc.one x P
+notation:80 x "/-$\dbrackL$-//-$\bullet$-//-$\dbrackR$-/." P => Proc.tensor x P
+notation:80 x "/-$\dbrackL$-/" A "/-$\dbrackR$-/." P => Proc.output x P A
+notation:80 x "/-$\dparenL$-//-$\dparenR$-/." P => Proc.bot x P
+notation:80 x "/-$\dparenL$-//-$\bullet$-//-$\dparenR$-/." P => Proc.parr x P
+notation:80 x "/-$\dparenL$-//-$\diamond$-//-$\dparenR$-/." P => Proc.input x P
+
+notation:75 "/-$\mathit{v}\dparenL$-//-$\bullet$-/,/-$\bullet$-//-$\dparenR$-/ " P:80 => Proc.cut P
+notation:80 x "/-$\dbrackL$-//-$\mathbf{L}$-//-$\dbrackR$-/." P:80 => Proc.selectL x P
+notation:80 x "/-$\dbrackL$-//-$\mathbf{R}$-//-$\dbrackR$-/." P:80 => Proc.selectR x P
+notation:80 x "/-$\dbrackL$-/USE/-$\dbrackR$-/." P:80 => Proc.consume x P
+notation:80 x "/-$\dbrackL$-/DUP/-$\dbrackR$-//-$\dparenL$-//-$\bullet$-//-$\dparenR$-/." P:80 => Proc.duplicate x P
+notation:80 x "/-$\dbrackL$-/DISP/-$\dbrackR$-/." P:80 => Proc.dispose x P
+notation:80 "!" x ".{" P:80 "}" => Proc.server x /-$\emptyset$-/ P
+notation:80 "!" x "/-$\langle$-/" zs "/-$\rangle$-/.{" P:80 "}" => Proc.server x zs P
+notation:80 x ".case{/-$\mathbf{L}$-/" " : " P:80 ", " "/-$\mathbf{R}$-/" " : " Q :80"}" => Proc.amp x P Q
+
+notation:80 x "/-$\leftrightarrow_\texttt{p}$-/" y => Proc.link x y
+infixr:70 " /-$\pp_\texttt{p}$-/ " => Proc.par
+notation "/-$\nil$-/" => Proc.nil 
 \end{lstlisting}
 
 \section{Selected Core Definitions}\label{app:selected-core-definitions}
