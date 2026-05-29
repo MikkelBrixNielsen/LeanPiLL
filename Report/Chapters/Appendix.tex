@@ -41,7 +41,7 @@ The notation is purely an overloading layer. Each syntactic category supplies it
 
 \begin{lstlisting}[
   language=Lean4,
-  caption={Common typeclasses and notation used throughout the Lean development.}
+  caption={Common typeclasses and notation used throughout the Lean development.},
   label={lst:lean-common-notation}
 ]
 class HasShift (Subject : Type) where
@@ -103,7 +103,7 @@ The notation in the following listing presents the Lean constructors for session
 \begin{lstlisting}[
   language=Lean4,
   caption={Notation for session-type constructors. These declarations provide concrete syntax for the linear-logic connectives, exponentials, quantifiers, duality, and linear implication.},
-  label={lst:lean-type-notation}
+  label={lst:app-lean-type-notation}
 ]
 instance : One Types := /-$\langle$-/Types.one/-$\rangle$-/
 instance : Bot Types := /-$\langle$-/Types.bot/-$\rangle$-/
@@ -125,7 +125,7 @@ The following listing defines the concrete Lean notation used for process terms.
 \begin{lstlisting}[
   language=Lean4, 
   caption={Notation for process constructors. These declarations provide concrete syntax for prefixes, restriction, branching, server actions, links, parallel composition, and the inactive process.},
-  label={lst:lean-process-notation}
+  label={lst:app-lean-process-notation}
 ]
 notation:80 x "/-$\dbrackL$-//-$\dbrackR$-/." P => Proc.one x P
 notation:80 x "/-$\dbrackL$-//-$\bullet$-//-$\dbrackR$-/." P => Proc.tensor x P
@@ -147,6 +147,51 @@ notation:80 x ".case{/-$\mathbf{L}$-/" " : " P:80 ", " "/-$\mathbf{R}$-/" " : " 
 notation:80 x "/-$\leftrightarrow_\texttt{p}$-/" y => Proc.link x y
 infixr:70 " /-$\pp_\texttt{p}$-/ " => Proc.par
 notation "/-$\nil$-/" => Proc.nil 
+\end{lstlisting}
+
+\paragraph{Label notation}
+The label syntax reuses the bracket and parenthesis notation introduced for process prefixes. Atomic actions instantiate the common \texttt{HasBracket} and \texttt{HasParen} interfaces, while generic instances lift this notation from \texttt{Act} to \texttt{Lbl}. Consequently, the same surface notation can denote either a process prefix or the corresponding transition label, depending on its expected type.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Notation instances for actions and transition labels. Atomic action notation is lifted to labels so that transition labels mirror process-prefix notation.},
+  label={lst:app-lean-label-notation}
+]
+notation "/-$\mathbf{L}$-/"    => Mu.L
+notation "/-$\mathbf{R}$-/"    => Mu.R
+notation "USE"  => Mu.USE
+notation "DUP"  => Mu.DUP
+notation "DISP" => Mu.DISP
+
+@[simp] instance : HasBracket FPName Unit Act where
+  brack x _ := Act.one x
+@[simp] instance : HasBracket FPName FPName Act where
+  brack x y := Act.tensor x y
+@[simp] instance : HasBracket FPName Types Act where
+  brack x A := Act.output x A
+@[simp] instance : HasBracket FPName Mu Act where
+  brack x /-$\mu$-/ := Act.muBrack x /-$\mu$-/
+
+@[simp] instance : HasParen FPName Unit Act where
+  paren x _ := Act.bot x
+@[simp] instance : HasParen FPName FPName Act where
+  paren x y := Act.parr x y
+@[simp] instance : HasParen FPName Types Act where
+  paren x A := Act.input x A
+@[simp] instance : HasParen FPName Mu Act where
+  paren x /-$\mu$-/ := Act.muParen x /-$\mu$-/
+
+@[simp] instance {S C : Type} [HasBracket S C Act] :
+    HasBracket S C Lbl where
+  brack s c := Lbl.act (HasBracket.brack s c)
+
+@[simp] instance {S C : Type} [HasParen S C Act] :
+    HasParen S C Lbl where
+  paren s c := Lbl.act (HasParen.paren s c)
+
+notation:80 x " /-$\leftrightarrow_{\texttt{l}}$-/ " y => Lbl.link x y
+notation:70 l " /-$\pp_{\texttt{l}}$-/ " l' => Lbl.par l l'
+notation:80 "/-$\tau$-/" => Lbl.tau
 \end{lstlisting}
 
 \section{Selected Core Definitions}\label{app:selected-core-definitions}
@@ -959,7 +1004,7 @@ deriving DecidableEq, BEq
 
 % The disjointness lemmas in the above listing decompose global name-disjointness into componentwise obligations. This is useful when a proof must show that resources in different hyperenvironment components remain separated after applying exchange, merge, or transition rules.
 
-\subsection{Judgements}
+\subsection{Judgements}\label{app:judgement-basic-definition}
 This listing gives the Lean definition of the main typing judgement, including the constructors for the static \pill{} typing relation and the exchange rules used to account for list-based environments.
 
 \begin{lstlisting}[
@@ -1442,9 +1487,9 @@ lemma Typing_inv_tensor {n : Nat} {P : Proc} {/-$\hyp{G}$-/ : HyperEnv} {x : FPN
 \end{lstlisting}
 
 \paragraph{Hyperenvironment extraction}
-Extraction lemmas isolate specific components from a hyperenvironment permutation, exposing the typing context required for a particular transition case. The following statement is representative of the extraction lemmas used in the \texttt{tensor\_parr} case of \texttt{typability\_subject\_reduction}$_\texttt{m}$. Since hyperenvironments are represented as lists modulo permutation, the extracted components can appear in different relative positions. The lemma therefore returns a disjunction covering the possible arrangements.
+Extraction lemmas isolate specific components from a hyperenvironment permutation, exposing the typing context required for a particular transition case. The following statement is representative of the extraction lemmas used when reconstructing a \path{tensor\_parr} synchronisation beneath an enclosing restriction in the proof of \path{typability\_subject\_reduction}$_\texttt{m}$. Since hyperenvironments are represented as lists modulo permutation, the extracted components can appear in different relative positions. The lemma therefore returns a disjunction covering the possible arrangements.
 
-The proof proceeds by membership extraction through the pre-transition permutation, followed by case analysis on the relative positions of the restricted endpoints. Freshness and inequality assumptions rule out impossible coincidences, while the valid branches reconstruct the resulting hyperenvironment permutations using permutation rotation, merge, and cancellation lemmas.
+The proof proceeds by extracting component membership from the pre-transition permutation, followed by case analysis on the relative positions of the restricted endpoints. Freshness and inequality assumptions rule out impossible coincidences, while the valid branches reconstruct the resulting hyperenvironment permutations using permutation rotation, merge, and cancellation lemmas.
 
 \begin{lstlisting}[language=Lean4,
   caption={Representative hyperenvironment extraction lemma for the tensor-parr synchronisation case.},
