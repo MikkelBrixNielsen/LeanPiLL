@@ -1046,11 +1046,11 @@ inductive Typing : Nat -> Proc -> HyperEnv -> Prop where
 
   | oplus/-$_\texttt{1}$-/ {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
       B.lc n -> Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} \texttt{::} \Gamma$-/] ->
-      Typing n (#x/-$\dbrackL\mathbf{L}\dbrackR$-/.P) [/-$\cht{x}{\texttt{A}\oplus\texttt{B}} \texttt{::} \Gamma$-/]
+      Typing n (#x/-$\dbrackL\mathbf{L}\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\texttt{A}\oplus\texttt{B}} \texttt{::} \Gamma$-/]
 
   | oplus/-$_\texttt{2}$-/ {/-$\Gamma$-/ : Env} {P : Proc} {x : FPName} {A B : Types} {n : Nat} :
       A.lc n -> Typing n P [/-$\cht{\texttt{x}}{\texttt{B}} \texttt{::} \Gamma$-/] ->
-      Typing n (#x/-$\dbrackL\mathbf{R}\dbrackR$-/.P) [/-$\cht{x}{\texttt{A}\oplus\texttt{B}} \texttt{::} \Gamma$-/]
+      Typing n (#x/-$\dbrackL\mathbf{R}\dbrackR$-/.P) [/-$\cht{\texttt{x}}{\texttt{A}\oplus\texttt{B}} \texttt{::} \Gamma$-/]
 
   | amp {/-$\Gamma$-/ : Env} {P Q : Proc} {x : FPName} {A B : Types} {n : Nat} :
       Typing n P [/-$\cht{\texttt{x}}{\texttt{A}} \texttt{::} \Gamma$-/] -> Typing n Q [/-$\cht{\texttt{x}}{\texttt{B}} \texttt{::} \Gamma$-/] ->
@@ -1238,7 +1238,7 @@ inductive TypingStep/-$_\texttt{m}$-/ :
       {n : Nat} {L : Finset FPName}
       {huniq : /-$\forall$-/ x /-$\notin$-/ L, /-$\forall$-/ y /-$\notin$-/ L, x /-$\neq$-/ y ->
         Typing n (P/-$\dparenL$-/#x, #y/-$\dparenR$-/)
-          (/-$\hyp{G}\ \pp_\texttt{h} [\cht{x}{\texttt{A} \tensor \texttt{B}} \texttt{::} \Gamma\texttt{,} \Delta$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{y}{\dual{\texttt{A}} \parr \dual{\texttt{B}}} \texttt{::} \Xi$-/])}
+          (/-$\hyp{G}\ \pp_\texttt{h} [\cht{\texttt{x}}{\texttt{A} \tensor \texttt{B}} \texttt{::} \Gamma\texttt{,} \Delta$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y}}{\dual{\texttt{A}} \parr \dual{\texttt{B}}} \texttt{::} \Xi$-/])}
       {huniq' : /-$\forall$-/ x /-$\notin$-/ L, /-$\forall$-/ y /-$\notin$-/ L, x /-$\neq$-/ y ->
                 /-$\forall$-/ x' /-$\notin$-/ L, /-$\forall$-/ y' /-$\notin$-/ L, x' /-$\neq$-/ y' ->
                 x /-$\neq$-/ x' -> x /-$\neq$-/ y' -> y /-$\neq$-/ x' -> y /-$\neq$-/ y' ->
@@ -1380,7 +1380,7 @@ inductive ProcStep/-$_\texttt{m}$-/ : (P : Proc) -> Lbl -> (P' : Proc) -> Prop w
   | one_bot {P P' : Proc} {x y : FPName} 
       (hx : x /-$\notin$-/ P.f) (hy : y /-$\notin$-/ P.f) (hneq : x /-$\neq$-/ y) :
       ProcStep/-$_\texttt{m}$-/ (P/-$\dparenL$-/#x, #y/-$\dparenR$-/) (x/-$\dbrackL\dbrackR$-/ /-$\pp_\texttt{l}$-/ y/-$\dparenL\dparenR$-/) P' ->
-      ProcStep/-$_\texttt{m}$-/ (/-$\nu\dparenL\bullet,\bullet\dparenR$-/ P) (/-$\tau$-/) P'
+      ProcStep/-$_\texttt{m}$-/ (/-$\mathit{v}\dparenL\bullet,\bullet\dparenR$-/ P) (/-$\tau$-/) P'
 
   | tensor_parr {P P' : Proc} {x x' y y' : FPName}
       (hxP : x  /-$\notin$-/ P.f) (hyP : y  /-$\notin$-/ P.f)
@@ -1391,13 +1391,13 @@ inductive ProcStep/-$_\texttt{m}$-/ : (P : Proc) -> Lbl -> (P' : Proc) -> Prop w
       (hxy' : x /-$\neq$-/ y') (hyx' : y /-$\neq$-/ x')
       (hyy' : y /-$\neq$-/ y') (hx'y' : x' /-$\neq$-/ y') :
       ProcStep/-$_\texttt{m}$-/ (P/-$\dparenL$-/#x, #y/-$\dparenR$-/) (x/-$\dbrackL$-/x'/-$\dbrackR$-/ /-$\pp_\texttt{l}$-/y/-$\dparenL$-/y'/-$\dparenR$-/) (P'/-$\dparenL 2\ |\ $-/#x, #y/-$\dparenR\dparenL$-/#x', #y'/-$\dparenR$-/) ->
-      ProcStep/-$_\texttt{m}$-/ (/-$\nu\dparenL\bullet,\bullet\dparenR$-/ P) (/-$\tau$-/) (/-$\nu\dparenL\bullet,\bullet\dparenR$-/ (/-$\nu\dparenL\bullet,\bullet\dparenR$-/ P'))
+      ProcStep/-$_\texttt{m}$-/ (/-$\mathit{v}\dparenL\bullet,\bullet\dparenR$-/ P) (/-$\tau$-/) (/-$\mathit{v}\dparenL\bullet,\bullet\dparenR$-/ (/-$\mathit{v}\dparenL\bullet,\bullet\dparenR$-/ P'))
 
   | res {P P' : Proc} {l : Lbl} {x y : FPName} (hneq : x /-$\neq$-/ y)
       (hx : x /-$\notin$-/ P.f /-$\cup$-/ P'.f) (hy : y /-$\notin$-/ P.f /-$\cup$-/ P'.f)
       (hlx : x /-$\notin$-/ l.f /-$\cup$-/ l.i) (hly : y /-$\notin$-/ l.f /-$\cup$-/ l.i) :
       ProcStep/-$_\texttt{m}$-/ (P/-$\dparenL$-/#x, #y/-$\dparenR$-/) l (P'/-$\dparenL$-/#x, #y/-$\dparenR$-/) -> 
-      ProcStep/-$_\texttt{m}$-/ (/-$\nu\dparenL\bullet,\bullet\dparenR$-/ P) l (/-$\nu\dparenL\bullet,\bullet\dparenR$-/ P')
+      ProcStep/-$_\texttt{m}$-/ (/-$\mathit{v}\dparenL\bullet,\bullet\dparenR$-/ P) l (/-$\mathit{v}\dparenL\bullet,\bullet\dparenR$-/ P')
 \end{lstlisting}
 
 \section{Session Fidelity Theorems}\label{app:session-fidelity}
@@ -1487,7 +1487,7 @@ lemma Typing_inv_tensor {n : Nat} {P : Proc} {/-$\hyp{G}$-/ : HyperEnv} {x : FPN
 \end{lstlisting}
 
 \paragraph{Hyperenvironment extraction}
-Extraction lemmas isolate specific components from a hyperenvironment permutation, exposing the typing context required for a particular transition case. The following statement is representative of the extraction lemmas used when reconstructing a \path{tensor\_parr} synchronisation beneath an enclosing restriction in the proof of \path{typability\_subject\_reduction}$_\texttt{m}$. Since hyperenvironments are represented as lists modulo permutation, the extracted components can appear in different relative positions. The lemma therefore returns a disjunction covering the possible arrangements.
+Extraction lemmas isolate specific components from a hyperenvironment permutation, exposing the typing environment required for a particular transition case. The following statement is representative of the extraction lemmas used when reconstructing a \path{tensor\_parr} synchronisation beneath an enclosing restriction in the proof of \path{typability\_subject\_reduction}$_\texttt{m}$. Since hyperenvironments are represented as lists modulo permutation, the extracted components can appear in different relative positions. The lemma therefore returns a disjunction covering the possible arrangements.
 
 The proof proceeds by extracting component membership from the pre-transition permutation, followed by case analysis on the relative positions of the restricted endpoints. Freshness and inequality assumptions rule out impossible coincidences, while the valid branches reconstruct the resulting hyperenvironment permutations using permutation rotation, merge, and cancellation lemmas.
 
@@ -1533,4 +1533,14 @@ lemma TypingStep/-$_\texttt{m}$-/_names_preserved
     /-$\hyp{G}$-/.names /-$\setminus$-/ (l.f /-$\cup$-/ l.i) /-$\subseteq$-/ /-$\hyp{G}$-/'.names := by ...
 \end{lstlisting}
 
-Both proofs proceed by induction on the typed transition derivation. The prefix and synchronisation axioms reduce to finite-set reasoning about the names consumed or introduced by their labels, while the parallel constructors lift the induction hypothesis through hyperenvironment composition. The permutation cases use preservation of name sets under environment and hyperenvironment permutation. In the restriction case, the induction hypothesis is applied to the transition of the opened body, after which the freshness assumptions discharge the temporary restricted endpoints, yielding a statement about the closed source and target hyperenvironments.
+Both proofs proceed by induction on the typed transition derivation. 
+The prefix axioms reduce to finite-set calculations on the names 
+consumed or introduced by their respective labels. The parallel 
+constructors lift the induction hypothesis through hyperenvironment 
+merge, using monotonicity of union and subset. The permutation cases 
+use the fact that permutation preserves the name set of a 
+hyperenvironment. In the restriction case, the induction hypothesis 
+is applied to the transition of the opened body, giving a name bound 
+in terms of the opened hyperenvironments. The freshness assumptions 
+on the restricted endpoints, stating that neither appears in the label, then allow the temporary names introduced by opening to be cancelled 
+from both sides, recovering the bound on the outer closed hyperenvironments.

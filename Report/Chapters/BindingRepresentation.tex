@@ -52,12 +52,12 @@ Naively removing the bound names from the process syntax would turn binding oper
 \[
 \begin{array}{rcll}
   \phl{Channel} & \Coloneqq & \phl{\text{free}(x)} \mid \phl{\text{bound}(k)} & (\text{where } x, k \in \mathbb{N}) \\
-  \phl{P, Q} & \Coloneqq & \dots \mid \phl{\send{x}{\bullet}{P}} \mid \phl{\recv{x}{\bullet}{P}} \mid \phl{\nu(\bullet, \bullet).\, P} \mid \phl{\recvtype{x}{\diamond}{P}} & (\text{where } x \in \phl{Channel})
+  \phl{P, Q} & \Coloneqq & \dots \mid \phl{\send{x}{\bullet}{P}} \mid \phl{\recv{x}{\bullet}{P}} \mid \phl{\mathit{v}(\bullet, \bullet)\, P} \mid \phl{\recvtype{x}{\diamond}{P}} & (\text{where } x \in \phl{Channel})
 \end{array}
 \]
 \end{highlight}
 
-While the visual anonymity of these constructors is evident from the grammar, their mechanical implementation relies on precise index management. For a multi-name binder like restriction, {$\phl{\res{(\bullet, \bullet)}{P}}$}, the two dual endpoints are simultaneously mapped to distinct indices within the continuation of {$\phl{P}$}, namely $0$ and $1$. For communication prefixes like {$\phl{\recv{x}{\bullet}{P}}$}, the payload is implicitly bound as index $0$ within {$\phl{P}$}, while the explicit free channel $x$ is deliberately preserved as the subject. By maintaining explicit free names strictly for these outward-facing communications, the transition labels and operational semantics of the calculus remain completely unaffected by the architectural shift.
+While the visual anonymity of these constructors is evident from the grammar, their mechanical implementation relies on precise index management. For a multi-name binder like restriction, $\phl{\mathit{v}(\bullet, \bullet)\, P}$, the two dual endpoints are simultaneously mapped to distinct indices within the continuation of {$\phl{P}$}, namely $0$ and $1$. For communication prefixes like {$\phl{\recv{x}{\bullet}{P}}$}, the payload is implicitly bound as index $0$ within {$\phl{P}$}, while the explicit free channel $x$ is deliberately preserved as the subject. By maintaining explicit free names strictly for these outward-facing communications, the transition labels and operational semantics of the calculus remain completely unaffected by the architectural shift.
 
 While the locally nameless architecture elegantly resolves $\alpha$-equivalence, moving between abstracted and instantiated forms requires specialised operations. To execute a substitution or evaluate a process across a binder, we must formally define how to open and close these terms.
 
@@ -88,7 +88,6 @@ With the syntax partitioned into names and indices, and the mechanics of opening
 
 In paper-based proofs, when a rule requires opening a binder, Barendregt's variable convention allows the author to simply state: \emph{pick a fresh name $x$}. In a proof assistant, this informal generation of a fresh name must be encoded into the constructors of the inductive relations. Two naive approaches to bind this fresh name, both of which introduce severe mechanical flaws~\cite{A08, C12}:
 
-\begin{highlight}
 \begin{enumerate}
     \item \textbf{Existential Quantification ($\exists x \notin \fs(\phl{P})$):} 
     The rule requires the property to hold for at least one fresh name. 
@@ -102,7 +101,6 @@ In paper-based proofs, when a rule requires opening a binder, Barendregt's varia
     for proof construction, since the property cannot generally be shown 
     for names that already occur free in the surrounding context.
 \end{enumerate}
-\end{highlight}
 
 To solve this dilemma, the locally nameless architecture employs \textbf{co-finite quantification} \citep{C12, A08}. Rather than quantifying over one name or all names, the inductive rules quantifies universally over all names \emph{except} those not in an arbitrary, finite set $L$. Formally, a rule requiring a fresh name uses the premise: $\forall x \notin L$.
 
@@ -120,7 +118,7 @@ Instead, the system evaluates polymorphic typing rules using a purely depth-inde
 \]
 \end{highlight}
 
-Rather than opening the binder with a fresh explicit name, the typing judgment simply increments a depth counter $n+1$, legally bringing index $0$ into scope. To maintain correct index distances, the typing environment {$\thl{\Gamma}$} is explicitly shifted by a distance of $1$ at cutoff $0$ ({$\thl{\shiftdc{0}{1}\Gamma}$}), incrementing all free type indices within the context to prevent accidental capture. 
+Rather than opening the binder with a fresh explicit name, the typing judgment simply increments a depth counter $n+1$, legally bringing index $0$ into scope. To maintain correct index distances, the typing environment {$\thl{\Gamma}$} is explicitly shifted by a distance of $1$ at cutoff $0$ ({$\thl{\shiftdc{0}{1}\Gamma}$}), incrementing all free type indices within the typing environment to prevent accidental capture. 
 
 \paragraph{Application to \pill{} Channels} This co-finite quantification strategy fundamentally reshapes the inductive definitions for process channels. For example, consider the typing rule that introduces the prefix {$\phl{\recv{x}{\bullet}{P}}$}. Under a paper-based presentation, the premise implicitly requires a fresh session name $y$. Under our mechanised architecture, the rule uses co-finite quantification and the opening operation:
 \begin{highlight}

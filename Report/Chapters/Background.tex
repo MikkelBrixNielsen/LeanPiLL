@@ -337,7 +337,7 @@ The \cref{rule:pill-axiom} types a link between two dual endpoints, \hl{$\phl{\f
   \end{highlight}
 \end{example}
 
-Note that, for the typing context {$\thl{\cht{x}{1} \pp \cht{y}{1}, \cht{z}{\bot}}$} to align with the premise of~\cref{rule:pill-cut}, we utilise the monoidal properties of environments and hyperenvironments. In particular, using their identity laws, we instantiate the meta-variables of the rule as {$\thl{\hyp{G}} = \thl{\emptyhyp}$} and {$\thl{\Gamma} = \thl{\emptyseq}$}. Under these instantiations, the premise of~\cref{rule:pill-cut}: {$\judge{}{P}{\hyp{G} \pp \Gamma, \cht{x}{A} \pp \Delta, \cht{y}{\dual{A}}}$} can be viewed as {$\thl{\cht{x}{A} \pp \Delta, \cht{y}{\dual{A}}}$}. This effectively instantiates the~\ref{rule:pill-cut} over the dual types {$\thl{A} = \thl{1}$} and {$\thl{\dual{A}} = \thl{\bot}$} on channels {$\phl{x}$} and {$\phl{y}$}, with {$\thl{\Gamma} = \cht{y}{1}$}, while ensuring the restricted endpoints implement dual session behaviours, fulfilling the requirements for creating a valid~\ref{rule:pill-cut} (session).
+Note that, for the typing envrionment {$\thl{\cht{x}{1} \pp \cht{y}{1}, \cht{z}{\bot}}$} to align with the premise of~\cref{rule:pill-cut}, we utilise the monoidal properties of environments and hyperenvironments. In particular, using their identity laws, we instantiate the meta-variables of the rule as {$\thl{\hyp{G}} = \thl{\emptyhyp}$} and {$\thl{\Gamma} = \thl{\emptyseq}$}. Under these instantiations, the premise of~\cref{rule:pill-cut}: {$\judge{}{P}{\hyp{G} \pp \Gamma, \cht{x}{A} \pp \Delta, \cht{y}{\dual{A}}}$} can be viewed as {$\thl{\cht{x}{A} \pp \Delta, \cht{y}{\dual{A}}}$}. This effectively instantiates the~\ref{rule:pill-cut} over the dual types {$\thl{A} = \thl{1}$} and {$\thl{\dual{A}} = \thl{\bot}$} on channels {$\phl{x}$} and {$\phl{y}$}, with {$\thl{\Gamma} = \cht{y}{1}$}, while ensuring the restricted endpoints implement dual session behaviours, fulfilling the requirements for creating a valid~\ref{rule:pill-cut} (session).
 
 \subsection{Operational Semantics}\label{subsec:operational-semantics}
 The operational semantics of \pill{} are given as a labelled transition system (LTS) defined over \emph{typing derivations}, in which processes evolve by performing actions on their free names. The semantics follow a Structural Operational Semantics (SOS) style presentation and form the basis for the metatheoretic results of the calculus. We will be focusing on the multiplicative fragment for this part, which is given in \cref{fig:mpill-sos}. The full LTS is given in~\citet{abs-2106-11818}.
@@ -686,8 +686,6 @@ The component containing $\phl{w}$ and $\phl{v}$ is independent from the compone
 \end{align*}
 \end{highlight}
 \end{example}
-
-\def\mlts#1{\mathit{lts_{#1}}}
 
 The semantics for process terms must inherently agree with the semantics of derivations for well-typed terms. As formulated in~\citep{abs-2106-11818}, this relationship is established functorially. Let $\mathcal{P}(X) = \{X' \mid X' \subseteq X\}$ and $\mathcal{L}(X) = X \times \LblSet$ be endofunctors representing the states and labeled transitions, respectively. The erasure function $proc$ acts as a homomorphism from LTS of derivations ($\mlts{d}$) to the LTS of processes ($\mlts{p}$), ensuring that the square of these LTS mappings commutes.
 

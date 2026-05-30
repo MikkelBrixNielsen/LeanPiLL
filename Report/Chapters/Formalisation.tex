@@ -140,7 +140,7 @@ The operation is lifted to the full \texttt{Types} syntax by structural recursio
 
 The interaction between substitution and local closure is captured by \texttt{Types.lc\_subst\_inv}, which states that substituting a type $A$ locally closed at depth $n + k$ for index $k$ in $B$ preserves local closure: $(B\{A / k\}).\texttt{lc}(n+k) \iff B.\texttt{lc}(n+k+1)$. Intuitively, substituting for index $k$ removes one binder from $B$, so local closure at $n+k$ in the substituted term corresponds to local closure at $n+k+1$ in the original. The specialisation \texttt{Types.lc\_subst\_inv\_0} fixes $k = 0$, which is the form later used in the proof of \texttt{Typing\_preserves\_lc}.
 
-As with shifting, substitution is exposed through the common \texttt{HasSubst} interface, allowing the notation $B\{A // k\}$ to be reused when substitution is lifted to processes, environments, and hyperenvironments; see \cref{lst:lean-common-notation}.
+As with shifting, substitution is exposed through the common \texttt{HasSubst} interface, allowing the notation $B\{A // k\}$ to be reused when substitution is lifted to processes, environments, and hyperenvironments (see \cref{lst:lean-common-notation}).
 
 \paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The only divergence is that exponentials are written {$\thl{\bang\bang A}$} and {$\thl{\query\query A}$} to avoid clashes with Lean syntax. Linear implication $\thl{A \mathbin{\multimap} B}$ is defined as syntactic sugar for $\thl{A^\bot \parr B}$. The corresponding Lean notation declarations are given in \cref{lst:app-lean-type-notation}.
 
@@ -348,33 +348,26 @@ abbrev Env  := List Elem
 
 The choice of \texttt{List} as the underlying representation deserves explanation. Theoretical environments are unordered and duplicate-free, suggesting \texttt{Finset} as a natural implementation. However, since \texttt{Finset} is implemented as a quotient over lists, it complicates structural induction, pattern matching, and inversion over environments. This proved inconvenient in a development where typing derivations are frequently inverted and typing environments must be rearranged explicitly. A second attempt using association lists (\texttt{AList}) encountered similar proof-engineering difficulties. The final design therefore uses plain lists and recovers the unordered structure through an explicit permutation relation, trading quotient reasoning for structural induction and simpler interaction with Lean's tactic machinery.
 
-\paragraph{Recovering the PCM structure} Merging two environments is implemented as list concatenation, making it a simple structural, but total, function:
+\paragraph{Recovering the PCM structure} Merging two environments is 
+Environment composition is implemented as list concatenation, yielding a simple total merge operation:
 
 \begin{lstlisting}[language=Lean4]
 abbrev Env.merge (/-$\Gamma~\Delta$-/ : Env) : Env := /-$\Gamma$-/ ++ /-$\Delta$-/
-infixl:69 "/-$,$-/" => Env.merge  -- uses \glq to avoid clashing with the actual comma
+infixl:69 "/-$,$-/" => Env.merge
 \end{lstlisting}
 
-Because lists do not naturally form a Partial Commutative Monoid (PCM) but are associative by definition, we only need to formally recover commutativity. 
+Because Lean already reserves the ordinary comma for syntactic purposes, the implementation uses a visually similar comma-like symbol for environment merge. In the thesis presentation, this is rendered as the conventional comma notation for typing environments.
 
-Since list concatenation is associative definitionally but not commutative, the commutative structure of environments is recovered by reasoning up to permutation. This is achieved using Lean's built-in \texttt{List.Perm} relation, instantiated through a custom \texttt{HasPerm} typeclass and denoted by the infix relation {$\thl{\Gamma \sim \Delta}$}. 
+This representation does not make environments a partial commutative monoid by definition. List concatenation is total and order-sensitive, meaning that associativity and identity are inherited from append, while commutativity must be recovered up to permutation. The formalisation therefore uses Lean's built-in \texttt{List.Perm} relation, exposed through the common \texttt{HasPerm} interface and written $\thl{\Gamma \sim \Delta}$. The corresponding monoidal laws include:
 
-The essential monoidal laws, including commutativity, associativity, and left and right identity for $\thl{\emptyhyp}$,\footnote{Using $\thl{\emptyhyp}$ rather than the literal \texttt{[]} requires explicit rewrite lemmas for terms such as $\thl{\envmerge{\emptyhyp}{\Gamma}}$. If \texttt{[]} were used directly, $\thl{\envmerge{[]}{\Gamma}}$ would reduce by definitional equality, since \texttt{Env.merge} abbreviates \texttt{List.append}.} are established as:
-
-\begin{lstlisting}[language=Lean4]
+\begin{lstlisting}[language=Lean4] 
+lemma Env.merge_unitL (/-$\Gamma$-/ : Env) : /-$\envmerge{\emptyhyp}{\Gamma}$-/ = /-$\Gamma$-/ 
+lemma Env.merge_unitR (/-$\Gamma$-/ : Env) : /-$\envmerge{\Gamma}{\emptyhyp}$-/ = /-$\Gamma$-/
+lemma Env.merge_assoc (/-$\Gamma~\Delta~\Xi$-/ : Env) : /-$\envmerge{\envmerge{\Gamma}{\Delta}}{\Xi}$-/ = /-$\envmerge{\Gamma}{\envmerge{\Delta}{\Xi}}$-/ 
 lemma Env.merge_comm (/-$\Gamma~\Delta$-/ : Env) : /-$\perm{\envmerge{\Gamma}{\Delta}}{\envmerge{\Delta}{\Gamma}}$-/
-lemma Env.merge_assoc (/-$\Gamma~\Delta~\Xi$-/ : Env) : /-$\envmerge{\Gamma}{}\envmerge{\Delta}{\Xi}$-/ = /-$\envmerge{\Gamma}{}$($\envmerge{\Delta}{\Xi}$)-/
 \end{lstlisting}
 
-% Additionally, we use {$\thl{\emptyhyp}$} as unit for merging and implement identity for merging it on both the left and right side of an environment as well as some useful lemmas for defining a standard representation for example turning {$\thl{e :: \emptyhyp}$ into $\thl{[e]}$}.
-
-% \begin{remark}
-%   \begin{highlight}  
-%     The use of $\thl{\emptyhyp}$ as unit has necessitated explicit lemmas to rewrite and reduce terms such as $\thl{\envmerge{\emptyhyp}{\Gamma} \text{ to } \Gamma}$. Whereas if $\thl{[]}$ were used as unit terms like $\thl{\envmerge{[]}{\Gamma}}$ would reduce by definitional equality, because the \texttt{Env.merge} notation is an abbreviation for \texttt{List.append}, Lean can see through it and reduce automatically.
-%   \end{highlight}
-% \end{remark}
-
-The partiality of environment merging is enforced by explicit predicates rather than by making \texttt{Env.merge} a partial function. \texttt{Env.names} extracts the domain as a \texttt{Finset}, enabling Lean's built-in \texttt{Disjoint} typeclass. Internal linearity (no channel typed twice) is enforced by \texttt{Env.Nodup}:
+The partiality condition is enforced separately by predicates on the merged resources. The function \texttt{Env.names} extracts the domain of an environment as a finite set of channel names. Mutual compatibility is expressed by disjointness of these domains, while internal linearity is expressed by the absence of duplicate names:
 
 \begin{lstlisting}[language=Lean4]
 def Env.names (/-$\Gamma$-/ : Env) : Finset FPName := (/-$\Gamma$-/.map Prod.fst).toFinset 
@@ -382,7 +375,19 @@ def Env.disjoint (/-$\Gamma~\Delta$-/ : Env) : Prop := Disjoint /-$\Gamma$-/.nam
 def Env.Nodup (/-$\Gamma$-/ : Env) : Prop := (/-$\Gamma$-/.map Prod.fst).Nodup
 \end{lstlisting}
 
-The relationship between linearity, disjointness, and merging of typing environments is captured by \texttt{Env.Nodup\_merge\_iff}, which states that a merged environment is linear if and only if both component environments are individually linear and mutually disjoint.
+The connection between these predicates and merge is captured by
+\texttt{Env.Nodup\_merge\_iff}, which states that a merged environment is
+linear exactly when both component environments are individually linear and
+their domains are disjoint:
+
+\begin{lstlisting}[language=Lean4]
+lemma Env.Nodup_merge_iff {/-$\Gamma~\Delta$-/ : Env} :
+  (/-$\Gamma$-/,/-$\Delta$-/).Nodup /-$\leftrightarrow$-/ (/-$\Gamma$-/.Nodup /-$\land$-/ /-$\Delta$-/.Nodup /-$\land$-/ /-$\Gamma$-/.disjoint /-$\Delta$-/) := by ...
+\end{lstlisting}
+
+The proof reduces directly to the corresponding property of list append,
+\texttt{List.nodup\_append}, together with the finite-set formulation of
+environment-domain disjointness.
 
 \paragraph{Server usability} The typing rule for server replication requires all dependency channels to carry exponential request types. This side condition is captured by \texttt{Env.serverUsable}, which asserts that every type in an environment satisfies \texttt{Types.isServerUsable}, i.e.\ has the form {$\thl{\query B}$}.
 
@@ -483,7 +488,7 @@ lemma Typing_weakening :
 This provides the weakening principle needed to compose derivations across polymorphic binders while keeping embedded type indices in scope.
 
 \paragraph{Exchange and explicit side conditions}
-Because environments and hyperenvironments are represented as lists, the unordered and partial structure of the theoretical hyperenvironment is recovered explicitly. The typing relation includes exchange rules for reasoning up to permutation equivalence:
+In some constructors, the formalised rule chooses an ordering different from the paper presentation so that the entry manipulated by the rule occurs at the head of the list representing its environment component. This is an implementation-oriented choice and does not affect the typing discipline. The order-insensitive interpretation of environments and hyperenvironments is recovered by exchange rules in the typing relation, which permit reasoning up to permutation:
 
 \begin{lstlisting}[language=Lean4]
 | exchange_env   : Typing n P (/-$\Gamma :: \hyp{G}$-/) -> /-$\perm{\Gamma}{\Delta}$-/ -> Typing n P (/-$\Delta :: \hyp{G}$-/)

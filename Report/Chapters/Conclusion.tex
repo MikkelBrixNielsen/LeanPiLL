@@ -43,6 +43,14 @@ Overall, the development provides a substantial mechanised account of the static
 
 
 
+% TODO: Conclusion
+% TODO: Abstract(s)
+% TODO: Include githash for final commit before report submission
+% TODO: Update the README on github
+% TODO: Remove line number from the pdf
+
+
+
 
 
 % TODO: Look at typability section again in metatheory section.
@@ -51,8 +59,22 @@ Overall, the development provides a substantial mechanised account of the static
 
 
 
+
+
 % TODO: Mention that one could also align the formulation of the Typing relation having co-finite quantification as "\forall x \notin L" and the TypingStep relation having "\forall x, x \notin L"
 
+  % | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {A B : Types}
+  %     {n : Nat} (hF : x ∉ Γ.names ∧ x ∉ Δ.names) (L : Finset FPName) :
+  %     (∀ y ∉ L, Typing n (P⸨#y⸩) ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) →
+  %     ---------------------------------------------------------------
+  %     Typing n (#x⟦•⟧․P) [x ∶ A ⨂ B :: Γ‚ Δ]
+
+  % | tensor
+  %   {Γ Δ : Env} {P : Proc} {x y : FPName} {A B : Types} {n : Nat}
+  %   {hF: x ∉ Γ.names ∧ x ∉ Δ.names} {L : Finset FPName}
+  %   {huniq : ∀ z, z ∉ L → Typing n (P⸨#z⸩) ([z ∶ A :: Γ] |ₕ [x ∶ B :: Δ])}
+  %   {hy : y ∉ ({x} ∪ P.f ∪ Γ.names ∪ Δ.names)} :
+  %   TypingStepₘ (Typing.tensor hF L huniq) (x⟦y⟧) (Typing_tensor_all_fres huniq y hy)
 
 
 
@@ -60,17 +82,13 @@ Overall, the development provides a substantial mechanised account of the static
 
 
 
-
-% TODO: Conclusion
-% TODO: Abstract(s)
-
-
-% TODO: Should there be a specific related work section it seems covred by the background, binding theory and architecture?
 
 
 
 % TODO: De duplicate the discussion and future work sections
+
 % TODO: Should the future work paragraphs be subsections instead, same with discussion.
+
 
 
 % TODO: Check bindingrepresentation includes reasoning for choice, benefits, drawbacks and alternatives:
@@ -82,53 +100,22 @@ Overall, the development provides a substantial mechanised account of the static
 
 % TODO: Check if proof strategy description and comparison seems deep enough.
 
-% TODO: Show more synax in the process section?
-% TODO: Keep or delete comment on notation for Env.merge / say something in prose about it actually being \glq to avoid colliding with how lean interprets commas normally
-
-% TODO: Include githash for final commit before report submission
-% TODO: Update the README on github
-
-
-% TODO: Add notation paragraph to processes along the lines of this:
-	% \paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The 		only divergence is that exponentials are written {$\thl{\bang\bang A}$} and {$\thl{\query\query A}$} to avoid clashes with 		Lean syntax.
-	% Also add notation explanation for \_h or replace with just |
-	% The main notation clarification would probably be the use of double brackets and parentheses.
-
-% TODO: Replace commas with /-‚-/ in listings and ‚ in prose regarding Env.merge
-
-% TODO: Do a sanity check on this paragraph:
-% - Of particular importance are the commutation lemmas between opening and substitution:
-% 	open_substNames_comm establishes that opening and name substitution commute, and the corres-
-% 	ponding lemma for type substitution ensures that substituting under a binder produces the same
-% 	result regardless of order. These properties are essential in the typability proof, where the co-finite
-% 	witnesses produced by the typing rules must be reconciled with the concrete names introduced by
-% 	the process transitions. lines 1186-1191 just before subsection 4.1.3
-% - This formulation differs from the paper presentation, which formulates erasure extensionally,
-% 	using set-valued transition functions and equality of successor sets.
-
-% TODO: Change typing context -> typing environment
-
-% TODO: Mention somewhere that the formalised typing rules have inverted ordering so instead of taking elements from the back they take them from the front / head of the list (with some exceptions)
-
-% TODO: Replace bold nu instance with $\mathit{v}$
-
-% TODO: Check if Types.subst notation is mentioned anywhere 
-
 % TODO: Flesh out the proof strategies used when mentioning key lemmas.
 
-% TODO:
-% - Redo the structural invariants section for processes in the formalisation section to talk about something like this instead of what is currently there.
-% 	Proc.not_mem_f_open - Typability
-% 	Proc.f_open_erase, Proc.f_open_two_erase - Typing_f_eq_names
-% 	Proc.lc_of_open_two, Proc.lc_of_open_gen - Typing_preserves_lc_proc to get Typing_preserves_lc
-% 	Proc.open_substNames_comm, Proc.openCut_substNames_comm - Typing_substNames
-% 	Proc.openCut_substTypes_comm, Proc.open_substTypes_comm_notation- Typing_substTypes
-% 	Proc.shiftTypes_openCut_comm, Proc.shiftTypes_open0_comm - Typing_weakening (Decide if talking about this)
 
-% - Look at typability section again in metatheory section.
-% - Rephrase the first paragraph in Evolution of the session fidelity proof
 
-% Since I am also supposed to hand in the entire codebase I think it would makes sense to include inductive  definitions in full (more or less) and maybe include the larger theorems like session fidelity and stuff in an abbreviated form or something and then just keep these still relevant metatheoretic results to just being inline signatures and some prose?  
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
