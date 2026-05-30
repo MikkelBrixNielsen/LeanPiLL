@@ -45,7 +45,6 @@ Overall, the development provides a substantial mechanised account of the static
 
 % TODO: Conclusion
 % TODO: Abstract(s)
-% TODO: Include githash for final commit before report submission
 % TODO: Update the README on github
 % TODO: Remove line number from the pdf
 
@@ -53,31 +52,11 @@ Overall, the development provides a substantial mechanised account of the static
 
 
 
-% TODO: Look at typability section again in metatheory section.
-
 % TODO: Rephrase the first paragraph in Evolution of the session fidelity proof
 
+% TODO: hbox overfull in appendix and disussion
 
-
-
-
-% TODO: Mention that one could also align the formulation of the Typing relation having co-finite quantification as "\forall x \notin L" and the TypingStep relation having "\forall x, x \notin L"
-
-  % | tensor {Γ Δ : Env} {P : Proc} {x : FPName} {A B : Types}
-  %     {n : Nat} (hF : x ∉ Γ.names ∧ x ∉ Δ.names) (L : Finset FPName) :
-  %     (∀ y ∉ L, Typing n (P⸨#y⸩) ([y ∶ A :: Γ] |ₕ [x ∶ B :: Δ])) →
-  %     ---------------------------------------------------------------
-  %     Typing n (#x⟦•⟧․P) [x ∶ A ⨂ B :: Γ‚ Δ]
-
-  % | tensor
-  %   {Γ Δ : Env} {P : Proc} {x y : FPName} {A B : Types} {n : Nat}
-  %   {hF: x ∉ Γ.names ∧ x ∉ Δ.names} {L : Finset FPName}
-  %   {huniq : ∀ z, z ∉ L → Typing n (P⸨#z⸩) ([z ∶ A :: Γ] |ₕ [x ∶ B :: Δ])}
-  %   {hy : y ∉ ({x} ∪ P.f ∪ Γ.names ∪ Δ.names)} :
-  %   TypingStepₘ (Typing.tensor hF L huniq) (x⟦y⟧) (Typing_tensor_all_fres huniq y hy)
-
-
-
+% TODO: Generally check if disposiiton matches
 
 
 
@@ -91,16 +70,14 @@ Overall, the development provides a substantial mechanised account of the static
 
 
 
+
 % TODO: Check bindingrepresentation includes reasoning for choice, benefits, drawbacks and alternatives:
   % De Bruijn for types
   % Locally Nameless for processes
   % Co-finite quantification (strong induction principle, simplification in typing and reduction proofs)
 
-% TODO: Generally check if disposiiton matches
+% TODO: Check if proof strategy description and comparison seems deep enough possibly flesh out key lemmas.
 
-% TODO: Check if proof strategy description and comparison seems deep enough.
-
-% TODO: Flesh out the proof strategies used when mentioning key lemmas.
 
 
 
@@ -132,9 +109,4 @@ Overall, the development provides a substantial mechanised account of the static
 % Resolve broken cross-references
 % British spelling pass
 % Consistency in calling type out put a payload type or just type. Do the same for paylod name / name
-% Remove highlighting from prose
-% Check all \thl and \phl are inside $...$
 % AI declaration
-% Turn remaining Note paragraphs into remark environments
-% GitHub source code link
-% Disable line numbers
