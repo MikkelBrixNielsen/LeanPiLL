@@ -119,7 +119,7 @@ def TVar.shift (d c : Nat) : TVar -> TVar
 
 The operation is exposed through the common \texttt{HasShift} interface, allowing the notation $\shiftdc{d}{c}A$, $A\uparrow{c}$ and $A^+$ to be used uniformly for types and, later, for processes, environments, and hyperenvironments; the shared notation declarations are given in \cref{lst:lean-common-notation}.
 
-\paragraph{Substitution} \path{STypes/Subst.lean} defines substitution as the replacement of a target De Bruijn index $k$ in a host type $B$ by a payload type $A$, denoted $B\{A // k\}$. At the variable level, the function compares a bound De Bruijn index $i$ with the target depth $k$. If $i = k$, the target index has been reached and the variable is replaced by $A$. If $i < k$, the variable is bound by an inner scope and is left unchanged. Finally, if $i > k$, the index refers to an outer binder beyond the substituted variable. Since substitution removes the binder corresponding to $k$, such indices are decremented by one to preserve their relative distance to the surrounding environment.
+\paragraph{Substitution} \path{STypes/Subst.lean} defines substitution by replacing a target De Bruijn index $k$ in a host type $B$ with a type $A$,denoted $B\{A // k\}$. At the variable level, the function compares a bound De Bruijn index $i$ with the target depth $k$. If $i = k$, the target index has been reached and the variable is replaced by $A$. If $i < k$, the variable is bound by an inner scope and is left unchanged. Finally, if $i > k$, the index refers to an outer binder beyond the substituted variable. Since substitution removes the binder corresponding to $k$, such indices are decremented by one to preserve their relative distance to the surrounding environment.
 
 \begin{lstlisting}[language=Lean4]
 def Types.subst (B A : Types) (k : Nat) : Types :=
@@ -132,7 +132,7 @@ def Types.subst (B A : Types) (k : Nat) : Types :=
   | .tensor A B => .tensor (A.subst A k) (B.subst A k)
 \end{lstlisting}
 
-The operation is lifted to the full \texttt{Types} syntax by structural recursion. For ordinary connectives, substitution distributes across subterms. When descending into a polymorphic binder such as \texttt{forall\_}, the target depth is incremented to $k+1$, and the payload type $A$ is shifted by one. This prevents the free indices in $A$ from being captured by the newly entered binder:
+The operation is lifted to the full \texttt{Types} syntax by structural recursion. For ordinary connectives, substitution distributes across subterms. When descending into a polymorphic binder such as \texttt{forall\_}, the target depth is incremented to $k+1$, and the substituting type $A$ is shifted by one. This prevents the free indices in $A$ from being captured by the newly entered binder:
 
 \begin{lstlisting}[language=Lean4]
   | .forall_ B => .forall_ (B.subst (shift 0 1 A) (k + 1))
@@ -153,7 +153,7 @@ inductive Channel : Type where
   | bound (x : BPName)
 \end{lstlisting}
 
-As discussed in \cref{subsec:locally-nameless}, binding constructs in the process syntax no longer carry explicit payload variables. Instead, bound occurrences are captured purely by their relative position. Comparing the standard paper grammar with the intermediate locally nameless notation and the final constructors of the \texttt{inductive Proc} type illustrates this abstraction:
+As discussed in \cref{subsec:locally-nameless}, binding constructs in the process syntax no longer carry explicit bound channel names. Instead, bound occurrences are captured purely by their relative position. Comparing the standard paper grammar with the intermediate locally nameless notation and the final constructors of the \texttt{inductive Proc} type illustrates this abstraction:
 
 \begin{highlight}  
 \begin{center}
@@ -171,7 +171,7 @@ As discussed in \cref{subsec:locally-nameless}, binding constructs in the proces
 \end{center}
 \end{highlight} 
 
-Notice that \texttt{cut} takes only a continuation {$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of {$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the transmitted payload is anonymized into the continuation. The full inductive definition is listed in \cref{app:processes}. 
+Notice that \texttt{cut} takes only a continuation {$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of {$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the name or type variable bound in the continuation is anonymized and represented by an index. The full inductive definition is listed in \cref{app:processes}. 
 
 \paragraph{Opening and closing} \path{Processes/OpenClose.lean} defines opening and closing operations following the locally nameless principles established in \cref{subsec:opening-and-closing}. In the theoretical presentation, opening a process at depth $k$ with $x$ is denoted as {$\phl{\{k \mapsto x\}P}$}, and conversely, abstracting a specific name back into a bound index is denoted as {$\phl{\{k \mapsfrom x\}P}$}. 
 
@@ -221,8 +221,7 @@ def Finset.close (zs : Finset Channel) (x : FPName) (k : Nat) : Finset Channel :
   zs.image (fun u => u.close x k)
 \end{lstlisting}
 
-\paragraph{Local closure} \path{Processes/LocalClosure.lean}
-defines local closure for processes as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. The type depth is needed when a process embeds a type, for instance as the payload of an output prefix, since the embedded type must be checked relative to the current type-binder depth.
+\paragraph{Local closure} \path{Processes/LocalClosure.lean} defines local closure for processes as a two-parameter predicate \texttt{Proc.lc (k n~: Nat)~: Proc $\to$ Prop}. Because the calculus features a two-sorted syntax, the predicate must maintain independent depth counters: $k$ tracks the depth of channel binders, while $n$ tracks the depth of type binders. The latter is required because processes may contain embedded types whose free indices must be interpreted relative to the surrounding type-binder depth.
 
 The structural recursion evaluates each constructor by incrementing the appropriate depth counter according to the number and sort of binders introduced. Channel binders increase the channel depth $k$, while type binders increase the type depth $n$. For example, \texttt{tensor} binds a single continuation channel, incrementing the depth to $k+1$, whereas \texttt{cut} binds two dual endpoints simultaneously, incrementing the depth to $k+2$. Conversely, \texttt{input} binds a type variable, leaving $k$ unchanged while incrementing $n$ to $n+1$. The \texttt{server} constructor therefore requires local closure of \texttt{x}, \texttt{zs}, and \texttt{P}. Constructors introducing no binders, leave both counters unchanged
 
@@ -292,7 +291,7 @@ def Finset.subst (zs : Finset Channel) (R T : FPName) : Finset Channel :=
   zs.image (fun u => u.subst R T)
 \end{lstlisting}
 
-Type substitution is defined in \path{Processes/SubstTypes.lean} as \texttt{Proc.substTypes (A~: Types) (k~: Nat)~: Proc $\to$ Proc}, substituting $A$ for the De Bruijn type index $k$ throughout a process. Whenever the traversal encounters an embedded type, such as the payload of an output prefix, it delegates to the type-level substitution operation \texttt{Types.subst}. When crossing an \texttt{input} prefix, which binds a type variable, the target depth is incremented and the substituted type is shifted, mirroring the binder case of \texttt{Types.subst} from \cref{subsubsec:stypes}:
+Type substitution is defined in \path{Processes/SubstTypes.lean} as \texttt{Proc.substTypes (A~: Types) (k~: Nat)~: Proc $\to$ Proc}, substituting $A$ for the De Bruijn type index $k$ throughout a process. Whenever the traversal encounters an embedded type, such as the type argument of an \texttt{output} prefix, it delegates to the type-level substitution operation \texttt{Types.subst}. When crossing an \texttt{input} prefix, which binds a type variable, the target depth is incremented and the substituted type is shifted, mirroring the binder case of \texttt{Types.subst} from \cref{subsubsec:stypes}:
 
 \begin{lstlisting}[language=Lean4]
 def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
@@ -302,7 +301,7 @@ def Proc.substTypes (A : Types) (k : Nat) : Proc -> Proc
 A consequence of this representation is that no analogous channel shifting operation is required. In a pure De Bruijn encoding, variables are represented as relative indices and must be shifted when crossing binders. Free channels, however, are represented as global identifiers rather than relative positions, so their representation is unaffected by binder depth. This avoids structural adjustment of channel names during substitution and simplifies the process-level infrastructure.
 
 \paragraph{Type shifting}
-\path{Processes/SubstTypes.lean} also defines \texttt{Proc.shiftTypes (d c~: Nat)~: Proc $\to$ Proc}, which lifts the type-level shifting operation to processes. The traversal is uniform across most constructors, delegating to \texttt{Types.shift} whenever an embedded type is encountered, such as the payload of an \texttt{output} prefix. The only non-trivial case is \texttt{input}, which binds a type variable and therefore increments the cutoff depth $d$ before traversing its continuation, mirroring the binder case of \texttt{Types.shift}:
+\path{Processes/SubstTypes.lean} also defines \texttt{Proc.shiftTypes (d c~: Nat)~: Proc $\to$ Proc}, which lifts the type-level shifting operation to processes. The traversal is uniform across most constructors, delegating to \texttt{Types.shift} whenever an embedded type is encountered, such as the type argument of an \texttt{output} prefix. The only non-trivial case is \texttt{input}, which binds a type variable and therefore increments the cutoff depth $d$ before traversing its continuation, mirroring the binder case of \texttt{Types.shift}:
 
 \begin{lstlisting}[language=Lean4]
 def Proc.shiftTypes (d c : Nat) : Proc -> Proc
@@ -503,7 +502,7 @@ The same design principle reappears later in the operational semantics, where tr
 % In the paper presentation of \pill{}, the disjointness of environments during operations like parallel composition or tensor is implicitly guaranteed by the structural properties of the merge operator for environments and hyperenvironments. However, because the Lean formalisation relies on total list concatenation, these disjointness requirements must be enforced explicitly at the rule level. Many typing constructors carry explicit disjointness and freshness premises to ensure that merging operations remain valid. For example, the \texttt{mix} rule requires a proof that the two hyperenvironments are mutually disjoint (\texttt{hD~: $\hyp{G}$.disjoint $\hyp{H}$}), and the \texttt{tensor} rule requires explicit proof that the subject channel $x$ does not already exist in the continuations (\texttt{hF~: x $\notin \Gamma$.names $\land$ x $\notin \Delta$.names}). While these local constraints clutter the inductive definitions compared to their paper counterparts, they are necessary to ensure that the formalised typing relation preserves the partiality of the theoretical merge operator and its underlying monoid structure. The global metatheoretical consequences of these local constraints, namely, that well-typed processes inherently preserve context linearity, are detailed in \cref{sec:metatheory}.
 
 \paragraph{Co-finite quantification}
-Binding rules use co-finite quantification as described in \cref{subsec:co-finite-quantification}. For example, the \texttt{parr} constructor types an input prefix by requiring the opened continuation to be well typed for every fresh payload name outside a finite set $L$:
+Binding rules use co-finite quantification as described in \cref{subsec:co-finite-quantification}. For example, the \texttt{parr} constructor types an \texttt{input} prefix by requiring the opened continuation to be well typed for every fresh channel name outside a finite set $L$:
 
 % \begin{lstlisting}[language=Lean4]
 % | cut (L : Finset FPName) :
@@ -519,7 +518,7 @@ Binding rules use co-finite quantification as described in \cref{subsec:co-finit
     Typing n (/-$\drecv{\texttt{x}}{\bullet}{\texttt{P}}$-/) [/-$\cht{\texttt{x}}{\texttt{A} \parr \texttt{B}} :: \Gamma$-/]
 \end{lstlisting}
 
-Here, the process carries no explicit payload name; the bound occurrence in the continuation is instantiated by opening $P$ with the fresh name $y$. The premise \texttt{hF} enforces that the subject channel $x$ is not already present in the continuation environment. Rules binding multiple names, such as \texttt{cut}, follow the same pattern but quantify over two distinct fresh names.
+Here, the process carries no explicit bound channel name. Instead, the bound occurrence in the continuation is instantiated by opening $P$ with a fresh name $y$. The premise \texttt{hF} enforces that the subject channel $x$ is not already present in the continuation environment. Rules binding multiple names, such as \texttt{cut}, follow the same pattern but quantify over two distinct fresh names.
 
 \paragraph{Structural invariants} \path{Judgement/Names.lean} establishes the central name invariant for the typing relation, named \texttt{Typing\_f\_eq\_names}. It states that, for any well-typed process, the free names of the process coincide exactly with the domain of its hyperenvironment.
 
@@ -584,7 +583,7 @@ inductive Lbl : Type
   | par   (l l' : Act)
 \end{lstlisting}
 
-Each label defines computable sets of free names (\texttt{Lbl.f}) and introduced names (\texttt{Lbl.i}), which are used in the side conditions for the \cref{rule:pill-mix-1,rule:pill-proc-mix-2,rule:pill-mix-sync}. The label notation is overloaded through the \texttt{HasBracket} and \texttt{HasParen} typeclasses. Since labels record concrete observable actions, their subjects are free process names rather than locally nameless channels. The overloading is therefore internal to the label language. Bracketed and parenthesised labels are distinguished by the type of their payload, allowing empty communication, channel transmission, type communication, and server actions to share a compact notation. The corresponding notation instances are given in \cref{lst:app-lean-label-notation}.
+Each label defines computable sets of free names (\texttt{Lbl.f}) and introduced names (\texttt{Lbl.i}), which are used in the side conditions of the \cref{rule:pill-mix-1,rule:pill-proc-mix-2,rule:pill-mix-sync}. The label notation is overloaded through the \texttt{HasBracket} and \texttt{HasParen} typeclasses. Since labels record concrete observable actions, their subjects are free process names rather than locally nameless channels. The overloading is therefore confined to the label language. Bracketed and parenthesised labels are distinguished by the type of their arguments, allowing empty communication, channel transmission, type communication, and server actions to share a compact notation. The corresponding notation instances are given in \cref{lst:app-lean-label-notation}.
 
 \subsubsection{The Typed Transition System}\label{subsubsec:judgementstep}
 The primary LTS, \texttt{TypingStep}$_\texttt{m}$, is a relation between typing derivations. Its constructors mirror the operational rules shown in \cref{fig:mpill-sos}, but make the type-theoretic content of each step explicit: every transition carries a typing derivation as its source and produces a typing derivation as its target. The system is therefore intrinsically typed.

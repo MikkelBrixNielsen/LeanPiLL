@@ -11,11 +11,6 @@ reduction and is complete for the multiplicative cases except
 \texttt{res}. Completing this case would yield the final subject-reduction
 result.
 
-% \paragraph{Erasure simulations} % FIXME: Should these be replaced by the blow
-% The paper establishes erasure as a strong bisimulation between $\mlts{p}$ and $\mlts{d}$ (Theorem~4.7 in \citet{abs-2106-11818}), meaning the relation $\{(\proc(\der{D}), \der{D}) \mid \der{D} \in \DerSet\}$ is closed in both directions. The mechanisation currently establishes the forward direction via \texttt{session\_fidelity\_proc}$_\texttt{m}$: every typed derivation step projects to a process step. The backward direction, which lifts process steps from well-typed processes to typed derivation steps, is captured by \texttt{typability\_subject\_reduction}$_\texttt{m}$, but has not been packaged as an explicit bisimulation statement.
-
-% The files \path{ProcStep.lean} and \path{EnvStep.lean} establish the two projection results from typed derivation steps. Given a typed transition $\texttt{TypingStep}_\texttt{m}~\der{D}\ l\ \der{D}'$, \texttt{session\_fidelity\_proc}$_\texttt{m}$ projects it to a process transition between $\proc(\der{D})$ and $\proc(\der{D}')$, while \texttt{session\_fidelity\_env}$_\texttt{m}$ projects it to an environment transition between $\env(\der{D})$ and $\env(\der{D}')$. The first result corresponds to the forward direction of the paper's erasure theorem between $\mlts{p}$ and $\mlts{d}$. The second corresponds to derivation-level session fidelity, Theorem~4.9.
-
 \paragraph{Erasure simulations} As shown by \citet[Theorem~4.7]{abs-2106-11818}, erasure induces a strong bisimulation between $\mlts{p}$ and $\mlts{d}$. The mechanisation currently establishes the projections from typed derivation steps to their process and environment behaviours. The files \path{ProcStep.lean} and \path{EnvStep.lean} contain the corresponding theorems: \texttt{session\_fidelity\_proc}$_\texttt{m}$ projects a typed transition to a process transition, while \texttt{session\_fidelity\_env}$_\texttt{m}$ projects it to an environment transition. The former corresponds to the forward direction of the erasure result of \citet{abs-2106-11818}, while the latter corresponds to their derivation-level session-fidelity property.
 
 \begin{lstlisting}[language=Lean4]
