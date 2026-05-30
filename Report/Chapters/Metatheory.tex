@@ -23,9 +23,7 @@ theorem session_fidelity_env/-$_\texttt{m}$-/
   EnvStep/-$_\texttt{m}$-/ (env /-$\der{D}$-/) l (env /-$\der{D}$-/')
 \end{lstlisting}
 
-These results establish that typed transitions project to the corresponding process and environment transitions. Both proofs proceed by induction on the typed transition derivation. Most cases are immediate constructor translations. The main exception is formed by the \texttt{tensor} and \texttt{parr} prefix cases, where the projected process and environment rules require explicit freshness and disjointness side conditions. These are recovered from the co-finite typing premises by instantiating the continuation with a sufficiently fresh auxiliary name and using the typing invariants \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_linearity}. For the process projection, this also requires relating the free names of an opened process to those of the original continuation.
-
-These are recovered from the co-finite typing premises by instantiating the continuation with a sufficiently fresh auxiliary name and using the typing invariants \texttt{Typing\_f\_eq\_names} and \texttt{Typing\_preserves\_linearity} established in \cref{subsubsec:judgements}.
+These obligations are discharged by instantiating the co-finite typing premises with sufficiently fresh auxiliary names and applying the typing invariants \path{Typing_f_eq_names} and \path{Typing_preserves_linearity}, established in \cref{subsubsec:judgements}. The Lean statements of the resulting process- and environment-erasure theorems are given in \cref{lst:app-sf-proc,lst:app-sf-env}.
 
 \paragraph{Typability}
 The main lifting theorem is stated in \path{Typability.lean}. It corresponds to the reverse direction of the erasure correspondence: given a process transition from a well-typed process, the transition can be lifted to the level of typing derivations.
@@ -43,14 +41,13 @@ This theorem forms the technical core of the session fidelity argument. Its proo
 
 The proof has two main technical obligations. First, it must reconcile the concrete freshness witnesses used by \texttt{ProcStep}$_\texttt{m}$ with the co-finite premises of the typing rules. For example, a process transition fixes a concrete name introduced by a prefix, while the corresponding typing rule provides a derivation only for all names outside some finite set. Auxiliary \emph{all fresh} lemmas bridge this gap by showing that the co-finite premise can be instantiated with the concrete name appearing in the process step. Second, in the communication and restriction cases, the proof must rearrange hyperenvironments to expose the components containing the communicating endpoints. In particular, synchronization under restriction requires opening the restricted process with fresh endpoints, applying the induction hypothesis to the opened body, and reconstructing the target hyperenvironment up to permutation.
 
-The remaining incomplete case is \texttt{res}. In this case, the induction hypothesis yields a typed step for the opened body of the restriction. The missing step is to invert this typed transition to recover the post-state components corresponding to the restricted endpoints, then repackage them into the co-finite premise required by the outer \texttt{cut} typing rule. This hyperenvironment reconstruction remains the main outstanding proof obligation.
+The remaining incomplete case is \texttt{res}. In this case, the induction hypothesis yields a typed step for the opened body of the restriction. The missing step is to invert this typed transition to recover the post-state components corresponding to the restricted endpoints, then repackage them into the co-finite premise required by the outer \texttt{cut} typing rule. This hyperenvironment reconstruction remains the main outstanding proof obligation. The full Lean statement is given in \cref{lst:app-sr}.
 
 \paragraph{Subject reduction}
 Subject reduction is stated in \path{SubjectReduction.lean}. It says that if a well-typed process takes a process transition, then the target process is well typed under some evolved hyperenvironment, and that this hyperenvironment evolves according to the same label.
 
 \begin{lstlisting}[language=Lean4]
 theorem subject_reduction/-$_\texttt{m}$-/
-  {n : Nat} {/-$\hyp{G}$-/ : HyperEnv} {P P' : Proc} {l : Lbl}
   (/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/) (hPS : ProcStep/-$_\texttt{m}$-/ P l P') :
   /-$\exists$-/ /-$\hyp{G}$-/', EnvStep/-$_\texttt{m}$-/ /-$\hyp{G}$-/ l /-$\hyp{G}$-/' /-$\land$-/ Typing n P' /-$\hyp{G}$-/'
 \end{lstlisting}

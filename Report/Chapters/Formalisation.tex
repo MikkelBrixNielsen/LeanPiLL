@@ -48,7 +48,7 @@ The remaining constructors directly mirror the theoretical grammar of the calcul
 \end{table}
 \end{highlight}
 
-Notably, the polymorphic binders \hl{$\thl{\forall.A}$} and \hl{$\thl{\exists.A}$} reflect the depth-indexed approach detailed in \cref{subsec:co-finite-quantification}. As shown in \cref{app:session-types}, the corresponding Lean constructors keep the bound De Bruijn index implicit, taking only the continuation body \texttt{A} as an argument. An underscore ``\texttt{\_}'' is appended to the constructor names to prevent namespace collisions with Lean's built-in \texttt{forall} and \texttt{exists} keywords.
+Notably, the polymorphic binders {$\thl{\forall.A}$} and {$\thl{\exists.A}$} reflect the depth-indexed approach detailed in \cref{subsec:co-finite-quantification}. As shown in \cref{app:session-types}, the corresponding Lean constructors keep the bound De Bruijn index implicit, taking only the continuation body \texttt{A} as an argument. An underscore ``\texttt{\_}'' is appended to the constructor names to prevent namespace collisions with Lean's built-in \texttt{forall} and \texttt{exists} keywords.
 
 \paragraph{Duality} \texttt{Types.dual} implements duality as a structurally recursive function, mapping each constructor to its dual. For example:
 
@@ -62,9 +62,7 @@ def Types.dual : Types -> Types
   | ...
 \end{lstlisting}
 
-The fundamental property that duality is an involution,
-\hl{$\thl{{(A^\bot)}^\bot = A}$},
-is proved in \path{STypes/Lemmas.lean} by structural induction.
+The fundamental property that duality is an involution, {$\thl{{(A^\bot)}^\bot = A}$}, is proved in \path{STypes/Lemmas.lean} by structural induction.
 
 The formalisation additionally establishes that duality preserves local closure and commutes with both shifting and substitution:
 \begin{highlight}  
@@ -144,7 +142,7 @@ The interaction between substitution and local closure is captured by \texttt{Ty
 
 As with shifting, substitution is exposed through the common \texttt{HasSubst} interface, allowing the notation $B\{A // k\}$ to be reused when substitution is lifted to processes, environments, and hyperenvironments; see \cref{lst:lean-common-notation}.
 
-\paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The only divergence is that exponentials are written \hl{$\thl{\bang\bang A}$} and \hl{$\thl{\query\query A}$} to avoid clashes with Lean syntax. Linear implication $\thl{A \mathbin{\multimap} B}$ is defined as syntactic sugar for $\thl{A^\bot \parr B}$. The corresponding Lean notation declarations are given in \cref{lst:app-lean-type-notation}.
+\paragraph{Notation} \path{STypes/Notation.lean} introduces notation mirroring the mathematical presentation from \cref{subsec:types}. The only divergence is that exponentials are written {$\thl{\bang\bang A}$} and {$\thl{\query\query A}$} to avoid clashes with Lean syntax. Linear implication $\thl{A \mathbin{\multimap} B}$ is defined as syntactic sugar for $\thl{A^\bot \parr B}$. The corresponding Lean notation declarations are given in \cref{lst:app-lean-type-notation}.
 
 \subsubsection{Processes}\label{subsubsec:processes}
 Processes are defined in \path{Processes/Basic.lean} as the inductive type \texttt{Proc}. Following the established locally nameless architecture, channel references are partitioned into a dedicated \texttt{Channel} inductive. Explicit free channels are instantiated as concrete natural numbers (\texttt{FPName}). While the raw process syntax permits arbitrary reuse of these numbers, using \texttt{Nat} allows the formalisation to systematically compute strictly fresh names by incrementing the supremum of any finite set of existing names (mechanised in \path{Processes/Fresh.lean}). Conversely, bound channels are represented using De Bruijn indices, encoding their relative distance to the corresponding binder.
@@ -173,9 +171,9 @@ As discussed in \cref{subsec:locally-nameless}, binding constructs in the proces
 \end{center}
 \end{highlight} 
 
-Notice that \texttt{cut} takes only a continuation \hl{$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of \hl{$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the transmitted payload is anonymized into the continuation. The full inductive definition is listed in \cref{app:processes}. 
+Notice that \texttt{cut} takes only a continuation {$\phl{P}$} with no explicit channel arguments, as both dual endpoints are simultaneously bound as indices $0$ and $1$ within the scope of {$\phl{P}$}. Similarly, for constructs like \texttt{tensor}, \texttt{parr}, and \texttt{input}, the subject channel $x$ over which the interaction occurs is kept explicit, while the transmitted payload is anonymized into the continuation. The full inductive definition is listed in \cref{app:processes}. 
 
-\paragraph{Opening and closing} \path{Processes/OpenClose.lean} defines opening and closing operations following the locally nameless principles established in \cref{subsec:opening-and-closing}. In the theoretical presentation, opening a process at depth $k$ with $x$ is denoted as \hl{$\phl{\{k \mapsto x\}P}$}, and conversely, abstracting a specific name back into a bound index is denoted as \hl{$\phl{\{k \mapsfrom x\}P}$}. 
+\paragraph{Opening and closing} \path{Processes/OpenClose.lean} defines opening and closing operations following the locally nameless principles established in \cref{subsec:opening-and-closing}. In the theoretical presentation, opening a process at depth $k$ with $x$ is denoted as {$\phl{\{k \mapsto x\}P}$}, and conversely, abstracting a specific name back into a bound index is denoted as {$\phl{\{k \mapsfrom x\}P}$}. 
 
 To mechanise this in Lean, we denote explicit free channels as $\#x$ (mapping to \texttt{Channel.free x}) and introduce custom notation for these substitution operations. Expressions such as $\dopen{P}{k | \#x}$ and $\dopen{P}{k | \#x,\#y}$ denote the opening of a process by instantiating the $k$-th (and $k+1$-th) bound indices with free channels. Conversely, $\dclose{P}{k | \#x}$ and $\dclose{P}{k | \#x, \#y}$ denote the closing of a process by abstracting $x$ and $y$ back into De Bruijn indices. For convenience, the depth parameter can be omitted when operating at the innermost binder ($k=0$), simplifying the notation to $\dopen{P}{\#x,\#y}$ and $\dclose{P}{\#x,\#y}$. The typeclasses and notation declarations supporting these overloaded operations are collected in \cref{app:common-notation}.
 
@@ -337,7 +335,7 @@ reconciled with the concrete names introduced by process transitions.
 
 The third group supports freshness reasoning. \texttt{Proc.not\_mem\_f\_open} states that a name fresh for both a process and a channel does not appear in the opened process, providing the freshness conditions needed in the typability cases. These results provide the core infrastructure required for the transition semantics developed in subsequent chapters.
 
-\paragraph{Notation} \path{Processes/Notation.lean} introduces process prefix notation mirroring the locally nameless syntax established in \cref{subsec:locally-nameless}. For example, \hl{$\phl{\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}}$} maps to \texttt{Proc.tensor (\#x) P} and \hl{$\phl{\res{(\bullet,\bullet)}{\texttt{P}}}$} maps to \texttt{Proc.cut P}. Parallel composition and the terminated process are written \hl{$\phl{P \pp Q}$} and \hl{$\phl{\nil}$} respectively. The full notation is listed in \cref{lst:app-lean-process-notation}.
+\paragraph{Notation} \path{Processes/Notation.lean} introduces process prefix notation mirroring the locally nameless syntax established in \cref{subsec:locally-nameless}. For example, {$\phl{\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}}$} maps to \texttt{Proc.tensor (\#x) P} and {$\phl{\res{(\bullet,\bullet)}{\texttt{P}}}$} maps to \texttt{Proc.cut P}. Parallel composition and the terminated process are written {$\phl{P \pp Q}$} and {$\phl{\nil}$} respectively. The full notation is listed in \cref{lst:app-lean-process-notation}.
 
 \subsubsection{Environments}\label{subsubsec:environments}
 Environments are defined in \path{Environment/Basic.lean} as 
@@ -359,7 +357,7 @@ infixl:69 "/-$,$-/" => Env.merge  -- uses \glq to avoid clashing with the actual
 
 Because lists do not naturally form a Partial Commutative Monoid (PCM) but are associative by definition, we only need to formally recover commutativity. 
 
-Since list concatenation is associative definitionally but not commutative, the commutative structure of environments is recovered by reasoning up to permutation. This is achieved using Lean's built-in \texttt{List.Perm} relation, instantiated through a custom \texttt{HasPerm} typeclass and denoted by the infix relation \hl{$\thl{\Gamma \sim \Delta}$}. 
+Since list concatenation is associative definitionally but not commutative, the commutative structure of environments is recovered by reasoning up to permutation. This is achieved using Lean's built-in \texttt{List.Perm} relation, instantiated through a custom \texttt{HasPerm} typeclass and denoted by the infix relation {$\thl{\Gamma \sim \Delta}$}. 
 
 The essential monoidal laws, including commutativity, associativity, and left and right identity for $\thl{\emptyhyp}$,\footnote{Using $\thl{\emptyhyp}$ rather than the literal \texttt{[]} requires explicit rewrite lemmas for terms such as $\thl{\envmerge{\emptyhyp}{\Gamma}}$. If \texttt{[]} were used directly, $\thl{\envmerge{[]}{\Gamma}}$ would reduce by definitional equality, since \texttt{Env.merge} abbreviates \texttt{List.append}.} are established as:
 
@@ -368,7 +366,7 @@ lemma Env.merge_comm (/-$\Gamma~\Delta$-/ : Env) : /-$\perm{\envmerge{\Gamma}{\D
 lemma Env.merge_assoc (/-$\Gamma~\Delta~\Xi$-/ : Env) : /-$\envmerge{\Gamma}{}\envmerge{\Delta}{\Xi}$-/ = /-$\envmerge{\Gamma}{}$($\envmerge{\Delta}{\Xi}$)-/
 \end{lstlisting}
 
-% Additionally, we use \hl{$\thl{\emptyhyp}$} as unit for merging and implement identity for merging it on both the left and right side of an environment as well as some useful lemmas for defining a standard representation for example turning \hl{$\thl{e :: \emptyhyp}$ into $\thl{[e]}$}.
+% Additionally, we use {$\thl{\emptyhyp}$} as unit for merging and implement identity for merging it on both the left and right side of an environment as well as some useful lemmas for defining a standard representation for example turning {$\thl{e :: \emptyhyp}$ into $\thl{[e]}$}.
 
 % \begin{remark}
 %   \begin{highlight}  
@@ -386,7 +384,7 @@ def Env.Nodup (/-$\Gamma$-/ : Env) : Prop := (/-$\Gamma$-/.map Prod.fst).Nodup
 
 The relationship between linearity, disjointness, and merging of typing environments is captured by \texttt{Env.Nodup\_merge\_iff}, which states that a merged environment is linear if and only if both component environments are individually linear and mutually disjoint.
 
-\paragraph{Server usability} The typing rule for server replication requires all dependency channels to carry exponential request types. This side condition is captured by \texttt{Env.serverUsable}, which asserts that every type in an environment satisfies \texttt{Types.isServerUsable}, i.e.\ has the form \hl{$\thl{\query B}$}.
+\paragraph{Server usability} The typing rule for server replication requires all dependency channels to carry exponential request types. This side condition is captured by \texttt{Env.serverUsable}, which asserts that every type in an environment satisfies \texttt{Types.isServerUsable}, i.e.\ has the form {$\thl{\query B}$}.
 
 \begin{lstlisting}[language=Lean4]
 def Env.serverUsable (/-$\Gamma$-/ : Env) : Prop :=
@@ -406,12 +404,12 @@ abbrev HyperEnv.merge (/-$\hyp{G}$-/ /-$\hyp{H}$-/ : HyperEnv) : HyperEnv := /-$
 infixl:55 " /-$\pp_\texttt{h}$-/ " => HyperEnv.merge
 \end{lstlisting}
 
-As for environments, merging is implemented as list concatenation, using \hl{$\thl{\emptyhyp}$} as the unit and \hl{$\thl{\hypermerge{\hyp{G}}{\hyp{H}}}$} as notation for composition. Associativity and unit laws therefore follow from the underlying list structure. However, recovering the commutative structure requires more than the ordinary list permutation relation, since hyperenvironments are lists whose elements are themselves environments considered modulo permutation.
+As for environments, merging is implemented as list concatenation, using {$\thl{\emptyhyp}$} as the unit and {$\thl{\hypermerge{\hyp{G}}{\hyp{H}}}$} as notation for composition. Associativity and unit laws therefore follow from the underlying list structure. However, recovering the commutative structure requires more than the ordinary list permutation relation, since hyperenvironments are lists whose elements are themselves environments considered modulo permutation.
 
 \paragraph{Deep permutation} 
 For environments, Lean's \texttt{List.Perm} relation is sufficient, since it allows arbitrary reordering of channel-type pairs. For hyperenvironments, however, permutation must operate at two levels: it must allow reordering of component environments, and it must also respect permutation equivalence inside each component environment.
 
-For example, consider the hyperenvironment containing a single component environment \hl{$\thl{[\cht{x}{A}, \cht{y}{B}]}$}. Ordinary \texttt{List.Perm} treats this component environment as an opaque element, so it does not identify it with \hl{$\thl{[\cht{y}{B}, \cht{x}{A}]}$}. The custom relation \texttt{HyperEnv.Perm} instead permits component environments to be replaced by permutation-equivalent environments.
+For example, consider the hyperenvironment containing a single component environment {$\thl{[\cht{x}{A}, \cht{y}{B}]}$}. Ordinary \texttt{List.Perm} treats this component environment as an opaque element, so it does not identify it with {$\thl{[\cht{y}{B}, \cht{x}{A}]}$}. The custom relation \texttt{HyperEnv.Perm} instead permits component environments to be replaced by permutation-equivalent environments.
 
 % \begin{example}
 %   \begin{highlight}
@@ -462,7 +460,7 @@ The typing relation is defined in \path{Judgement/Basic.lean} as the inductive p
 inductive Typing : Nat -> Proc -> HyperEnv -> Prop
 \end{lstlisting}
 
-We write \hl{$\judge{n}{P}{\hyp{G}}$} for a derivation of this predicate. The index $n$ tracks the current type-binder depth, while the remaining indices record the process being typed and its associated typing environment. This intrinsic indexing is later used by the erasure maps in the semantics and metatheory. The full inductive definition, including the typing constructors and the exchange rules, is given in \cref{app:judgement-basic-definition}.
+We write {$\judge{n}{P}{\hyp{G}}$} for a derivation of this predicate. The index $n$ tracks the current type-binder depth, while the remaining indices record the process being typed and its associated typing environment. This intrinsic indexing is later used by the erasure maps in the semantics and metatheory. The full inductive definition, including the typing constructors and the exchange rules, is given in \cref{app:judgement-basic-definition}.
 
 \paragraph{Type-depth indexing}
 The type-depth index is relevant whenever the derivation crosses a polymorphic binder. For example, the \texttt{forall\_} constructor increments the depth from $n$ to $n+1$ and shifts the surrounding environment to keep embedded type indices in scope:
@@ -473,7 +471,7 @@ The type-depth index is relevant whenever the derivation crosses a polymorphic b
     Typing n (#x/-$\dparenL\diamond\dparenR$-/.P) [/-$\cht{\texttt{x}}{\forall.\texttt{B}} :: \Gamma$-/]
 \end{lstlisting}
 
-The shift \hl{$\thl{\typeshiftsingle{\Gamma}}$} abbreviates shifting the type indices in $\Gamma$ by one starting at depth $0$, mirroring the binder-sensitive shifting used by type substitution in \cref{subsubsec:stypes}.
+The shift {$\thl{\typeshiftsingle{\Gamma}}$} abbreviates shifting the type indices in $\Gamma$ by one starting at depth $0$, mirroring the binder-sensitive shifting used by type substitution in \cref{subsubsec:stypes}.
 
 The depth index is also relevant for the~\ref{rule:pill-mix} rule, which requires both sub-derivations to share the same depth $n$. When derivations are available at different depths, they can be brought into alignment using \texttt{Typing\_weakening}. This lemma states that a derivation at depth $n$ can be lifted to depth $n+c$ by shifting the embedded type indices in both the process and the hyperenvironment:
 
@@ -588,8 +586,7 @@ The primary LTS, \texttt{TypingStep}$_\texttt{m}$, is a relation between typing 
 
 \begin{lstlisting}[language=Lean4]
 inductive TypingStep/-$_\texttt{m}$-/ : 
-  {n : Nat} /-$\to$-/ {/-$\hyp{G}$-/ : HyperEnv} /-$\to$-/ {P : Proc} /-$\to$-/ Typing n P /-$\hyp{G}$-/ /-$\to$-/ 
-  Lbl /-$\to$-/ {n' : Nat} /-$\to$-/ {/-$\hyp{G}$-/' : HyperEnv} /-$\to$-/ {P' : Proc} /-$\to$-/ Typing n' P' /-$\hyp{G}$-/' /-$\to$-/ Prop
+  Typing n P /-$\hyp{G}$-/ /-$\to$-/ Lbl /-$\to$-/ Typing n' P' /-$\hyp{G}$-/' /-$\to$-/ Prop
 \end{lstlisting}
 
 As established previously, both environment and hyperenvironment composition are formalised using total list appends. Consequently, the explicit disjointness proofs required by the static \texttt{Typing} relation to safely mix environments must propagate directly into the dynamic \texttt{TypingStep}$_\texttt{m}$ relation. For instance, the \texttt{par$_1$} constructor requires explicit hypotheses (\texttt{hD1} and \texttt{hD2}) to guarantee that the hyperenvironments remain strictly disjoint both before and after the transition:
@@ -599,25 +596,17 @@ As established previously, both environment and hyperenvironment composition are
   caption={The \texttt{par}$_1$ constructor of the typed transition relation, with explicit pre- and post-transition disjointness premises.}, label={lst:typingstep-par1}
   ]
 | par/-$_1$-/
-    (hD1 : /-$\hyp{G}$-/.disjoint /-$\hyp{H}$-/) (hD2 : /-$\hyp{G}$-/'.disjoint /-$\hyp{H}$-/)
-    (h : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/')
-    (disj : l.i /-$\cap$-/ Q.f = /-$\emptyhyp$-/) :
+    (hD1 : /-$\hyp{G}$-/.disjoint /-$\hyp{H}$-/) (hD2 : /-$\hyp{G}$-/'.disjoint /-$\hyp{H}$-/) (disj : l.i /-$\cap$-/ Q.f = /-$\emptyhyp$-/)
+    (h : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') :
     TypingStep/-$_\texttt{m}$-/
-      (Typing.mix hD1 /-$\der{D}$-/ /-$\der{E}$-/)
-      l
-      (Typing.mix hD2 /-$\der{D}$-/' /-$\der{E}$-/)
+      (Typing.mix hD1 /-$\der{D}$-/ /-$\der{E}$-/) l (Typing.mix hD2 /-$\der{D}$-/' /-$\der{E}$-/)
 \end{lstlisting}
 
-% \begin{remark}
-%   The inclusion of \texttt{hD2} to track post-state disjointness was to simplify induction, but is not strictly necessary as this is a derivable fact stemming from the pre-state disjointness (\texttt{hD1}) and the freshness condition $i(l) \cap Q.f = \emptyset$. Combining \texttt{Typing\_f\_eq\_names} and \texttt{hD1}, we can establish that $(P.f \cup i(l)) \cap Q.f = \emptyset$. Combining this with a structural property of the TypingStep relation stating $\hyp{G}' \subseteq \hyp{G} \cup i(l)$, we can deduce that $\hyp{G}' \cap Q.f = \emptyset$. By rewriting this using \texttt{Typing\_f\_eq\_names}, we obtain the required post-state disjointness \texttt{hD2}.
-  
-% The formal proof of this structural property is provided in \cref{app:typingstep-poststate-subset}
+% The post-state disjointness proof \texttt{hD2} is included explicitly as a convenience: while it is derivable from \texttt{hD1}, the freshness condition $i(l) \cap Q.f = \emptyset$, and the structural property that transitions only introduce names recorded by their label, keeping it as a premise avoids reconstructing this fact repeatedly in later proofs.
 
-The post-state disjointness proof \texttt{hD2} is included explicitly as a convenience: while it is derivable from \texttt{hD1}, the freshness condition $i(l) \cap Q.f = \emptyset$, and the structural property that transitions only introduce names recorded by their label, keeping it as a premise avoids reconstructing this fact repeatedly in later proofs.
+The post-state disjointness proof \texttt{hD2} is included explicitly as a proof-engineering convenience. It is recoverable from the pre-state disjointness proof \texttt{hD1}, the freshness condition $i(l) \cap Q.f = \emptyset$, the name correspondence invariant \texttt{Typing\_f\_eq\_names}, and \texttt{TypingStep}$_\texttt{m}$\texttt{\_names\_bound}, which states that the target hyperenvironment contains no names beyond those already present in the source or introduced by the label. Keeping \texttt{hD2} as a premise avoids reconstructing this derived disjointness fact repeatedly in later proofs, at the cost of making the transition relation slightly less minimal. The transition name bounds are stated in \cref{lst:app-typingstep-name-bounds}.
 
-\begin{remark} % FIXME: Quite large remark do something about this.
-  Strictly stepping typing derivations can expose structural artifacts that are usually hidden in the paper presentation. For example, in \cref{fig:cut-unit-trans}, the intermediate derivation is typed by $\thl{\emptyhyp \pp \cht{y}{1}}$ rather than simply $\thl{\cht{y}{1}}$, because the~\ref{rule:pill-mix} rule preserves the empty component contributed by the terminated left process. In Lean, this corresponds to a \texttt{Typing.mix} constructor containing a \texttt{Typing.mix}$_\texttt{0}$ sub-derivation. The result is valid, but reducing it to the canonical form requires applying the monoidal identity laws of the hyperenvironment explicitly, rather than by definitional equality. The final $\equiv$ step in the figure, which additionally uses process congruence to identify $\phl{\nil \pp \nil}$ with $\phl{\nil}$, is not currently automated because structural congruence has not been mechanised. This limitation is discussed further in \cref{sec:discussion}.
-\end{remark}
+Strictly stepping typing derivations can expose structural artifacts that are usually hidden in the paper presentation. For example, in \cref{fig:cut-unit-trans}, the intermediate derivation is typed by $\thl{\emptyhyp \pp \cht{y}{1}}$ rather than simply $\thl{\cht{y}{1}}$, because the~\ref{rule:pill-mix} rule preserves the empty component contributed by the terminated left process. In Lean, this corresponds to a \texttt{Typing.mix} constructor containing a \texttt{Typing.mix}$_\texttt{0}$ sub-derivation. The result is valid, but reducing it to the canonical form requires applying the monoidal identity laws of the hyperenvironment explicitly, rather than by definitional equality. The final $\equiv$ step in the figure, which additionally uses process congruence to identify $\phl{\nil \pp \nil}$ with $\phl{\nil}$, is not currently automated because structural congruence has not been mechanised. This limitation is discussed further in \cref{sec:discussion}.
 
 \subsubsection{Projected Transition Systems}\label{subsubsec:inducedlts}
 The process and environment transition systems are defined to capture the two erasure views of a typed transition. \texttt{ProcStep}$_\texttt{m}$ records the process behaviour obtained by forgetting typing resources, while \texttt{EnvStep}$_\texttt{m}$ records the corresponding resource evolution. These relations are later connected to \texttt{TypingStep}$_\texttt{m}$ by the simulation theorems in \cref{subsec:session-fidelity}.

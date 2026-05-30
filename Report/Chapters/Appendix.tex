@@ -1434,7 +1434,7 @@ theorem typability_subject_reduction/-$_\texttt{m}$-/
 \end{lstlisting}
 
 \begin{lstlisting}[language=Lean4,
-  caption={Subject reduction for the multiplicative fragment. The result follows from \cref{lst:app-sf-env,lst:app-typability}.}
+  caption={Subject reduction for the multiplicative fragment. The result follows from \cref{lst:app-sf-env,lst:app-typability}.},
   label={lst:app-sr}]
 theorem subject_reduction/-$_\texttt{m}$-/ {n : Nat} {/-$\hyp{G}$-/ : HyperEnv} {P P' : Proc} {l : Lbl}
   (/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/) (hPS : ProcStep/-$_\texttt{m}$-/ P l P') :
@@ -1515,3 +1515,22 @@ lemma HyperEnv.Perm.extract_tensor_parr_res
       (/-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/ ++ /-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-//-$_\texttt{n}$-/] /-$\lor$-/
        /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-//-$_\texttt{n}$-/ ++ /-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-//-$_\texttt{n}$-/])) := by ...
 \end{lstlisting}
+
+% FIXME: Should this be kept (if not remove from current limitation res discussion and the par_1 hD2 discussion)
+\paragraph{Typed-transition name bounds} The following lemmas capture the name-level effect of typed transitions. The first states that a transition can introduce no names beyond those explicitly recorded as introduced by its label. The second states that names not involved in the action are preserved in the target hyperenvironment.
+
+\begin{lstlisting}[
+  language=Lean4,
+  caption={Name-evolution bounds for typed transitions. A transition introduces no names beyond those recorded by its label, and preserves all source names not involved in the action.},
+  label={lst:app-typingstep-name-bounds}
+]
+lemma TypingStep/-$_\texttt{m}$-/_names_bound
+    (hStep : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') :
+    /-$\hyp{G}$-/'.names /-$\subseteq$-/ /-$\hyp{G}$-/.names /-$\cup$-/ l.i := by ...
+
+lemma TypingStep/-$_\texttt{m}$-/_names_preserved
+    (hStep : TypingStep/-$_\texttt{m}$-/ /-$\der{D}$-/ l /-$\der{D}$-/') :
+    /-$\hyp{G}$-/.names /-$\setminus$-/ (l.f /-$\cup$-/ l.i) /-$\subseteq$-/ /-$\hyp{G}$-/'.names := by ...
+\end{lstlisting}
+
+Both proofs proceed by induction on the typed transition derivation. The prefix and synchronisation axioms reduce to finite-set reasoning about the names consumed or introduced by their labels, while the parallel constructors lift the induction hypothesis through hyperenvironment composition. The permutation cases use preservation of name sets under environment and hyperenvironment permutation. In the restriction case, the induction hypothesis is applied to the transition of the opened body, after which the freshness assumptions discharge the temporary restricted endpoints, yielding a statement about the closed source and target hyperenvironments.
