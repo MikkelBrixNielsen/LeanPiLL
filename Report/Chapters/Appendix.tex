@@ -1401,9 +1401,9 @@ inductive ProcStep/-$_\texttt{m}$-/ : (P : Proc) -> Lbl -> (P' : Proc) -> Prop w
 \end{lstlisting}
 
 \section{Session Fidelity Theorems}\label{app:session-fidelity}
-The following listings give the Lean statements of the four main theorems establishing session fidelity for \pimll{}, as discussed in \cref{subsec:session-fidelity}. The erasure functions \texttt{proc} and \texttt{env} (\cref{lst:lean-typing-projections}) extract the process and hyperenvironment from a typing derivation respectively.
+The following listings give the Lean statements of the completed erasure simulations and the target statements for typability subject reduction and subject reduction for \pimll{}, as discussed in \cref{subsec:session-fidelity}. The erasure functions \texttt{proc} and \texttt{env} (\cref{lst:lean-typing-projections}) extract the process and hyperenvironment from a typing derivation, respectively.
 
-The first two theorems show that typed transitions project to process-level and environment-level transitions. The third theorem is ment to prove typability subject reduction i.e.\ if a well-typed process steps it can be lifted to a typed transition. The final theorem packages these results into the usual subject-reduction statement.
+The process- and environment-erasure simulations are complete. The proof of \texttt{typability\_subject\_reduction}$_\texttt{m}$ is complete for all multiplicative cases except \texttt{res}. Consequently, the final subject-reduction result remains conditional on completion of that case.
 
 \begin{lstlisting}[language=Lean4,
   caption={Process erasure simulation: typed derivation steps project to process steps.},
@@ -1424,7 +1424,7 @@ theorem session_fidelity_env/-$_\texttt{m}$-/
 \end{lstlisting}
 
 \begin{lstlisting}[language=Lean4,
-  caption={Typability and subject reduction: process steps from well-typed processes lift to typed derivation steps.},
+  caption={Target statement for typability subject reduction. The remaining incomplete proof case is \texttt{res}},
   label={lst:app-typability}]
 theorem typability_subject_reduction/-$_\texttt{m}$-/
   {n : Nat} {/-$\hyp{G}$-/ : HyperEnv} {P P' : Proc} {l : Lbl}
@@ -1434,7 +1434,7 @@ theorem typability_subject_reduction/-$_\texttt{m}$-/
 \end{lstlisting}
 
 \begin{lstlisting}[language=Lean4,
-  caption={Subject reduction for the multiplicative fragment. The result follows from \cref{lst:app-sf-env,lst:app-typability}.},
+  caption={Target statement for subject reduction for the multiplicative fragment, conditional on completion of typability subject reduction.},
   label={lst:app-sr}]
 theorem subject_reduction/-$_\texttt{m}$-/ {n : Nat} {/-$\hyp{G}$-/ : HyperEnv} {P P' : Proc} {l : Lbl}
   (/-$\der{D}$-/ : Typing n P /-$\hyp{G}$-/) (hPS : ProcStep/-$_\texttt{m}$-/ P l P') :
@@ -1491,31 +1491,6 @@ Extraction lemmas isolate specific components from a hyperenvironment permutatio
 
 The proof proceeds by extracting component membership from the pre-transition permutation, followed by case analysis on the relative positions of the restricted endpoints. Freshness and inequality assumptions rule out impossible coincidences, while the valid branches reconstruct the resulting hyperenvironment permutations using permutation rotation, merge, and cancellation lemmas.
 
-\begin{lstlisting}[language=Lean4,
-  caption={Representative hyperenvironment extraction lemma for the tensor-parr synchronisation case.},
-  label={lst:app-extraction}]
-lemma HyperEnv.Perm.extract_tensor_parr_res
-  {/-$\hyp{G}$-/ /-$\hyp{H}$-/ /-$\hyp{G}$-//-$_\texttt{r}$-/ : HyperEnv} {/-$\Gamma$-/ /-$\Gamma$-/' /-$\Gamma$-/'' /-$\Delta$-/ /-$\Delta$-/' /-$\Delta$-/'' /-$\Xi$-/ : Env}
-  {u v x x' y y' : FPName} {A B C D E : Types}
-  (h_pre : /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{u}}{\texttt{E}}$-/::/-$\Gamma$-/'] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{v}}{\dual{\texttt{E}}}$-/::/-$\Delta$-/'] /-$\sim$-/
-    /-$\hyp{G}$-//-$_\texttt{r}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{A} \tensor \texttt{B}}$-/::/-$\Gamma$-/,/-$\Delta$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y}}{\dual{\texttt{C} \parr \texttt{D}}}$-/::/-$\Xi$-/])
-  (h_post : /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{u}}{\texttt{E}}$-/::/-$\Gamma$-/''] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{v}}{\dual{\texttt{E}}}$-/::/-$\Delta$-/''] /-$\sim$-/
-     /-$\hyp{G}$-//-$_\texttt{r}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-/])
-  (hux : u /-$\neq$-/ x) (hux' : u /-$\neq$-/ x') (huy : u /-$\neq$-/ y) (huy' : u /-$\neq$-/ y')
-  (hvx : v /-$\neq$-/ x) (hvx' : v /-$\neq$-/ x') (hvy : v /-$\neq$-/ y) (hvy' : v /-$\neq$-/ y')
-  (huv : u /-$\neq$-/ v) (hFu : u /-$\notin$-/ /-$\hyp{G}$-/.names) (hFv : v /-$\notin$-/ /-$\hyp{G}$-/.names)
-  (hFu' : u /-$\notin$-/ /-$\hyp{H}$-/.names) (hFv' : v /-$\notin$-/ /-$\hyp{H}$-/.names)
-  (hu/-$\Delta$-/' : u /-$\notin$-/ /-$\Delta$-/'.names) (hv/-$\Gamma$-/' : v /-$\notin$-/ /-$\Gamma$-/'.names) :
-  (/-$\exists$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\Gamma$-//-$_\texttt{n}$-/ /-$\Delta$-//-$_\texttt{n}$-/ /-$\Xi$-//-$_\texttt{n}$-/,
-    /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/', /-$\Delta$-/'] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{A} \tensor \texttt{B}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/,/-$\Delta$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y}}{\dual{\texttt{C} \parr \texttt{D}}}$-/::/-$\Xi$-//-$_\texttt{n}$-/] /-$\land$-/
-    /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-//-$_\texttt{n}$-/])
-  /-$\lor$-/
-  (/-$\exists$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\Gamma$-//-$_\texttt{n}$-/ /-$\Delta$-//-$_\texttt{n}$-/ /-$\Xi$-//-$_\texttt{n}$-/,
-    /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/', /-$\Delta$-/'] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{A} \tensor \texttt{B}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/,/-$\Delta$-//-$_\texttt{n}$-/ ++ /-$\cht{\texttt{y}}{\dual{\texttt{C} \parr \texttt{D}}}$-/::/-$\Xi$-//-$_\texttt{n}$-/] /-$\land$-/
-      (/-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/ ++ /-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-//-$_\texttt{n}$-/] /-$\lor$-/
-       /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-//-$_\texttt{n}$-/ ++ /-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-//-$_\texttt{n}$-/])) := by ...
-\end{lstlisting}
-
 \paragraph{Typed-transition name bounds} The following lemmas capture the name-level effect of typed transitions. The first states that a transition can introduce no names beyond those explicitly recorded as introduced by its label. The second states that names not involved in the action are preserved in the target hyperenvironment.
 
 \begin{lstlisting}[
@@ -1543,3 +1518,28 @@ is applied to the transition of the opened body, giving a name bound
 in terms of the opened hyperenvironments. The freshness assumptions 
 on the restricted endpoints, stating that neither appears in the label, then allow the temporary names introduced by opening to be cancelled 
 from both sides, recovering the bound on the outer closed hyperenvironments.
+
+\begin{lstlisting}[language=Lean4,
+  caption={Representative hyperenvironment extraction lemma for the tensor-parr synchronisation case.},
+  label={lst:app-extraction}]
+lemma HyperEnv.Perm.extract_tensor_parr_res
+  {/-$\hyp{G}$-/ /-$\hyp{H}$-/ /-$\hyp{G}$-//-$_\texttt{r}$-/ : HyperEnv} {/-$\Gamma$-/ /-$\Gamma$-/' /-$\Gamma$-/'' /-$\Delta$-/ /-$\Delta$-/' /-$\Delta$-/'' /-$\Xi$-/ : Env}
+  {u v x x' y y' : FPName} {A B C D E : Types}
+  (h_pre : /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{u}}{\texttt{E}}$-/::/-$\Gamma$-/'] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{v}}{\dual{\texttt{E}}}$-/::/-$\Delta$-/'] /-$\sim$-/
+    /-$\hyp{G}$-//-$_\texttt{r}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{A} \tensor \texttt{B}}$-/::/-$\Gamma$-/,/-$\Delta$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y}}{\dual{\texttt{C} \parr \texttt{D}}}$-/::/-$\Xi$-/])
+  (h_post : /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{u}}{\texttt{E}}$-/::/-$\Gamma$-/''] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{v}}{\dual{\texttt{E}}}$-/::/-$\Delta$-/''] /-$\sim$-/
+     /-$\hyp{G}$-//-$_\texttt{r}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-/])
+  (hux : u /-$\neq$-/ x) (hux' : u /-$\neq$-/ x') (huy : u /-$\neq$-/ y) (huy' : u /-$\neq$-/ y')
+  (hvx : v /-$\neq$-/ x) (hvx' : v /-$\neq$-/ x') (hvy : v /-$\neq$-/ y) (hvy' : v /-$\neq$-/ y')
+  (huv : u /-$\neq$-/ v) (hFu : u /-$\notin$-/ /-$\hyp{G}$-/.names) (hFv : v /-$\notin$-/ /-$\hyp{G}$-/.names)
+  (hFu' : u /-$\notin$-/ /-$\hyp{H}$-/.names) (hFv' : v /-$\notin$-/ /-$\hyp{H}$-/.names)
+  (hu/-$\Delta$-/' : u /-$\notin$-/ /-$\Delta$-/'.names) (hv/-$\Gamma$-/' : v /-$\notin$-/ /-$\Gamma$-/'.names) :
+  (/-$\exists$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\Gamma$-//-$_\texttt{n}$-/ /-$\Delta$-//-$_\texttt{n}$-/ /-$\Xi$-//-$_\texttt{n}$-/,
+    /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/', /-$\Delta$-/'] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{A} \tensor \texttt{B}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/,/-$\Delta$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y}}{\dual{\texttt{C} \parr \texttt{D}}}$-/::/-$\Xi$-//-$_\texttt{n}$-/] /-$\land$-/
+    /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-//-$_\texttt{n}$-/])
+  /-$\lor$-/
+  (/-$\exists$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\Gamma$-//-$_\texttt{n}$-/ /-$\Delta$-//-$_\texttt{n}$-/ /-$\Xi$-//-$_\texttt{n}$-/,
+    /-$\hyp{G}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/', /-$\Delta$-/'] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{A} \tensor \texttt{B}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/,/-$\Delta$-//-$_\texttt{n}$-/ ++ /-$\cht{\texttt{y}}{\dual{\texttt{C} \parr \texttt{D}}}$-/::/-$\Xi$-//-$_\texttt{n}$-/] /-$\land$-/
+      (/-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/ ++ /-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-//-$_\texttt{n}$-/] /-$\lor$-/
+       /-$\hyp{H}$-/ /-$\pp_\texttt{h}$-/ [/-$\Gamma$-/'', /-$\Delta$-/''] /-$\sim$-/ /-$\hyp{G}$-//-$_\texttt{n}$-/ /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x'}}{\texttt{A}}$-/::/-$\Gamma$-//-$_\texttt{n}$-/] /-$\pp_\texttt{h}$-/ [/-$\cht{\texttt{x}}{\texttt{B}}$-/::/-$\Delta$-//-$_\texttt{n}$-/ ++ /-$\cht{\texttt{y'}}{\texttt{C}}$-/::/-$\cht{\texttt{y}}{\texttt{D}}$-/::/-$\Xi$-//-$_\texttt{n}$-/])) := by ...
+\end{lstlisting}

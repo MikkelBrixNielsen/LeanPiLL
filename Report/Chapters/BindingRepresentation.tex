@@ -15,7 +15,7 @@ This chapter introduces the binding representation used throughout the formalisa
 
 Although both channels and type variables involve binding, they exhibit fundamentally different operational behaviour. Session channels participate in dynamic communication and substitution across concurrent processes, while polymorphic type variables remain statically scoped within typing derivations. The formalisation therefore adopts different binding strategies for these two classes of identifiers while maintaining a common underlying binding architecture.
 
-To achieve these goals, we adopt a locally nameless binding architecture for the calculus \citep{C12}, separating free identifiers from bound occurrences. Bound variables are represented using indices, causing $\alpha$-equivalent terms to coincide structurally, while free variables remain explicit and readable.
+To achieve these goals, we adopt a locally nameless binding architecture for the calculus following \citet{C12}, separating free identifiers from bound occurrences. Bound variables are represented using indices, causing $\alpha$-equivalent terms to coincide structurally, while free variables remain explicit and readable.
 
 This separation simplifies substitution by restricting it to free variables while leaving bound indices untouched, thereby avoiding accidental capture by construction. As a result, many proofs that traditionally require substantial renaming infrastructure reduce instead to structural recursion and index manipulations.
 
@@ -73,7 +73,7 @@ When the recursion reaches a bound variable $\text{bound}(n)$, the index $n$ is 
 
 Crucially, when the opening operation encounters an existing free variable ${\text{free}(y)}$, it simply ignores it. This guarantees that opening is entirely capture-avoiding by construction. In the operational semantics, when a single binder like an input prefix {$\phl{\recv{z}{\bullet}{P}}$} receives a channel $x$, the continuation {$\phl{P}$} is opened as {$\phl{\{0 \mapsto x\}P}$}. For a restriction {$\phl{\res{(\bullet, \bullet)}{P}}$}, the dual endpoints $x$ and $y$ are opened sequentially as {$\phl{\{0 \mapsto x\}(\{1 \mapsto y\}P)}$}.
 
-\paragraph{Closing (Abstraction)} Closing is the exact inverse of opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted {$\phl{\{k \mapsfrom x\}P}$}. While recursing, bound indices are ignored as they cannot contain free names. When the recursion encounters a free term like $\phl{\text{free}(y)}$, it checked if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$.
+\paragraph{Closing (Abstraction)} Closing is the companion abstraction operation to opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted {$\phl{\{k \mapsfrom x\}P}$}. While recursing, bound indices are ignored as they cannot contain free names. When the recursion encounters a free term like $\phl{\text{free}(y)}$, it checked if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$.
 
 This operation is primarily used when constructing new binders, such as moving a free channel into a restricted scope. To close multiple free names simultaneously, such as abstracting $x$ and $y$ into a restriction, the operations are applied sequentially, by first closing $y$ at depth $k+1$, followed by closing $x$ at depth $k$.
 
@@ -88,6 +88,8 @@ With the syntax partitioned into names and indices, and the mechanics of opening
 
 In paper-based proofs, when a rule requires opening a binder, Barendregt's variable convention allows the author to simply state: \emph{pick a fresh name $x$}. In a proof assistant, this informal generation of a fresh name must be encoded into the constructors of the inductive relations. Two naive approaches to bind this fresh name, both of which introduce severe mechanical flaws~\cite{A08, C12}:
 
+In paper-based proofs, when a rule requires opening a binder, Barendregt's Variable Convention allows the author simply to state: \emph{pick a fresh name $x$}. In a proof assistant, this informal choice of a fresh name must instead be encoded in the constructors of the inductive relations. Two naive approaches to representing this choice introduce significant mechanisation difficulties \citep{A08,C12}:
+
 \begin{enumerate}
     \item \textbf{Existential Quantification ($\exists x \notin \fs(\phl{P})$):} 
     The rule requires the property to hold for at least one fresh name. 
@@ -101,14 +103,13 @@ In paper-based proofs, when a rule requires opening a binder, Barendregt's varia
     for proof construction, since the property cannot generally be shown 
     for names that already occur free in the surrounding context.
 \end{enumerate}
+Following \citet{C12, A08}, the locally nameless architecture adresses this dillemma using {co-finite quantification}. Rather than quantifying over one name or all names, the inductive rules quantifies universally over all names outside an arbitrary, finite set $L$. Formally, a rule requiring a fresh name uses the premise: $\forall x \notin L$.
 
-To solve this dilemma, the locally nameless architecture employs \textbf{co-finite quantification} \citep{C12, A08}. Rather than quantifying over one name or all names, the inductive rules quantifies universally over all names \emph{except} those not in an arbitrary, finite set $L$. Formally, a rule requiring a fresh name uses the premise: $\forall x \notin L$.
-
-By deferring the exact choice of the forbidden set $L$ to the user at the time of proof, co-finite quantification achieves the best of both worlds. When constructing a proof tree, the user can instantiate $L$ as the set of all free variables currently in the environment, process, and transition labels {($\fs(\phl{P}) \cup \fs(\thl{\Gamma}) \cup \dots$)}. This ensures the premise is trivially satisfiable. Conversely, when performing structural induction, the co-finite universal quantifier guarantees that the induction hypothesis applies to \emph{any} fresh name the user could possibly need, provided they pick one outside the finite set $L$.
+By deferring the exact choice of the forbidden set $L$ to the user at the time of proof, co-finite quantification achieves the best of both worlds. When constructing a proof tree, the user can instantiate $L$ as the set of all free variables currently in the environment, process, and transition labels {($\fs(\phl{P}) \cup \fs(\thl{\Gamma}) \cup \dots$)}. This ensures that any name quantified over by the premise satisfies the required freshness assumptions. Conversely, when performing structural induction, the co-finite universal quantifier guarantees that the induction hypothesis applies to \emph{any} fresh name the user could possibly need, provided they pick one outside the finite set $L$.
 
 \paragraph{Application to \pill{} Types} Although type variables are represented using the locally nameless separation of free and bound constructors, their metatheory is handled using depth-indexed reasoning rather than cofinite quantification. Because type variables are static and do not dynamically communicate across parallel scopes like channels do, managing freshness sets $L$ for them introduces unnecessary proof overhead. 
 
-Instead, the system evaluates polymorphic typing rules using a purely depth-indexed approach, using a De Bruijn shifting operator. We define the shifting of a type {$\thl{A}$} by a distance $d$ at a cutoff depth $c$, denoted mathematically as {$\thl{\shiftdc{d}{c}A}$}. Using this infrastructure, consider the typing rule for the universal type input ({$\thl{\forall. B}$}):
+Instead, the system evaluates polymorphic typing rules using a purely depth-indexed approach, using a De Bruijn shifting operator. We define the shifting of a type {$\thl{A}$} at a cutoff depth $d$ by distance $c$, denoted mathematically as {$\thl{\shiftdc{d}{c}A}$}. Using this infrastructure, consider the typing rule for the universal type input ({$\thl{\forall. B}$}):
 
 \begin{highlight}
 \[
@@ -128,7 +129,8 @@ Rather than opening the binder with a fresh explicit name, the typing judgment s
   {\forall \phl{y} \notin L, \quad \judge{n}{\{0 \mapsto y\}P}{\Gamma, \cht{x}{B}, \cht{y}{A}}}
 \]
 \end{highlight}
-
 Here, the rule states that the process is well-typed if, for any fresh channel variable $y$ outside some finite set of forbidden variables $L$, the opened process $\phl{P}$ is well-typed under the environment extended with the opened payload. By utilizing this mixed evaluation strategy, co-finite quantification for dynamic channels, and depth-indexed evaluation for static types, the architecture minimizes bureaucratic renaming overhead while maintaining a unified underlying syntax.
+
+This mixed strategy also determines where the remaining proof overhead appears. Depth-indexed treatment of polymorphic types avoids managing fresh type-variable sets, but requires explicit shifting and weakening lemmas when typing derivations cross polymorphic binders. Co-finite quantification for process channels avoids $\alpha$-equivalence reasoning and provides strong induction hypotheses, but later requires bridging lemmas when an operational transition chooses concrete fresh names. These costs are reflected in the mechanised definitions and proofs developed in the following chapters.
 
 With this mathematical foundation established, the conceptual theory of \pill{} is fully prepared for implementation. The following chapter details how this locally nameless architecture is concretely mechanised in the Lean 4 proof assistant.

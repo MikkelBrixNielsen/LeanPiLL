@@ -12,13 +12,13 @@ As an illustrative example, a small mistake in the application of a typing rule 
 
 These observations motivate a more disciplined approach to formal reasoning, where correctness is ensured by construction rather than by inspection.
 
-\paragraph{Why mechanization.}
-Mechanization provides a means of bridging this gap. Rather than extending the underlying theory, the goal of mechanization in this work is to validate and internalize existing results within a proof assistant. This allows us to eliminate ambiguity arising from paper presentation and to ensure that all derivations are checked with respect to a precise formal semantics.
+\paragraph{Why mechanisation.}
+Mechanisation provides a means of bridging this gap. Rather than extending the underlying theory, the goal of mechanisation in this work is to validate and internalise existing results within a proof assistant. This allows us to eliminate ambiguity arising from paper presentation and to ensure that all derivations are checked with respect to a precise formal semantics.
 
-Moreover, mechanized developments have repeatedly demonstrated their ability to uncover small but meaningful inconsistencies in paper proofs, supporting the view that proof assistants serve as a valuable tool for verifying, rather than merely implementing, theoretical frameworks.
+Moreover, mechanised developments have repeatedly demonstrated their ability to uncover small but meaningful inconsistencies in paper proofs, supporting the view that proof assistants serve as a valuable tool for verifying, rather than merely implementing, theoretical frameworks.
 
 \paragraph{Contributions.}
-In this thesis, we present a mechanized formalization of the $\pi$-calculus-based linear logic system \pill{} as developed by Montesi and Peressotti, with particular emphasis on its multiplicative fragment. The contributions are as follows:
+In this thesis, we present a mechanised formalisation of the $\pi$-calculus-based linear logic system \pill{} as developed by Montesi and Peressotti, with particular emphasis on its multiplicative fragment. The contributions are as follows:
 
 \begin{itemize}
     \item A formalisation of the syntax and typing system of \pill{} in Lean, including processes, session types, environments, hyperenvironments, typing judgements, and substitution operations for both names and types.
@@ -27,7 +27,7 @@ In this thesis, we present a mechanized formalization of the $\pi$-calculus-base
     \item A mechanised development of the session-fidelity proof architecture for the multiplicative fragment, with the remaining proof obligation isolated to the \texttt{res} case.
 \end{itemize}
 
-\paragraph{Scope of the formalization.}
-This thesis focuses on a mechanized reconstruction of the \pill{} system of~\cite{abs-2106-11818}, with particular emphasis on its multiplicative fragment. The syntactic and typing components of \pill{} have been fully mechanized, including processes, session types, typing judgments, and substitution operations. The operational semantics are defined for the multiplicative fragment, while the corresponding session-fidelity proof currently leaves the \texttt{res} case as the remaining proof obligation.
+\paragraph{Scope of the formalisation.}
+This thesis focuses on a mechanised reconstruction of the \pill{} system of~\citet{abs-2106-11818}, with particular emphasis on its multiplicative fragment. The syntactic and typing components of \pill{} have been fully mechanised, including processes, session types, typing judgments, and substitution operations. The operational semantics are defined for the multiplicative fragment, while the corresponding session-fidelity proof currently leaves the \texttt{res} case as the remaining proof obligation.
 
 Consequently, metatheoretic results concerning typing apply to the full system, while results involving operational semantics are restricted to the multiplicative fragment. The aim of this work is not to extend the theory, but to provide a mechanised account of an existing theoretical framework and to identify the remaining proof obligations needed for its full verification.
