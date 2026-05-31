@@ -89,8 +89,8 @@
 \contentsline {paragraph}{Readiness}{43}{section*.62}%
 \contentsline {paragraph}{Productivity and potential}{43}{section*.63}%
 \contentsline {paragraph}{Further behavioural results}{43}{section*.64}%
-\contentsline {section}{\numberline {8}Conclusion}{43}{section.8}%
-\contentsline {section}{References}{44}{section*.66}%
+\contentsline {section}{\numberline {8}Conclusion}{44}{section.8}%
+\contentsline {section}{References}{45}{section*.66}%
 \contentsline {section}{\numberline {A}Code Availability}{45}{section.A}%
 \contentsline {section}{\numberline {B}Lean File Structure}{45}{section.B}%
 \contentsline {section}{\numberline {C}Common Lean Notation}{46}{section.C}%
@@ -107,7 +107,7 @@
 \contentsline {section}{\numberline {E}Session Fidelity Theorems}{58}{section.E}%
 \contentsline {section}{\numberline {F}Selected Proof Infrastructure}{59}{section.F}%
 \contentsline {paragraph}{Freshness bridge lemmas}{59}{section*.71}%
-\contentsline {paragraph}{Typing inversion}{59}{section*.72}%
+\contentsline {paragraph}{Typing inversion}{60}{section*.72}%
 \contentsline {paragraph}{Hyperenvironment extraction}{60}{section*.73}%
 \contentsline {paragraph}{Typed-transition name bounds}{60}{section*.74}%
 \contentsline {paragraph}{Block preservation lemmas.}{61}{section*.75}%

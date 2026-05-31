@@ -238,7 +238,6 @@ inductive Types : Type where
 deriving DecidableEq, BEq, Repr
 \end{lstlisting}
 
-% % FIXME: Write better caption
 % \begin{lstlisting}[
 %   language=Lean4,
 %   caption={Duality on session types. The definition exchangee each connective with its dual.},
@@ -668,8 +667,6 @@ deriving DecidableEq, BEq
 % NOTE: Don't include as this is basically all in prose in the formalisation section or irrelevant.
 % \subsection{Environments}
 
-% % FIXME: Introdoctory text
-
 % \begin{lstlisting}[
 %   language=Lean4,
 %   caption={Lean representation of typing environments. Environments are implemented as lists of name/type pairs, with names extracted into finite sets for freshness and disjointness reasoning.},
@@ -744,7 +741,6 @@ deriving DecidableEq, BEq
 %   subst /-$\Gamma$-/ R T := Env.substNames /-$\Gamma$-/ R T
 % \end{lstlisting}
 
-% % FIXME: Relevance
 % \begin{lstlisting}[
 %   language=Lean4,
 %   caption={Selected name-set simplification lemmas for environments. These lemmas normalise environment names through the list representation and are used repeatedly in freshness and disjointness proofs.},
