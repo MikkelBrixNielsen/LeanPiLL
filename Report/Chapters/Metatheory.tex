@@ -44,6 +44,7 @@ This theorem forms the technical core of the session fidelity argument. Its proo
 
 The proof has two main technical obligations. First, it must reconcile the concrete freshness witnesses used by \texttt{ProcStep}$_\texttt{m}$ with the co-finite premises of the typing rules. For example, a process transition fixes a concrete name introduced by a prefix, while the corresponding typing rule provides a derivation only for all names outside some finite set. Auxiliary \emph{all fresh} lemmas bridge this gap by showing that the co-finite premise can be instantiated with the concrete name appearing in the process step. Second, in the communication and restriction cases, the proof must rearrange hyperenvironments to expose the components containing the communicating endpoints. In particular, synchronization under restriction requires opening the restricted process with fresh endpoints, applying the induction hypothesis to the opened body, and reconstructing the target hyperenvironment up to permutation.
 
+\paragraph{The res Case}
 The remaining incomplete case is \texttt{res}. In this case, inversion of the source typing derivation exposes the body of the restriction under two fresh dual endpoints, giving a premise of the form:
 \begin{highlight}
   \[\judge{n}{\dopen{Q}{x,y}}{\hyp{H} \pp_h [\cht{x}{A} \texttt{::} \Gamma] \pp_h [\cht{y}{\dual{A}} \texttt{::} \Delta]}\]
@@ -75,5 +76,3 @@ The proof is a direct composition of the previous results: \texttt{typability\_s
 Together, these results establish the structure of the session fidelity argument for the mechanised fragment, with one remaining gap. The erasure simulations are complete, and subject reduction follows once typability is fully established. The typability theorem is proved for all multiplicative cases except \texttt{res}. In this case, the proof must show that environments not involved in the transition are preserved, up to permutation, across restriction steps. The required infrastructure is largely in place, with the remaining work concentrated in the case analysis relating uninvolved parallel environments to the post-step hyperenvironment produced by the restricted transition. Once this case is closed, the full process-level session fidelity property follows for the mechanised \pimll{} fragment.
 
 The paper (\citep{abs-2106-11818}) additionally establishes behavioural properties including bisimilarity, the diamond property, serialisation, non-interference, and readiness for \pimll{}. These results are not mechanised in the current formalisation; they are discussed in \cref{sec:future}.
-
-

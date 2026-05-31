@@ -1,44 +1,30 @@
-% Paragraph 1: Motivation.
-% This thesis set out to mechanise an existing \pill theory in Lean, validating a technically delicate paper presentation.
-
-% Paragraph 2: Contributions.
-% formalised syntax, locally nameless binding, session types, processes, environments, hyperenvironments, typing, operational semantics, and session-fidelity infrastructure.
-
-% Paragraph 3: Metatheory status.
-% Erasure projections and subject-reduction structure are established, typability is complete except \emph{res},  remaining gap is hyperenvironment reconstruction.
-
-% Paragraph 4: Reflection.
-% The mechanisation exposed proof-engineering tradeoffs: list-based environments, explicit disjointness, concrete vs co-finite freshness, structural congruence not mechanised.
-
-% Paragraph 5: Closing.
-% Even incomplete, the development validates large parts of the theory and identifies a clear path to completing \pimll and extending to full \piLL.
-
 \section{Conclusion}\label{sec:conclusion}
-This thesis set out to mechanise the syntax, semantics, and metatheory of \pill{} in Lean. The goal was not to extend the source calculus, but to validate and clarify an existing theoretical framework by making its binding structure, freshness assumptions, linear resource accounting, and operational metatheory explicit in a proof assistant.
+This thesis set out to mechanise the syntax, semantics, and metatheory of \pill{} in Lean~4. The aim was not to extend the source calculus, but to provide a precise mechanised account of an existing theoretical framework by making its treatment of binding, freshness, linear resources, and operational behaviour explicit within a proof assistant.
 
-The formalisation covers the static structure of the full calculus, including session types, processes, environments, hyperenvironments, and typing judgements. Processes are represented using a locally nameless encoding, while type variables are represented using De Bruijn indices. This avoids explicit reasoning about \(\alpha\)-equivalence while preserving readable free channel names in the mechanised syntax. The cost of this choice is the need for local-closure predicates, opening and closing operations, and co-finite reasoning principles.
+The formalisation covers the static structure of the full \pill{} calculus, including session types, processes, environments, hyperenvironments, and typing judgements. The binding architecture retains explicit free identifiers while representing bound occurrences by indices: channel binders are managed through locally nameless opening and co-finite premises, whereas polymorphic type binders are handled through type-depth indexing, shifting, and substitution. This representation avoids explicit reasoning up to $\alpha$-equivalence for bound occurrences while preserving readable free channel names in processes, typing hyperenvironments, and transition labels.
 
-The operational semantics is mechanised for the multiplicative fragment \pimll{} through three related transition systems: a typed transition system over typing derivations, a process transition system obtained by erasing typing resources, and an environment transition system describing the corresponding evolution of hyperenvironments. This mirrors the erasure structure of the source theory while adapting it to Lean's relational presentation of inductive transition systems.
+The operational semantics is mechanised for the multiplicative fragment \pimll{} through three related transition systems: a primary transition relation over typing derivations, a projected process transition relation, and a projected environment transition relation describing the corresponding evolution of hyperenvironments. This organisation retains the derivation-level semantic architecture of the source theory while adapting its correspondence results to Lean's inductive-relational setting.
 
-The main metatheoretic development establishes the structure of the session-fidelity argument for the mechanised fragment. Typed derivation steps project to both process and environment transitions, and process transitions from well-typed sources can be lifted back to typed derivation steps in the completed multiplicative cases. Subject reduction is then obtained by composing this lifting result with the environment projection. The remaining proof obligation is the \texttt{res} case of \texttt{typability\_subject\_reduction}$_\texttt{m}$, where the proof must reconstruct the post-transition hyperenvironment after stepping under restriction.
+For the mechanised fragment, the development establishes the completed projection directions of the session-fidelity argument: typed derivation steps induce both process and environment transitions. The reverse lifting theorem, \texttt{typability\_subject\_reduction}$_\texttt{m}$, is complete for the multiplicative transition cases except \texttt{res}. Consequently, the remaining obstacle to completing the targeted subject-reduction argument for \pimll{} is concentrated in the restriction case, where a transition of an opened body must be lifted while recovering the two endpoint-bearing hyperenvironment components required to reconstruct the enclosing \texttt{cut} derivation.
 
-The mechanisation also exposes several proof-engineering tradeoffs. Representing environments and hyperenvironments as lists makes structural induction and inversion feasible, but requires explicit permutation, disjointness, and freshness reasoning. Similarly, the mismatch between concrete freshness witnesses in \texttt{ProcStep}$_\texttt{m}$ and co-finite premises in the typing rules introduces auxiliary proof obligations. Finally, the absence of process-level structural congruence keeps the transition systems syntax-directed, but requires some rearrangements to be handled manually through exchange rules and hyperenvironment permutation lemmas.
+A central insight of the mechanisation is that choices which simplify the representation do not remove proof complexity, but relocate it. The locally nameless treatment of channel binders removes the need to reason explicitly about $\alpha$-equivalent bound names, but introduces opening, local closure, and co-finite freshness infrastructure. Likewise, the paper presentation can treat fresh representatives and the rearrangement of unordered linear resources implicitly, whereas the Lean development must connect co-finite typing premises to the concrete names exposed by process transitions and must express hyperenvironment rearrangement through explicit permutation and extraction lemmas. The incomplete \texttt{res} case exposes this shift particularly clearly: the difficulty is not selecting fresh restricted endpoints or opening the body, but recovering the post-transition resource decomposition needed to reintroduce the restriction.
 
-Overall, the development provides a substantial mechanised account of the static structure of full \pill{} and the dynamic metatheory of its multiplicative fragment. It confirms that the central erasure and session-fidelity architecture of the source theory can be represented in Lean, while isolating the remaining proof infrastructure needed to complete the \pimll{} development and extend the mechanisation to the full calculus.
+The development also identifies limitations and extensions beyond the current mechanisation. Environments and hyperenvironments are represented by lists modulo permutation, which supports structural induction but places a substantial burden on permutation-sensitive proofs. Process-level structural congruence is not yet formalised, so syntactic rearrangements available in the paper presentation are not automatically available to the mechanised transition systems. Beyond completion of session fidelity for \pimll{}, extending the dynamic semantics to full \pill{} and mechanising readiness, productivity, and the broader behavioural metatheory remain future work.
 
-
-
-
-
-% TODO: Related work section
+Overall, the thesis provides a substantial mechanised account of the static theory of full \pill{} and the operational metatheory of its multiplicative fragment. It confirms that the source theory's derivation-level erasure and session-fidelity architecture can be represented in Lean, establishes the completed parts of that architecture, and isolates the structural infrastructure required to close its principal remaining proof obligation.
 
 
-% TODO: Conclusion
-% TODO: Abstract(s)
 
 
-% TODO: Update the README on github
+
+
+
+
+
+
+
 % TODO: Remove line number from the pdf
+
 % TODO: hbox overfull in appendix and disussion
 
 
@@ -54,15 +40,6 @@ Overall, the development provides a substantial mechanised account of the static
 % AI declaration
 
 
-% Metatheory -> make sections instead of paragraphs
 
 
 
-% TODO: Generally check if disposiiton matches
-
-% Add alternatives to chapter 3
-
-% Convert sentences claiming session fidelity to be verified to "the session-fidelity architecture is mechanised for πMLL, with the res case of typability remaining incomplete."
-
-
-% Grammar check 
