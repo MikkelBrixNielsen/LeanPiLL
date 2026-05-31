@@ -322,7 +322,7 @@ reconciled with the concrete names introduced by process transitions.
 
 The third group supports freshness reasoning. \texttt{Proc.not\_mem\_f\_open} states that a name fresh for both a process and a channel does not appear in the opened process, providing the freshness conditions needed in the typability cases. These results provide the core infrastructure required for the transition semantics developed in subsequent chapters.
 
-\paragraph{Notation} \path{Processes/Notation.lean} introduces process prefix notation mirroring the locally nameless syntax established in \cref{subsec:locally-nameless}. For example, {$\phl{\dsend{\texttt{\#x}}{\bullet}{\texttt{P}}}$} maps to \texttt{Proc.tensor (\#x) P} and {$\phl{\dres{(\bullet,\bullet)}{\texttt{P}}}$} maps to \texttt{Proc.cut P}. Parallel composition and the terminated process are written {$\phl{P \pp_p Q}$} and {$\phl{\nil}$} respectively. The full notation is listed in \cref{lst:app-lean-process-notation}.
+\paragraph{Notation} \path{Processes/Notation.lean} introduces process prefix notation mirroring the locally nameless syntax established in \cref{subsec:locally-nameless}. For example, {$\phl{\dsend{\#x}{\bullet}{P}}$} maps to \texttt{Proc.tensor (\#x) P} and {$\phl{\dres{P}}$} maps to \texttt{Proc.cut P}. Parallel composition and the terminated process are written {$\phl{P \pp_p Q}$} and {$\phl{\nil}$} respectively. The full notation is listed in \cref{lst:app-lean-process-notation}.
 
 \subsubsection{Environments}\label{subsubsec:environments}
 Environments are defined in \path{Environment/Basic.lean} as 
@@ -444,7 +444,6 @@ Together, these predicates enforce global linearity: every channel appears at mo
 \paragraph{Lifted operations}
 The operations on environments are lifted once more to hyperenvironments by applying them pointwise to each component environment. Thus, type shifting, name substitution, and type substitution on hyperenvironments follow the same pattern as the corresponding operations on environments. The file \path{HyperEnvironment/Lemmas/Basic.lean} proves that these lifted operations preserve the structural invariants used later in the development, including names, disjointness, pairwise disjointness, and deep permutation. For example, preservation of deep permutation under shifting is proved by induction on the proof of the hyperenvironment permutation relation, using the corresponding environment-level permutation lemmas. Since these definitions are obtained uniformly from the environment-level construction, they are not reproduced in full here. The complete definitions and proofs are included in the accompanying Lean archive.
 
-% FIXME: Check correct references
 \subsubsection{Typing Judgements}\label{subsubsec:judgements}
 The typing relation is defined in \path{Judgement/Basic.lean} as the inductive predicate \texttt{Typing}:
 
