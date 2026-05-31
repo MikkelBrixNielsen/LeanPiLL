@@ -22,7 +22,7 @@ Intuitively, {$\thl{A \tensor{} B}$} describes the joint availability of two ind
   \qquad\qquad
   \infer[\rlabel{\rname{$\tensor$}}{rule:ll-tensor}]
     {\,\vdash \thl{\Gamma}, \thl{\Delta}, \thl{A\tensor B}\,}
-    {\,\vdash \thl{\Gamma}, \thl{A} \quad \vdash \th{\Delta}, \thl{B}\,}
+    {\,\vdash \thl{\Gamma}, \thl{A} \quad \vdash \thl{\Delta}, \thl{B}\,}
   \qquad\qquad
   \infer[\rlabel{\rname{$\parr$}}{rule:ll-parr}]
     {\,\vdash \thl{\Gamma}, \thl{A \parr B}\,}
@@ -112,7 +112,7 @@ The correspondence between linear logic and session types used in this thesis fo
     \mid{} {} & {\query{} A} & client request &
     \mid{} {} & {\bang{} A} & server accept\\
     \mid{} {} & {X} & type variable &
-    \mid{} {} & {\dual{} X} & dual of type variable\\
+    \mid{} {} & {\dual{X}} & dual of type variable\\
 \end{bnftable2col}
 
 Duality is defined structurally on session types by exchanging each connective with its dual and forms an involution, i.e.\ {$\thl{{(A^\bot)}^\bot} = \thl{A}$}. Consequently, the endpoints of a well-typed session are always assigned dual types, ensuring they are compatibility:
