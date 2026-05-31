@@ -220,47 +220,7 @@ lemma TypingStepₘ_preserves_block {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : Hyp
     use Γ_final, h_final_in
     exact h_final_perm.trans (h_post_perm.trans h_pre_perm)
 
-lemma TypingStepₘ_f_names_subset {n n' : Nat} {P P' : Proc} {𝒢 𝒢' : HyperEnv} {l : Lbl}
-  {𝒟 : n ⊢ P ∷ 𝒢} {𝒟' : n' ⊢ P' ∷ 𝒢'} (hStep : TypingStepₘ 𝒟 l 𝒟') :   l.f ⊆ 𝒢.names := by
-  induction hStep
-  case one => simp
-  case bot => simp
-  case tensor => simp
-  case parr => simp
-  case par₁ ih =>
-    expose_names
-    simp only [HyperEnv.names_merge]
-    exact ih.trans (Finset.subset_union_left (s₂ := ℋ.names))
-  case par₂ ih =>
-    expose_names
-    simp only [HyperEnv.names_merge]
-    exact ih.trans (Finset.subset_union_right (s₂ := ℋ.names))
-  case syn lwf ih1 ih2=>
-    simp only [HyperEnv.names_merge, Lbl.f_par', Lbl.WF] at ⊢ lwf
-    exact Finset.union_subset_union ih1 ih2
-  case one_bot => simp
-  case tensor_parr => simp
-  case res =>
-    expose_names
-    simp only [HyperEnv.names_merge, HyperEnv.names_singleton, Env.names_distributes,
-      ← Finset.union_assoc, Env.names_merge] at hStep_ih ⊢
-    simp only [Finset.notMem_union] at hlx hly
-    intros z hz
-    have h_mem := hStep_ih hz
-    simp only [Finset.mem_union, Finset.mem_singleton, or_assoc] at h_mem
-    rcases h_mem with hG | rfl | hΓ | rfl | hΔ
-    · simp only [Finset.mem_union] ; left ; left ; exact hG
-    · exfalso; exact hlx.1 hz
-    · simp only [Finset.mem_union] ; left ; right ; exact hΓ
-    · exfalso; exact hly.1 hz
-    · simp only [Finset.mem_union] ; right ; exact hΔ
-  case perm_env hP _ ih =>
-    simp only [HyperEnv.names_distributes]
-    rw [← Env.names_eq_of_perm hP]
-    exact ih
-  case perm_hyper hP _ _ ih =>
-    rw [← HyperEnv.names_eq_of_perm hP]
-    exact ih
+
 
 
 
@@ -619,9 +579,7 @@ lemma TypingStepₘ_preserves_disjoint_or_merges {n n' : Nat} {P P' : Proc}
       have h_stapled := HyperEnv.Perm.merge_left hH 𝒢'
       repeat rw [← HyperEnv.merge_assoc] at h_stapled
       exact h_stapled
-    ·
-
-      sorry
+    · sorry
     · sorry
 
 

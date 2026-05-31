@@ -10,7 +10,7 @@
 \contentsline {subsection}{\numberline {2.3}Types and Propositions-as-Sessions Correspondence}{6}{subsection.2.3}%
 \contentsline {subsection}{\numberline {2.4}Environments, Hyperenvironments and Judgements}{7}{subsection.2.4}%
 \contentsline {subsection}{\numberline {2.5}Operational Semantics}{8}{subsection.2.5}%
-\contentsline {subsection}{\numberline {2.6}Process Semantics and Erasure}{11}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.6}Process Semantics and Erasure}{10}{subsection.2.6}%
 \contentsline {subsection}{\numberline {2.7}Semantics of Typing Environments}{12}{subsection.2.7}%
 \contentsline {subsection}{\numberline {2.8}Managing Bound Variables}{14}{subsection.2.8}%
 \contentsline {section}{\numberline {3}Binding Architecture}{14}{section.3}%
@@ -66,37 +66,40 @@
 \contentsline {paragraph}{Erasure simulations}{34}{section*.48}%
 \contentsline {paragraph}{Typability}{35}{section*.49}%
 \contentsline {paragraph}{Subject reduction}{36}{section*.50}%
-\contentsline {paragraph}{Interpretation}{36}{section*.51}%
-\contentsline {section}{\numberline {6}Discussion}{36}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Proof Architecture}{36}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Proof-engineering tradeoffs}{37}{subsection.6.2}%
-\contentsline {subsection}{\numberline {6.3}Structural congruence}{37}{subsection.6.3}%
+\contentsline {paragraph}{Interpretation}{37}{section*.51}%
+\contentsline {section}{\numberline {6}Discussion}{37}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Proof Architecture}{37}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Proof-engineering tradeoffs}{38}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Structural congruence}{38}{subsection.6.3}%
 \contentsline {subsection}{\numberline {6.4}Current limitations}{38}{subsection.6.4}%
-\contentsline {section}{\numberline {7}Future Work}{38}{section.7}%
-\contentsline {paragraph}{Completing the remaining proof case}{38}{section*.52}%
-\contentsline {paragraph}{Co-finite quantification in ProcStep}{38}{section*.53}%
+\contentsline {section}{\numberline {7}Future Work}{39}{section.7}%
+\contentsline {paragraph}{Completing the remaining proof case}{39}{section*.52}%
+\contentsline {paragraph}{Co-finite quantification in ProcStep}{39}{section*.53}%
 \contentsline {paragraph}{Proof automation}{39}{section*.54}%
-\contentsline {subsection}{\numberline {7.1}Extending to full {\upshape $\pi $LL\xspace }\xspace {}}{39}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.1}Extending to full {\upshape $\pi $LL\xspace }\xspace {}}{40}{subsection.7.1}%
 \contentsline {subsection}{\numberline {7.2}Structural congruence}{40}{subsection.7.2}%
-\contentsline {subsection}{\numberline {7.3}Behavioural metatheory}{40}{subsection.7.3}%
-\contentsline {section}{\numberline {8}Conclusion}{41}{section.8}%
-\contentsline {section}{References}{41}{section*.56}%
-\contentsline {section}{\numberline {A}Code Availability}{42}{section.A}%
-\contentsline {section}{\numberline {B}Lean File Structure}{42}{section.B}%
-\contentsline {section}{\numberline {C}Common Lean Notation}{43}{section.C}%
-\contentsline {paragraph}{Type Classes}{43}{section*.57}%
-\contentsline {paragraph}{Type Notation}{44}{section*.58}%
-\contentsline {paragraph}{Process Notation}{44}{section*.59}%
-\contentsline {paragraph}{Label notation}{45}{section*.60}%
-\contentsline {section}{\numberline {D}Selected Core Definitions}{46}{section.D}%
-\contentsline {subsection}{\numberline {D.1}Session Types}{46}{subsection.D.1}%
-\contentsline {subsection}{\numberline {D.2}Processes}{47}{subsection.D.2}%
-\contentsline {subsection}{\numberline {D.3}Judgements}{47}{subsection.D.3}%
-\contentsline {subsection}{\numberline {D.4}Transition Labels}{49}{subsection.D.4}%
-\contentsline {subsection}{\numberline {D.5}Transition Systems}{50}{subsection.D.5}%
-\contentsline {section}{\numberline {E}Session Fidelity Theorems}{55}{section.E}%
-\contentsline {section}{\numberline {F}Selected Proof Infrastructure}{56}{section.F}%
-\contentsline {paragraph}{Freshness bridge lemmas}{56}{section*.61}%
-\contentsline {paragraph}{Typing inversion}{56}{section*.62}%
-\contentsline {paragraph}{Hyperenvironment extraction}{57}{section*.63}%
-\contentsline {paragraph}{Typed-transition name bounds}{57}{section*.64}%
+\contentsline {subsection}{\numberline {7.3}Readiness, productivity and behavioural metatheory}{41}{subsection.7.3}%
+\contentsline {paragraph}{Readiness}{41}{section*.55}%
+\contentsline {paragraph}{Productivity and potential}{41}{section*.56}%
+\contentsline {paragraph}{Further behavioural results}{41}{section*.57}%
+\contentsline {section}{\numberline {8}Conclusion}{42}{section.8}%
+\contentsline {section}{References}{42}{section*.59}%
+\contentsline {section}{\numberline {A}Code Availability}{43}{section.A}%
+\contentsline {section}{\numberline {B}Lean File Structure}{43}{section.B}%
+\contentsline {section}{\numberline {C}Common Lean Notation}{44}{section.C}%
+\contentsline {paragraph}{Type Classes}{44}{section*.60}%
+\contentsline {paragraph}{Type Notation}{45}{section*.61}%
+\contentsline {paragraph}{Process Notation}{45}{section*.62}%
+\contentsline {paragraph}{Label notation}{46}{section*.63}%
+\contentsline {section}{\numberline {D}Selected Core Definitions}{47}{section.D}%
+\contentsline {subsection}{\numberline {D.1}Session Types}{47}{subsection.D.1}%
+\contentsline {subsection}{\numberline {D.2}Processes}{48}{subsection.D.2}%
+\contentsline {subsection}{\numberline {D.3}Judgements}{48}{subsection.D.3}%
+\contentsline {subsection}{\numberline {D.4}Transition Labels}{50}{subsection.D.4}%
+\contentsline {subsection}{\numberline {D.5}Transition Systems}{52}{subsection.D.5}%
+\contentsline {section}{\numberline {E}Session Fidelity Theorems}{56}{section.E}%
+\contentsline {section}{\numberline {F}Selected Proof Infrastructure}{57}{section.F}%
+\contentsline {paragraph}{Freshness bridge lemmas}{57}{section*.64}%
+\contentsline {paragraph}{Typing inversion}{57}{section*.65}%
+\contentsline {paragraph}{Hyperenvironment extraction}{58}{section*.66}%
+\contentsline {paragraph}{Typed-transition name bounds}{58}{section*.67}%

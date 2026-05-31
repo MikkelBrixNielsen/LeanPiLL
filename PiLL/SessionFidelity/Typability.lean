@@ -278,6 +278,8 @@ theorem typability_subject_reductionₘ
     have 𝒟xy := (Typing_res_all_fresh 𝒟' x y hx_bound hy_bound hxy)
     have ⟨𝒢xy', 𝒟xy', hTS_xy⟩ := ih 𝒟xy
 
+
+
     -- FIXME: TypingStepₘ_inv_res_source has changed
     sorry
     -- have ⟨𝒢', Γ', Δ', hP'⟩ := TypingStepₘ_inv_res_source 𝒟xy hTS_xy hlx hly
