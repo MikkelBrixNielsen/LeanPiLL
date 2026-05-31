@@ -103,6 +103,7 @@ In paper-based proofs, when a rule requires opening a binder, Barendregt's Varia
     for proof construction, since the property cannot generally be shown 
     for names that already occur free in the surrounding context.
 \end{enumerate}
+
 Following \citet{C12, A08}, the locally nameless architecture adresses this dillemma using {co-finite quantification}. Rather than quantifying over one name or all names, the inductive rules quantifies universally over all names outside an arbitrary, finite set $L$. Formally, a rule requiring a fresh name uses the premise: $\forall x \notin L$.
 
 By deferring the exact choice of the forbidden set $L$ to the user at the time of proof, co-finite quantification achieves the best of both worlds. When constructing a proof tree, the user can instantiate $L$ as the set of all free variables currently in the environment, process, and transition labels {($\fs(\phl{P}) \cup \fs(\thl{\Gamma}) \cup \dots$)}. This ensures that any name quantified over by the premise satisfies the required freshness assumptions. Conversely, when performing structural induction, the co-finite universal quantifier guarantees that the induction hypothesis applies to \emph{any} fresh name the user could possibly need, provided they pick one outside the finite set $L$.
