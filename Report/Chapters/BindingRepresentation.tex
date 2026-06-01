@@ -9,13 +9,13 @@ This chapter introduces the binding representation used throughout the formalisa
 
 \begin{enumerate}
   \item \textbf{Eliminate $\alpha$-equivalence overhead.} Binder structures that differ only in the names chosen for bound occurrences should be represented identically, avoiding explicit reasoning about $\alpha$-equivalence within the proof assistant.
-  \item \textbf{Preserve human readability.} Free identifiers should remain explicit in process terms, typing hyperenvironments, and transition labels, so that the mechanised definitions and proof states remain recognisable relative to the paper presentation.
+  \item \textbf{Preserve human readability.} Free identifiers should remain explicit in process terms, typing environments, and transition labels, so that the mechanised definitions and proof states remain recognisable relative to the paper-based presentation.
   \item \textbf{Avoid informal meta-level conventions.} The representation should not rely on Barendregt's convention or unstated freshness assumptions. Capture avoidance should follow from the representation of bound occurrences, while any remaining freshness requirements should appear explicitly in definitions or proof obligations.
 \end{enumerate}
 
 \paragraph{Representation alternatives} A direct representation using named bound variables would remain closest to the paper syntax. However, it would require the mechanisation to define and reason explicitly about capture-avoiding renaming and $\alpha$-equivalence whenever a transition or substitution passes through a binder. At the opposite extreme, a fully nameless representation could encode channel references solely through indices, making equality of binder structures direct but obscuring the free channel names that occur explicitly in typing hyperenvironments and transition labels. Following~\citet{C12}, the formalisation instead adopts a locally nameless architecture: free identifiers remain explicit, while bound occurrences are represented by indices. Consequently, binder structures that differ only by the choice of bound names coincide structurally, while the observable names used by the operational semantics remain explicit.
 
-Although both channel names and type variables involve binding, they have different roles in the calculus. Channel names participate in dynamic communication and occur in transition labels and typing hyperenvironments; their binders are therefore opened with explicit fresh names. Type variables remain statically scoped within session types and typing derivations; their binders are managed through type-binder depth, shifting, local closure, and substitution. The formalisation consequently applies the same free/bound separation to both syntactic categories, while adapting the associated proof infrastructure to their respective semantic roles.
+Although both channel names and type variables involve binding, they have different roles in the calculus. Channel names participate in dynamic communication and occur in transition labels and typing environments and their binders are therefore opened with explicit fresh names. Type variables remain statically scoped within session types and typing derivations, and their binders are handled through a depth-indexed treatment based on shifting, local closure, and substitution. The formalisation consequently applies the same free/bound separation to both categories, while adapting the associated proof infrastructure to their respective semantic roles.
 
 The remainder of this chapter develops the operations required by this representation. In place of explicit $\alpha$-equivalence reasoning, the formalisation must establish properties of opening, closing, local closure, and freshness. These obligations are subsequently reflected in the typing relation and in the metatheoretic proofs.
 
@@ -23,22 +23,22 @@ The remainder of this chapter develops the operations required by this represent
 The locally nameless representation, as presented by \citet{C12}, separates variables into two disjoint syntactic categories: free names and bound indices. This combines the readability of named syntax for free variables with a structural representation of binding.
 
 \begin{enumerate}
-    \item \textbf{Bound variables} are represented using \emph{De Bruijn indices} \citep{DB72}, where each index denotes the distance to its corresponding binder. Since the representation is purely positional, $\alpha$-equivalent terms become structurally identical.
+    \item \textbf{Bound variables} are represented using \emph{de Bruijn indices} \citep{DB72}, where each index denotes the distance to its corresponding binder. Since the representation is purely positional, $\alpha$-equivalent terms become structurally identical.
     \item \textbf{Free variables} retain explicit names, preserving the readability of open terms and allowing standard name-based reasoning about environments and transition labels.
 \end{enumerate}
 
 By structurally separating these two concepts, the locally nameless approach simplifies standard operations such as capture-avoiding substitution. Since free variables and bound variables inhabit distinct syntactic categories, substitution on free variables is defined to not interact with bound indices. We apply this theory to both the structural and operational layers of \pill{}.
 
-\paragraph{LN Syntax for Types.}\label{par:ln-syntax-types}
+\paragraph{LN Syntax for Types}\label{par:ln-syntax-types}
 In the original presentation of \pill{}, polymorphic types rely on standard named variables. Under the locally nameless architecture, we expand the syntax of type variables to explicitly distinguish between free and bound occurrences. The grammar for types is updated as follows:
 \begin{highlight}
 \[
 \begin{array}{rcll}
-  \thl{T} & \Coloneqq & \thl{\text{free}(x)} \mid \thl{\text{bound}(k)} & (\text{where } x, k \in \mathbb{N}) \\
+  \thl{T} & \Coloneqq & \thl{\text{free}(\alpha)} \mid \thl{\text{bound}(k)} & (\text{where } \alpha, k \in \mathbb{N}) \\
   \thl{A, B} & \Coloneqq & \dots \mid \thl{\exists.A} \mid \thl{\forall.A} \mid \thl{X} \mid \thl{X^\bot} & (\text{where } \thl{X} \in \thl{T}) 
 \end{array}
 \]
-Here, a free type variable carries a unique identifier $x$, while a bound type variable carries a De Bruijn index $k$. For example, the polymorphic type $\thl{\forall X. \exists Y. (X \parr Y)}$ is structurally represented without names using the new syntax as $\thl{\forall. \exists. (\text{bound}(1) \parr \text{bound}(0))}$, where $0$ points to the inner existential binder and $1$ points to the outer universal binder.
+Here, a free type variable carries a unique identifier $\alpha$, while a bound type variable carries a de Bruijn index $k$. For example, the polymorphic type $\thl{\forall X. \exists Y. (X \parr Y)}$ is structurally represented without names using the new syntax as $\thl{\forall. \exists. (\text{bound}(1) \parr \text{bound}(0))}$, where $0$ points to the inner existential binder and $1$ points to the outer universal binder.
 \end{highlight}
 
 \paragraph{LN Syntax for Processes.}
@@ -57,7 +57,7 @@ Naively removing the bound names from the process syntax would turn binding oper
 
 While the visual anonymity of these constructors is evident from the grammar, their mechanical implementation relies on precise index management. For a multi-name binder like restriction, $\phl{\mathit{v}(\bullet, \bullet)\, P}$, the two dual endpoints are simultaneously mapped to distinct indices within the continuation of {$\phl{P}$}, namely $0$ and $1$. For communication prefixes like {$\phl{\recv{x}{\bullet}{P}}$}, the transmitted name is implicitly bound as index $0$ within {$\phl{P}$}, while the explicit free channel $x$ is deliberately preserved as the subject. By maintaining explicit free names strictly for these outward-facing communications, the transition labels and operational semantics of the calculus remain completely unaffected by the architectural shift.
 
-While the locally nameless architecture elegantly resolves $\alpha$-equivalence, moving between abstracted and instantiated forms requires specialised operations. To execute a substitution or evaluate a process across a binder, we must formally define how to open and close these terms.
+While the locally nameless architecture avoids explicit reasoning up to $\alpha$-equivalence for bound occurrences, it requires specialised operations for moving between abstracted and instantiated forms. In particular, substitution, typing, and transitions under binders depend on formally defining opening and closing operations.
 
 \subsection{Opening and Closing Binders}\label{subsec:opening-and-closing} % 3.3
 Because the locally nameless representation separates free and bound variables, standard substitution cannot be applied uniformly under binders. Instead, moving between bound and free representations is handled by two dual operations, namely \emph{opening} and \emph{closing} \citep{C12}.
@@ -69,37 +69,37 @@ The operation proceeds via structural recursion. A depth counter, initially set 
 
 When the recursion reaches a bound variable $\text{bound}(n)$, the index $n$ is compared against the current depth $k$. If $n = k$, the variable refers to the binder currently being opened and is replaced by the free name $\text{free}(x)$. Otherwise, the index refers to a different binder and is left unchanged.
 
-Crucially, when the opening operation encounters an existing free variable ${\text{free}(y)}$, it simply ignores it. This guarantees that opening is entirely capture-avoiding by construction. In the operational semantics, when a single binder like an input prefix {$\phl{\recv{z}{\bullet}{P}}$} receives a channel $x$, the continuation {$\phl{P}$} is opened as {$\phl{\{0 \mapsto x\}P}$}. For a restriction {$\phl{\res{(\bullet, \bullet)}{P}}$}, the dual endpoints $x$ and $y$ are opened sequentially as {$\phl{\{0 \mapsto x\}(\{1 \mapsto y\}P)}$}.
+When the opening operation encounters an existing free name ${\text{free}(y)}$, it leaves that occurrence unchanged, and only targets the bound occurrence at the relevant index, replacing them with the supplied free name. Since binders are represented by indices rather than names, this replacement does not require $\alpha$-renaming to prevent a newly inserted free name from being captured by a named binder. Opening alone does not, however, ensure that the chosen name is fresh for the free names already occurring in the continuation or its typing environment. These freshness and distinctness requirements are instead imposed by side conditions of the typing and transition relations.
 
-\paragraph{Closing (Abstraction)} Closing is the companion abstraction operation to opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted {$\phl{\{k \mapsfrom x\}P}$}. While recursing, bound indices are ignored as they cannot contain free names. When the recursion encounters a free term like $\phl{\text{free}(y)}$, it checked if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$.
+In the operational semantics, a continuation under a single channel binder, such as the input prefix {$\phl{\recv{z}{\bullet}{P}}$}, is instantiated with a concrete channel name $x$ by opening {$\phl{P}$} as $\phl{\{0 \mapsto x\}P}$. For a restriction {$\phl{\res{(\bullet, \bullet)}{P}}$}, the two bound endpoint occurrences are instantiated with channel names $x$ and $y$ using the corresponding two-binder opening operation, written here as {$\phl{\{0 \mapsto x\}(\{1 \mapsto y\}P)}$}.
+
+\paragraph{Closing (Abstraction)} Closing is the companion abstraction operation to opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted {$\phl{\{k \mapsfrom x\}P}$}. While recursing, bound indices are ignored as they cannot contain free names. When the recursion encounters a free term like $\phl{\text{free}(y)}$, it is checked if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$.
 
 This operation is primarily used when constructing new binders, such as moving a free channel into a restricted scope. To close multiple free names simultaneously, such as abstracting $x$ and $y$ into a restriction, the operations are applied sequentially, by first closing $y$ at depth $k+1$, followed by closing $x$ at depth $k$.
 
 \paragraph{Locally Closed Terms} The separation of names and indices introduces a new syntactic anomaly, namely that a term can contain a \emph{dangling} index that does not point to any enclosing binder. For example, the process term {$\phl{\send{\text{bound}(0)}{}{\nil}}$} is syntactically valid, matching the syntax for an empty send, but mathematically it is meaningless because the index $0$ has no corresponding binder.
 
-To filter out these meaningless terms, the locally nameless architecture introduces the predicate of being \emph{locally closed}, denoted {$\mathit{lc}(\phl{P})$}. A term is locally closed if and only if all of its De Bruijn indices are properly bound by an enclosing constructor. 
+To exclude such terms, the locally nameless representation introduces the predicate of being \emph{locally closed}, denoted {$\mathit{lc}(\phl{P})$}. A term is locally closed if and only if all of its de Bruijn indices are bound by enclosing constructors. Local closure therefore characterises the well-scoped fragment of the process syntax.
 
-The locally closed predicate excludes terms containing dangling indices and therefore characterises the well-formed syntax of the calculus. Establishing this predicate is not only a static validation step, but rather it forms a key invariant throughout the mechanisation, which guarantees the soundness of the calculus. Generally, any subsequent definition, such as variable substitution, structural congruence, or operational semantics, must be mathematically proven to \emph{preserve} the locally closed property. In practice, this is achieved through the \emph{regularity of typing}, which requires proving that all valid typing derivations inherently produce locally closed terms. Consequently, operations proven to preserve typing will naturally carry this invariant as a structural guarantee.
+This predicate forms a key invariant throughout the mechanisation. Operations that manipulate syntax under binders, such as substitution and transitions, must either be shown to preserve local closure directly or be used in a context where local closure can be recovered. In the typing development, this connection is established through regularity: every valid typing derivation produces a locally closed process. Consequently, later arguments about typed transitions may obtain well-scopedness from typing rather than reproving it independently for each intermediate process.
 
 \subsection{Co-finite Quantification}\label{subsec:co-finite-quantification} % 3.4
-With the syntax partitioned into names and indices, and the mechanics of opening and closing established, the remaining design question is how binder-sensitive inductive relations, in particular typing judgements, should expose fresh representatives.
+With the syntax partitioned into names and indices, and the mechanics of opening and closing established, the remaining design question is how binder-sensitive inductive relations, in particular typing judgements, should expose fresh names.
 
-In paper-based proofs, when a rule requires opening a binder, Barendregt's Variable Convention allows the author simply to state: \emph{pick a fresh name $x$}. In a proof assistant, this informal choice must instead be represented explicitly in the constructors of the relevant inductive relations. Two standard formulations introduce difficulties for mechanised proofs~\citep{A08,C12}:
+In paper-based proofs, when a rule requires opening a binder, Barendregt's Variable Convention allows the author to state: \emph{pick a fresh name $x$}. In a proof assistant, this informal choice must instead be represented explicitly in the constructors of the relevant inductive relations. Two standard formulations introduce difficulties for mechanised proofs~\citep{A08,C12}:
 
 \begin{enumerate}
-\item \textbf{A single fresh representative.} The rule requires its premise for one chosen name fresh for the relevant syntax and context. While this is sufficient for constructing an individual derivation, the resulting induction hypothesis applies only to the representative selected in that derivation.
-\item \textbf{Unrestricted universal quantification.} The rule requires its premise for every name. This provides a strong induction hypothesis, but is too restrictive for proof construction, since the premise cannot generally hold for names already occurring free in the surrounding objects.
+\item \textbf{Opening with one fresh name.} A rule requires that its premise is valid only for one particular fresh name when the derivation is constructed. This is convenient when applying the rule, but yields an induction hypothesis tied to that particular name, even when a later proof requires a different fresh name.
+\item \textbf{Opening with every name.} Alternatively, a rule may require that its premise is valid for every name. This yields a strong general induction hypothesis, but makes the rule hard to apply as the premise cannot generally be established for names that already occur free in the process or its surrounding context.
 \end{enumerate}
 
 Following~\citet{C12,A08}, the formalisation uses co-finite quantification for typing rules that open process binders with fresh channel names. Rather than fixing one particular fresh representative, a constructor records a finite exclusion set $L$ and requires its premise for every name outside that set. Schematically, a rule introducing one fresh channel uses a premise of the form $\forall x \notin L$, while a rule introducing two fresh channels additionally requires the selected names to be distinct.
 
-\paragraph{Choice of freshness discipline} Co-finite quantification occupies the middle ground between the two formulations above. It introduces explicit finite exclusion sets into binder-sensitive constructors, but allows a proof to enlarge the exclusion set to contain every name relevant to the current proof obligation and then select a representative fresh for all of them simultaneously. In the present formalisation, this is used for process binders whose continuations are opened with concrete free channel names. For example, when a proof requires an opened continuation to avoid names occurring in a process, a hyperenvironment, and a transition label, these name sets can all be included in $L$.
-
-This choice becomes significant in the metatheory. The typing rules provide co-finite premises, whereas \texttt{ProcStep}$_\texttt{m}$ exposes concrete names selected by a process transition. Auxiliary \emph{all fresh} lemmas bridge this mismatch by instantiating a co-finite typing premise with the concrete representative occurring in the transition.
+\paragraph{Choice of freshness discipline} Co-finite quantification occupies the middle ground between the two formulations above. It introduces explicit finite exclusion sets into binder-sensitive constructors, but provides an induction principle in which a proof may choose a name outside both the exclusion set recorded by the rule and any additional finite set of names relevant to the current argument. In the present formalisation, this is used for process binders whose continuations are instantiated with concrete free channel names. For example, a proof concerning an opened continuation may select a channel name that is simultaneously fresh for the process, its typing environment, and any labels involved in the argument.
 
 \paragraph{Application to \pill{} types} Although type variables are represented using the same separation between free and bound occurrences, their metatheory is handled using depth-indexed reasoning rather than co-finite quantification. Type variables remain statically scoped within types and typing derivations rather than being communicated as observable channel names, so introducing finite freshness sets for them would add proof infrastructure not otherwise required by their role in the calculus.
 
-Instead, polymorphic typing rules are formulated using a depth-indexed approach based on a De Bruijn shifting operator. We define the shifting of a type $\thl{A}$ at cutoff depth $d$ by distance $c$, denoted mathematically as $\thl{\shiftdc{d}{c}A}$. Using this infrastructure, consider the typing rule for universal type input, $\thl{\forall. B}$:
+Instead, polymorphic typing rules are formulated using this depth-indexed approach based on a de Bruijn shifting operator. We define the shifting of a type $\thl{A}$ at cutoff depth $d$ by distance $c$, denoted mathematically as $\thl{\shiftdc{d}{c}A}$. Using this infrastructure, consider the typing rule for universal type input:
 
 \begin{highlight}
 \[
@@ -109,9 +109,9 @@ Instead, polymorphic typing rules are formulated using a depth-indexed approach 
 \]
 \end{highlight}
 
-Rather than opening the binder with a fresh explicit type variable, the typing judgement increments the depth counter to $n+1$, bringing index $0$ into scope. The surrounding typing environment is shifted by distance $1$ at cutoff $0$, written $\thl{\shiftdc{0}{1}\Gamma}$, so that type-variable occurrences already present in the environment retain their intended binding structure beneath the newly introduced binder.
+Rather than opening the binder with a fresh explicit type variable, the typing judgement increments the depth counter to $n+1$, bringing index $0$ into scope. The surrounding typing environment is shifted by distance $1$ at cutoff $0$, written $\thl{\shiftdc{0}{1}\Gamma}$, so that type-variable occurrences already present in the environment retain their intended binding structure under the newly introduced binder.
 
-\paragraph{Application to \pill{} channels} Channel binders are treated differently because they occur in the dynamic process syntax and are opened with concrete free channel names. For example, consider the typing rule introducing the input prefix $\phl{\recv{x}{\bullet}{P}}$. In the paper presentation, the premise implicitly relies on a fresh session name $y$. In the mechanised presentation, this freshness requirement is expressed by co-finite quantification together with the opening operation:
+\paragraph{Application to \pill{} channels} Channel binders are treated differently because they occur in the dynamic process syntax and are opened with concrete free channel names. For example, consider the typing rule introducing the input prefix $\phl{\recv{x}{\bullet}{P}}$. In the paper-based presentation, the premise implicitly relies on a fresh session name $y$. In the mechanised presentation, this freshness requirement is expressed by co-finite quantification together with the opening operation:
 
 \begin{highlight}
 \[
@@ -121,8 +121,6 @@ Rather than opening the binder with a fresh explicit type variable, the typing j
 \]
 \end{highlight}
 
-Here, the rule states that the process is well typed when, for every fresh channel name $y$ outside a finite exclusion set $L$, the continuation opened with $y$ is well typed under the environment extended with that name. The formalisation therefore uses a mixed binding strategy: co-finite opening for dynamic channel binders and depth-indexed reasoning for static type-variable binders.
+Here, the rule states that the process is well typed when, for every fresh channel name $y$ outside a finite exclusion set $L$, the continuation opened with $y$ is well typed under the typing environment extended with that name. The formalisation therefore uses a mixed binding strategy. Namely, co-finite opening for dynamic channel binders and depth-indexed reasoning for static type-variable binders.
 
 This mixed strategy determines where the remaining proof overhead appears. Depth-indexed treatment of polymorphic types avoids managing fresh type-variable sets, but requires explicit shifting and weakening lemmas when typing derivations cross polymorphic binders. Co-finite quantification for process channels avoids explicit $\alpha$-equivalence reasoning and provides strong induction hypotheses, but later requires bridge lemmas when an operational transition chooses concrete fresh names. These costs are reflected in the mechanised definitions and proofs developed in the following chapters.
-
-With the binding architecture now fixed, the following chapter describes its implementation in Lean~4.

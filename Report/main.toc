@@ -1,18 +1,40 @@
 \babel@toc {british}{}\relax 
 \babel@toc {danish}{}\relax 
 \babel@toc {british}{}\relax 
-\contentsline {section}{\numberline {1}Binding Architecture}{3}{section.1}%
-\contentsline {subsection}{\numberline {1.1}Design Goals and the Approach}{3}{subsection.1.1}%
-\contentsline {paragraph}{Representation alternatives}{3}{section*.4}%
-\contentsline {subsection}{\numberline {1.2}The Locally Nameless Representation}{3}{subsection.1.2}%
-\contentsline {paragraph}{LN Syntax for Types.}{4}{section*.5}%
-\contentsline {paragraph}{LN Syntax for Processes.}{4}{section*.6}%
-\contentsline {subsection}{\numberline {1.3}Opening and Closing Binders}{5}{subsection.1.3}%
-\contentsline {paragraph}{Opening (Instantiation)}{5}{section*.7}%
-\contentsline {paragraph}{Closing (Abstraction)}{5}{section*.8}%
-\contentsline {paragraph}{Locally Closed Terms}{5}{section*.9}%
-\contentsline {subsection}{\numberline {1.4}Co-finite Quantification}{6}{subsection.1.4}%
-\contentsline {paragraph}{Choice of freshness discipline}{6}{section*.10}%
-\contentsline {paragraph}{Application to {\upshape $\pi $LL\xspace }\xspace {} types}{6}{section*.11}%
-\contentsline {paragraph}{Application to {\upshape $\pi $LL\xspace }\xspace {} channels}{7}{section*.12}%
-\contentsline {section}{References}{7}{section*.14}%
+\contentsline {section}{\numberline {1}Formalisation}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Model}{3}{subsection.1.1}%
+\contentsline {subsubsection}{\numberline {1.1.1}Session Types}{3}{subsubsection.1.1.1}%
+\contentsline {paragraph}{Duality}{4}{section*.5}%
+\contentsline {paragraph}{Local closure}{4}{section*.6}%
+\contentsline {paragraph}{Shifting}{5}{section*.7}%
+\contentsline {paragraph}{Substitution}{5}{section*.8}%
+\contentsline {paragraph}{Notation}{6}{section*.9}%
+\contentsline {subsubsection}{\numberline {1.1.2}Processes}{6}{subsubsection.1.1.2}%
+\contentsline {paragraph}{Opening and closing}{6}{section*.10}%
+\contentsline {paragraph}{Local closure}{8}{section*.11}%
+\contentsline {paragraph}{Free names and freshness}{8}{section*.12}%
+\contentsline {paragraph}{Substitution}{9}{section*.13}%
+\contentsline {paragraph}{Type shifting}{10}{section*.14}%
+\contentsline {paragraph}{Structural Properties}{10}{section*.15}%
+\contentsline {paragraph}{Notation}{10}{section*.16}%
+\contentsline {subsubsection}{\numberline {1.1.3}Environments}{11}{subsubsection.1.1.3}%
+\contentsline {paragraph}{Recovering the PCM structure}{11}{section*.17}%
+\contentsline {paragraph}{Server usability}{12}{section*.18}%
+\contentsline {paragraph}{Lifted operations}{12}{section*.19}%
+\contentsline {subsubsection}{\numberline {1.1.4}Hyperenvironments}{12}{subsubsection.1.1.4}%
+\contentsline {paragraph}{Deep permutation}{12}{section*.20}%
+\contentsline {paragraph}{Well-formedness}{13}{section*.21}%
+\contentsline {paragraph}{Lifted operations}{13}{section*.22}%
+\contentsline {subsubsection}{\numberline {1.1.5}Typing Judgements}{13}{subsubsection.1.1.5}%
+\contentsline {paragraph}{Type-depth indexing}{14}{section*.23}%
+\contentsline {paragraph}{Exchange and explicit side conditions}{14}{section*.24}%
+\contentsline {paragraph}{Co-finite quantification}{14}{section*.25}%
+\contentsline {paragraph}{Structural invariants}{15}{section*.26}%
+\contentsline {paragraph}{Substitution}{15}{section*.27}%
+\contentsline {subsection}{\numberline {1.2}Semantics}{16}{subsection.1.2}%
+\contentsline {paragraph}{Labels}{16}{section*.28}%
+\contentsline {subsubsection}{\numberline {1.2.1}The Typed Transition System}{17}{subsubsection.1.2.1}%
+\contentsline {subsubsection}{\numberline {1.2.2}Projected Transition Systems}{18}{subsubsection.1.2.2}%
+\contentsline {paragraph}{Process steps}{18}{section*.29}%
+\contentsline {paragraph}{Environment steps}{18}{section*.30}%
+\contentsline {section}{References}{18}{section*.32}%
