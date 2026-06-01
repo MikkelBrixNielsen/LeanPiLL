@@ -672,7 +672,7 @@ While the typing derivations of \pill{} dictate the valid interactions within a 
 
 \begin{example}\label{ex:expanded-cut-unit-execution}
 \begin{highlight}
-Consider the well-typed process $P$ formed by adding a third parallel component to the derivation of \cref{ex:cut-unit-der} before the cut (A derivation of which can be seen on \cref{fig:expanded-cut-unit-der}):
+Consider the well-typed process $P$ formed by adding a third parallel component to the derivation of \cref{ex:cut-unit-der} before the cut, A derivation of which can be seen on \cref{fig:expanded-cut-unit-der}:
 
 \[\phl{P} = \phl{\res{xz}{(\recv{w}{}{\send{v}{}{\nil}} \pp \send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}})}}\]
 
@@ -688,23 +688,25 @@ The component containing $\phl{w}$ and $\phl{v}$ is independent from the compone
 \end{highlight}
 \end{example}
 
-The semantics for process terms must inherently agree with the semantics of derivations for well-typed terms. As formulated by~\citet{abs-2106-11818}, this relationship is established functorially. Let $\mathcal{P}(X) = \{X' \mid X' \subseteq X\}$ and $\mathcal{L}(X) = X \times \LblSet$ be endofunctors representing the states and labeled transitions, respectively. The erasure function $proc$ acts as a homomorphism from LTS of derivations ($\mlts{d}$) to the LTS of processes ($\mlts{p}$), ensuring that the square of these LTS mappings commutes.
+As formulated by~\citet{abs-2106-11818}, the relationship between derivation transitions and process transitions is expressed through erasure. Given the projection $\mathit{proc} : \DerSet \to \mathit{Proc}$, the process LTS enjoys erasure with respect to the derivation LTS when $\mathit{proc}$ is a homomorphism between the two transition systems. By~\citet[Fact~4.6]{abs-2106-11818}, this is equivalent to the relation $\{(\mathit{proc}(\der{D}), \der{D}) \mid \der{D} \in \DerSet\}$ being a strong bisimulation.
 
-In the context of operational semantics, this functorial homomorphism yields an Erasure theorem. It guarantees that the Labeled Transition System for derivations and the SOS for untyped processes simulate each other exactly:
-
-\begin{theorem}[Erasure]\label{thm:operational-correspondence}
-The process LTS ($\mlts{p}$) enjoys erasure with respect to the derivation LTS ($\mlts{d}$). Concretely, for any valid typing derivation $\der{D}$ and label $l \in \LblSet$:
-\begin{enumerate}
-    \item \textbf{Soundness of Erasure:} If $\der{D} \lto{l} \der{D}'$, then $\mathit{proc}(\der{D}) \lto{l} \mathit{proc}(\der{D}')$.
-    \item \textbf{Completeness of Erasure:} If $\mathit{proc}(\der{D}) \lto{l} P'$, then there exists a derivation $\der{D}'$ such that $\der{D} \lto{l} \der{D}'$ and $\mathit{proc}(\der{D}') = P'$.
-\end{enumerate}
+\begin{theorem}[Erasure {\citep[Theorem~4.7]{abs-2106-11818}}]\label{thm:operational-correspondence}
+The process LTS, $\mlts{p}$, enjoys erasure with respect to the derivation LTS, $\mlts{d}$.
 \end{theorem}
 
-\begin{corollary}[Typability Preservation]\label{cor:typability-preservation}
-If $P$ is well-typed and $P \lto{l} P'$, then $P'$ is well-typed.
+Concretely, this correspondence means that, for any typing derivation $\der{D}$ and label $l \in \LblSet$:
+\begin{enumerate}
+\item if $\der{D} \lto{l} \der{D}'$, then $\mathit{proc}(\der{D}) \lto{l} \mathit{proc}(\der{D}')$; and
+\item if $\mathit{proc}(\der{D}) \lto{l} P'$, then there exists a derivation $\der{D}'$ such that $\der{D} \lto{l} \der{D}'$ and $\mathit{proc}(\der{D}') = P'$.
+\end{enumerate}
+
+Because well-typed processes lie in the image of $\mathit{proc}$, erasure yields typability preservation:
+
+\begin{corollary}[Typability Preservation {\citep[Corollary~4.8]{abs-2106-11818}}]\label{cor:typability-preservation}
+If $P$ is well typed and $P \lto{l} P'$, then $P'$ is well typed.
 \end{corollary}
 
-This theorem allows us to define the operational target for \pill{} processes without the syntactic overhead of typing environments. Using the erasure formulation, we can transform the operational semantics for derivations directly into an SOS specification for processes.
+Erasure therefore allows the process LTS to be extracted from the derivation-level semantics while preserving observable transition behaviour. The resulting SOS specification describes process evolution independently of typing derivations.
 
 \begin{figure} % Taken directly from \cite{abs-2106-11818}
   \begin{minipage}{.745\textwidth}
@@ -785,7 +787,7 @@ This theorem allows us to define the operational target for \pill{} processes wi
     \end{gather*}
     \end{spreadlines}
   \end{minipage}
-  \caption{\pimll, transition rules for processes.}
+  \caption{\pimll{} transition rules for processes, as presented in Figure~4 of~\citet{abs-2106-11818}.}
   \label{fig:mpill-sos-processes}
 \end{figure}
 
@@ -793,20 +795,12 @@ This theorem allows us to define the operational target for \pill{} processes wi
 % The untyped LTS for processes relies heavily on explicit side conditions regarding free and introduced names to prevent the collision of bound variables (e.g., ensuring $i(l) \cap i(l') = \emptyset$). However, when operating at the level of typing derivations, these side conditions become inherently redundant. Because \pill{} enforces linear resource management, the structural rules of the typed LTS dictate that hyperenvironments can only be merged when their domains are strictly disjoint. Consequently, any well-typed derivation inherently satisfies the name-distinctness and freshness requirements of the underlying untyped calculus, shifting the burden of safety from dynamic transition checks to static structural typing.
 % \end{remark}
 
-The process LTS must state freshness and name-disjointness conditions explicitly because it describes process evolution independently of typing information. For example, synchronising actions must not introduce the same fresh name, as expressed by conditions such as $i(l) \cap i(l') = \emptyset$. For processes arising from valid typing derivations, these obligations are supported by the linear resource structure of \pill{}: typing restricts the combination of hyperenvironment components to disjoint domains and accounts for the names used by the process. Thus the process semantics records the operational side conditions explicitly, while the typed semantics explains why they are satisfied by well-typed execution. The corresponding evolution of these typing resources is described by the environment semantics introduced next.
-
-% \begin{proposition}\label{prop:name-respect}
-% The operational semantics of \pill{} processes strictly respects the introduction of names via transition labels. Formally, if $P \lto{l} P'$, then $\is(l) \cap \fs(P) = \emptyset$, and If $P$ is well-typed, then $\is(l) = \fs(P') \setminus \fs(P)$
-% \end{proposition}
-
-% \begin{remark}
-% \Cref{prop:name-respect} is vital for mechanising the metatheory of \pill. Because proof assistants tools require explicit tracking of fresh and bound variable to prevent accidental capture, this proposition acts as the formal bridge between the dynamic semantics and the static typing. It guarantees that a well-typed process evolves predictably, ensuring that it does not spontaneously generate resources during a transition.
-% \end{remark}
+The process LTS states freshness and name-disjointness as explicit operational side conditions because it describes process evolution independently of typing derivations. For example, synchronising actions must not introduce the same name. This is expressed by the side condition $\is(l) \cap \is(l') = \emptyset$. Although corresponding side conditions in the derivation-level LTS are already enforced for well-typed derivations by the disjointness of hyperenvironment components, they are retained to support erasure to the process LTS~\citep[Remark~3.6]{abs-2106-11818}. The corresponding evolution of typing resources is described by the environment semantics introduced next.
 
 \subsection{Semantics of Typing Environments}\label{subsec:semantics-environments}
 Just as processes evolve through computation, the typing environments that govern them must also evolve to accurately track the state of a session. In \pill, types capture communication protocols. Consequently, the transition rules for typing environments specify exactly which actions are permitted and how the available resources are consumed by those actions. 
 
-Similar to how we defined the process erasure function, we again follow~\citet{abs-2106-11818} and define a function $env : \DerSet \to \mathit{Env}$ that maps a valid typing derivation directly to the hyperenvironment in its conclusion (i.e., {$env(\judge{}{P}{\hyp{G}}) = \thl{\hyp{G}}$}). Using this extraction,~\citet{abs-2106-11818} derive a LTS specifically for typing environments ($\mlts{e}$), shown in~\cref{fig:mpill-sos-types}.
+Similar to how the erasure function was defined for processes, we again follow~\citet{abs-2106-11818} and define a function $env : \DerSet \to \mathit{Env}$ that maps a valid typing derivation directly to the hyperenvironment in its conclusion (i.e., {$env(\judge{}{P}{\hyp{G}}) = \thl{\hyp{G}}$}). Using this extraction,~\citet{abs-2106-11818} derive a LTS specifically for typing environments ($\mlts{e}$), shown in~\cref{fig:mpill-sos-types}.
 
 \begin{figure}[htbp] % Taken directly from \cite{abs-2106-11818}
 \begin{highlight}
@@ -861,33 +855,37 @@ Similar to how we defined the process erasure function, we again follow~\citet{a
 \end{gather*}
 \end{spreadlines}
 \end{highlight}
-\caption{\pimll, transition rules for typing environments.}
+\caption{\pimll, transition rules for typing environments, as presented in Figure 5 of~\cite{abs-2106-11818}.}
 \label{fig:mpill-sos-types}
 \end{figure}
 
-In this LTS, observable actions actively consume resources from the environment. For example, if a hyperenvironment contains a waiting channel {$\cht{x}{\bot}$}, performing an input action $\lwait{x}$ will consume this type, removing it from the resulting environment. Conversely, internal communications do not alter the available external resources. This is formalised by the $\tau$-reflexivity axiom, {$\thl{\hyp{G} \mid \Gamma} \lto{\tau} \thl{\hyp{G} \mid \Gamma}$}, which states that any valid hyperenvironment transitions to itself under a silent $\tau$-action.
+In this LTS, observable actions actively consume resources from the environment. For example, if a hyperenvironment contains a waiting channel {$\cht{x}{\bot}$}, performing an input action $\lwait{x}$ will consume this type, removing it from the resulting environment. Conversely, internal communications do not alter the available external resources. This is expressed by the $\tau$-reflexivity axiom, {$\thl{\hyp{G} \mid \Gamma} \lto{\tau} \thl{\hyp{G} \mid \Gamma}$}, which states that any valid hyperenvironment transitions to itself under a silent $\tau$-action.
 
-The rules in \cref{fig:mpill-sos-types} define which transitions are available at the environment level. For a well-typed process, however, process behaviour and resource evolution must step in unison such that whenever the process performs an action, its typing environment must be able to perform the corresponding transition. This correspondence is the property of \textbf{session fidelity}. Just as the $\mathit{proc}$ projection extracts the process behaviour of a typed transition, the $\mathit{env}$ projection extracts its corresponding environment evolution.
+The rules in \cref{fig:mpill-sos-types} define which transitions are available at the environment level. For a well-typed process, both the process behaviour and resource evolution must step in unison such that whenever the process performs an action, its typing environment performs a corresponding transition. This correspondence is the property of \textbf{session fidelity}. Just as the $\mathit{proc}$ projection extracts the process behaviour of a typed transition, the $\mathit{env}$ projection extracts its corresponding environment evolution.
 
-\begin{theorem}[Session Fidelity]\label{thm:session-fidelity}
-Let $\der{D}$ be a valid typing derivation such that $env(\der{D}) = {\thl{\hyp{G}}}$ and {$proc(\der{D}) = \phl{P}$}. If the process transitions such that {$\phl{P} \lto{l} \phl{P'}$}, then the environment can mimic this transition {$\thl{\hyp{G}} \lto{l} \thl{\hyp{G}'}$}, and there exists a new valid derivation $\der{D}'$ for {$\phl{P'}$} under {$\thl{\hyp{G}'}$}.
-\end{theorem}
+The following is Corollary~4.10 of~\citet{abs-2106-11818}, stated concretely for a well-typed process:
 
-To illustrate Session Fidelity in action, we can observe how the environment is constrained to follow the exact execution traces of the process it types.
+\begin{corollary}[Session Fidelity for Processes]\label{thm}
+Let $\der{D}$ be a typing derivation such that $\mathit{proc}(\der{D}) = \phl{P}$ and $\mathit{env}(\der{D}) = \thl{\hyp{G}}$. If {$\phl{P} \lto{l} \phl{P'}$}, then there exist a hyperenvironment {$\thl{\hyp{G}'}$} and a typing derivation $\der{D}'$ such that $\thl{\hyp{G}} \lto{l} \thl{\hyp{G}'},~\mathit{proc}(\der{D}') = \phl{P'} ~and~ \mathit{env}(\der{D}') = \thl{\hyp{G}'}.$
+\end{corollary}
 
-\begin{example}[Session Fidelity in Execution]
-Recall the process derivation from \cref{ex:expanded-cut-unit-execution}, initially typed by the hyperenvironment $\thl{\hyp{G}} = \cht{v}{1}, \cht{w}{\bot} \pp \cht{y}{1}$. The process first performs an observable input action on $w$. By session fidelity, this process transition is mirrored by the corresponding environment transition, consuming the resource typed by $\bot$:
+To illustrate session fidelity, consider a particular execution of a well-typed process and the corresponding evolution of its typing hyperenvironment.
+
+\begin{example}[Session fidelity along an execution]
+Recall the process derivation from \cref{ex:expanded-cut-unit-execution}, initially typed by the hyperenvironment $\thl{\hyp{G}} = \cht{v}{1}, \cht{w}{\bot} \pp \cht{y}{1}$. Consider the process execution in which the observable input on $w$ is followed by the internal synchronisation on the restricted session, and then by the observable outputs on $y$ and $v$. Session fidelity requires each of these process transitions to be matched by a transition of the typing hyperenvironment:
 \begin{highlight}
-  \[
-    \begin{aligned}
-      \cht{v}{1}, \cht{w}{\bot} \pp \cht{y}{1}
-      &\lto{\lwait{w}} \cht{v}{1} \pp \cht{y}{1} \\
-      &\lto{\tau}       \cht{v}{1} \pp \cht{y}{1} \\
-      &\lto{\lsend{y}{}} \cht{v}{1}.
-    \end{aligned}
-  \]
+\[
+\begin{aligned}
+\cht{v}{1}, \cht{w}{\bot} \pp \cht{y}{1}
+&\lto{\lwait{w}} \cht{v}{1} \pp \cht{y}{1} \
+&\lto{\tau} \cht{v}{1} \pp \cht{y}{1} \
+&\lto{\lclose{y}} \cht{v}{1} \
+&\lto{\lclose{v}} \emptyhyp.
+\end{aligned}
+\]
 \end{highlight}
-After the first transition, the process derivative is typed by $\cht{v}{1} \pp \cht{y}{1}$. Viewed in isolation, the environment transition system admits an output action on $y$, since $\cht{y}{1}$ is available as a resource. However, session fidelity does not state that every environment transition can be realised by the current process. Rather it states that each process transition has a corresponding environment transition. In the process term, the action $\lsend{y}{}$ remains guarded until an internal synchronisation has taken place. The environment therefore mirrors the intermediate $\tau$-transition without changing its resources, and only afterwards mirrors the observable output on $y$ by consuming the final $\cht{y}{1}$ component.
+
+The input action on $w$ consumes the resource {$\cht{w}{\bot}$}. After this transition, the environment LTS allows the output action $\lclose{y}$, since {$\cht{y}{1}$} is already present, although the process cannot yet perform that action. In the process, the corresponding output remains guarded until the internal synchronisation on the restricted session has occurred. This $\tau$-transition does not affect the externally visible resources, but exposes the output on $y$, whose transition consumes {$\cht{y}{1}$}. The final output on $v$ then consumes the remaining external resource.
 \end{example}
 
 % \begin{example}[Environment Evolution]
@@ -957,16 +955,14 @@ After the first transition, the process derivative is typed by $\cht{v}{1} \pp \
 % \]
 % \end{example}
 
-Session fidelity is a central correctness property of a session-typed calculus: it expresses that process evolution is matched by the evolution of its typing resources. In the paper presentation, this correspondence is supported by implicit conventions for fresh names, bound variables, and structural rearrangement. In a proof assistant, these conventions must instead be represented explicitly and manipulated by proved lemmas. Establishing that types are consumed correctly therefore requires a concrete treatment of binding, opening, substitution, and freshness. The next chapter develops this binding architecture, which provides the foundation for the subsequent Lean formalisation and its metatheory.
-
 \subsection{Managing Bound Variables}\label{subsec:burden-of-bound-variables}
-Having established the operational semantics of \pill{} and the ultimate goal of verifying Session Fidelity, we must address the treatment of bound variables and freshness, a central technical challenge that underpins the entire formalisation.
+Having introduced the operational semantics of \pill{} and the session-fidelity property it supports, we now address the treatment of explicitly representing bound names, scopes, and freshness conditions.
 
-As we have seen, many constructs in \pill{} introduce scoped identifiers. Restriction binds pairs of session endpoints, input constructs bind received channel names, polymorphic communication binds type variables, and duplication constructs introduce fresh channel endpoints. These bindings appear throughout both the process syntax and the labelled transition system.
+Several constructs in \pill{} introduce scoped identifiers. Restriction binds pairs of session endpoints, input binds received channel names, polymorphic communication binds type variables, and duplication introduces a fresh channel endpoint in its continuation. These binding constructs occur throughout the process syntax and the labelled transition system.
 
-The concrete choice of bound and introduced names is semantically irrelevant provided the binding structure is preserved. For example, renaming a restricted channel does not change the behaviour of a process. However, reasoning formally about substitutions, transitions, and typing derivations requires these names, scopes, and freshness conditions to be tracked explicitly.
+For bound channel names, the concrete representative chosen for a binder is semantically irrelevant provided that the binding structure is preserved. For example, renaming the two restricted endpoints of a session does not alter the behaviour of a process. However, a formal account of substitution, transitions, and typing derivations must track names, scopes, and freshness conditions explicitly.
 
-This principle is formalised as \emph{$\alpha$-equivalence}, which identifies terms that differ only in the names of their bound variables. For instance, the following two processes are $\alpha$-equivalent:
+This principle is expressed by \emph{$\alpha$-equivalence}, which identifies process terms that differ only in their choice of bound channel names. For instance, the following two processes are $\alpha$-equivalent:
 \begin{highlight}
 %
 \[
@@ -976,18 +972,18 @@ This principle is formalised as \emph{$\alpha$-equivalence}, which identifies te
 \]
 %
 \end{highlight}
-The operational semantics of \pill{} relies on $\alpha$-equivalence using \cref{rule:pill-alpha} to rename bound variables on the fly, ensuring that restricted scopes and input prefixes do not accidentally capture free names as processes evolve.
+The operational semantics of \pill{} uses $\alpha$-equivalence through \cref{rule}, allowing bound names to be changed before a transition when necessary to avoid capture.
 
+Substitution exposes the same issue. Consider replacing the free name $x$ by $z$ in the right-hand process from the preceding example:
 \begin{highlight}
-Substitution raises this exact issue. Consider the substitution where the free name $x$ is replaced by $z$ in the right-hand process from the previous example:
-%
 \[
-\phl{\res{zw}{(\send{z}{}{\nil} \pp \recv{w}{}{\send{x}{}{\nil}})}} 
+  \phl{\res{zw}{(\send{z}{}{\nil} \pp \recv{w}{}{\send{x}{}{\nil}})}} 
 \]
-%
-Here $z$ is already bound by the restriction, so naively replacing $x$ with $z$ would cause the restriction to capture the newly inserted $z$. Before the substitution can proceed, and because restriction binds session endpoints as pairs, both the bound $z$ and $w$ must be $\alpha$-renamed to fresh names, such as to $a$ and $b$. Similarly, any binder within the process that would capture the substituted name must also be renamed before substitution continues.
-
-In paper-based presentations this is commonly handled by \emph{Barendregt's variable convention}, which assumes bound variables are always chosen distinct from free variables and one another whenever convenient. This makes proofs readable but remains an informal meta-level assumption.
 \end{highlight}
+Here, $z$ is already bound by the restriction, so naively replacing $x$ with $z$ would cause the restriction to capture the newly inserted $z$. 
 
-A proof assistant requires every freshness condition and renaming step to be represented and verified explicitly~\cite{A05}. A direct mechanisation using named variables therefore introduces substantial proof overhead for capture avoidance and $\alpha$-equivalence reasoning. To avoid this, the formalisation adopts a \emph{locally nameless} representation of binding, which eliminates $\alpha$-equivalence as a proof obligation by construction. This is the subject of the following chapter.
+Since restriction binds session endpoints as pairs, both the bound name $z$ and $w$ must be $\alpha$-renamed to fresh names, such as to $a$ and $b$, before the substitution proceeds. Generally, any binder capturing a substituted free name must be renamed before substitution occurs. 
+
+In paper-based presentations, this issue is commonly handled using \emph{Barendregt's variable convention}, under which bound names may be assumed fresh for the free names and other objects relevant to the current argument. This convention keeps paper proofs readable, but it remains an informal meta-level assumption.
+
+A proof assistant requires each relevant freshness condition and renaming step to be represented and verified explicitly~\citep{A05}. A direct mechanisation using named binders would therefore introduce substantial proof overhead for capture avoidance and reasoning up to $\alpha$-equivalence. The formalisation instead adopts a locally nameless binding architecture, retaining explicit free identifiers while representing bound occurrences by indices. This avoids explicit reasoning up to $\alpha$-equivalence for bound occurrences, while relocating the remaining binder-related obligations to opening, local closure, freshness, and substitution. The following chapter develops this architecture in detail.
