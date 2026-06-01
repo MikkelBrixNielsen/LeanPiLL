@@ -1,7 +1,7 @@
 \documentclass[
     final,
     highlight, % Enables highlighting
-    british, danish, % Language package(s) to use from bable
+    british, % Language package(s) to use from bable
     a4paper, % Paper size
     acmsmall, % Single column journal format 
     acmthm, % Load ACM's theorem styles
@@ -45,9 +45,6 @@
 \newcommand{\hypermerge}[2]{#1\pp_h#2}
 \def\shiftdc#1#2{\uparrow_{#1}^{#2}}
 \def\mlts#1{\mathit{lts_{#1}}}
-
-\crefname{section}{section}{sections}
-\Crefname{section}{Section}{Sections}
 
 \makeatletter
 \renewcommand{\l@section}{\@dottedtocline{1}{0em}{2.3em}}
@@ -126,7 +123,7 @@
 	\textsc{\Large Department of Mathematics and Computer Science}\\[0.5cm]
 	%Major heading such as course name
 
-	\textsc{\large SPD801: Master Thesis in Computer Science }\\[0.5cm]
+	\textsc{\large SPDM801: Master Thesis in Computer Science }\\[0.5cm]
 	% COURSE ID AND NAME
 
 	%------------------------------------------------
@@ -187,11 +184,11 @@
 
 \clearpage
 \section*{Abstract}
-This thesis presents a mechanised formalisation of \pill{}, a process calculus relating linear logic and session-typed communication, in Lean~4. The formalisation covers the static structure of the full calculus, including session types, processes, environments, hyperenvironments, typing judgements, and substitution principles. To represent binding, the development retains explicit free identifiers while encoding bound occurrences by indices: channel binders are handled through a locally nameless representation with co-finite premises, while polymorphic type binders are treated through type-depth indexing, shifting, and substitution. The operational semantics and session-fidelity development are mechanised for the multiplicative fragment, \pimll{}, using a derivation-level transition system together with projected process-level and environment-level relations. The completed metatheory establishes the projection of typed transitions to process and resource transitions and develops the reverse lifting argument for all multiplicative cases except the transition case beneath restriction. The remaining \texttt{res} case is isolated to the reconstruction of endpoint-bearing hyperenvironment components after a transition under restriction. The development demonstrates that mechanising the paper theory in this way can relocate implicit reasoning about bound names, freshness, and unordered linear resources into explicit structural invariants. It thereby contributes a mechanised account of \pill{} and identifies the remaining infrastructure required to complete session fidelity for \pimll{}.
+This thesis presents a mechanised formalisation of \pill{}, a process calculus relating linear logic and session-typed communication, in Lean~4. The formalisation covers the static structure of the full calculus, including session types, processes, environments, hyperenvironments, typing judgements, and substitution principles. To represent binding, the development retains explicit free identifiers while encoding bound occurrences by indices: channel binders are handled through a locally nameless representation with co-finite premises, while polymorphic type binders are treated through type-depth indexing, shifting, and substitution. The operational semantics and session-fidelity development are mechanised for the multiplicative fragment, \pimll{}, using a derivation-level transition system together with projected process-level and environment-level relations. The completed metatheory establishes the projection of typed transitions to process and resource transitions and develops the reverse lifting argument for all multiplicative cases except the restriction case. The remaining \texttt{res} case is isolated to the reconstruction of endpoint-bearing hyperenvironment components after a transition under restriction. The development demonstrates that mechanising the paper theory in this way can relocate implicit reasoning about bound names, freshness, and unordered linear resources into explicit structural invariants. It thereby contributes a mechanised account of \pill{} and identifies the remaining infrastructure required to complete session fidelity for \pimll{}.
 
 \section*{Resumé}
 \begin{otherlanguage}{danish}
-Denne afhandling præsenterer en mekaniseret formalisering af \pill{}, en proceskalkule, der forbinder lineær logik med sessionstypet kommunikation, i Lean~4. Formaliseringen dækker den statiske struktur af den fulde kalkule, herunder sessionstyper, processer, miljøer, hypermiljøer, typningsdomme og substitutionsprincipper. Til repræsentation af binding fastholder udviklingen eksplicitte frie identifikatorer, mens bundne forekomster repræsenteres ved indeks: kanalbindere håndteres gennem en lokalt navnløs repræsentation med co-finite-præmisser, mens polymorfe typebindere behandles gennem typedybdeindeksering, forskydning og substitution. Den operationelle semantik og udviklingen af sessionsfidelitet er mekaniseret for det multiplikative fragment, \pimll{}, ved hjælp af et transitionssystem over typningsafledninger samt projicerede transitionsrelationer for processer og hypermiljøer. Den gennemførte metateori etablerer projektionen af typede transitioner til proces- og ressourcetransitioner og udvikler det omvendte løfteargument for alle multiplikative tilfælde undtagen transition under restriktion. Det resterende \texttt{res}-tilfælde er isoleret til rekonstruktionen af de hypermiljøkomponenter, der bærer de restrikterede endepunkter, efter en transition under restriktion. Udviklingen viser, at en mekanisering af papirteorien på denne måde kan flytte implicit ræsonnement om bundne navne, friskhed og uordnede lineære ressourcer til eksplicitte strukturelle invarianter. Afhandlingen bidrager dermed med en mekaniseret redegørelse for \pill{} og identificerer den resterende infrastruktur, der kræves for at fuldføre sessionsfidelitet for \pimll{}.
+Denne afhandling præsenterer en mekaniseret formalisering af \pill{}, en proceskalkule, der forbinder lineær logik med sessionstypet kommunikation, i Lean~4. Formaliseringen dækker den statiske struktur af den fulde kalkule, herunder sessionstyper, processer, miljøer, hypermiljøer, \emph{typing judgements} og substitutionsprincipper. Til repræsentation af binding fastholder udviklingen eksplicitte frie navne, mens bundne forekomster repræsenteres ved indeks: kanalbindere håndteres gennem en \emph{locally nameless} repræsentation med co-finite-præmisser, mens polymorfe typebindere behandles gennem typedybdeindeksering, forskydning og substitution. Den operationelle semantik og udviklingen af \emph{session fidelity} er mekaniseret for det multiplikative fragment, \pimll{}, ved hjælp af et transitionssystem over \emph{typing derivations} samt projicerede transitionsrelationer for processer og hypermiljøer. Den gennemførte metateori etablerer projektionen af typede transitioner inkulderende til proces- og ressourcetransitioner og udvikler det omvendte løfteargument for alle multiplikative tilfælde undtagen  restriktionstilfældet. Det resterende \texttt{res}-tilfælde er isoleret til rekonstruktionen af de hypermiljøkomponenter, der bærer de restrikterede endepunkter, efter en transition under restriktion. Udviklingen viser, at en mekanisering af papirteorien på denne måde kan flytte implicit ræsonnement om bundne navne, friskhed og uordnede lineære ressourcer til eksplicitte strukturelle invarianter. Afhandlingen bidrager dermed med en mekaniseret redegørelse for \pill{} og identificerer den resterende infrastruktur, der kræves for at fuldføre sessionsfidelitet for \pimll{}.
 \end{otherlanguage}
 \clearpage
 
@@ -202,15 +199,15 @@ Denne afhandling præsenterer en mekaniseret formalisering af \pill{}, en proces
 
 \clearpage
 
-\input{Chapters/Introduction}
+% \input{Chapters/Introduction} % READ
 \input{Chapters/background}
-\input{Chapters/BindingRepresentation}
-\input{Chapters/Formalisation}
-\input{Chapters/Metatheory}
-\input{Chapters/Discussion}
-\input{Chapters/FutureWork}
-\input{Chapters/Conclusion}
+% \input{Chapters/BindingRepresentation}
+% \input{Chapters/Formalisation}
+% \input{Chapters/Metatheory}
+% \input{Chapters/Discussion}
+% \input{Chapters/FutureWork}
+% \input{Chapters/Conclusion}
 \bibliography{references} % out commenting this breaks references
-\input{Chapters/Appendix}
+% \input{Chapters/Appendix}
 
 \end{document}

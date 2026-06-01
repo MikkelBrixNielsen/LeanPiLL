@@ -1,5 +1,5 @@
 \section{Background}\label{sec:background} % 2
-This section begins by introducing the theoretical foundations underlying the formalisation following the presentation of~\citet{abs-2106-11818}, We cover the full \pill{} calculus, including processes, types, typing, environments / hyperenvironments, and judgements, then restrict attention to the multiplicative fragment \pimll{} when discussing operational semantics.
+This section begins by introducing the theoretical foundations on which the formalisation is based, then following~\citet{abs-2106-11818} in the present of the full \pill{} calculus, including processes, types, typing, environments / hyperenvironments, and judgements, then restrict attention to the multiplicative fragment \pimll{} when discussing operational semantics.
 
 Following~\citet{abs-2106-11818}, we use \hl{$\thl{blue}$} to highlight types and \hl{$\phl{red}$} for process terms throughout this thesis.
 
@@ -7,9 +7,12 @@ Following~\citet{abs-2106-11818}, we use \hl{$\thl{blue}$} to highlight types an
 \subsection{Classical Linear Logic, CLL}\label{subsec:CLL}
 Linear logic~\citep{G87} is a refinement of classical and intuitionistic logic. In contrast to these systems, where formulas can be freely duplicated or discarded, linear logic restricts structural rules such as weakening and contraction, and instead treats formulas as consumable resources. This yields a resource-sensitive interpretation of logic, where each assumption must be used in a controlled manner~\cite{sep-linear-logic}. In this thesis, we work in the classical presentation of linear logic, where sequents are symmetric and duality replaces the distinction between assumptions and conclusions.
 
-In particular, conjunction and disjunction split into multiplicative and additive variants. The multiplicative fragment forms the core of the system and includes the tensor connective {$\thl{A \tensor B}$} and its dual {$\thl{A \parr B}$}, together with the corresponding units {$\thl{1}$} and {$\thl{\bot}$}. These connectives capture composition and interaction of resources.
+\subsection{Classical Linear Logic, CLL}\label{subsec:CLL}
+Linear logic~\citep{G87} is a refinement of classical and intuitionistic logic. In contrast to these systems, where assumptions can be duplicated or discarded freely, linear logic controls the use of structural rules such as weakening and contraction, thereby giving formulas a resource-sensitive interpretation~\cite{sep-linear-logic}. 
 
-Intuitively, {$\thl{A \tensor{} B}$} describes the joint availability of two independent resources, while {$\thl{A \parr{} B}$} captures their dual form of interaction. Under a process interpretation, {$\thl{\tensor{}}$} can be read as producing a value of type {$\thl{A}$} and continuing as {$\thl{B}$}, whereas {$\thl{A \parr{} B}$} corresponds to receiving a value of type {$\thl{A}$} and proceeding as {$\thl{B}$}. The units {$\thl{1}$} and {$\thl{\bot{}}$} represent the absence of further output and input, respectively. A simplified presentation of these rules is given below:
+The multiplicative fragment forms the core of the system and includes the tensor connective {$\thl{A \tensor B}$} and its dual {$\thl{A \parr B}$}, together with the corresponding units {$\thl{1}$} and {$\thl{\bot}$}. These connectives capture composition and interaction of resources.
+
+Intuitively, {$\thl{A \tensor{} B}$} describes the composition of two independent resources, while {$\thl{A \parr{} B}$} captures their dual form of interaction. Under a process interpretation, {$\thl{\tensor{}}$} can be read as producing a value of type {$\thl{A}$} and continuing as {$\thl{B}$}, whereas {$\thl{A \parr{} B}$} corresponds to receiving a value of type {$\thl{A}$} and proceeding as {$\thl{B}$}. The units {$\thl{1}$} and {$\thl{\bot{}}$} represent the absence of further output and input, respectively. A simplified presentation of these rules is given below:
 \begin{highlight}
 \begin{figure}[h]
   \[
@@ -33,11 +36,11 @@ Intuitively, {$\thl{A \tensor{} B}$} describes the joint availability of two ind
 
 Here \cref{rule:ll-tensor} presents a simplified form of the tensor rule from classical linear logic. In general, the tensor connective {$\thl{A \tensor B}$} combines two independent derivations. It requires a proof of {$\thl{A}$} and a proof of {$\thl{B}$}, each obtained from disjoint contexts, and produces a proof of the composite resource {$\thl{A \tensor B}$}. Intuitively, this corresponds to combining two independent resources into a single composite resource, and can be read  as producing a value of type {$\thl{A}$} and then continuing as {$\thl{B}$}.
 
-The unit rule \cref{rule:ll-one} introduces the unit {$\thl{1}$}, which represents the absence of further obligations. It can be understood as an “empty output”, corresponding to a computation that performs no further interaction, and serves as the neutral element of tensor.
+The unit rule \cref{rule:ll-one} introduces the unit {$\thl{1}$}, which represents the absence of further obligations. It can be understood as an \emph{empty output}, corresponding to a computation that performs no further interaction, and serves as the neutral element of tensor.
 
-Dually, \cref{rule:ll-parr,rule:ll-bot} describe the behavior of the connective {$\thl{A \parr B}$} and its unit {$\thl{\bot}$}. The {$\thl{\parr}$} rule combines resources within a single context, reflecting a form of interaction where both components are made available to the surrounding context. From an operational perspective, this corresponds to interacting with an input of type {$\thl{A}$} while continuing as {$\thl{B}$}. The unit {$\thl{\bot}$} represents the absence of further input, acting as an “empty input” and serving as the dual neutral element. 
+Dually, \cref{rule:ll-parr,rule:ll-bot} describe the behavior of the connective {$\thl{A \parr B}$} and its unit {$\thl{\bot}$}. The~\ref{rule:ll-parr} rule combines resources within a single context, reflecting a form of interaction where both components are made available to the surrounding context. From an operational perspective, this corresponds to interacting with an input of type {$\thl{A}$} while continuing as {$\thl{B}$}. The unit {$\thl{\bot}$} represents the absence of further input, acting as an \emph{empty input} and serving as the dual neutral element. 
 
-For example, two independent instances of the unit {$\thl{1}$} can be introduced by the \cref{rule:ll-one} and combined via \cref{rule:ll-tensor} to derive {$\thl{1 \tensor 1}$}:
+For example, two independent instances of the unit {$\thl{1}$} can be introduced by the~\ref{rule:ll-one} rule and combined via the~\ref{rule:ll-tensor} rule to derive {$\thl{1 \tensor 1}$}. In this case the surrounding context $\thl{\Gamma}$ and $\thl{\Delta}$ are empty:
 \begin{highlight}
 \[
   \infer[\tensor]
@@ -52,13 +55,13 @@ For example, two independent instances of the unit {$\thl{1}$} can be introduced
 
 Here each leaf introduces one resource independently, and the tensor rule combines them into a single compound resource {$\thl{1 \tensor 1}$}. After this step, the individual resources are no longer available separately, reflecting the resource-sensitive nature of the system.
 
-This resource-oriented view of logic provides the foundation for its applications in computer science, particularly in the study of concurrency and session-typed communication. In the following sections, this perspective is used to motivate the process interpretation underlying \pill.
+This resource-sensitive view of logic provides a foundation for a use in computer science, particularly in the study of concurrency. In the following sections, this perspective is used to motivate the process interpretation underlying \pill.
 
 % subsection 2.2
 \subsection{The \texorpdfstring{$\pi$}{pi}-Calculus: Processes and Communication}\label{subsec:processes}
 The $\pi$-calculus~\citep{MPW92} is a process calculus for modeling concurrent computation with dynamic communication topology, where channel names themselves can be transmitted, allowing the communication network to evolve during execution. We follow the presentation of~\citet{abs-2106-11818}, which adopts~\citeauthor{W14}'s convention of using square brackets '$[\text{-}]$' for output and round parentheses '$(\text{-})$' for input.
 
-Programs in \pimll{} are processes \hl{($\phl{P}$, $\phl{Q}$, $\phl{R}$, $\dots$)}, which communicate over names \hl{($\phl{x}$, $\phl{y}$, $\phl{z}$, $\dots$)} representing session endpoints. Sessions are binary (they involve exactly two endpoints), a discipline enforced by the typing system introduced in~\ref{subsec:types}. We assume an infinite set of names with decidable equality. The process terms of \pimll{} are defined by the following grammar:
+Programs in \pill{} are processes \hl{($\phl{P}$, $\phl{Q}$, $\phl{R}$, $\dots$)}, which communicate over names \hl{($\phl{x}$, $\phl{y}$, $\phl{z}$, $\dots$)} representing session endpoints. Sessions are binary, a discipline enforced by the typing system introduced in~\cref{subsec:types}. Following~\citet{abs-2106-11818}, we assume an infinite set of names with decidable equality. The process terms of \pill{} are defined by the following grammar, reproduced from~\citet{abs-2106-11818} with minor adjustments:
 
 \label{tab:pill-proc-syntax}
 \begin{bnftable}% Taken from \cite{abs-2106-11818} with minor adjustments
@@ -84,19 +87,19 @@ Programs in \pimll{} are processes \hl{($\phl{P}$, $\phl{Q}$, $\phl{R}$, $\dots$
     \mid{} & \nil{}               & terminated process
 \end{bnftable}
 
-Term {$\phl{\send{x}{y}{P}}$} allocates a fresh name {$\phl{y}$}, outputs it over {$\phl{x}$}, and proceeds as {$\phl{P}$}. Dually, {$\phl{\recv{x}{y}{P}}$} inputs a name over {$\phl{x}$}, binding it to {$\phl{y}$} in {$\phl{P}$}. Terms {$\phl{\close{x}{P}}$} and {$\phl{\wait{x}{P}}$} model empty output and input. Restriction {$\phl{\res{xy}{P}}$} connects the two endpoints {$\phl{x}$} and {$\phl{y}$} of {$\phl{P}$} to form a session, where the order of {$\phl{x}$} and {$\phl{y}$} is irrelevant and {$\phl{\res{xy}{P}} = \phl{\res{yx}{P}}$}. Parallel composition {$\phl{P \pp Q}$} runs {$\phl{P}$} and {$\phl{Q}$} concurrently, and {$\phl{\nil}$} is the terminated process, acting as the unit of parallel composition.
+Term {$\phl{\send{x}{y}{P}}$} allocates a fresh name {$\phl{y}$}, outputs it over {$\phl{x}$}, and proceeds as {$\phl{P}$}. Dually, {$\phl{\recv{x}{y}{P}}$} takes input over {$\phl{x}$}, binding it to {$\phl{y}$} in {$\phl{P}$}. Terms {$\phl{\close{x}{P}}$} and {$\phl{\wait{x}{P}}$} model empty output and input. Restriction {$\phl{\res{xy}{P}}$} connects the two endpoints {$\phl{x}$} and {$\phl{y}$} of {$\phl{P}$} to form a session, where the order of {$\phl{x}$} and {$\phl{y}$} is irrelevant and {$\phl{\res{xy}{P}} \equiv \phl{\res{yx}{P}}$}. Parallel composition {$\phl{P \pp Q}$} runs {$\phl{P}$} and {$\phl{Q}$} concurrently, and {$\phl{\nil}$} is the terminated process, acting as the unit of parallel composition.
 
 \begin{example}\label{ex:cut-unit-proc}
-  Consider the process {$\phl{P} \defeq \phl{\res{xz}{( \send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}})}}$}. This process creates a private session between the restricted endpoints {$\phl{x}$} and {$\phl{z}$}. The left process, {$\phl{\send{x}{}{\nil}}$}, signals termination on {$\phl{x}$} before terminating, while the right process, {$\phl{\recv{z}{}{\send{y}{}{\nil}}}$}, waits for a termination signal on {$\phl{z}$} before proceeding by sending a termination signal on {$\phl{y}$} and then terminating.
+  Consider the process {$\phl{P} \defeq \phl{\res{xz}{(\send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}})}}$}. This process creates a private session between the restricted endpoints {$\phl{x}$} and {$\phl{z}$}. The left process, {$\phl{\send{x}{}{\nil}}$}, signals termination on {$\phl{x}$} before terminating, while the right process, {$\phl{\recv{z}{}{\send{y}{}{\nil}}}$}, waits for a termination signal on {$\phl{z}$} before proceeding by sending a termination signal on {$\phl{y}$} and then terminating.
 \end{example}
 
 This calculus provides the operational foundation for \pill. In the following section, we introduce the type system that governs how names are used, ensuring that each session endpoint is used exactly according to its protocol.
 
 % subsection 2.3
 \subsection{Types and Propositions-as-Sessions Correspondence}\label{subsec:types}
-In \pill, session types \hl{$(\thl{A}, \thl{B}, \thl{C}, \dots)$} are linear logic propositions~\citep{CP10, W14, abs-2106-11818}. Each type describes the communication protocol of a channel endpoint, and duality, the key structural feature of classical linear logic, ensures that the two endpoints of every session implement complementary protocols.
+In \pill, session types \hl{$(\thl{A}, \thl{B}, \thl{C}, \dots)$} are linear logic propositions~\citep{CP10, W14, abs-2106-11818}. Each type describes the communication protocol of a channel endpoint, and duality ensures that the two endpoints of every session implement complementary protocols.
 
-The correspondence between linear logic and session types used in this thesis follows the presentation of \citet{abs-2106-11818}, which builds on the accounts of \citet{CLMSW16} and \citet{W14}, is captured directly by the type grammar. Each connective denotes a communication action, where {$\thl{A \tensor B}$} describes sending a value of type {$\thl{A}$} and continuing as {$\thl{B}$}, while its dual {$\thl{A \parr B}$} describes receiving. The units {$\thl{1}$ and $\thl{\bot}$}, again, represent the absence of out and input, respectively. The additive connectives {$\thl{A \oplus B}$} and {$\thl{A \with B}$} capture choice in the sense of selection and offering of alternatives, while the exponentials {$\thl{\bang A}$} and {$\thl{\query A}$} govern replication. The {$\thl{\forall X.A}$} and {$\thl{\exists X.A}$} allow polymorphic session behavior. The type grammar of \pill{} is defined as follows:
+The account of session types used in this thesis follows the presentation of~\citet{abs-2106-11818}, which builds on the propositions-as-sessions correspondence developed by~\citet{CLMSW16} and~\citet{W14}. In this correspondence, each connectives of linear logic is interpreted as a communication protocol, where {$\thl{A \tensor B}$} describes sending a value of type {$\thl{A}$} and continuing as {$\thl{B}$}, while its dual {$\thl{A \parr B}$} describes receiving. The units {$\thl{1}$ and $\thl{\bot}$}, again, represent the absence of out and input, respectively. The additive connectives {$\thl{A \oplus B}$} and {$\thl{A \with B}$} capture choice in the sense of selection and offering of alternatives, while the exponentials {$\thl{\bang A}$} and {$\thl{\query A}$} govern replication. The {$\thl{\forall X.A}$} and {$\thl{\exists X.A}$} allow polymorphic session behavior. The type grammar of \pill{} is defined by~\citet{abs-2106-11818} as follows:
 
 \begin{bnftable2col}[\thl] % Taken from \cite{abs-2106-11818} with minor adjustments
     {\thl{A},\thl{B} \Coloneqq {}}
@@ -115,7 +118,7 @@ The correspondence between linear logic and session types used in this thesis fo
     \mid{} {} & {\dual{X}} & dual of type variable\\
 \end{bnftable2col}
 
-Duality is defined structurally on session types by exchanging each connective with its dual and forms an involution, i.e.\ {$\thl{{(A^\bot)}^\bot} = \thl{A}$}. Consequently, the endpoints of a well-typed session are always assigned dual types, ensuring they are compatibility:
+Duality is defined structurally on session types by exchanging each connective with its dual and forms an involution, specifically {$\thl{{(A^\bot)}^\bot} = \thl{A}$}. Consequently, the endpoints of a well-typed session are always assigned dual types, ensuring they are compatibility:
 
 \begin{highlight} % Taken from \cite{abs-2106-11818} with minor adjusments
 \begin{gather*}
@@ -192,9 +195,9 @@ Duality is defined structurally on session types by exchanging each connective w
 %\end{highlight}
 
 \subsection{Environments, Hyperenvironments and Judgements}\label{subsec:env-hyper-judge}
-Typing in \pill{} is organised into two layers. Environments track how individual names are typed, while hyperenvironments track which names are used independently in parallel.
+Typing environments in \pill{} are organised into two layers. Environments track how individual names are typed, while hyperenvironments track which names are used independently in parallel.
 
-Following the presentation in \citet{abs-2106-11818}, \emph{environments}~(\hl{$\thl{\Gamma}$, $\thl{\Delta}$, $\thl{\Xi}$, \dots}) are defined as lists allowing exchange, meaning order is irrelevant. They can be written as {$\thl{\Gamma} = \phl{x_1}:\thl{A}, \dots, \phl{x_n}:\thl{A_n}$}, where each {$\phl{x_i}$} is associated to its respective {$\thl{A_i}$}, for $1\leq i \leq n$. Environments can be merged as long as they do not share any names for example assume {$\thl{\Gamma}$} and {$\thl{\Delta}$} do not share any names, then {$\thl{\Gamma, \Delta}$} is the environment containing exactly the associations in {$\thl{\Gamma}$} and {$\thl{\Delta}$} regardless of ordering. Environments act as a partial commutative monoid, using ``$,$'' as the sum and the empty environment {$\thl{\emptyseq}$} as unit:
+Following the presentation in~\citet{abs-2106-11818}, \emph{environments}~(\hl{$\thl{\Gamma}$, $\thl{\Delta}$, $\thl{\Xi}$, \dots}) are defined as lists allowing exchange, meaning order is irrelevant. They can be written as {$\thl{\Gamma} = \cht{x_1}{A_1}, \dots, \cht{x_n}{A_n}$}, where each {$\phl{x_i}$} is associated to its respective {$\thl{A_i}$}, for $1\leq i \leq n$. Environments can be merged as long as they do not share any names for example assume {$\thl{\Gamma}$} and {$\thl{\Delta}$} do not share any names, then {$\thl{\Gamma, \Delta}$} is the environment containing exactly the entries of {$\thl{\Gamma}$} and {$\thl{\Delta}$} regardless of ordering. Environments act as a partial commutative monoid, using ``$,$'' as sum and the empty environment {$\thl{\emptyseq}$} as unit:
 
 \begin{highlight} % Taken directly from \cite{abs-2106-11818}
 \[
@@ -206,7 +209,7 @@ Following the presentation in \citet{abs-2106-11818}, \emph{environments}~(\hl{$
 \]
 \end{highlight}
 
-Environments dictate how names are used, but it does not distinguish whether names are used independently or in parallel. That role is handled by  handled by \emph{hyperenvironments} (\hl{$\thl{\hyp{G}}$, $\thl{\hyp{H}}$, $\thl{\hyp{I}}$, \dots}), which are collections of environments joined using the parallel operator `$\pp$'. They can be written as follows {$\thl{\hyp{G}} = \thl{\Gamma_1,\dots, \Gamma_n}$}, where {$\thl{\Gamma_1,\dots, \Gamma_n}$} is a collection of environments. Given {$\thl{\hyp{G}}$} and {$\thl{\hyp{H}}$} having no names in common then {$\thl{\hyp{G} \pp \hyp{H}}$} is the hyperenvironment containing exactly the environments of {$\thl{\hyp{G}}$} and {$\thl{\hyp{H}}$}, ignoring order. Like environments, all names in a hyperenvironment are unique, they can be combined as long as they do not share any names, and they act as a partial commutative monoid using '$\pp$' the sum and $\emptyhyp$ as unit, where $\emptyhyp$ is the hyperenvironment containing no environments:
+Environments dictate how names are used, but it does not distinguish whether names are used independently or in parallel. That role is handled by  handled by \emph{hyperenvironments} (\hl{$\thl{\hyp{G}}$, $\thl{\hyp{H}}$, $\thl{\hyp{I}}$, \dots}), which are collections of environments joined using the parallel operator `$\pp$'. They can be written as follows {$\thl{\hyp{G}} = \thl{\Gamma_1,\dots, \Gamma_n}$}, where {$\thl{\Gamma_1,\dots, \Gamma_n}$} is a collection of environments. Given {$\thl{\hyp{G}}$} and {$\thl{\hyp{H}}$} having no names in common then {$\thl{\hyp{G} \pp \hyp{H}}$} is the hyperenvironment containing exactly the environments of {$\thl{\hyp{G}}$} and {$\thl{\hyp{H}}$}, ignoring order. Like environments, all names in a hyperenvironment are unique, they can be combined as long as they do not share any names, and they act as a partial commutative monoid using '$\pp$' as sum and $\emptyhyp$ as unit, where $\emptyhyp$ is the hyperenvironment containing no environments:
 
 \begin{highlight} % Taken directly from \cite{abs-2106-11818}
 \[
@@ -220,7 +223,7 @@ Environments dictate how names are used, but it does not distinguish whether nam
 
 \emph{Judgements}, written as {$\judge{}{P}{\hyp{G}}$}, states that the process {$\phl{P}$} uses its free names in accordance with {$\thl{\hyp G}$} and can be derived using the inference rules displayed in \cref{fig:pill-typing-rules}.
 
-\emph{Typing Derivations} $(\der{D}, \der{E}, \der{F}, \dots)$ are written as {$\deduce{\judge{}{P}{\hyp G}}{\der D}$} and are read as the derivation $\der{D}$ having the judgement {$\judge{}{P}{\hyp{G}}$} as its conclusion. The meaning of this statement is that the process, {$\phl{P}$}, appearing in the judgement concluding a derivation is well-typed.
+\emph{Typing Derivations} $(\der{D}, \der{E}, \der{F}, \dots)$ are written as {$\deduce{\judge{}{P}{\hyp G}}{\der D}$}, indicating that $\der{D}$ is a derivation for the judgement.
 
 \begin{figure}[htbp] % Taken from \cite{abs-2106-11818} with minor adjustments
   \begin{highlight}\small 
@@ -303,19 +306,19 @@ Environments dictate how names are used, but it does not distinguish whether nam
       \end{gather*}%
     \end{spreadlines}
   \end{highlight}
-  \caption{\pill, typing rules.}
+  \caption{\pill, typing rules, adapted from Figure~2 and Figure~6 of~\citet{abs-2106-11818}.}
   \label{fig:pill-typing-rules}
 \end{figure}
 
 The multiplicative rules form the core of the system. \Cref{rule:pill-cut} composes two processes in {$\phl{P}$} sharing dual endpoints {$\cht{x}{A}$} and {$\cht{y}{A^\bot}$}, hiding them via restriction. This is the logical equivalent of communication. \Cref{rule:pill-mix} and \cref{rule:pill-mix-0} compose independent processes in parallel and introduce the terminated process, respectively.
 
-\Cref{rule:pill-tensor} and \cref{rule:pill-parr} type output and input. Note that \cref{rule:pill-tensor} types the sent name {$\phl{y}$} in a \emph{separate} environment from the continuation, reflecting that the two are independent resources. By contrast, \cref{rule:pill-parr} keeps {$\phl{y}$} and the continuation {$\phl{x}$} in the \emph{same} environment, reflecting their sequential dependency. The units \cref{rule:pill-one} and \cref{rule:pill-bot} type empty output and empty input, where \cref{rule:pill-one} requires the continuation to be well-typed in the empty hyperenvironment, meaning {$\phl{P}$} is necessarily semantically equivalent to $\nil$.
+\Cref{rule:pill-tensor,rule:pill-parr} type output and input. Note that \cref{rule:pill-tensor} types the sent name {$\phl{y}$} in a \emph{separate} environment from the continuation, reflecting that the two are parallel resources. By contrast, \cref{rule:pill-parr} keeps {$\phl{y}$} and the continuation {$\phl{x}$} in the \emph{same} environment, reflecting their sequential dependency. The unit \cref{rule:pill-one,rule:pill-bot} type empty output and empty input, where \cref{rule:pill-one} requires the continuation to be well-typed in the empty hyperenvironment, meaning {$\phl{P}$} is necessarily semantically equivalent to $\nil$.
 
-The additive rules (\cref{rule:pill-oplus-1}, \cref{rule:pill-oplus-2}, and \cref{rule:pill-with}) type selection and offering of alternative processing paths. Note that \cref{rule:pill-with} requires both branches to be typed in the \emph{same} context {$\thl{\Gamma}$}, reflecting that the choice of branch is made by the other endpoint.
+The additive rules (\ref{rule:pill-oplus-1},~\ref{rule:pill-oplus-2} and~\ref{rule:pill-with}) type selection and offering of alternative processing paths. Note that \cref{rule:pill-with} requires both branches to be typed in the \emph{same} context {$\thl{\Gamma}$}, reflecting that the choice of branch is made by the other endpoint.
 
-The exponential rules type server replication. The \cref{rule:pill-!} requires all free names except {$\phl{x}$} to be typed using {$\thl{\query}$}, enforcing that a server only depends on other servers. The \cref{rule:pill-?}, \cref{rule:pill-weaken}, and \cref{rule:pill-contract} allow a client to use, discard, or duplicate a server respectively.
+The exponential rules type server replication. The \cref{rule:pill-!} requires all free names except {$\phl{x}$} to be typed using {$\thl{\query}$}, enforcing that a server only depends on other servers. The \cref{rule:pill-?,rule:pill-weaken,rule:pill-contract} allow a client to use, discard, or duplicate a server respectively.
 
-The \cref{rule:pill-axiom} types a link between two dual endpoints, \hl{$\phl{\forward{x}{y}}$}, forwarding all messages sent on {$\phl{x}$} safely to {$\phl{y}$} and vice versa. \Cref{rule:pill-exists} and \cref{rule:pill-forall} type polymorphic communication, where the side condition {$\thl{X \notin \ft(\Gamma)}$} in \cref{rule:pill-forall}, ensures the introduced type variable, {$\thl{X}$}, does not accendentally shadow one already existing in {$\thl{\Gamma}$}.
+The \cref{rule:pill-axiom} types a link between two dual endpoints, {$\phl{\forward{x}{y}}$}, forwarding all messages sent on {$\phl{x}$} safely to {$\phl{y}$} and vice versa. \Cref{rule:pill-exists} and \cref{rule:pill-forall} type polymorphic communication, where the side condition {$\thl{X \notin \ft(\Gamma)}$} in \cref{rule:pill-forall}, ensures the introduced type variable, {$\thl{X}$}, does not accidentally shadow one already existing in {$\thl{\Gamma}$}.
 
 \begin{example}\label{ex:cut-unit-der}
   \begin{highlight}
@@ -337,10 +340,10 @@ The \cref{rule:pill-axiom} types a link between two dual endpoints, \hl{$\phl{\f
   \end{highlight}
 \end{example}
 
-Note that, for the typing envrionment {$\thl{\cht{x}{1} \pp \cht{y}{1}, \cht{z}{\bot}}$} to align with the premise of~\cref{rule:pill-cut}, we utilise the monoidal properties of environments and hyperenvironments. In particular, using their identity laws, we instantiate the meta-variables of the rule as {$\thl{\hyp{G}} = \thl{\emptyhyp}$} and {$\thl{\Gamma} = \thl{\emptyseq}$}. Under these instantiations, the premise of~\cref{rule:pill-cut}: {$\judge{}{P}{\hyp{G} \pp \Gamma, \cht{x}{A} \pp \Delta, \cht{y}{\dual{A}}}$} can be viewed as {$\thl{\cht{x}{A} \pp \Delta, \cht{y}{\dual{A}}}$}. This effectively instantiates the~\ref{rule:pill-cut} over the dual types {$\thl{A} = \thl{1}$} and {$\thl{\dual{A}} = \thl{\bot}$} on channels {$\phl{x}$} and {$\phl{y}$}, with {$\thl{\Gamma} = \cht{y}{1}$}, while ensuring the restricted endpoints implement dual session behaviours, fulfilling the requirements for creating a valid~\ref{rule:pill-cut} (session).
+Note that, for the typing envrionment {$\thl{\cht{x}{1} \pp \cht{y}{1}, \cht{z}{\bot}}$} to align with the premise of~\cref{rule:pill-cut}, we utilise the monoidal properties of environments and hyperenvironments. In particular, using their identity laws, we instantiate the meta-variables of the rule as {$\thl{\hyp{G}} = \thl{\emptyhyp}$} and {$\thl{\Gamma} = \thl{\emptyseq}$}. Under these instantiations, the premise of~\cref{rule:pill-cut}: {$\judge{}{P}{\hyp{G} \pp \Gamma, \cht{x}{A} \pp \Delta, \cht{y}{\dual{A}}}$} can be viewed as {$\thl{\cht{x}{A} \pp \Delta, \cht{y}{\dual{A}}}$}. This effectively instantiates the~\ref{rule:pill-cut} over the dual types {$\thl{A} = \thl{1}$} and {$\thl{\dual{A}} = \thl{\bot}$} on channels {$\phl{x}$} and {$\phl{z}$}, with {$\thl{\Gamma} = \cht{y}{1}$}, while ensuring the restricted endpoints implement dual session behaviours.
 
 \subsection{Operational Semantics}\label{subsec:operational-semantics}
-The operational semantics of \pill{} are given as a labelled transition system (LTS) defined over \emph{typing derivations}, in which processes evolve by performing actions on their free names. The semantics follow a Structural Operational Semantics (SOS) style presentation and form the basis for the metatheoretic results of the calculus. We will be focusing on the multiplicative fragment for this part, which is given in \cref{fig:mpill-sos}. The full LTS presented by~\citet{abs-2106-11818}.
+The operational semantics of \pill{} are given as a labelled transition system (LTS) defined over \emph{typing derivations}, in which processes evolve by performing actions on their free names. The semantics follow a Structural Operational Semantics (SOS) style presentation and form the basis for the metatheoretic results of the calculus. We will be focusing on the multiplicative fragment for this part, which is given in \cref{fig:mpill-sos}. The full LTS is presented in Figure~2 and Appendix~B.2 of~\citet{abs-2106-11818} .
 
 \begin{figure}[p] % Taken directly from \cite{abs-2106-11818}
   \begin{drules}
@@ -576,13 +579,13 @@ The operational semantics of \pill{} are given as a labelled transition system (
         {\der{D'}}}
     &\phl{x,y \notin \fs(l) \cup \is(l)}}
   \end{drules}
-  \caption{\pimll, transition rules for derivations.}
+  \caption{\pimll, transition rules for derivations, as presented in Figure 2 of~\citet{abs-2106-11818}.}
   \label{fig:mpill-sos}
 \end{figure}
 
-The operational semantics rely explicitly on the structural equivalence (\cref{rule:pill-alpha}) to rename restricted variables via $\alpha$-equivalence prior to a transition. In paper-based presentations, $\alpha$-equivalence is often handled implicitly through Barendregt's Variable Convention. In a mechanised setting, however, reasoning over named variables requires freshness conditions, capture-avoiding substitution, and explicit renaming lemmas, introducing substantial proof overhead \citep{A05,C12}. As discussed in \cref{sec:binding-architecture}, this motivates the use of a different binding representation for the syntax of \pill{}, one designed to reduce explicit $\alpha$-equivalence reasoning and simplify the treatment of bound variables.
+The operational semantics rely explicitly on the structural equivalence (\cref{rule:pill-alpha}) to rename restricted variables via $\alpha$-equivalence prior to a transition. In paper-based presentations, $\alpha$-equivalence is often handled implicitly through Barendregt's Variable Convention. In a mechanised setting, however, reasoning over named variables requires freshness conditions, capture-avoiding substitution, and explicit renaming lemmas, introducing proof overhead \citep{A05,C12}. As discussed in \cref{sec:binding-architecture}, this motivates the use of a different binding representation for the syntax of \pill{}, one designed to reduce explicit $\alpha$-equivalence reasoning and simplify the treatment of bound variables.
 
-Actions are defined in the set $\ActSet = \{\lclose{x}, \lwait{x}, \lsend{x}{y}, \lrecv{x}{y} \mid x, y \text{ names}\}$, representing empty output, empty input, name output, and name input respectively. These come together with the silent label $\tau$ for internal communication and the parallel composition of labels $l \mid l'$ to form the set of transition labels, defined as $\LblSet = \{\tau, l, (\lsync{l}{l'}) \mid l, l' \in \ActSet, \is(l) \cap \is(l') = \emptyset\}$. The restriction imposed on the parallel composition of labels exists to ensure two labels do not introduce the same name, which would break linear resource management.
+Actions are defined in the set $\ActSet = \{\lclose{x}, \lwait{x}, \lsend{x}{y}, \lrecv{x}{y} \mid x, y \text{ names}\}$, representing empty output, empty input, name output, and name input respectively. These come together with the silent label $\tau$ for internal communication and the parallel composition of labels $l \mid l'$ to form the set of transition labels, defined as $\LblSet = \{\tau, l, (\lsync{l}{l'}) \mid l, l' \in \ActSet,~\is(l) \cap \is(l') = \emptyset\}$. The side condition imposed on the parallel composition of labels exists to ensure two labels do not introduce the same name, which would break linear resource management.
 
 The free and introduced names of labels are defined by $\fs(x[]) = \fs(x()) = \fs(x[y]) = \fs(x(y)) = \{x\}$, $\fs(\tau) = \is(\tau) = \emptyset$, and $\fs(l \mid l') = \fs(l) \cup \fs(l')$, and introduced names by $\is(x[]) = \is(x()) = \emptyset$, $\is(x[y]) = \is(x(y)) = \{y\}$, and $\is(l \mid l') = \is(l) \cup \is(l')$. The parallel label $l \mid l'$ additionally requires $\is(l) \cap \is(l') = \emptyset$, ensuring no two components introduce the same name.
 
@@ -641,7 +644,7 @@ Each logical rule (\ref{rule:pill-one},~\ref{rule:pill-bot},~\ref{rule:pill-tens
 \end{figure}
 
 \subsection{Process Semantics and Erasure}\label{subsec:process-semantics-erasure}
-While the typing derivations of \pill{} dictate the valid interactions within a session, the underlying process terms possess a standard, untyped operational behavior that closely mirrors the classic $\pi$-calculus. To formally relate the typed derivations to their untyped execution, we follow \citet{abs-2106-11818} and define an erasure function, $\mathit{proc} : \DerSet \to \mathit{Proc}$, which strips away the typing information from a derivation. Recursively, $\mathit{proc}$ maps the head of a typing derivation to the specific process constructor it introduces, continuing structurally onto the process's continuation. For any well-typed \pill{} term, $proc(\hyp{D})$ effectively extracts the pure process term from the derivation's conclusion.
+While the typing derivations of \pill{} dictate the valid interactions within a session, the underlying process terms possess a standard, untyped operational behavior that closely mirrors the classic $\pi$-calculus. To formally relate the typed derivations to their untyped execution, we follow~\citet{abs-2106-11818} and define an erasure function, $\mathit{proc} : \DerSet \to \mathit{Proc}$, which strips away the typing information from a derivation. Recursively, $\mathit{proc}$ maps the head of a typing derivation to the specific process constructor it introduces, continuing structurally onto the process's continuation. For any well-typed \pill{} term, $proc(\hyp{D})$ effectively extracts the pure process term from the derivation's conclusion.
 
 \begin{figure}[htbp]
 \begin{highlight}
@@ -803,7 +806,7 @@ The process LTS must state freshness and name-disjointness conditions explicitly
 \subsection{Semantics of Typing Environments}\label{subsec:semantics-environments}
 Just as processes evolve through computation, the typing environments that govern them must also evolve to accurately track the state of a session. In \pill, types capture communication protocols. Consequently, the transition rules for typing environments specify exactly which actions are permitted and how the available resources are consumed by those actions. 
 
-Similar to how we defined the process erasure function, we again follow \citet{abs-2106-11818} and define a function $env : \DerSet \to \mathit{Env}$ that maps a valid typing derivation directly to the hyperenvironment in its conclusion (i.e., {$env(\judge{}{P}{\hyp{G}}) = \thl{\hyp{G}}$}). Using this extraction,~\citet{abs-2106-11818} derive a LTS specifically for typing environments ($\mlts{e}$), shown in~\cref{fig:mpill-sos-types}.
+Similar to how we defined the process erasure function, we again follow~\citet{abs-2106-11818} and define a function $env : \DerSet \to \mathit{Env}$ that maps a valid typing derivation directly to the hyperenvironment in its conclusion (i.e., {$env(\judge{}{P}{\hyp{G}}) = \thl{\hyp{G}}$}). Using this extraction,~\citet{abs-2106-11818} derive a LTS specifically for typing environments ($\mlts{e}$), shown in~\cref{fig:mpill-sos-types}.
 
 \begin{figure}[htbp] % Taken directly from \cite{abs-2106-11818}
 \begin{highlight}
