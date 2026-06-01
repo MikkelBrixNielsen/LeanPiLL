@@ -1,10 +1,10 @@
-\section{Binding Architecture}\label{sec:binding-architecture}
+\section{Binding architecture}\label{sec:binding-architecture}
 This chapter develops the locally nameless binding architecture used 
 throughout the formalisation. We begin by stating the design goals that 
 motivate the approach~(\cref{subsec:design-goals}), then introduce the 
 locally nameless representation and its core operations~(\cref{subsec:locally-nameless,subsec:opening-and-closing}), and conclude with co-finite quantification~(\cref{subsec:co-finite-quantification}), which governs how inductive definitions interact with binders.
 
-\subsection{Design Goals and the Approach}\label{subsec:design-goals} % 3.1
+\subsection{Design goals and the approach}\label{subsec:design-goals} % 3.1
 This chapter introduces the binding representation used throughout the formalisation. The representation is motivated by three primary design goals:
 
 \begin{enumerate}
@@ -19,7 +19,7 @@ Although both channel names and type variables involve binding, they have differ
 
 The remainder of this chapter develops the operations required by this representation. In place of explicit $\alpha$-equivalence reasoning, the formalisation must establish properties of opening, closing, local closure, and freshness. These obligations are subsequently reflected in the typing relation and in the metatheoretic proofs.
 
-\subsection{The Locally Nameless Representation}\label{subsec:locally-nameless} % 3.2
+\subsection{The locally nameless representation}\label{subsec:locally-nameless} % 3.2
 The locally nameless representation, as presented by \citet{C12}, separates variables into two disjoint syntactic categories: free names and bound indices. This combines the readability of named syntax for free variables with a structural representation of binding.
 
 \begin{enumerate}
@@ -29,7 +29,7 @@ The locally nameless representation, as presented by \citet{C12}, separates vari
 
 By structurally separating these two concepts, the locally nameless approach simplifies standard operations such as capture-avoiding substitution. Since free variables and bound variables inhabit distinct syntactic categories, substitution on free variables is defined to not interact with bound indices. We apply this theory to both the structural and operational layers of \pill{}.
 
-\paragraph{LN Syntax for Types}\label{par:ln-syntax-types}
+\paragraph{LN syntax for types}\label{par:ln-syntax-types}
 In the original presentation of \pill{}, polymorphic types rely on standard named variables. Under the locally nameless architecture, we expand the syntax of type variables to explicitly distinguish between free and bound occurrences. The grammar for types is updated as follows:
 \begin{highlight}
 \[
@@ -41,7 +41,7 @@ In the original presentation of \pill{}, polymorphic types rely on standard name
 Here, a free type variable carries a unique identifier $\alpha$, while a bound type variable carries a de Bruijn index $k$. For example, the polymorphic type $\thl{\forall X. \exists Y. (X \parr Y)}$ is structurally represented without names using the new syntax as $\thl{\forall. \exists. (\text{bound}(1) \parr \text{bound}(0))}$, where $0$ points to the inner existential binder and $1$ points to the outer universal binder.
 \end{highlight}
 
-\paragraph{LN Syntax for Processes.}
+\paragraph{LN syntax for processes.}
 Similarly, the standard process syntax displayed in~\Cref{tab:pill-proc-syntax} is updated to reflect the locally nameless separation of channel endpoints. A channel is split into its bound and free counterparts, where bound channel names are represented by indices, while free channels remain explicit identifiers. This split reflects a semantic distinction: free channel names are observable, appearing in transition labels and typing environments, while bound names are purely structural. Renaming a bound variable never changes the behaviour of a process, whereas renaming a free channel can alter which sessions it participates in. The locally nameless representation makes this distinction explicit by construction.
 
 Naively removing the bound names from the process syntax would turn binding operations such as {$\phl{\send{x}{y}{P}}$} and {$\phl{\recv{x}{y}{P}}$} into {$\phl{\send{x}{}{P}}$} and {$\phl{\recv{x}{}{P}}$} making them syntactically indistinguishable from their non-binding unit counterparts. To combat this we annotate anonymous binders using placeholder symbols. We use $\bullet$ for a bound process name, and $\diamond$ for a bound type variable.
@@ -59,7 +59,7 @@ While the visual anonymity of these constructors is evident from the grammar, th
 
 While the locally nameless architecture avoids explicit reasoning up to $\alpha$-equivalence for bound occurrences, it requires specialised operations for moving between abstracted and instantiated forms. In particular, substitution, typing, and transitions under binders depend on formally defining opening and closing operations.
 
-\subsection{Opening and Closing Binders}\label{subsec:opening-and-closing} % 3.3
+\subsection{Opening and closing binders}\label{subsec:opening-and-closing} % 3.3
 Because the locally nameless representation separates free and bound variables, standard substitution cannot be applied uniformly under binders. Instead, moving between bound and free representations is handled by two dual operations, namely \emph{opening} and \emph{closing} \citep{C12}.
 
 \paragraph{Opening (Instantiation)} 
@@ -73,17 +73,17 @@ When the opening operation encounters an existing free name ${\text{free}(y)}$, 
 
 In the operational semantics, a continuation under a single channel binder, such as the input prefix {$\phl{\recv{z}{\bullet}{P}}$}, is instantiated with a concrete channel name $x$ by opening {$\phl{P}$} as $\phl{\{0 \mapsto x\}P}$. For a restriction {$\phl{\res{(\bullet, \bullet)}{P}}$}, the two bound endpoint occurrences are instantiated with channel names $x$ and $y$ using the corresponding two-binder opening operation, written here as {$\phl{\{0 \mapsto x\}(\{1 \mapsto y\}P)}$}.
 
-\paragraph{Closing (Abstraction)} Closing is the companion abstraction operation to opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted {$\phl{\{k \mapsfrom x\}P}$}. While recursing, bound indices are ignored as they cannot contain free names. When the recursion encounters a free term like $\phl{\text{free}(y)}$, it is checked if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$.
+\paragraph{Closing (abstraction)} Closing is the companion abstraction operation to opening. It is the operation of taking an open term and abstracting a specific free name $x$ into a bound index at depth $k$, denoted {$\phl{\{k \mapsfrom x\}P}$}. While recursing, bound indices are ignored as they cannot contain free names. When the recursion encounters a free term like $\phl{\text{free}(y)}$, it is checked if $y = x$. If they match, the free name is replaced by $\phl{\text{bound}(k)}$.
 
 This operation is primarily used when constructing new binders, such as moving a free channel into a restricted scope. To close multiple free names simultaneously, such as abstracting $x$ and $y$ into a restriction, the operations are applied sequentially, by first closing $y$ at depth $k+1$, followed by closing $x$ at depth $k$.
 
-\paragraph{Locally Closed Terms} The separation of names and indices introduces a new syntactic anomaly, namely that a term can contain a \emph{dangling} index that does not point to any enclosing binder. For example, the process term {$\phl{\send{\text{bound}(0)}{}{\nil}}$} is syntactically valid, matching the syntax for an empty send, but mathematically it is meaningless because the index $0$ has no corresponding binder.
+\paragraph{Locally closed terms} The separation of names and indices introduces a new syntactic anomaly, namely that a term can contain a \emph{dangling} index that does not point to any enclosing binder. For example, the process term {$\phl{\send{\text{bound}(0)}{}{\nil}}$} is syntactically valid, matching the syntax for an empty send, but mathematically it is meaningless because the index $0$ has no corresponding binder.
 
 To exclude such terms, the locally nameless representation introduces the predicate of being \emph{locally closed}, denoted {$\mathit{lc}(\phl{P})$}. A term is locally closed if and only if all of its de Bruijn indices are bound by enclosing constructors. Local closure therefore characterises the well-scoped fragment of the process syntax.
 
 This predicate forms a key invariant throughout the mechanisation. Operations that manipulate syntax under binders, such as substitution and transitions, must either be shown to preserve local closure directly or be used in a context where local closure can be recovered. In the typing development, this connection is established through regularity: every valid typing derivation produces a locally closed process. Consequently, later arguments about typed transitions may obtain well-scopedness from typing rather than reproving it independently for each intermediate process.
 
-\subsection{Co-finite Quantification}\label{subsec:co-finite-quantification} % 3.4
+\subsection{Co-finite quantification}\label{subsec:co-finite-quantification} % 3.4
 With the syntax partitioned into names and indices, and the mechanics of opening and closing established, the remaining design question is how binder-sensitive inductive relations, in particular typing judgements, should expose fresh names.
 
 In paper-based proofs, when a rule requires opening a binder, Barendregt's Variable Convention allows the author to state: \emph{pick a fresh name $x$}. In a proof assistant, this informal choice must instead be represented explicitly in the constructors of the relevant inductive relations. Two standard formulations introduce difficulties for mechanised proofs~\citep{A08,C12}:

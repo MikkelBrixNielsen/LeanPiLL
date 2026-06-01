@@ -1,14 +1,113 @@
 \babel@toc {british}{}\relax 
 \babel@toc {danish}{}\relax 
 \babel@toc {british}{}\relax 
-\contentsline {section}{\numberline {1}Future Work}{3}{section.1}%
-\contentsline {paragraph}{Completing the remaining proof case}{3}{section*.4}%
-\contentsline {paragraph}{Co-finite quantification in ProcStep}{3}{section*.5}%
-\contentsline {paragraph}{Proof automation}{3}{section*.6}%
-\contentsline {subsection}{\numberline {1.1}Extending to full {\upshape $\pi $LL\xspace }\xspace {}}{3}{subsection.1.1}%
-\contentsline {subsection}{\numberline {1.2}Structural congruence}{4}{subsection.1.2}%
-\contentsline {subsection}{\numberline {1.3}Readiness, productivity and behavioural metatheory}{5}{subsection.1.3}%
-\contentsline {paragraph}{Readiness}{5}{section*.7}%
-\contentsline {paragraph}{Productivity and potential}{5}{section*.8}%
-\contentsline {paragraph}{Further behavioural results}{5}{section*.9}%
-\contentsline {section}{References}{5}{section*.11}%
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {paragraph}{Motivation and correctness concerns}{3}{section*.4}%
+\contentsline {paragraph}{Why mechanisation}{3}{section*.5}%
+\contentsline {paragraph}{Contributions}{3}{section*.6}%
+\contentsline {paragraph}{Scope of the formalisation.}{4}{section*.7}%
+\contentsline {section}{\numberline {2}Background}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Classical linear logic, CLL}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}The $\pi $-calculus: processes and communication}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Types and propositions-as-sessions correspondence}{6}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Environments, hyperenvironments and judgements}{7}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Operational semantics}{8}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Process semantics and erasure}{11}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Semantics of typing environments}{12}{subsection.2.7}%
+\contentsline {subsection}{\numberline {2.8}Managing bound variables}{13}{subsection.2.8}%
+\contentsline {section}{\numberline {3}Binding architecture}{14}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Design goals and the approach}{14}{subsection.3.1}%
+\contentsline {paragraph}{Representation alternatives}{15}{section*.15}%
+\contentsline {subsection}{\numberline {3.2}The locally nameless representation}{15}{subsection.3.2}%
+\contentsline {paragraph}{LN syntax for types}{15}{section*.16}%
+\contentsline {paragraph}{LN syntax for processes.}{16}{section*.17}%
+\contentsline {subsection}{\numberline {3.3}Opening and closing binders}{16}{subsection.3.3}%
+\contentsline {paragraph}{Opening (Instantiation)}{16}{section*.18}%
+\contentsline {paragraph}{Closing (abstraction)}{17}{section*.19}%
+\contentsline {paragraph}{Locally closed terms}{17}{section*.20}%
+\contentsline {subsection}{\numberline {3.4}Co-finite quantification}{17}{subsection.3.4}%
+\contentsline {paragraph}{Choice of freshness discipline}{18}{section*.21}%
+\contentsline {paragraph}{Application to {\upshape $\pi $LL\xspace }\xspace {} types}{18}{section*.22}%
+\contentsline {paragraph}{Application to {\upshape $\pi $LL\xspace }\xspace {} channels}{18}{section*.23}%
+\contentsline {section}{\numberline {4}Formalisation}{19}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Model}{19}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}Session types}{19}{subsubsection.4.1.1}%
+\contentsline {paragraph}{Duality}{20}{section*.25}%
+\contentsline {paragraph}{Local closure}{20}{section*.26}%
+\contentsline {paragraph}{Shifting}{21}{section*.27}%
+\contentsline {paragraph}{Substitution}{21}{section*.28}%
+\contentsline {paragraph}{Notation}{22}{section*.29}%
+\contentsline {subsubsection}{\numberline {4.1.2}Processes}{22}{subsubsection.4.1.2}%
+\contentsline {paragraph}{Opening and closing}{23}{section*.30}%
+\contentsline {paragraph}{Local closure}{24}{section*.31}%
+\contentsline {paragraph}{Free names and freshness}{25}{section*.32}%
+\contentsline {paragraph}{Substitution}{26}{section*.33}%
+\contentsline {paragraph}{Type shifting}{26}{section*.34}%
+\contentsline {paragraph}{Structural properties}{27}{section*.35}%
+\contentsline {paragraph}{Notation}{27}{section*.36}%
+\contentsline {subsubsection}{\numberline {4.1.3}Environments}{27}{subsubsection.4.1.3}%
+\contentsline {paragraph}{Recovering the PCM structure}{27}{section*.37}%
+\contentsline {paragraph}{Server usability}{28}{section*.38}%
+\contentsline {paragraph}{Lifted operations}{28}{section*.39}%
+\contentsline {subsubsection}{\numberline {4.1.4}Hyperenvironments}{29}{subsubsection.4.1.4}%
+\contentsline {paragraph}{Deep permutation}{29}{section*.40}%
+\contentsline {paragraph}{Well-formedness}{29}{section*.41}%
+\contentsline {paragraph}{Lifted operations}{30}{section*.42}%
+\contentsline {subsubsection}{\numberline {4.1.5}Typing judgements}{30}{subsubsection.4.1.5}%
+\contentsline {paragraph}{Type-binder depth}{30}{section*.43}%
+\contentsline {paragraph}{Exchange and explicit side conditions}{30}{section*.44}%
+\contentsline {paragraph}{Co-finite quantification}{31}{section*.45}%
+\contentsline {paragraph}{Structural invariants}{31}{section*.46}%
+\contentsline {paragraph}{Substitution}{32}{section*.47}%
+\contentsline {subsection}{\numberline {4.2}Semantics}{32}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Labels}{33}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}The typed transition system}{33}{subsubsection.4.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.3}Projected transition systems}{34}{subsubsection.4.2.3}%
+\contentsline {paragraph}{Process steps}{34}{section*.48}%
+\contentsline {paragraph}{Environment steps}{35}{section*.49}%
+\contentsline {section}{\numberline {5}Metatheory}{35}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Session fidelity}{35}{subsection.5.1}%
+\contentsline {paragraph}{Erasure simulations}{35}{section*.50}%
+\contentsline {paragraph}{Typability}{36}{section*.51}%
+\contentsline {paragraph}{The res case}{36}{section*.52}%
+\contentsline {paragraph}{Subject reduction}{37}{section*.53}%
+\contentsline {paragraph}{Interpretation}{37}{section*.54}%
+\contentsline {section}{\numberline {6}Discussion}{38}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Proof architecture}{38}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Proof-engineering trade-offs}{38}{subsection.6.2}%
+\contentsline {paragraph}{Summary of shifted proof obligations}{39}{section*.55}%
+\contentsline {subsection}{\numberline {6.3}Structural congruence}{39}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Current limitations}{40}{subsection.6.4}%
+\contentsline {section}{\numberline {7}Future work}{40}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Completing session fidelity for {\upshape $\pi $MLL\xspace }\xspace {}}{40}{subsection.7.1}%
+\contentsline {paragraph}{Completing the remaining proof case}{40}{section*.57}%
+\contentsline {paragraph}{Co-finite process transitions}{41}{section*.58}%
+\contentsline {paragraph}{Proof automation}{41}{section*.59}%
+\contentsline {subsection}{\numberline {7.2}Extending to full {\upshape $\pi $LL\xspace }\xspace {}}{41}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Structural congruence}{42}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Readiness, productivity and behavioural metatheory}{42}{subsection.7.4}%
+\contentsline {paragraph}{Readiness}{42}{section*.60}%
+\contentsline {paragraph}{Productivity and potential}{43}{section*.61}%
+\contentsline {paragraph}{Further behavioural results}{43}{section*.62}%
+\contentsline {section}{\numberline {8}Conclusion}{43}{section.8}%
+\contentsline {section}{References}{44}{section*.64}%
+\contentsline {section}{\numberline {A}Code availability}{45}{section.A}%
+\contentsline {section}{\numberline {B}Lean file structure}{45}{section.B}%
+\contentsline {section}{\numberline {C}Common Lean notation}{45}{section.C}%
+\contentsline {paragraph}{Type classes}{46}{section*.65}%
+\contentsline {paragraph}{Type notation}{47}{section*.66}%
+\contentsline {paragraph}{Process notation}{47}{section*.67}%
+\contentsline {paragraph}{Label notation}{48}{section*.68}%
+\contentsline {section}{\numberline {D}Selected core definitions}{49}{section.D}%
+\contentsline {subsection}{\numberline {D.1}Session types}{49}{subsection.D.1}%
+\contentsline {subsection}{\numberline {D.2}Processes}{49}{subsection.D.2}%
+\contentsline {subsection}{\numberline {D.3}Judgements}{50}{subsection.D.3}%
+\contentsline {subsection}{\numberline {D.4}Transition labels}{52}{subsection.D.4}%
+\contentsline {subsection}{\numberline {D.5}Transition systems}{53}{subsection.D.5}%
+\contentsline {section}{\numberline {E}Session fidelity theorems}{57}{section.E}%
+\contentsline {section}{\numberline {F}Selected proof infrastructure}{58}{section.F}%
+\contentsline {paragraph}{Freshness bridge lemmas}{58}{section*.69}%
+\contentsline {paragraph}{Typing inversion}{59}{section*.70}%
+\contentsline {paragraph}{Hyperenvironment extraction}{60}{section*.71}%
+\contentsline {paragraph}{Typed-transition name bounds}{60}{section*.72}%
+\contentsline {paragraph}{Block preservation lemmas}{60}{section*.73}%

@@ -5,19 +5,19 @@ In this setting, linear logic captures resource-sensitive reasoning, while sessi
 
 This line of work has been further developed by~\citet{abs-2106-11818}, who provide a unified account reconciling linear logic, the $\pi$-calculus, and their metatheory. Their framework serves as the formal basis for the system \pill{} considered in this thesis.
 
-\paragraph{Motivation and correctness concerns.}
+\paragraph{Motivation and correctness concerns}
 Although these theoretical correspondences provide a precise account of the relationship between proofs, types, and processes, their paper-based presentations are prone to subtle errors. In particular, applications of inference rules in linear logic and session-typed systems may rely on ordering conventions, freshness assumptions, or intuitive readings of syntax that are not checked mechanically. As a result, small mistakes in how a rule is used can remain difficult to detect in written derivations.
 
 As an illustrative example, a small mistake in the application of a typing rule can arise when the intuitive order of names does not match the formal order imposed by the rule. It is tempting to assign types following the order in which names appear syntactically, but a rule may assign types according to the role each name plays instead. Thus, despite the rule itself being correct, its application is easy to get wrong because the intuitive and formal interpretations pull in opposite directions. Such mistakes do not reflect a flaw in the underlying theory, but they are easy to overlook in paper-based presentations where rule application is guided by intuition rather than by strict syntactic structure. This makes the system a natural candidate for mechanisation, since in proof assistants such as Lean, every rule application must instantiate the required variables and side conditions explicitly.
 
 These observations motivate a more disciplined approach to formal reasoning, where correctness is ensured by construction rather than by inspection.
 
-\paragraph{Why mechanisation.}
+\paragraph{Why mechanisation}
 Mechanisation provides a means of bridging this gap. Rather than extending the underlying theory, the goal of mechanisation in this work is to validate and internalise existing results within a proof assistant. This allows us to eliminate ambiguity arising from paper-based presentation and to ensure that all derivations are checked with respect to the system's formal semantics.
 
 % Moreover, mechanised developments have repeatedly demonstrated their ability to uncover small but meaningful inconsistencies in paper proofs, supporting the view that proof assistants serve as a valuable tool for verifying, rather than merely implementing, theoretical frameworks.
 
-\paragraph{Contributions.}
+\paragraph{Contributions}
 In this thesis, we present a mechanised formalisation of the $\pi$-calculus-based linear logic system \pill{} as developed by Montesi and Peressotti, with particular emphasis on its multiplicative fragment. The contributions are as follows:
 
 \begin{itemize}

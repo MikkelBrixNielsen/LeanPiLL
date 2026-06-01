@@ -1,7 +1,7 @@
 \section{Metatheory}\label{sec:metatheory}
 This section describes the metatheoretic results for the typed, process, and environment transition systems defined in \cref{subsec:semantics}. The development is contained in the \path{SessionFidelity/} namespace and concerns the mechanised \pimll{} fragment.
 
-\subsection{Session Fidelity}\label{subsec:session-fidelity}
+\subsection{Session fidelity}\label{subsec:session-fidelity}
 Session fidelity states that well-typed processes evolve according to their session types and that their associated linear resources evolve consistently with each process transition. The mechanisation establishes the two projection results from typed transitions to process and environment transitions. The converse lifting direction is developed through typability subject reduction, with its remaining proof obligation isolated to the \texttt{res} case. Completing this case would finalise the typability-preservation result for the multiplicative fragment.
 
 \paragraph{Erasure simulations} As shown by \citet[Theorem~4.7]{abs-2106-11818}, erasure induces a strong bisimulation between $\mlts{p}$ and $\mlts{d}$. The mechanisation currently establishes the projections from typed derivation steps to their process and environment behaviours. The files \path{ProcStep.lean} and \path{EnvStep.lean} contain the corresponding theorems: \texttt{session\_fidelity\_proc}$_\texttt{m}$ projects a typed transition to a process transition, while \texttt{session\_fidelity\_env}$_\texttt{m}$ projects it to an environment transition. The former corresponds to the forward direction of the erasure result of \citet{abs-2106-11818}, while the latter corresponds to their derivation-level session-fidelity property.
@@ -38,7 +38,7 @@ This theorem forms the technical core of the converse lifting direction. Its pro
 
 The proof has two main technical obligations. First, it must reconcile the concrete freshness witnesses used by \texttt{ProcStep}$_\texttt{m}$ with the co-finite premises of the typing rules. For example, a process transition fixes a concrete name introduced by a prefix, while the corresponding typing rule provides derivations uniformly for all names outside some finite set. Auxiliary \emph{all fresh} lemmas bridge this gap by showing that the co-finite premise can be instantiated with the concrete name appearing in the process step. Second, in the \path{one_bot}, \path{tensor_parr} and \path{res} cases, the proof must rearrange hyperenvironments to expose the components containing the communicating endpoints. In particular, transition under restriction requires opening the restricted process with fresh endpoints, applying the induction hypothesis to the opened body, and reconstructing the target hyperenvironment up to permutation. This reconstruction remains unsolved for the \path{res} case.
 
-\paragraph{The res Case}
+\paragraph{The res case}
 The remaining incomplete case is \texttt{res}. Inverting the source typing derivation exposes the body of the restriction under two fresh dual endpoints, yielding a co-finite premise of the form:
 \begin{highlight}
 \[

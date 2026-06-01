@@ -4,7 +4,7 @@ This section describes the mechanisation of \pill{} in Lean 4, bridging the theo
 \subsection{Model}\label{subsec:model}
 The \texttt{Model} namespace formalises the static structure of the full \pill{} calculus and is organised around the layered architecture introduced in~\cref{sec:background}. The mechanisation proceeds bottom-up: session types, defined in \texttt{STypes/}, provide the binding structure used by processes in \texttt{Processes/}, processes are then typed relative to environments and hyperenvironments from \texttt{Environments/} and \texttt{HyperEnvironment/}, finally, typing derivations and their metatheoretic infrastructure are collected in \texttt{Judgement/}. This includes inversion lemmas, linearity properties, substitution principles, and the co-finite freshness machinery described in~\cref{subsec:co-finite-quantification}. Shared syntactic infrastructure used across these layers is provided by \texttt{Base.lean}. An overview of the file structure can be found in \cref{lst:lean-file-structure}.
 
-\subsubsection{Session Types}\label{subsubsec:stypes}
+\subsubsection{Session types}\label{subsubsec:stypes}
 Session types are defined in \path{STypes/Basic.lean} as the inductive datatype \texttt{Types}, representing raw session-type expressions. Well-scoped use of bound type variables is characterised separately through local closure; this condition is incorporated into the mechanised typing judgement introduced in \cref{subsubsec:judgements} and later shown to be preserved by typing derivations. Following the representation strategy established in \cref{sec:binding-architecture}, type variables are isolated into a separate inductive type, \texttt{TVar}, which explicitly distinguishes between free and bound occurrences:
 
 \begin{lstlisting}[language=Lean4]
@@ -300,7 +300,7 @@ def Proc.shiftTypes (d c : Nat) : Proc /-$\to$-/ Proc
   | ...
 \end{lstlisting}
 
-\paragraph{Structural Properties}
+\paragraph{Structural properties}
 \path{Processes/Lemmas.lean} establishes the fundamental structural properties required by the later typing and operational metatheory. The lemmas fall into three groups.
 
 The first group supports the typing invariants. The lemmas
@@ -439,7 +439,7 @@ Together, these predicates enforce global linearity in that every channel appear
 
 \paragraph{Lifted operations} Type shifting, name substitution, and type substitution are lifted pointwise from environments to hyperenvironments. The accompanying lemmas in \path{HyperEnvironment/Lemmas/Basic.lean} establish how these operations interact with the structural properties required later, including names, disjointness, pairwise disjointness, and deep permutation. Since the definitions follow uniformly from their environment-level counterparts, they are omitted here and included in the accompanying Lean archive.
 
-\subsubsection{Typing Judgements}\label{subsubsec:judgements}
+\subsubsection{Typing judgements}\label{subsubsec:judgements}
 The typing relation is defined in \path{Judgement/Basic.lean} as the inductive predicate \texttt{Typing}:
 
 \begin{lstlisting}[language=Lean4]
@@ -560,7 +560,7 @@ inductive Lbl : Type
 
 The label notation is overloaded through the \texttt{HasBracket} and \texttt{HasParen} typeclasses. Since labels record concrete observable actions, their subjects are free process names rather than locally nameless channels. The overloading is therefore confined to the label language. Bracketed and parenthesised labels are distinguished by the type of their arguments, allowing empty communication, channel transmission, type communication, and server actions to share a compact notation. The corresponding notation instances are given in \cref{lst:app-lean-label-notation}.
 
-\subsubsection{The Typed Transition System}\label{subsubsec:judgementstep}
+\subsubsection{The typed transition system}\label{subsubsec:judgementstep}
 The primary LTS, \texttt{TypingStep}$_{\texttt{m}}$, is a relation between typing derivations. Its constructors mirror the operational rules shown in \cref{fig:mpill-sos}, but make every transition intrinsically typed by relating a source typing derivation to a target typing derivation.
 
 \begin{lstlisting}[language=Lean4]
@@ -587,7 +587,7 @@ The post-state disjointness proof \texttt{hD2} is included explicitly as a proof
 
 Strictly stepping typing derivations can expose structural artefacts that are usually hidden in the paper presentation. For example, in \cref{fig:cut-unit-trans}, the intermediate derivation is typed by $\thl{\emptyhyp \pp [\cht{y}{1}]}$ rather than simply $\thl{\cht{y}{1}}$, because the~\ref{rule:pill-mix} rule preserves the empty component contributed by the terminated left process. In Lean, this corresponds to a \texttt{Typing.mix} constructor containing a \texttt{Typing.mix}$_\texttt{0}$ sub-derivation. The result is valid, but reducing it to the canonical form requires applying the monoidal identity laws of the hyperenvironment explicitly, rather than by definitional equality. The final $\equiv$ step in the figure, which additionally uses process congruence to identify $\phl{\nil \pp_p \nil}$ with $\phl{\nil}$, is not currently automated because structural congruence has not been mechanised. This limitation is discussed further in \cref{sec:discussion}.
 
-\subsubsection{Projected Transition Systems}\label{subsubsec:inducedlts}
+\subsubsection{Projected transition systems}\label{subsubsec:inducedlts}
 The process and environment transition systems are defined to capture the two erasure views of a typed transition. \texttt{ProcStep}$_\texttt{m}$ records the process behaviour obtained by forgetting typing resources, while \texttt{EnvStep}$_\texttt{m}$ records the corresponding resource evolution. These relations are later connected to \texttt{TypingStep}$_\texttt{m}$ by the simulation theorems in \cref{subsec:session-fidelity}.
 
 \paragraph{Process steps}
