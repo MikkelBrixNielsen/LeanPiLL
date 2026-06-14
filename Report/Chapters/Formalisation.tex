@@ -303,24 +303,9 @@ def Proc.shiftTypes (d c : Nat) : Proc /-$\to$-/ Proc
 \paragraph{Structural properties}
 \path{Processes/Lemmas.lean} establishes the fundamental structural properties required by the later typing and operational metatheory. The lemmas fall into three groups.
 
-The first group supports the typing invariants. The lemmas
-\path{Proc.f_open_erase} and \path{Proc.f_open_two_erase} establish that
-opening a process with fresh names and then erasing those names from its
-free-name set recovers the original free names. They are used in the proof
-of \path{Typing_f_eq_names}. The lemmas \path{Proc.lc_of_open_gen} and
-\path{Proc.lc_of_open_two} show that opening a locally closed abstraction
-with locally closed names yields a locally closed process. They therefore
-support the proof of \path{Typing_preserves_lc_proc}, which establishes that
-well-typed processes are locally closed.
+The first group supports the typing invariants. The lemmas \path{Proc.f_open_erase} and \path{Proc.f_open_two_erase} establish that opening a process with fresh names and then erasing those names from its free-name set recovers the original free names. They are used in the proof of \path{Typing_f_eq_names}. The lemmas \path{Proc.lc_of_open_gen} and \path{Proc.lc_of_open_two} show that opening a locally closed abstraction with locally closed names yields a locally closed process. They therefore support the proof of \path{Typing_preserves_lc_proc}, which establishes that well-typed processes are locally closed.
 
-The second group supports the substitution lemmas. The lemmas
-\path{Proc.open_substNames_comm} and \path{Proc.openCut_substNames_comm}
-establish that opening commutes with name substitution. Their counterparts
-for type substitution, \path{Proc.open_substTypes_comm} and
-\path{Proc.openCut_substTypes_comm}, establish the analogous property for
-substitution of types under binders. These results are used in the
-typability proof, where co-finite witnesses from the typing rules must be
-reconciled with the concrete names introduced by process transitions.
+The second group supports the substitution lemmas. The lemmas \path{Proc.open_substNames_comm} and \path{Proc.openCut_substNames_comm} establish that opening commutes with name substitution. Their counterparts for type substitution, \path{Proc.open_substTypes_comm} and \path{Proc.openCut_substTypes_comm}, establish the analogous property for substitution of types under binders. These results are used in the typability proof, where co-finite witnesses from the typing rules must be reconciled with the concrete names introduced by process transitions.
 
 The final group concerns freshness under opening. The lemma \path{Proc.not_mem_f_open} shows that opening introduces only the selected name. Thus, a different name that is absent from the original process remains absent from the opened continuation. This fact is used later when transitions and typing proofs reason about opened binder bodies under freshness side conditions.
 

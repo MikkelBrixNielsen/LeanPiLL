@@ -254,7 +254,7 @@ theorem typability_subject_reductionₘ
         hTS_post'
       have hTS_final := TypingStepₘ.perm_hyper hP_rw HyperEnv.Perm_refl hTS_raw
       exact ⟨_, _, hTS_final⟩
-  case res Q Q' l' x y hxy hFx hFy hlx hly hES ih =>
+  case res Q Q' l' x y hxy hFx hFy hlx hly hPS ih =>
     have ⟨A, Γ, Δ, ℋ, L, hP, 𝒟'⟩ := Typing_inv_res 𝒟
     have hNames := Typing_f_eq_names 𝒟
     simp only [Proc.f_cut, HyperEnv.names_eq_of_perm hP, HyperEnv.names_merge, HyperEnv.names_cons,

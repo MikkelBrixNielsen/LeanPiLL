@@ -1,4 +1,5 @@
--- import PiLL.Model.Process
+import PiLL.Model.Processes.Lemmas
+
 -- FIXME: / TODO: Update imports and show AlphaEq collapse to structural Eq
 /-
   Alpha Equivalance becomes structural equality when using De Brujin / LN. Processes
@@ -8,6 +9,42 @@
   AlphaEq.symm : P = Q → Q = P hold by Eq.symm
   AlphaEq.trans : P = Q, Q = R → P = R hold by Eq.trans
 -/
+
+lemma Proc.alpha_rename_one
+    {P : Proc} {x y : FPName}
+    (hy : y ∉ P.f) :
+    P⸨#x⸩ = P⸨#y⸩{x // y} := by
+  exact Proc.open_substNames_intro
+    (P := P) (w := y) (z := x) hy
+
+lemma Proc.alpha_rename_by_closing
+    {P : Proc} {x y : FPName} {n : Nat}
+    (hy : y ∉ P.f)
+    (hlc : P.lc 0 n) :
+    P⟪x⟫⸨#y⸩ = P{y // x} := by
+  exact Proc.close_open_eq_substNames
+    (P := P) (x := x) (y := y) (k := 0) (n := n) hy hlc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- abbrev Renaming := PName → PName
 

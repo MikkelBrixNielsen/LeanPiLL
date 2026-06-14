@@ -7,7 +7,7 @@
     acmthm, % Load ACM's theorem styles
     natbib, % Loads natbib and citation commands
     screen, % Coloured hyperlinks
-    % review, % Adds line numbers
+    review, % Adds line numbers
     nonacm, % Removes ACM footers and branding
 ]{acmart}
 \setlength{\marginparwidth}{2cm}
@@ -103,6 +103,36 @@
 
 \title[Formalising \texorpdfstring{$\pi$}{pi}LL in Lean]{Formalising \texorpdfstring{$\pi$}{pi}LL in Lean}
 
+\usepackage[most]{tcolorbox}
+
+\definecolor{lightgreybg}{HTML}{EEEEEE}
+\definecolor{lightbluebg}{HTML}{CFD9FB}
+
+\newtcolorbox{greybox}{
+  colback=lightgreybg,
+  colframe=lightgreybg,
+  boxrule=0pt,
+  arc=0pt,
+  left=6pt,
+  right=6pt,
+  top=6pt,
+  bottom=6pt,
+  before skip=8pt,
+  after skip=8pt
+}
+
+\newtcolorbox{bluebox}{
+  colback=lightbluebg,
+  colframe=lightbluebg,
+  boxrule=0pt,
+  arc=0pt,
+  left=6pt,
+  right=6pt,
+  top=6pt,
+  bottom=6pt,
+  before skip=8pt,
+  after skip=8pt
+}
 \begin{document}
 
 \begin{titlepage}
@@ -209,5 +239,6 @@ Denne afhandling præsenterer en mekaniseret formalisering af \pill{}, en proces
 \input{Chapters/Conclusion}
 \bibliography{references} % out commenting this breaks references
 \input{Chapters/Appendix}
+% \input{Chapters/Other}
 
 \end{document}

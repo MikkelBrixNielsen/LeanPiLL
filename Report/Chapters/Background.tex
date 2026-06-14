@@ -953,35 +953,35 @@ The input action on $w$ consumes the resource {$\cht{w}{\bot}$}. After this tran
 % \]
 % \end{example}
 
-\subsection{Managing bound variables}\label{subsec:burden-of-bound-variables}
-Having introduced the operational semantics of \pill{} and the session-fidelity property it supports, we now address the treatment of explicitly representing bound names, scopes, and freshness conditions.
+  \subsection{Managing bound variables}\label{subsec:burden-of-bound-variables}
+  Having introduced the operational semantics of \pill{} and the session-fidelity property it supports, we now address the treatment of explicitly representing bound names, scopes, and freshness conditions.
 
-Several constructs in \pill{} introduce scoped identifiers. Restriction binds pairs of session endpoints, input binds received channel names, polymorphic communication binds type variables, and duplication introduces a fresh channel endpoint in its continuation. These binding constructs occur throughout the process syntax and the labelled transition system.
+  Several constructs in \pill{} introduce scoped identifiers. Restriction binds pairs of session endpoints, input binds received channel names, polymorphic communication binds type variables, and duplication introduces a fresh channel endpoint in its continuation. These binding constructs occur throughout the process syntax and the labelled transition system.
 
-For bound channel names, the concrete representative chosen for a binder is semantically irrelevant provided that the binding structure is preserved. For example, renaming the two restricted endpoints of a session does not alter the behaviour of a process. However, a formal account of substitution, transitions, and typing derivations must track names, scopes, and freshness conditions explicitly.
+  For bound channel names, the concrete representative chosen for a binder is semantically irrelevant provided that the binding structure is preserved. For example, renaming the two restricted endpoints of a session does not alter the behaviour of a process. However, a formal account of substitution, transitions, and typing derivations must track names, scopes, and freshness conditions explicitly.
 
-This principle is expressed by \emph{$\alpha$-equivalence}, which identifies process terms that differ only in their choice of bound channel names. For instance, the following two processes are $\alpha$-equivalent:
-\begin{highlight}
-%
-\[
-\phl{\res{ab}{(\send{a}{}{\nil} \pp \recv{b}{}{\send{x}{}{\nil}})}}
-\aleq
-\phl{\res{zw}{(\send{z}{}{\nil} \pp \recv{w}{}{\send{x}{}{\nil}})}}
-\]
-%
-\end{highlight}
-The operational semantics of \pill{} uses $\alpha$-equivalence through \cref{rule:pill-alpha}, allowing bound names to be changed before a transition when necessary to avoid capture.
+  This principle is expressed by \emph{$\alpha$-equivalence}, which identifies process terms that differ only in their choice of bound channel names. For instance, the following two processes are $\alpha$-equivalent:
+  \begin{highlight}
+  %
+  \[
+  \phl{\res{ab}{(\send{a}{}{\nil} \pp \recv{b}{}{\send{x}{}{\nil}})}}
+  \aleq
+  \phl{\res{zw}{(\send{z}{}{\nil} \pp \recv{w}{}{\send{x}{}{\nil}})}}
+  \]
+  %
+  \end{highlight}
+  The operational semantics of \pill{} uses $\alpha$-equivalence through \cref{rule:pill-alpha}, allowing bound names to be changed before a transition when necessary to avoid capture.
 
-Substitution exposes the same issue. Consider replacing the free name $x$ by $z$ in the right-hand process from the preceding example:
-\begin{highlight}
-\[
-  \phl{\res{zw}{(\send{z}{}{\nil} \pp \recv{w}{}{\send{x}{}{\nil}})}} 
-\]
-\end{highlight}
-Here, $z$ is already bound by the restriction, so naively replacing $x$ with $z$ would cause the restriction to capture the newly inserted $z$. 
+  Substitution exposes the same issue. Consider replacing the free name $x$ by $z$ in the right-hand process from the preceding example:
+  \begin{highlight}
+  \[
+    \phl{\res{zw}{(\send{z}{}{\nil} \pp \recv{w}{}{\send{x}{}{\nil}})}} 
+  \]
+  \end{highlight}
+  Here, $z$ is already bound by the restriction, so naively replacing $x$ with $z$ would cause the restriction to capture the newly inserted $z$. 
 
-Since restriction binds session endpoints as pairs, both the bound name $z$ and $w$ must be $\alpha$-renamed to fresh names, such as to $a$ and $b$, before the substitution proceeds. Generally, any binder capturing a substituted free name must be renamed before substitution occurs. 
+  Since restriction binds session endpoints as pairs, both the bound name $z$ and $w$ must be $\alpha$-renamed to fresh names, such as to $a$ and $b$, before the substitution proceeds. Generally, any binder capturing a substituted free name must be renamed before substitution occurs. 
 
-In paper-based presentations, this issue is commonly handled using \emph{Barendregt's variable convention}, under which bound names may be assumed fresh for the free names and other objects relevant to the current argument. This convention keeps paper proofs readable, but it remains an informal meta-level assumption.
+  In paper-based presentations, this issue is commonly handled using \emph{Barendregt's variable convention}, under which bound names may be assumed fresh for the free names and other objects relevant to the current argument. This convention keeps paper proofs readable, but it remains an informal meta-level assumption.
 
-A proof assistant requires each relevant freshness condition and renaming step to be represented and verified explicitly~\citep{A05}. A direct mechanisation using named binders would therefore introduce substantial proof overhead for capture avoidance and reasoning up to $\alpha$-equivalence. The formalisation instead adopts a locally nameless binding architecture, retaining explicit free identifiers while representing bound occurrences by indices. This avoids explicit reasoning up to $\alpha$-equivalence for bound occurrences, while relocating the remaining binder-related obligations to opening, local closure, freshness, and substitution. The following chapter develops this architecture in detail.
+  A proof assistant requires each relevant freshness condition and renaming step to be represented and verified explicitly~\citep{A05}. A direct mechanisation using named binders would therefore introduce substantial proof overhead for capture avoidance and reasoning up to $\alpha$-equivalence. The formalisation instead adopts a locally nameless binding architecture, retaining explicit free identifiers while representing bound occurrences by indices. This avoids explicit reasoning up to $\alpha$-equivalence for bound occurrences, while relocating the remaining binder-related obligations to opening, local closure, freshness, and substitution. The following chapter develops this architecture in detail.

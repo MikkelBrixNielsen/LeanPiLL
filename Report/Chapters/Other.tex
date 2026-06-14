@@ -1,0 +1,247 @@
+\section{Examples}
+
+\begin{figure}[htbp]
+  \begin{highlight}\small 
+  \begin{spreadlines}{\typerulesskipamount}%
+    \begin{gather*}
+    \deduce{
+      \judge{}{P}{\Gamma,\cht{x}{A} \pp \Gamma',\cht{x'}{B}}
+    }{\der{E}} \\
+    \deduce{
+      \infer[\rname{$\tensor$}]
+      {\judge{}{\send{x}{x'}{P}}{\Gamma,\Gamma',\cht{x}{A \tensor B}}}
+      {\judge{}{P}{\Gamma,\cht{x}{A} \pp \Gamma',\cht{x'}{B}}}
+    }{\der{E}} \\
+    \deduce{
+      \infer[\rname{$\tensor$}]
+      {\judge{}{\send{x'}{x}{P}}{\Gamma,\Gamma',\cht{x'}{A \tensor B}}}
+      {\judge{}{P}{\Gamma,\cht{x}{A} \pp \Gamma',\cht{x'}{B}}}
+    }{\der{E}} \\
+    \end{gather*}%
+  \end{spreadlines}%
+  \end{highlight}%
+\end{figure}
+
+\begin{highlight}
+\begin{table}[htbp]  
+    \centering
+    \caption{Comparison of standard, locally nameless, and Lean representations for \pill{} types.}
+    \label{tab:types-comparison}
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{Standard} & \textbf{Locally Nameless} & \textbf{Lean Constructor} & \textbf{Binds} \\
+        \midrule
+        $\thl{A \tensor B}$ & $\thl{A \tensor B}$         & \texttt{| tensor (A B~: Types)} & None \\
+        $\thl{1}$           & $\thl{1}$                   & \texttt{| one}                  & None \\
+        $\thl{\forall X.A}$ & $\thl{\forall. A}$ & \texttt{| forall\_ (A~: Types)} & 1 type \\
+        $\thl{\exists X.A}$ & $\thl{\exists. A}$ & \texttt{| exists\_ (A~: Types)} & 1 type \\
+        $\thl{X}$           & $\thl{X}$                   & \texttt{| var~~~~~(v~: TVar)}       & None \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\end{highlight}
+
+\begin{highlight}
+\[
+  \thl{A}, \thl{B} \Coloneqq
+    \thl{A \tensor B}
+    \mid{} \thl{\one}
+    \mid{} \thl{\exists X.A}
+    \mid{} \thl{X}
+    \mid \dots
+\]
+\end{highlight}
+    
+\begin{highlight}
+\[
+\phl{P}, \phl{Q} \Coloneqq{}
+  \phl{\send{x}{y}{P}}
+  \mid \phl{\close{x}{P}}
+  \mid \phl{\recvtype{x}{A}{P}}
+  \mid \phl{\res{xy}{P}}
+  \mid \dots
+\]
+\end{highlight}
+
+\begin{highlight}
+\begin{greybox}
+\[
+\thl{A \otimes B} \quad \xlongrightarrow{Dual} \quad \thl{A^\bot \parr B^\bot}
+\]
+\end{greybox}
+\end{highlight}
+
+\begin{highlight}
+\begin{greybox}
+\[
+\phl{\send{x}{y}{P}} \quad \text{compatible with} \quad \phl{\recv{z}{y}{Q}}
+\]
+\end{greybox}
+\end{highlight}
+
+\begin{greybox}  
+\begin{highlight} % Taken directly from \cite{abs-2106-11818}
+\begin{gather*}  
+\thl{\Gamma, \emptyseq} = \thl{\Gamma}
+\qquad
+\thl{\Gamma, \Delta} = \thl{\Delta, \Gamma}
+\\
+\thl{(\Gamma, \Delta), \Xi} = \thl{\Gamma, (\Delta , \Xi)}
+\end{gather*}
+\end{highlight}
+
+\begin{highlight} % Taken directly from \cite{abs-2106-11818}
+\begin{gather*}
+  \thl{\hyp G \pp \emptyhyp} = \thl{\hyp G}
+  \qquad
+  \thl{\hyp G \pp \hyp H} = \thl{\hyp H \pp \hyp G}
+  \\
+  \thl{(\hyp G \pp \hyp H) \pp \hyp I} = \thl{\hyp G \pp (\hyp H \pp \hyp I)}
+\end{gather*}
+
+$\cht{x}{A} ~ \thl{\Gamma} ~ \glq ~ \pp_h ~ \hyp{G} \hyp{H}$
+
+\end{highlight}
+\end{greybox}
+
+\texttt{$\times$}
+
+\begin{highlight}
+\begin{table}[htbp]
+\centering
+\caption{Paper and Lean views of typing judgements.}
+\label{tab:typing-slide-comparison}
+\begin{tabular}{lll}
+\toprule
+\textbf{Paper} & \textbf{Lean} & \textbf{Meaning} \
+
+$\thl{\vdash P :: \hyp{G}}$
+\cr \texttt{Typing n P G}
+\cr $P$ uses the resources in $\hyp{G}$ \
+    Typing derivation
+    & \texttt{D : Typing n P G}
+    & Proof object / derivation term \\
+
+    $\thl{\hyp{G}}$
+    & \texttt{HyperEnv}
+    & Available linear channel resources \\
+
+    Structural rules
+    & \texttt{exchange\_env}, \texttt{exchange\_hyper}
+    & Recover unordered paper behaviour \\
+
+    Side conditions
+    & Explicit premises
+    & Freshness and disjointness checked by Lean \\
+    \bottomrule
+\end{tabular}
+\end{table}
+\end{highlight}
+
+\begin{bluebox}
+\hl{$\judge[]{n}{P}{\hyp{G}}$}
+\hl{$\judge[]{}{P}{\hyp{G}}$}
+\end{bluebox}
+\begin{greybox}
+\hl{$\judge[]{n}{P}{\hyp{G}}$}
+\hl{$\judge[]{}{P}{\hyp{G}}$}
+\end{greybox}
+
+% ⊢ 𝑣⸨x, z⸩ ((z⸨⸩) ((y⟦⟧) 𝟘) |ₚ (x⟦⟧) 𝟘) ∷ ∅ |ₕ {∅‚ y ∶ 1}
+% ⊢ ((y⟦⟧․𝟘) |ₚ 𝟘) ∷ y ∶ 1
+
+\def\vlto#1#2{\mspace{6mu}\left\downarrow\vcenter{\hbox to 84ex{$\vcenter{\hbox to 4em{$\mspace{3mu}\scriptstyle #1$\hfill}}\vcenter{\hbox{#2}}\hfill$}}\right.}
+% $\vlto{\lsend{x}{} \pp \lrecv{z}{}}{}$ \\
+
+
+\begin{highlight}
+\noindent$\judge{}{\res{xz}{(\recv{z}{}{\send{y}{}{\nil}} \pp \send{x}{}{\nil})}}{\cht{y}{1}}$ \\
+$\vlto{\tau}{}$ \\
+$\judge[]{}{\send{y}{}{\nil} \pp \nil}{\cht{y}{1}}$
+\end{highlight}
+
+\begin{highlight}
+\[
+  \phl{\res{xz}{(\send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}})}}
+  \;\equiv_\alpha\;
+  \phl{\res{ab}{(\send{a}{}{\nil} \pp \recv{b}{}{\send{y}{}{\nil}})}}
+\]
+\end{highlight}
+
+
+
+\begin{highlight}
+  \begin{gather*}
+    {\phl{P} \defeq \phl{\res{xz}{(\send{x}{}{\nil} \pp \recv{z}{}{\send{y}{}{\nil}})}}} \\
+    \qquad\qquad\qquad\qquad\qquad\qquad\qquad \vlto{}{\qquad\qquad\quad$\uparrow$} \\
+    {\phl{P'} \defeq \phl{\res{(\bullet,\bullet)}{(\send{\$0}{}{\nil} \pp \recv{\$1}{}{\send{\#y}{}{\nil}})}}} \\
+    \qquad\qquad\qquad\qquad\qquad\qquad\qquad \vlto{}{\qquad\qquad\quad$\uparrow$} \\
+    {\phl{Q} \defeq \phl{\res{ab}{(\send{a}{}{\nil} \pp \recv{b}{}{\send{y}{}{\nil}})}}}
+  \end{gather*}
+\end{highlight}
+
+
+\[
+\res{ab}{(\send{a}{}{\nil} \pp \recv{b}{}{\send{x}{}{\nil}})}
+\quad\longmapsto\quad
+\dres{(\send{\$0}{}{\nil} \pp \recv{\$1}{}{\send{\#x}{}{\nil}})}
+\quad\longmapsto\quad
+\res{zw}{(\send{z}{}{\nil} \pp \recv{w}{}{\send{x}{}{\nil}})}
+\]
+
+
+
+
+\begin{figure}[p]
+  \begin{drules}
+  \def\regh{\vphantom{\hyp{G}'\pp\hyp{H}'}}
+  \infer[\rname{MIX-COMM}]
+    {\plto
+      {\deduce
+        {\judge{}{Q \pp P}{\hyp{G}}\regh}
+        {\der{D}}}
+      {l}
+      {\deduce
+        {\judge{}{Q' \pp P'}{\hyp{G}'}\regh}
+        {\der{D}'}}
+    }
+    {\plto
+      {\deduce
+        {\judge{}{P \pp Q}{\hyp{G}}\regh}
+        {\der{E}}}
+      {l}
+      {\deduce
+        {\judge{}{P' \pp Q'}{\hyp{G}'}\regh}
+        {\der{E}'}}
+    }
+  \qquad
+  \def\regh{\vphantom{\hyp{G}'\pp\hyp{H}'}}
+  \infer[\rname{LBL-SYMM}]
+    {\plto
+      {\deduce
+        {\judge{}{P}{\hyp{G}}\regh}
+        {\der{D}}}
+      {\lsync{l'}{l}}
+      {\deduce
+        {\judge{}{P'}{\hyp{G}'}\regh}
+        {\der{D}'}}
+    }
+    {\plto
+      {\deduce
+        {\judge{}{P}{\hyp{G}}\regh}
+        {\der{D}}}
+      {\lsync{l}{l'}}
+      {\deduce
+        {\judge{}{P'}{\hyp{G}'}\regh}
+        {\der{D}'}}
+    }
+  \end{drules}
+\end{figure}
+
+\begin{highlight}
+\[
+\infer[\rname{$\tensor$\textsubscript{LN}}]
+  {\judge{n}{\send{x}{\bullet}{P}}{\Gamma, \Delta, \cht{x}{A \tensor B}}}
+  {\forall \phl{y} \notin L, \quad \judge{n}{P\dparenL y \dparenR}{\Gamma, \cht{y}{A} \pp \Delta, \cht{x}{B}}}
+\]
+\end{highlight}
